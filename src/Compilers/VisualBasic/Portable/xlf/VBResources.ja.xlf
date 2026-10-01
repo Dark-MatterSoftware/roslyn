@@ -37,6 +37,16 @@
         <target state="translated">必要なメンバーがあるため、'{0}' から継承できません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CannotUseByRefInUnmanagedCallersOnly">
+        <source>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</source>
+        <target state="new">A method marked UnmanagedCallersOnly cannot have ByRef parameters.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_CannotUseManagedTypeInUnmanagedCallersOnly">
+        <source>Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</source>
+        <target state="new">Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CommentsAfterLineContinuationNotAvailable1">
         <source>Please use language version {0} or greater to use comments after line continuation character.</source>
         <target state="translated">行連結文字の後のコメントを使用するには、言語バージョン {0} 以上をご使用ください。</target>
@@ -67,9 +77,24 @@
         <target state="translated">更新には明示的なインターフェイス実装を生成する必要があります。これは、アプリケーションを再起動せずにランタイムでサポートされていません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_EntryPointCannotBeUnmanagedCallersOnly">
+        <source>The entry point cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">The entry point cannot be marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">'Experimental' 属性への diagnosticId 引数は有効な識別子である必要があります</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_InvalidUnmanagedCallersOnlyCallConv">
+        <source>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</source>
+        <target state="new">'{0}' is not a valid calling convention for UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly">
+        <source>A module initializer cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">A module initializer cannot be marked UnmanagedCallersOnly.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleInitializerMethodMustBeAccessible">
@@ -192,9 +217,24 @@
         <target state="translated">{0} '{1}' には、共有された抽象または仮想 '{2}' が含まれているため、インターフェイス '{3}' を実装できません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric">
+        <source>UnmanagedCallersOnly methods and their containing types must not be generic.</source>
+        <target state="new">UnmanagedCallersOnly methods and their containing types must not be generic.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly">
+        <source>'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</source>
+        <target state="new">'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_UnmanagedCallersOnlyNotSupported">
         <source>'UnmanagedCallersOnly' attribute is not supported.</source>
         <target state="translated">'UnmanagedCallersOnly' 属性はサポートされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyRequiresShared">
+        <source>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</source>
+        <target state="new">UnmanagedCallersOnly can only be applied to an ordinary Shared method.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnmanagedConstraintNotSatisfied">
@@ -247,9 +287,19 @@
         <target state="translated">オーバーロード解決の優先順位</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SkipLocalsInit">
+        <source>SkipLocalsInit</source>
+        <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">
         <source>unconstrained type parameters in binary conditional expressions</source>
         <target state="translated">バイナリ条件式での非制約型パラメーター</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_UnmanagedCallersOnly">
+        <source>UnmanagedCallersOnly</source>
+        <target state="new">UnmanagedCallersOnly</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnmanagedConstraint">

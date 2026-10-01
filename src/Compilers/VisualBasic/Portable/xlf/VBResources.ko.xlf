@@ -37,6 +37,16 @@
         <target state="translated">필요한 멤버가 있어 '{0}'에서 상속할 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CannotUseByRefInUnmanagedCallersOnly">
+        <source>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</source>
+        <target state="new">A method marked UnmanagedCallersOnly cannot have ByRef parameters.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_CannotUseManagedTypeInUnmanagedCallersOnly">
+        <source>Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</source>
+        <target state="new">Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CommentsAfterLineContinuationNotAvailable1">
         <source>Please use language version {0} or greater to use comments after line continuation character.</source>
         <target state="translated">줄 연속 문자 뒤에 주석을 사용하려면 언어 버전 {0} 이상을 사용하세요.</target>
@@ -67,9 +77,24 @@
         <target state="translated">업데이트하려면 명시적 인터페이스 구현을 내보내야 합니다. 이 기능은 애플리케이션을 다시 시작하지 않고는 런타임에서 지원되지 않습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_EntryPointCannotBeUnmanagedCallersOnly">
+        <source>The entry point cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">The entry point cannot be marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">'Experimental' 특성에 대한 diagnosticId 인수는 유효한 식별자여야 합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_InvalidUnmanagedCallersOnlyCallConv">
+        <source>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</source>
+        <target state="new">'{0}' is not a valid calling convention for UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly">
+        <source>A module initializer cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">A module initializer cannot be marked UnmanagedCallersOnly.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleInitializerMethodMustBeAccessible">
@@ -192,9 +217,24 @@
         <target state="translated">{0} '{1}'은(는) 공유 추상 또는 가상 '{2}'이(가) 포함되어 있으므로 '{3}' 인터페이스를 구현할 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric">
+        <source>UnmanagedCallersOnly methods and their containing types must not be generic.</source>
+        <target state="new">UnmanagedCallersOnly methods and their containing types must not be generic.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly">
+        <source>'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</source>
+        <target state="new">'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_UnmanagedCallersOnlyNotSupported">
         <source>'UnmanagedCallersOnly' attribute is not supported.</source>
         <target state="translated">'UnmanagedCallersOnly' 특성은 지원되지 않습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyRequiresShared">
+        <source>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</source>
+        <target state="new">UnmanagedCallersOnly can only be applied to an ordinary Shared method.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnmanagedConstraintNotSatisfied">
@@ -247,9 +287,19 @@
         <target state="translated">오버로드 해결 우선 순위</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SkipLocalsInit">
+        <source>SkipLocalsInit</source>
+        <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">
         <source>unconstrained type parameters in binary conditional expressions</source>
         <target state="translated">이진 조건식의 비제한 형식 매개 변수</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_UnmanagedCallersOnly">
+        <source>UnmanagedCallersOnly</source>
+        <target state="new">UnmanagedCallersOnly</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnmanagedConstraint">

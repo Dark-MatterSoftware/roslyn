@@ -200,7 +200,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ReportExtensionAttributeUseSiteInfo(arguments.Attribute, arguments.AttributeSyntaxOpt, compilation, DirectCast(arguments.Diagnostics, BindingDiagnosticBag))
 
             If arguments.Attribute.IsTargetAttribute(AttributeDescription.SkipLocalsInitAttribute) Then
-                DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.WRN_AttributeNotSupportedInVB, arguments.AttributeSyntaxOpt.Location, AttributeDescription.SkipLocalsInitAttribute.FullName)
+                Dim languageVersion = DirectCast(arguments.AttributeSyntaxOpt.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If Not InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.SkipLocalsInit) Then
+                    DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.WRN_AttributeNotSupportedInVB, arguments.AttributeSyntaxOpt.Location, AttributeDescription.SkipLocalsInitAttribute.FullName)
+                ElseIf DeclaringCompilation IsNot Nothing Then
+                    DeclaringCompilation.AddSkipLocalsInitSymbol(Me)
+                End If
             ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.CompilerFeatureRequiredAttribute) Then
                 DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.ERR_DoNotUseCompilerFeatureRequired, arguments.AttributeSyntaxOpt.Location)
             ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.RequiredMemberAttribute) Then

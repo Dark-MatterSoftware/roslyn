@@ -37,6 +37,16 @@
         <target state="translated">Impossible d'hériter de '{0}' car il a requis des membres.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CannotUseByRefInUnmanagedCallersOnly">
+        <source>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</source>
+        <target state="new">A method marked UnmanagedCallersOnly cannot have ByRef parameters.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_CannotUseManagedTypeInUnmanagedCallersOnly">
+        <source>Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</source>
+        <target state="new">Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CommentsAfterLineContinuationNotAvailable1">
         <source>Please use language version {0} or greater to use comments after line continuation character.</source>
         <target state="translated">Utilisez la version de langage {0} ou une version ultérieure pour utiliser des commentaires après le caractère de continuation de la ligne.</target>
@@ -67,9 +77,24 @@
         <target state="translated">La mise à jour nécessite l’émission d’une implémentation explicite d’interface, ce que le runtime ne prend pas en charge sans redémarrer l’application.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_EntryPointCannotBeUnmanagedCallersOnly">
+        <source>The entry point cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">The entry point cannot be marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">L’argument diagnosticId de l’attribut « Experimental » doit être un identificateur valide</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_InvalidUnmanagedCallersOnlyCallConv">
+        <source>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</source>
+        <target state="new">'{0}' is not a valid calling convention for UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly">
+        <source>A module initializer cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">A module initializer cannot be marked UnmanagedCallersOnly.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleInitializerMethodMustBeAccessible">
@@ -192,9 +217,24 @@
         <target state="translated">{0} '{1}' ne peut pas mettre en œuvre l'interface '{3}' car elle contient des données abstraites ou virtuelles partagées '{2}'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric">
+        <source>UnmanagedCallersOnly methods and their containing types must not be generic.</source>
+        <target state="new">UnmanagedCallersOnly methods and their containing types must not be generic.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly">
+        <source>'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</source>
+        <target state="new">'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_UnmanagedCallersOnlyNotSupported">
         <source>'UnmanagedCallersOnly' attribute is not supported.</source>
         <target state="translated">L'attribut 'UnmanagedCallersOnly' n'est pas pris en charge.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyRequiresShared">
+        <source>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</source>
+        <target state="new">UnmanagedCallersOnly can only be applied to an ordinary Shared method.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnmanagedConstraintNotSatisfied">
@@ -247,9 +287,19 @@
         <target state="translated">priorité de résolution de surcharge</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SkipLocalsInit">
+        <source>SkipLocalsInit</source>
+        <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">
         <source>unconstrained type parameters in binary conditional expressions</source>
         <target state="translated">paramètres de type sans contrainte dans les expressions conditionnelles binaires</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_UnmanagedCallersOnly">
+        <source>UnmanagedCallersOnly</source>
+        <target state="new">UnmanagedCallersOnly</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnmanagedConstraint">

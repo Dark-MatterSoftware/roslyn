@@ -37,6 +37,16 @@
         <target state="translated">Gerekli üyelere sahip olduğu için '{0}' öğesinden devralınamaz.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CannotUseByRefInUnmanagedCallersOnly">
+        <source>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</source>
+        <target state="new">A method marked UnmanagedCallersOnly cannot have ByRef parameters.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_CannotUseManagedTypeInUnmanagedCallersOnly">
+        <source>Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</source>
+        <target state="new">Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CommentsAfterLineContinuationNotAvailable1">
         <source>Please use language version {0} or greater to use comments after line continuation character.</source>
         <target state="translated">Lütfen satır devamı karakterinden sonra açıklama kullanmak için {0} veya daha yüksek bir dil sürümü kullanın.</target>
@@ -67,9 +77,24 @@
         <target state="translated">Güncelleştirme için açık arabirim uygulamasının yayılması gerekiyor ve bu işlem, uygulama yeniden başlatılmadan çalışma zamanı tarafından desteklenmiyor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_EntryPointCannotBeUnmanagedCallersOnly">
+        <source>The entry point cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">The entry point cannot be marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">'Experimental' özniteliğinin diagnosticId bağımsız değişkeni geçerli bir tanımlayıcı olmalıdır</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_InvalidUnmanagedCallersOnlyCallConv">
+        <source>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</source>
+        <target state="new">'{0}' is not a valid calling convention for UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly">
+        <source>A module initializer cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">A module initializer cannot be marked UnmanagedCallersOnly.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleInitializerMethodMustBeAccessible">
@@ -192,9 +217,24 @@
         <target state="translated">{0} '{1}', paylaşılan soyut veya sanal '{2}' içerdiğinden '{3}' arabirimini uygulayamıyor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric">
+        <source>UnmanagedCallersOnly methods and their containing types must not be generic.</source>
+        <target state="new">UnmanagedCallersOnly methods and their containing types must not be generic.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly">
+        <source>'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</source>
+        <target state="new">'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_UnmanagedCallersOnlyNotSupported">
         <source>'UnmanagedCallersOnly' attribute is not supported.</source>
         <target state="translated">'UnmanagedCallersOnly' özniteliği desteklenmez.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyRequiresShared">
+        <source>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</source>
+        <target state="new">UnmanagedCallersOnly can only be applied to an ordinary Shared method.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnmanagedConstraintNotSatisfied">
@@ -247,9 +287,19 @@
         <target state="translated">aşırı yükleme çözümlemesi önceliği</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SkipLocalsInit">
+        <source>SkipLocalsInit</source>
+        <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">
         <source>unconstrained type parameters in binary conditional expressions</source>
         <target state="translated">ikili koşullu ifadelerde kısıtlanmamış tür parametreleri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_UnmanagedCallersOnly">
+        <source>UnmanagedCallersOnly</source>
+        <target state="new">UnmanagedCallersOnly</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnmanagedConstraint">

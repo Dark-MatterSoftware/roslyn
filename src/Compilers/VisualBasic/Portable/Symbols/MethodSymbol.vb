@@ -28,8 +28,60 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Friend MustOverride ReadOnly Property IsMethodKindBasedOnSyntax As Boolean
 
+        Friend Overridable Function HasUnmanagedCallersOnlyAttribute() As Boolean
+            Return False
+        End Function
+
         Friend Overridable Function IsParameterlessConstructor() As Boolean
             Return Me.ParameterCount = 0 AndAlso Me.MethodKind = MethodKind.Constructor
+        End Function
+
+        ''' <summary>
+        ''' False when <c>SkipLocalsInit</c> applies to this method, its containing type, or its module.
+        ''' </summary>
+        Friend Overridable ReadOnly Property AreLocalsZeroed As Boolean
+            Get
+                Return Not SkipsLocalsInit(Me)
+            End Get
+        End Property
+
+        Private Shared Function SkipsLocalsInit(method As MethodSymbol) As Boolean
+            Dim compilation = method.DeclaringCompilation
+            If compilation Is Nothing Then
+                Return False
+            End If
+
+            If MarksSkipLocalsInit(compilation, method) Then
+                Return True
+            End If
+
+            Dim definition = method.PartialDefinitionPart
+            If definition IsNot Nothing AndAlso MarksSkipLocalsInit(compilation, definition) Then
+                Return True
+            End If
+
+            If MarksSkipLocalsInit(compilation, method.AssociatedSymbol) Then
+                Return True
+            End If
+
+            Dim container = method.ContainingType
+            While container IsNot Nothing
+                If MarksSkipLocalsInit(compilation, container) Then
+                    Return True
+                End If
+
+                container = container.ContainingType
+            End While
+
+            Return MarksSkipLocalsInit(compilation, method.ContainingModule)
+        End Function
+
+        Private Shared Function MarksSkipLocalsInit(compilation As VisualBasicCompilation, symbol As Symbol) As Boolean
+            If symbol Is Nothing Then
+                Return False
+            End If
+
+            Return compilation.HasSkipLocalsInit(symbol) OrElse compilation.HasSkipLocalsInit(symbol.OriginalDefinition)
         End Function
 
         ''' <summary>

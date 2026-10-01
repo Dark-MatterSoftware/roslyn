@@ -37,6 +37,16 @@
         <target state="translated">无法从 "{0}" 继承，因为它具有必需的成员。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CannotUseByRefInUnmanagedCallersOnly">
+        <source>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</source>
+        <target state="new">A method marked UnmanagedCallersOnly cannot have ByRef parameters.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_CannotUseManagedTypeInUnmanagedCallersOnly">
+        <source>Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</source>
+        <target state="new">Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CommentsAfterLineContinuationNotAvailable1">
         <source>Please use language version {0} or greater to use comments after line continuation character.</source>
         <target state="translated">请使用语言版本 {0} 或更高版本，以在行继续符后使用注释。</target>
@@ -67,9 +77,24 @@
         <target state="translated">更新需要发出显式接口实现，如果不重启应用程序，运行时将不支持此实现。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_EntryPointCannotBeUnmanagedCallersOnly">
+        <source>The entry point cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">The entry point cannot be marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">“Experimental” 属性的 diagnosticId 参数必须是有效的标识符</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_InvalidUnmanagedCallersOnlyCallConv">
+        <source>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</source>
+        <target state="new">'{0}' is not a valid calling convention for UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly">
+        <source>A module initializer cannot be marked UnmanagedCallersOnly.</source>
+        <target state="new">A module initializer cannot be marked UnmanagedCallersOnly.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleInitializerMethodMustBeAccessible">
@@ -192,9 +217,24 @@
         <target state="translated">{0} '{1}'无法实现接口 '{3}' ，因为它包含共享抽象或虚拟'{2}'。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric">
+        <source>UnmanagedCallersOnly methods and their containing types must not be generic.</source>
+        <target state="new">UnmanagedCallersOnly methods and their containing types must not be generic.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly">
+        <source>'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</source>
+        <target state="new">'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_UnmanagedCallersOnlyNotSupported">
         <source>'UnmanagedCallersOnly' attribute is not supported.</source>
         <target state="translated">不支持 "UnmanagedCallersOnly" 属性。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_UnmanagedCallersOnlyRequiresShared">
+        <source>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</source>
+        <target state="new">UnmanagedCallersOnly can only be applied to an ordinary Shared method.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnmanagedConstraintNotSatisfied">
@@ -247,9 +287,19 @@
         <target state="translated">重载解析优先级</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SkipLocalsInit">
+        <source>SkipLocalsInit</source>
+        <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">
         <source>unconstrained type parameters in binary conditional expressions</source>
         <target state="translated">二进制条件表达式中的无约束类型参数</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_UnmanagedCallersOnly">
+        <source>UnmanagedCallersOnly</source>
+        <target state="new">UnmanagedCallersOnly</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnmanagedConstraint">

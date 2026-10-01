@@ -242,5 +242,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property AreLocalsZeroed As Boolean
+            Get
+                Return _topLevelMethod.AreLocalsZeroed
+            End Get
+        End Property
+
     End Class
 End Namespace

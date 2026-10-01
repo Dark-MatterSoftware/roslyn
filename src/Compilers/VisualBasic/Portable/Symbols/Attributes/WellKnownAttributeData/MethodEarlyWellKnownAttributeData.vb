@@ -12,6 +12,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     Friend Class MethodEarlyWellKnownAttributeData
         Inherits CommonMethodEarlyWellKnownAttributeData
 
+#Region "UnmanagedCallersOnlyAttribute"
+        Private _unmanagedCallersOnlyAttributePresent As Boolean
+        Friend Property UnmanagedCallersOnlyAttributePresent As Boolean
+            Get
+                VerifySealed(expected:=True)
+                Return _unmanagedCallersOnlyAttributePresent
+            End Get
+            Set(value As Boolean)
+                VerifySealed(expected:=False)
+                _unmanagedCallersOnlyAttributePresent = value
+                SetDataStored()
+            End Set
+        End Property
+#End Region
+
 #Region "ExtensionAttribute"
         Private _isExtensionMethod As Boolean = False
         Friend Property IsExtensionMethod As Boolean

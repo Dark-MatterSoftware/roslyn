@@ -1800,7 +1800,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ModuleInitializerMethodMustBeSharedParameterlessSub = 37342
         ERR_ModuleInitializerMethodMustNotBeGeneric = 37343
 
-        ERR_NextAvailable = 37344
+        ERR_UnmanagedCallersOnlyRequiresShared = 37344
+        ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric = 37345
+        ERR_InvalidUnmanagedCallersOnlyCallConv = 37346
+        ERR_CannotUseManagedTypeInUnmanagedCallersOnly = 37347
+        ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly = 37348
+        ERR_EntryPointCannotBeUnmanagedCallersOnly = 37349
+        ERR_ModuleInitializerCannotBeUnmanagedCallersOnly = 37350
+        ERR_CannotUseByRefInUnmanagedCallersOnly = 37351
+
+        ERR_NextAvailable = 37352
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2106,5 +2115,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_EnumConstraint
         FEATURE_AsyncMain
         FEATURE_ModuleInitializers
+        FEATURE_SkipLocalsInit
+        FEATURE_UnmanagedCallersOnly
     End Enum
 End Namespace

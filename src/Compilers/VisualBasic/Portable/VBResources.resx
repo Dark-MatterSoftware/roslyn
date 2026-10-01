@@ -5718,6 +5718,36 @@
   <data name="FEATURE_ModuleInitializers" xml:space="preserve">
     <value>module initializers</value>
   </data>
+  <data name="FEATURE_SkipLocalsInit" xml:space="preserve">
+    <value>SkipLocalsInit</value>
+  </data>
+  <data name="FEATURE_UnmanagedCallersOnly" xml:space="preserve">
+    <value>UnmanagedCallersOnly</value>
+  </data>
+  <data name="ERR_UnmanagedCallersOnlyRequiresShared" xml:space="preserve">
+    <value>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</value>
+  </data>
+  <data name="ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric" xml:space="preserve">
+    <value>UnmanagedCallersOnly methods and their containing types must not be generic.</value>
+  </data>
+  <data name="ERR_InvalidUnmanagedCallersOnlyCallConv" xml:space="preserve">
+    <value>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</value>
+  </data>
+  <data name="ERR_CannotUseManagedTypeInUnmanagedCallersOnly" xml:space="preserve">
+    <value>Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</value>
+  </data>
+  <data name="ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly" xml:space="preserve">
+    <value>'{0}' is marked UnmanagedCallersOnly and cannot be called from managed code.</value>
+  </data>
+  <data name="ERR_EntryPointCannotBeUnmanagedCallersOnly" xml:space="preserve">
+    <value>The entry point cannot be marked UnmanagedCallersOnly.</value>
+  </data>
+  <data name="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly" xml:space="preserve">
+    <value>A module initializer cannot be marked UnmanagedCallersOnly.</value>
+  </data>
+  <data name="ERR_CannotUseByRefInUnmanagedCallersOnly" xml:space="preserve">
+    <value>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</value>
+  </data>
   <data name="ERR_ModuleInitializerMethodMustBeOrdinary" xml:space="preserve">
     <value>A module initializer must be an ordinary method.</value>
   </data>

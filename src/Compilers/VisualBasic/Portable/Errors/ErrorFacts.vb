@@ -1555,7 +1555,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ModuleInitializerMethodMustBeOrdinary,
                      ERRID.ERR_ModuleInitializerMethodMustBeAccessible,
                      ERRID.ERR_ModuleInitializerMethodMustBeSharedParameterlessSub,
-                     ERRID.ERR_ModuleInitializerMethodMustNotBeGeneric
+                     ERRID.ERR_ModuleInitializerMethodMustNotBeGeneric,
+                     ERRID.ERR_UnmanagedCallersOnlyRequiresShared,
+                     ERRID.ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric,
+                     ERRID.ERR_InvalidUnmanagedCallersOnlyCallConv,
+                     ERRID.ERR_CannotUseManagedTypeInUnmanagedCallersOnly,
+                     ERRID.ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly,
+                     ERRID.ERR_EntryPointCannotBeUnmanagedCallersOnly,
+                     ERRID.ERR_ModuleInitializerCannotBeUnmanagedCallersOnly,
+                     ERRID.ERR_CannotUseByRefInUnmanagedCallersOnly
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

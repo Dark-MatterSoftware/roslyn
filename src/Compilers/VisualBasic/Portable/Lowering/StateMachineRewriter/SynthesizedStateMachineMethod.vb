@@ -173,6 +173,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return StateMachineType.KickoffMethod
             End Get
         End Property
+
+        Friend Overrides ReadOnly Property AreLocalsZeroed As Boolean
+            Get
+                Return StateMachineType.KickoffMethod.AreLocalsZeroed
+            End Get
+        End Property
     End Class
 
     ''' <summary>

@@ -46,6 +46,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         EnumConstraint
         AsyncMain
         ModuleInitializers
+        SkipLocalsInit
+        UnmanagedCallersOnly
     End Enum
 
     Friend Module FeatureExtensions
@@ -117,7 +119,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 Case Feature.EnumConstraint,
                      Feature.AsyncMain,
-                     Feature.ModuleInitializers
+                     Feature.ModuleInitializers,
+                     Feature.SkipLocalsInit,
+                     Feature.UnmanagedCallersOnly
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -203,6 +207,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_AsyncMain
                 Case Feature.ModuleInitializers
                     Return ERRID.FEATURE_ModuleInitializers
+                Case Feature.SkipLocalsInit
+                    Return ERRID.FEATURE_SkipLocalsInit
+                Case Feature.UnmanagedCallersOnly
+                    Return ERRID.FEATURE_UnmanagedCallersOnly
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

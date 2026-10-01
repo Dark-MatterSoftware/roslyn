@@ -42,8 +42,8 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | 1a | VB-008 `Enum` constraint | Done. `As {Structure, Enum}` and `As Enum` are legal on `vbnext`. The same syntax reports BC36716 on `17.13`. |
 | 1b | VB-009 async entry point | Done. `Async Function Main() As Task` and `As Task(Of Integer)` compile on `vbnext` and the process waits for them. `Async Sub Main` still reports `ERR_AsyncSubMain`, including on `17.13`. |
 | 1c | VB-012 Module initializers | Done. A `Shared` parameterless `Sub` marked `<ModuleInitializer>` runs before `Main` on `vbnext`. The same attribute still reports BC42381 on `17.13` and does not run. |
-| 1d | VB-013 `SkipLocalsInit` | Same as 1c for `SkipLocalsInit`. |
-| 1e | VB-022 `UnmanagedCallersOnly` | The attribute is accepted only with the calling-convention rules the tests spell out. |
+| 1d | VB-013 `SkipLocalsInit` | Done. On `vbnext`, the attribute on a method, property, type, nested type, or module omits `.locals init`. Visual Basic 17.13 still reports BC42381 and keeps local initialization. |
+| 1e | VB-022 `UnmanagedCallersOnly` | Done. On `vbnext`, a Shared ordinary method may be marked `<UnmanagedCallersOnly>`, including a `CallConv` calling convention. Managed code cannot call it, and it cannot be `Main` or a module initializer. Visual Basic 17.13 still reports BC37316. |
 
 ## Phase 2 — Shorthand
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 1c, module initializers, is implemented. The next slice is 1d, `SkipLocalsInit`.
+Slice 1e, `UnmanagedCallersOnly`, is implemented. The next slice is 2a, target-typed `New`.

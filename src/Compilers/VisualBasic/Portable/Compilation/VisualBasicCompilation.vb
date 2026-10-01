@@ -175,6 +175,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Private _lazyEntryPoint As EntryPoint
         Private _moduleInitializerMethods As ConcurrentSet(Of MethodSymbol)
+        Private _skipLocalsInitSymbols As ConcurrentSet(Of Symbol)
 
         ''' <summary>
         ''' The set of trees for which a <see cref="CompilationUnitCompletedEvent"/> has been added to the queue.
@@ -1505,6 +1506,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _moduleInitializerMethods.Add(method)
         End Sub
 
+        Friend Sub AddSkipLocalsInitSymbol(symbol As Symbol)
+            If _skipLocalsInitSymbols Is Nothing Then
+                Interlocked.CompareExchange(_skipLocalsInitSymbols, New ConcurrentSet(Of Symbol)(ReferenceEqualityComparer.Instance), Nothing)
+            End If
+
+            _skipLocalsInitSymbols.Add(symbol)
+        End Sub
+
+        Friend Function HasSkipLocalsInit(symbol As Symbol) As Boolean
+            Return symbol IsNot Nothing AndAlso _skipLocalsInitSymbols IsNot Nothing AndAlso _skipLocalsInitSymbols.Contains(symbol)
+        End Function
+
         Private Sub GenerateModuleInitializer(moduleBeingBuilt As PEModuleBuilder, diagnostics As DiagnosticBag)
             If _moduleInitializerMethods Is Nothing OrElse _moduleInitializerMethods.Count = 0 Then
                 Return
@@ -1679,6 +1692,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                         New FormattedSymbolList(viableEntryPoints.ToArray(), CustomSymbolDisplayFormatter.ErrorMessageFormatNoModifiersNoReturnType))
                 Else
                     entryPoint = viableEntryPoints(0)
+
+                    If entryPoint.HasUnmanagedCallersOnlyAttribute() Then
+                        diagnostics.Add(ERRID.ERR_EntryPointCannotBeUnmanagedCallersOnly, entryPoint.GetFirstLocation())
+                    End If
 
                     If entryPoint.IsAsync AndAlso entryPoint.IsSub Then
                         ' Async Sub cannot be waited on, so it is never an entry point.

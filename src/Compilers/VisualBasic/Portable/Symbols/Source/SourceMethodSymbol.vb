@@ -1530,6 +1530,14 @@ lReportErrorOnTwoTokens:
                     Else
                         Return Nothing
                     End If
+                ElseIf VisualBasicAttributeData.IsTargetEarlyAttribute(arguments.AttributeType, arguments.AttributeSyntax, AttributeDescription.UnmanagedCallersOnlyAttribute) Then
+                    Dim languageVersion = DirectCast(arguments.AttributeSyntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                    If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.UnmanagedCallersOnly) Then
+                        arguments.GetOrCreateData(Of MethodEarlyWellKnownAttributeData)().UnmanagedCallersOnlyAttributePresent = True
+                    End If
+
+                    ' CallConvs is decoded later. Recording the attribute here lets calls see it without binding the array.
+                    Return Nothing
                 ElseIf VisualBasicAttributeData.IsTargetEarlyAttribute(arguments.AttributeType, arguments.AttributeSyntax, AttributeDescription.OverloadResolutionPriorityAttribute) Then
 
                     If Not CanHaveOverloadResolutionPriority Then
@@ -1587,6 +1595,19 @@ lReportErrorOnTwoTokens:
             Return If(data?.OverloadResolutionPriority, 0)
         End Function
 
+        Friend Overrides Function GetUseSiteInfo() As UseSiteInfo(Of AssemblySymbol)
+            If IsDefinition AndAlso HasUnmanagedCallersOnlyAttribute() Then
+                Return New UseSiteInfo(Of AssemblySymbol)(ErrorFactory.ErrorInfo(ERRID.ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly, Name))
+            End If
+
+            Return MyBase.GetUseSiteInfo()
+        End Function
+
+        Friend Overrides Function HasUnmanagedCallersOnlyAttribute() As Boolean
+            Dim data = GetEarlyDecodedWellKnownAttributeData()
+            Return data IsNot Nothing AndAlso data.UnmanagedCallersOnlyAttributePresent
+        End Function
+
         Friend Overrides Sub DecodeWellKnownAttribute(ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation))
             Dim attrData = arguments.Attribute
             Debug.Assert(Not attrData.HasErrors)
@@ -1594,8 +1615,13 @@ lReportErrorOnTwoTokens:
             If attrData.IsTargetAttribute(AttributeDescription.TupleElementNamesAttribute) Then
                 DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.ERR_ExplicitTupleElementNamesAttribute, arguments.AttributeSyntaxOpt.Location)
             ElseIf attrData.IsTargetAttribute(AttributeDescription.UnmanagedCallersOnlyAttribute) Then
-                ' VB does not support UnmanagedCallersOnly attributes on methods at all
-                DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.ERR_UnmanagedCallersOnlyNotSupported, arguments.AttributeSyntaxOpt.Location)
+                Dim diagnostics = DirectCast(arguments.Diagnostics, BindingDiagnosticBag)
+                Dim languageVersion = DirectCast(arguments.AttributeSyntaxOpt.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If Not InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.UnmanagedCallersOnly) Then
+                    diagnostics.Add(ERRID.ERR_UnmanagedCallersOnlyNotSupported, arguments.AttributeSyntaxOpt.Location)
+                Else
+                    DecodeUnmanagedCallersOnlyAttribute(arguments, diagnostics)
+                End If
             End If
 
             If arguments.SymbolPart = AttributeLocation.Return Then
@@ -1783,6 +1809,106 @@ lReportErrorOnTwoTokens:
             End If
         End Sub
 
+        Private Sub DecodeUnmanagedCallersOnlyAttribute(
+            ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation),
+            diagnostics As BindingDiagnosticBag)
+
+            Dim location = arguments.AttributeSyntaxOpt.Location
+            Dim validTarget = IsShared AndAlso MethodKind = MethodKind.Ordinary AndAlso Not IsMustOverride AndAlso Not IsOverridable AndAlso Not IsOverrides
+            If Not validTarget Then
+                diagnostics.Add(ERRID.ERR_UnmanagedCallersOnlyRequiresShared, location)
+            ElseIf IsGenericMethod OrElse ContainingType.IsGenericType Then
+                diagnostics.Add(ERRID.ERR_UnmanagedCallersOnlyMethodOrTypeCannotBeGeneric, location)
+                validTarget = False
+            End If
+
+            DecodeUnmanagedCallersOnlyCallConvs(arguments.Attribute, location, diagnostics)
+
+            If Not validTarget Then
+                Return
+            End If
+
+            If Not IsSub Then
+                ReportManagedTypeInUnmanagedCallersOnly(ReturnType, isParameter:=False, GetFirstLocation(), diagnostics)
+            End If
+
+            For Each parameter In Parameters
+                If parameter.IsByRef Then
+                    diagnostics.Add(ERRID.ERR_CannotUseByRefInUnmanagedCallersOnly, parameter.GetFirstLocation())
+                Else
+                    ReportManagedTypeInUnmanagedCallersOnly(parameter.Type, isParameter:=True, parameter.GetFirstLocation(), diagnostics)
+                End If
+            Next
+        End Sub
+
+        Private Sub DecodeUnmanagedCallersOnlyCallConvs(attribute As VisualBasicAttributeData, location As Location, diagnostics As BindingDiagnosticBag)
+            If attribute.CommonNamedArguments.IsDefaultOrEmpty Then
+                Return
+            End If
+
+            Dim systemType = DeclaringCompilation.GetWellKnownType(WellKnownType.System_Type)
+            For Each namedArgument In attribute.CommonNamedArguments
+                Dim isField = False
+                If attribute.AttributeClass IsNot Nothing Then
+                    For Each member In attribute.AttributeClass.GetMembers(namedArgument.Key)
+                        Dim field = TryCast(member, FieldSymbol)
+                        Dim arrayType = TryCast(field?.Type, ArrayTypeSymbol)
+                        Dim elementType = TryCast(arrayType?.ElementType, NamedTypeSymbol)
+                        If elementType IsNot Nothing AndAlso elementType.Equals(systemType, TypeCompareKind.ConsiderEverything) Then
+                            isField = True
+                            Exit For
+                        End If
+                    Next
+                End If
+
+                Dim value = namedArgument.Value
+                If Not UnmanagedCallersOnlyAttributeData.IsCallConvsTypedConstant(namedArgument.Key, isField, value) Then
+                    Continue For
+                End If
+
+                If value.Values.IsDefaultOrEmpty Then
+                    Continue For
+                End If
+
+                For Each callConv In value.Values
+                    Dim callConvType = TryCast(callConv.ValueInternal, NamedTypeSymbol)
+                    If callConvType Is Nothing OrElse Not IsCallingConventionModifier(callConvType) Then
+                        diagnostics.Add(ERRID.ERR_InvalidUnmanagedCallersOnlyCallConv, location, If(callConv.ValueInternal, CObj("null")))
+                    End If
+                Next
+            Next
+        End Sub
+
+        Private Shared Function IsCallingConventionModifier(type As NamedTypeSymbol) As Boolean
+            Return type.ContainingAssembly IsNot Nothing AndAlso
+                type.ContainingAssembly Is type.ContainingAssembly.CorLibrary AndAlso
+                type.Arity = 0 AndAlso
+                type.Name <> "CallConv" AndAlso
+                type.Name.StartsWith("CallConv", StringComparison.Ordinal) AndAlso
+                type.ContainingType Is Nothing AndAlso
+                IsNamespace(type.ContainingNamespace, "CompilerServices", "Runtime", "System")
+        End Function
+
+        Private Shared Function IsNamespace(namespaceSymbol As NamespaceSymbol, ParamArray segments() As String) As Boolean
+            For Each segment In segments
+                If namespaceSymbol Is Nothing OrElse namespaceSymbol.IsGlobalNamespace OrElse namespaceSymbol.Name <> segment Then
+                    Return False
+                End If
+
+                namespaceSymbol = namespaceSymbol.ContainingNamespace
+            Next
+
+            Return namespaceSymbol IsNot Nothing AndAlso namespaceSymbol.IsGlobalNamespace
+        End Function
+
+        Private Sub ReportManagedTypeInUnmanagedCallersOnly(type As TypeSymbol, isParameter As Boolean, location As Location, diagnostics As BindingDiagnosticBag)
+            ' Use-site diagnostics are reported where the type is declared. This check only rejects managed types.
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            If type.GetManagedKind(useSiteInfo) = ManagedKind.Managed Then
+                diagnostics.Add(ERRID.ERR_CannotUseManagedTypeInUnmanagedCallersOnly, location, type, If(isParameter, "parameter", "return"))
+            End If
+        End Sub
+
         Private Sub DecodeModuleInitializerAttribute(
             ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation),
             diagnostics As BindingDiagnosticBag)
@@ -1808,6 +1934,11 @@ lReportErrorOnTwoTokens:
 
             If IsGenericMethod OrElse IsContainedInGenericType() Then
                 diagnostics.Add(ERRID.ERR_ModuleInitializerMethodMustNotBeGeneric, arguments.AttributeSyntaxOpt.Location, Name)
+                hasError = True
+            End If
+
+            If HasUnmanagedCallersOnlyAttribute() Then
+                diagnostics.Add(ERRID.ERR_ModuleInitializerCannotBeUnmanagedCallersOnly, arguments.AttributeSyntaxOpt.Location)
                 hasError = True
             End If
 
