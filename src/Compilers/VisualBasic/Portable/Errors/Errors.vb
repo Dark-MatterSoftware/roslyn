@@ -2098,5 +2098,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_CallerArgumentExpression
         FEATURE_UnmanagedConstraint
         FEATURE_OverloadResolutionPriority
+        FEATURE_EnumConstraint
+        FEATURE_AsyncMain
     End Enum
 End Namespace

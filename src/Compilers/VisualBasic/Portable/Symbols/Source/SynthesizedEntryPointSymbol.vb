@@ -4,6 +4,7 @@
 
 Imports System.Collections.Immutable
 Imports System.Linq
+Imports Microsoft.CodeAnalysis.PooledObjects
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' <summary>
@@ -43,6 +44,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     getAwaiterMethod,
                     getResultMethod)
             End If
+        End Function
+
+        Friend Shared Function CreateAsyncForwarder(userMain As MethodSymbol, diagnostics As BindingDiagnosticBag) As SynthesizedEntryPointSymbol
+            Dim getAwaiterMethod = GetRequiredMethod(userMain.ReturnType, WellKnownMemberNames.GetAwaiter, diagnostics)
+            Dim getResultMethod = If(getAwaiterMethod Is Nothing,
+                Nothing,
+                GetRequiredMethod(getAwaiterMethod.ReturnType, WellKnownMemberNames.GetResult, diagnostics))
+            If getAwaiterMethod Is Nothing OrElse getResultMethod Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim resultType = getResultMethod.ReturnType
+            If resultType.SpecialType <> SpecialType.System_Void AndAlso resultType.SpecialType <> SpecialType.System_Int32 Then
+                diagnostics.Add(
+                    ErrorFactory.ErrorInfo(ERRID.ERR_MissingRuntimeHelper, getAwaiterMethod.ReturnType.MetadataName & "." & WellKnownMemberNames.GetResult),
+                    NoLocation.Singleton)
+                Return Nothing
+            End If
+
+            Return New AsyncForwardEntryPoint(userMain, resultType, getAwaiterMethod, getResultMethod)
         End Function
 
         Private Sub New(containingType As NamedTypeSymbol, returnType As TypeSymbol)
@@ -205,12 +226,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Shared Function CreateParameterlessCall(syntax As VisualBasicSyntaxNode, receiver As BoundExpression, method As MethodSymbol) As BoundCall
+            Return CreateCall(syntax, receiver, method, ImmutableArray(Of BoundExpression).Empty)
+        End Function
+
+        Private Shared Function CreateCall(syntax As VisualBasicSyntaxNode, receiver As BoundExpression, method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression)) As BoundCall
             Return New BoundCall(
                 syntax,
                 method,
                 methodGroupOpt:=Nothing,
-                receiverOpt:=receiver.MakeRValue(),
-                arguments:=ImmutableArray(Of BoundExpression).Empty,
+                receiverOpt:=If(receiver Is Nothing, Nothing, receiver.MakeRValue()),
+                arguments:=arguments,
                 constantValueOpt:=Nothing,
                 suppressObjectClone:=False,
                 type:=method.ReturnType).MakeCompilerGenerated()
@@ -386,6 +411,86 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Nothing,
                     ImmutableArray.Create(Of LocalSymbol)(submissionLocal.LocalSymbol),
                     ImmutableArray.Create(Of BoundStatement)(submissionAssignment, returnStatement)).MakeCompilerGenerated()
+            End Function
+        End Class
+
+        Private NotInheritable Class AsyncForwardEntryPoint
+            Inherits SynthesizedEntryPointSymbol
+
+            Private ReadOnly _userMain As MethodSymbol
+            Private ReadOnly _parameters As ImmutableArray(Of ParameterSymbol)
+            Private ReadOnly _getAwaiterMethod As MethodSymbol
+            Private ReadOnly _getResultMethod As MethodSymbol
+
+            Friend Sub New(userMain As MethodSymbol, returnType As TypeSymbol, getAwaiterMethod As MethodSymbol, getResultMethod As MethodSymbol)
+                MyBase.New(userMain.ContainingType, returnType)
+
+                _userMain = userMain
+                _getAwaiterMethod = getAwaiterMethod
+                _getResultMethod = getResultMethod
+
+                Dim parameters = ArrayBuilder(Of ParameterSymbol).GetInstance()
+                For Each parameter In userMain.Parameters
+                    parameters.Add(New SynthesizedParameterSymbol(Me, parameter.Type, parameter.Ordinal, isByRef:=False, parameter.Name))
+                Next
+                _parameters = parameters.ToImmutableAndFree()
+            End Sub
+
+            Public Overrides ReadOnly Property Name As String
+                Get
+                    Return MainName
+                End Get
+            End Property
+
+            Public Overrides ReadOnly Property Parameters As ImmutableArray(Of ParameterSymbol)
+                Get
+                    Return _parameters
+                End Get
+            End Property
+
+            ' Private Shared Sub <Main>(args)
+            '     UserMain(args).GetAwaiter().GetResult()
+            ' End Sub
+            ' or, when GetResult returns Integer:
+            ' Private Shared Function <Main>(args) As Integer
+            '     Return UserMain(args).GetAwaiter().GetResult()
+            ' End Function
+            Friend Overrides Function CreateBody() As BoundBlock
+                Debug.Assert(_getAwaiterMethod IsNot Nothing)
+                Debug.Assert(_getResultMethod IsNot Nothing)
+
+                Dim syntax = GetSyntax()
+                Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance()
+                For Each parameter In _parameters
+                    arguments.Add(New BoundParameter(syntax, parameter, isLValue:=False, type:=parameter.Type).MakeCompilerGenerated())
+                Next
+
+                Dim userCall = CreateCall(syntax, receiver:=Nothing, _userMain, arguments.ToImmutableAndFree())
+                Dim getResult = CreateParameterlessCall(
+                    syntax,
+                    CreateParameterlessCall(syntax, userCall, _getAwaiterMethod),
+                    _getResultMethod)
+
+                Dim returnStatement As BoundStatement
+                Dim statements As ImmutableArray(Of BoundStatement)
+                If _returnType.SpecialType = SpecialType.System_Void Then
+                    statements = ImmutableArray.Create(Of BoundStatement)(
+                        New BoundExpressionStatement(syntax, getResult).MakeCompilerGenerated(),
+                        New BoundReturnStatement(syntax, Nothing, Nothing, Nothing).MakeCompilerGenerated())
+                Else
+                    returnStatement = New BoundReturnStatement(
+                        syntax,
+                        getResult.MakeRValue(),
+                        functionLocalOpt:=Nothing,
+                        exitLabelOpt:=Nothing).MakeCompilerGenerated()
+                    statements = ImmutableArray.Create(returnStatement)
+                End If
+
+                Return New BoundBlock(
+                    syntax,
+                    Nothing,
+                    ImmutableArray(Of LocalSymbol).Empty,
+                    statements).MakeCompilerGenerated()
             End Function
         End Class
 

@@ -1611,8 +1611,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim hasViableGenericEntryPoints As Boolean = False
                 Dim viableEntryPoints = ArrayBuilder(Of MethodSymbol).GetInstance()
 
+                Dim allowAsyncEntryPoint = InternalSyntax.Parser.CheckFeatureAvailability(Me.LanguageVersion, InternalSyntax.Feature.AsyncMain)
+
                 For Each candidate In entryPointCandidates
-                    If Not candidate.IsViableMainMethod Then
+                    Dim isAsyncTaskEntryPoint = candidate.IsViableAsyncTaskEntryPoint(Me)
+                    If isAsyncTaskEntryPoint AndAlso Not allowAsyncEntryPoint Then
+                        ' Task-returning Main stays an ordinary invalid signature on shipped versions.
+                        Continue For
+                    End If
+
+                    If Not isAsyncTaskEntryPoint AndAlso Not candidate.IsViableMainMethod Then
                         Continue For
                     End If
 
@@ -1639,12 +1647,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Else
                     entryPoint = viableEntryPoints(0)
 
-                    If entryPoint.IsAsync Then
+                    If entryPoint.IsAsync AndAlso entryPoint.IsSub Then
+                        ' Async Sub cannot be waited on, so it is never an entry point.
+                        ' Task-returning Main is handled by a synchronous wrapper during emit.
                         ' The rule we follow:
                         ' First determine the Sub Main using pre-async rules, and give the pre-async errors if there were 0 or >1 results
-                        ' If there was exactly one result, but it was async, then give an error. Otherwise proceed.
-                        ' This doesn't follow the same pattern as "error due to being generic". That's because
-                        ' maybe one day we'll want to allow Async Sub Main but without breaking back-compat.                    
+                        ' If there was exactly one result, but it was Async Sub, then give an error. Otherwise proceed.                    
                         Dim sourceMethod = TryCast(entryPoint, SourceMemberMethodSymbol)
                         Debug.Assert(sourceMethod IsNot Nothing)
 

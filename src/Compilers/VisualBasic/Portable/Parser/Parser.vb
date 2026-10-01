@@ -4439,6 +4439,13 @@ checkNullable:
                 constraint = SyntaxFactory.StructureConstraint(keyword)
                 GetNextToken()
 
+            ElseIf CurrentToken.Kind = SyntaxKind.EnumKeyword Then
+                ' Enum constraint. Keep the keyword kind on the identifier so the binder
+                ' can gate it and bind it to System.Enum without regenerating syntax.
+                keyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+                constraint = SyntaxFactory.TypeConstraint(SyntaxFactory.IdentifierName(_scanner.MakeIdentifier(keyword)))
+
             Else
                 Dim syntaxError As DiagnosticInfo = Nothing
 

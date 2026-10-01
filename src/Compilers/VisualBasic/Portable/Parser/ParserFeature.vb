@@ -43,6 +43,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         InitOnlySettersUsage
         UnmanagedConstraint
         OverloadResolutionPriority
+        EnumConstraint
+        AsyncMain
     End Enum
 
     Friend Module FeatureExtensions
@@ -111,6 +113,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case Feature.UnmanagedConstraint,
                      Feature.OverloadResolutionPriority
                     Return LanguageVersion.VisualBasic17_13
+
+                Case Feature.EnumConstraint,
+                     Feature.AsyncMain
+                    Return LanguageVersion.VbNext
 
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
@@ -189,6 +195,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_UnmanagedConstraint
                 Case Feature.OverloadResolutionPriority
                     Return ERRID.FEATURE_OverloadResolutionPriority
+                Case Feature.EnumConstraint
+                    Return ERRID.FEATURE_EnumConstraint
+                Case Feature.AsyncMain
+                    Return ERRID.FEATURE_AsyncMain
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

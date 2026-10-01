@@ -192,6 +192,11 @@
         <target state="translated">Başvuruya göre dönen bir yönteme veya özelliğe yapılan çağrı, bir zaman uyumsuz veya yineleyici yöntemde veya bir lambda'da dolaylı olarak başvuruluyorsa 'With' deyimi olarak kullanılamaz.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_AsyncMain">
+        <source>async entry points</source>
+        <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">
         <source>caller argument expression</source>
         <target state="translated">çağıran bağımsız değişken ifadesi</target>
@@ -200,6 +205,11 @@
       <trans-unit id="FEATURE_CommentsAfterLineContinuation">
         <source>comments after line continuation</source>
         <target state="translated">satır devamı sonrası açıklamalar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_EnumConstraint">
+        <source>enum constraints</source>
+        <target state="new">enum constraints</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

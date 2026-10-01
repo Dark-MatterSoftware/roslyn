@@ -192,6 +192,11 @@
         <target state="translated">Uma chamada a um método ou propriedade retornada por referência não pode ser usada como expressão de instrução 'With' em um método assíncrono ou iterador, ou se referenciada implicitamente em um lambda.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_AsyncMain">
+        <source>async entry points</source>
+        <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">
         <source>caller argument expression</source>
         <target state="translated">expressão do argumento do chamador</target>
@@ -200,6 +205,11 @@
       <trans-unit id="FEATURE_CommentsAfterLineContinuation">
         <source>comments after line continuation</source>
         <target state="translated">comentários após a continuação da linha</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_EnumConstraint">
+        <source>enum constraints</source>
+        <target state="new">enum constraints</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

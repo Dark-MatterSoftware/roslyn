@@ -81,7 +81,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                 Case SyntaxKind.TypeConstraint
-                    Dim typeOrAlias = BindTypeOrAliasSyntax(DirectCast(syntax, TypeConstraintSyntax).Type, diagnostics)
+                    Dim typeSyntax = DirectCast(syntax, TypeConstraintSyntax).Type
+                    If IsEnumConstraintKeyword(typeSyntax) Then
+                        Dim languageVersion = DirectCast(syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                        If Not InternalSyntax.Parser.CheckFeatureAvailability(diagnostics, syntax.GetLocation(), languageVersion, InternalSyntax.Feature.EnumConstraint) Then
+                            Return
+                        End If
+
+                        Dim enumType = GetSpecialType(SpecialType.System_Enum, syntax, diagnostics)
+                        constraintsBuilder.Add(New TypeParameterConstraint(enumType, syntax.GetLocation()))
+                        AccessCheck.VerifyAccessExposureForMemberType(containingSymbol, syntax, enumType, diagnostics)
+                        Return
+                    End If
+
+                    Dim typeOrAlias = BindTypeOrAliasSyntax(typeSyntax, diagnostics)
                     Debug.Assert(typeOrAlias IsNot Nothing)
                     Dim constraintType = TryCast(typeOrAlias.UnwrapAlias(), TypeSymbol)
                     If constraintType Is Nothing Then
@@ -97,6 +110,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             End Select
         End Sub
+
+        Private Shared Function IsEnumConstraintKeyword(typeSyntax As TypeSyntax) As Boolean
+            Dim name = TryCast(typeSyntax, IdentifierNameSyntax)
+            Return name IsNot Nothing AndAlso name.Identifier.RawContextualKind = CInt(SyntaxKind.EnumKeyword)
+        End Function
     End Class
 
 End Namespace

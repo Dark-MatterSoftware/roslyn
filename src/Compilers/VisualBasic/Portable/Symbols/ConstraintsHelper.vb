@@ -128,10 +128,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                             If reportRedundantConstraints Then
                                 If explicitKind = DirectTypeConstraintKind.None Then
                                     explicitKind = DirectTypeConstraintKind.ValueTypeConstraint
+                                ElseIf explicitKind = DirectTypeConstraintKind.ExplicitType AndAlso
+                                       ContainsSystemEnumConstraint(constraintsBuilder) AndAlso
+                                       AllowsEnumConstraint(typeParameter) Then
+                                    ' {Enum, Structure} is legal when enum constraints are enabled.
+                                    explicitKind = DirectTypeConstraintKind.ValueTypeConstraint
                                 Else
                                     ' Combinations of {Class, Structure} should have
                                     ' been caught and discarded during binding.
-                                    Debug.Assert(explicitKind = DirectTypeConstraintKind.ExplicitType)
+                                    Debug.Assert(explicitKind = DirectTypeConstraintKind.ExplicitType OrElse
+                                                 explicitKind = DirectTypeConstraintKind.ReferenceTypeConstraint)
 
                                     ' "'Structure' constraint and a specific class type constraint cannot be combined."
                                     diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
@@ -174,7 +180,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                     Select Case constraintType.SpecialType
                                                         Case SpecialType.System_Object,
                                                             SpecialType.System_ValueType,
-                                                            SpecialType.System_Enum,
                                                             SpecialType.System_Delegate,
                                                             SpecialType.System_MulticastDelegate,
                                                             SpecialType.System_Array
@@ -182,6 +187,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                             diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
                                                                                                                    constraint,
                                                                                                                    ErrorFactory.ErrorInfo(ERRID.ERR_ConstraintIsRestrictedType1, constraintType)))
+                                                        Case SpecialType.System_Enum
+                                                            If Not AllowsEnumConstraint(typeParameter) Then
+                                                                diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
+                                                                                                                       constraint,
+                                                                                                                       ErrorFactory.ErrorInfo(ERRID.ERR_ConstraintIsRestrictedType1, constraintType)))
+                                                            End If
                                                     End Select
 
                                                 End If
@@ -196,11 +207,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                 Continue For
 
                                             Case DirectTypeConstraintKind.ValueTypeConstraint
-                                                ' "'Structure' constraint and a specific class type constraint cannot be combined."
-                                                diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
-                                                                                                       constraint,
-                                                                                                       ErrorFactory.ErrorInfo(ERRID.ERR_ValueAndClassTypeConstrCombined)))
-                                                Continue For
+                                                If constraintType.SpecialType = SpecialType.System_Enum AndAlso AllowsEnumConstraint(typeParameter) Then
+                                                    ' {Structure, Enum} is legal when enum constraints are enabled.
+                                                Else
+                                                    ' "'Structure' constraint and a specific class type constraint cannot be combined."
+                                                    diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
+                                                                                                           constraint,
+                                                                                                           ErrorFactory.ErrorInfo(ERRID.ERR_ValueAndClassTypeConstrCombined)))
+                                                    Continue For
+                                                End If
 
                                             Case DirectTypeConstraintKind.ExplicitType
                                                 ' "Type parameter '{0}' can only have one constraint that is a class."
@@ -312,7 +327,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                     If (pair1.TypeParameter Is typeParameter) AndAlso (pair2.TypeParameter Is typeParameter) Then
                         ' Check direct constraints to handle inherited constraints on overridden methods.
-                        If HasConflict(pair1.Constraint, pair2.Constraint, useSiteInfo) Then
+                        If HasConflict(pair1.Constraint, pair2.Constraint, typeParameter, useSiteInfo) Then
                             ' "Constraint '{0}' conflicts with the constraint '{1}' already specified for type parameter '{2}'."
                             diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
                                                                                    pair2.Constraint,
@@ -329,7 +344,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         ' parameter but not the current type parameter since those cases
                         ' will be reported directly on the other type parameter.
 
-                    ElseIf HasConflict(pair1.Constraint, pair2.Constraint, useSiteInfo) Then
+                    ElseIf HasConflict(pair1.Constraint, pair2.Constraint, typeParameter, useSiteInfo) Then
                         If pair1.TypeParameter Is typeParameter Then
                             ' "Constraint '{0}' conflicts with the indirect constraint '{1}' obtained from the type parameter constraint '{2}'."
                             diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
@@ -925,7 +940,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return False
             End If
 
+            ' Enum to System.Enum is a widening conversion that involves an enum conversion,
+            ' so the ordinary direct-cast check rejects every enum type argument.
+            If constraintType.SpecialType = SpecialType.System_Enum Then
+                Return SatisfiesEnumConstraint(typeArgument, useSiteInfo)
+            End If
+
             Return Conversions.HasWideningDirectCastConversionButNotEnumTypeConversion(typeArgument, constraintType, useSiteInfo)
+        End Function
+
+        Private Function SatisfiesEnumConstraint(
+            typeArgument As TypeSymbol,
+            <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+        ) As Boolean
+            If typeArgument.TypeKind = TypeKind.Enum OrElse typeArgument.SpecialType = SpecialType.System_Enum Then
+                Return True
+            End If
+
+            If typeArgument.TypeKind = TypeKind.TypeParameter Then
+                For Each constraintType In DirectCast(typeArgument, TypeParameterSymbol).ConstraintTypesWithDefinitionUseSiteDiagnostics(useSiteInfo)
+                    If constraintType.TypeKind = TypeKind.Enum OrElse constraintType.SpecialType = SpecialType.System_Enum Then
+                        Return True
+                    End If
+                Next
+            End If
+
+            Return False
         End Function
 
         ' See Bindable::ValidateNewConstraintForType.
@@ -1042,7 +1082,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ' See Bindable::ConstraintsConflict.
-        Private Function HasConflict(constraint1 As TypeParameterConstraint, constraint2 As TypeParameterConstraint, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+        Private Function HasConflict(constraint1 As TypeParameterConstraint, constraint2 As TypeParameterConstraint, typeParameter As TypeParameterSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
 
             Dim constraintType1 = constraint1.TypeConstraint
             Dim constraintType2 = constraint2.TypeConstraint
@@ -1056,11 +1096,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             If constraint1.IsValueTypeConstraint Then
-                If HasValueTypeConstraintConflict(constraint2, useSiteInfo) Then
+                If HasValueTypeConstraintConflict(constraint2, typeParameter, useSiteInfo) Then
                     Return True
                 End If
             ElseIf constraint2.IsValueTypeConstraint Then
-                If HasValueTypeConstraintConflict(constraint1, useSiteInfo) Then
+                If HasValueTypeConstraintConflict(constraint1, typeParameter, useSiteInfo) Then
                     Return True
                 End If
             End If
@@ -1085,7 +1125,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return False
         End Function
 
-        Private Function HasValueTypeConstraintConflict(constraint As TypeParameterConstraint, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+        Private Function HasValueTypeConstraintConflict(constraint As TypeParameterConstraint, typeParameter As TypeParameterSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
             Dim constraintType = constraint.TypeConstraint
             If constraintType Is Nothing Then
                 Return False
@@ -1100,6 +1140,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Select Case constraintType.SpecialType
                 Case SpecialType.System_Object, SpecialType.System_ValueType
                     Return False
+                Case SpecialType.System_Enum
+                    Return Not AllowsEnumConstraint(typeParameter)
             End Select
 
             Return True
@@ -1249,6 +1291,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Debug.Assert(method.ConstructedFrom <> method)
             Return True
+        End Function
+
+        Private Function AllowsEnumConstraint(typeParameter As TypeParameterSymbol) As Boolean
+            Dim compilation = typeParameter.DeclaringCompilation
+            Return compilation IsNot Nothing AndAlso
+                InternalSyntax.Parser.CheckFeatureAvailability(compilation.LanguageVersion, InternalSyntax.Feature.EnumConstraint)
+        End Function
+
+        Private Function ContainsSystemEnumConstraint(constraints As ArrayBuilder(Of TypeParameterConstraint)) As Boolean
+            For Each constraint In constraints
+                If constraint.TypeConstraint IsNot Nothing AndAlso constraint.TypeConstraint.SpecialType = SpecialType.System_Enum Then
+                    Return True
+                End If
+            Next
+
+            Return False
         End Function
 
     End Module

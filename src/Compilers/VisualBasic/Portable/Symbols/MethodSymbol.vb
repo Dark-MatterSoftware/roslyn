@@ -571,6 +571,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return False
             End If
 
+            Return HasEntryPointParameterList()
+        End Function
+
+        ''' <summary>
+        ''' A shared method returning <c>Task</c> or <c>Task(Of Integer)</c> with an entry-point parameter list.
+        ''' The emit pipeline supplies a synchronous wrapper that waits for the task.
+        ''' </summary>
+        Friend Function IsViableAsyncTaskEntryPoint(compilation As VisualBasicCompilation) As Boolean
+            Return IsShared AndAlso
+                   IsAccessibleEntryPoint() AndAlso
+                   HasAsyncTaskEntryPointSignature(compilation)
+        End Function
+
+        Friend Function HasAsyncTaskEntryPointSignature(compilation As VisualBasicCompilation) As Boolean
+            If Not IsAsyncTaskEntryPointReturnType(compilation, ReturnType) Then
+                Return False
+            End If
+
+            Return HasEntryPointParameterList()
+        End Function
+
+        Private Function HasEntryPointParameterList() As Boolean
             If Parameters.Length = 0 Then
                 Return True
             End If
@@ -590,6 +612,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Dim array = DirectCast(firstType, ArrayTypeSymbol)
             Return array.IsSZArray AndAlso array.ElementType.SpecialType = SpecialType.System_String
+        End Function
+
+        Private Shared Function IsAsyncTaskEntryPointReturnType(compilation As VisualBasicCompilation, returnType As TypeSymbol) As Boolean
+            Dim taskType = compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)
+            If TypeSymbol.Equals(returnType, taskType, TypeCompareKind.ConsiderEverything) Then
+                Return True
+            End If
+
+            Dim taskOfT = compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)
+            If Not TypeSymbol.Equals(returnType.OriginalDefinition, taskOfT, TypeCompareKind.ConsiderEverything) Then
+                Return False
+            End If
+
+            Dim named = TryCast(returnType, NamedTypeSymbol)
+            Return named IsNot Nothing AndAlso
+                   named.TypeArgumentsNoUseSiteDiagnostics.Length = 1 AndAlso
+                   named.TypeArgumentsNoUseSiteDiagnostics(0).SpecialType = SpecialType.System_Int32
         End Function
 
         Friend Overrides Function Accept(Of TArgument, TResult)(visitor As VisualBasicSymbolVisitor(Of TArgument, TResult), arg As TArgument) As TResult

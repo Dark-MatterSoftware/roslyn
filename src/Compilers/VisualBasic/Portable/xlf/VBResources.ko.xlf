@@ -192,6 +192,11 @@
         <target state="translated">참조로 반환하는 메서드 또는 속성에 대한 호출은 비동기 메서드나 반복기 메서드에서 또는 람다에서 암시적으로 참조되는 경우 'With' 문 식으로 사용할 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_AsyncMain">
+        <source>async entry points</source>
+        <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">
         <source>caller argument expression</source>
         <target state="translated">호출자 인수 표현식</target>
@@ -200,6 +205,11 @@
       <trans-unit id="FEATURE_CommentsAfterLineContinuation">
         <source>comments after line continuation</source>
         <target state="translated">줄 연속 뒤 주석</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_EnumConstraint">
+        <source>enum constraints</source>
+        <target state="new">enum constraints</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

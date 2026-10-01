@@ -311,6 +311,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             diagnostics.AddRange(entryPointAndDiagnostics.Diagnostics)
 
             Dim entryPoint = entryPointAndDiagnostics.MethodSymbol
+            If entryPoint IsNot Nothing AndAlso
+               Not diagnostics.HasAnyErrors AndAlso
+               entryPoint.IsViableAsyncTaskEntryPoint(compilation) Then
+
+                Dim forwarder = SynthesizedEntryPointSymbol.CreateAsyncForwarder(entryPoint, diagnostics)
+                If forwarder IsNot Nothing AndAlso Not diagnostics.HasAnyErrors Then
+                    If moduleBeingBuilt IsNot Nothing Then
+                        moduleBeingBuilt.AddSynthesizedDefinition(entryPoint.ContainingType, forwarder.GetCciAdapter())
+                    End If
+
+                    entryPoint = forwarder
+                End If
+            End If
+
             Dim synthesizedEntryPoint = TryCast(entryPoint, SynthesizedEntryPointSymbol)
             If synthesizedEntryPoint IsNot Nothing AndAlso
                 moduleBeingBuilt IsNot Nothing AndAlso

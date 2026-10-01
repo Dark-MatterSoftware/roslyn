@@ -192,6 +192,11 @@
         <target state="translated">参照によって返されるメソッドまたはプロパティの呼び出しは、非同期メソッドまたは反復子メソッドで 'With' ステートメント式として、またはラムダで暗黙的に参照される場合は使用できません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_AsyncMain">
+        <source>async entry points</source>
+        <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">
         <source>caller argument expression</source>
         <target state="translated">呼び出し元の引数式</target>
@@ -200,6 +205,11 @@
       <trans-unit id="FEATURE_CommentsAfterLineContinuation">
         <source>comments after line continuation</source>
         <target state="translated">行連結後のコメント</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_EnumConstraint">
+        <source>enum constraints</source>
+        <target state="new">enum constraints</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

@@ -192,6 +192,11 @@
         <target state="translated">Вызов метода или свойства, возвращаемого по ссылке, нельзя использовать в качестве выражения оператора With в асинхронном методе или методе итератора, а также при неявной ссылке в лямбда-выражении.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_AsyncMain">
+        <source>async entry points</source>
+        <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">
         <source>caller argument expression</source>
         <target state="translated">выражение аргумента вызывающего</target>
@@ -200,6 +205,11 @@
       <trans-unit id="FEATURE_CommentsAfterLineContinuation">
         <source>comments after line continuation</source>
         <target state="translated">комментарии после продолжения строки</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_EnumConstraint">
+        <source>enum constraints</source>
+        <target state="new">enum constraints</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

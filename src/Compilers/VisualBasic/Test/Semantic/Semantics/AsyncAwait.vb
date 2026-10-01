@@ -4555,6 +4555,99 @@ BC42356: This async method lacks 'Await' operators and so will run synchronously
 ]]></expected>)
         End Sub
 
+        <Fact>
+        Public Sub AsyncSubMain_RemainsAnErrorOnExperimentalVersion()
+            Dim compilation = CreateCompilation("
+Imports System.Threading.Tasks
+Module Program
+    Async Sub Main()
+        Await Task.Delay(1)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext), assemblyName:="AsyncSubMain")
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_AsyncSubMain, "Main"))
+        End Sub
+
+        <Fact>
+        Public Sub AsyncFunctionMain_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Threading.Tasks
+Module Program
+    Async Function Main() As Task
+        Await Task.Delay(1)
+    End Function
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13), assemblyName:="AsyncFunctionMain")
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_InValidSubMainsFound1).WithArguments("AsyncFunctionMain"))
+        End Sub
+
+        <Fact>
+        Public Sub AsyncFunctionMain_RunsOnExperimentalVersion()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Threading.Tasks
+Module Program
+    Async Function Main() As Task
+        Await Task.Delay(1)
+        Console.Write(""ran"")
+    End Function
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+
+            CompileAndVerify(compilation, expectedOutput:="ran")
+        End Sub
+
+        <Fact>
+        Public Sub AsyncFunctionMain_TaskOfIntegerAndArguments()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Threading.Tasks
+Module Program
+    Async Function Main(args As String()) As Task(Of Integer)
+        Await Task.Yield()
+        Console.Write(args.Length)
+        Return 0
+    End Function
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+
+            CompileAndVerify(compilation, expectedOutput:="0")
+        End Sub
+
+        <Fact>
+        Public Sub TaskReturningMain_WithoutAsyncModifier()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Threading.Tasks
+Module Program
+    Function Main() As Task
+        Console.Write(""ran"")
+        Return Task.CompletedTask
+    End Function
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+
+            CompileAndVerify(compilation, expectedOutput:="ran")
+        End Sub
+
+        <Fact>
+        Public Sub SynchronousMain_StillRunsOnExperimentalVersion()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Sub Main()
+        Console.Write(""sync"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+
+            CompileAndVerify(compilation, expectedOutput:="sync")
+        End Sub
+
         <Fact()>
         Public Sub WRNID_AsyncSubCouldBeFunction_1()
             Dim source =
