@@ -72,6 +72,7 @@ Microsoft.CodeAnalysis.VisualBasic.HandledEventKind.value__
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.Default
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.Latest
+Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.VbNext
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.VisualBasic10
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.VisualBasic11
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.VisualBasic12

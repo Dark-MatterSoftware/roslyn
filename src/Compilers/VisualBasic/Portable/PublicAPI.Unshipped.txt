@@ -1,1 +1,2 @@
+Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.VbNext = 9999 -> Microsoft.CodeAnalysis.VisualBasic.LanguageVersion
 Microsoft.CodeAnalysis.VisualBasic.VisualBasicExtensions.GetValueConversion(coalesceExpression As Microsoft.CodeAnalysis.Operations.ICoalesceOperation) -> Microsoft.CodeAnalysis.VisualBasic.Conversion

@@ -23,6 +23,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         VisualBasic16_9 = 1609
         VisualBasic17_13 = 1713
 
+        ' Opt-in experimental version for the Vb.Next fork. This is not a product
+        ' version number. 9999 sorts after shipped versions and before Latest.
+        VbNext = 9999
+
         Latest = Integer.MaxValue
     End Enum
 
@@ -41,7 +45,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     LanguageVersion.VisualBasic15_5,
                     LanguageVersion.VisualBasic16,
                     LanguageVersion.VisualBasic16_9,
-                    LanguageVersion.VisualBasic17_13
+                    LanguageVersion.VisualBasic17_13,
+                    LanguageVersion.VbNext
 
                     Return True
             End Select
@@ -75,6 +80,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "16.9"
                 Case LanguageVersion.VisualBasic17_13
                     Return "17.13"
+                Case LanguageVersion.VbNext
+                    Return "vbnext"
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(value)
             End Select
@@ -94,6 +101,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return LanguageVersion.VisualBasic17_13
                 Case LanguageVersion.Default
                     Return LanguageVersion.VisualBasic17_13
+                Case LanguageVersion.VbNext
+                    Return LanguageVersion.VbNext
                 Case Else
                     Return version
             End Select
@@ -134,6 +143,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "16.9"
                 Case LanguageVersion.VisualBasic17_13
                     Return "17.13"
+                Case LanguageVersion.VbNext
+                    Return "vbnext"
                 Case LanguageVersion.Default
                     Return "default"
                 Case LanguageVersion.Latest
@@ -175,6 +186,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     result = LanguageVersion.VisualBasic16_9
                 Case "17.13"
                     result = LanguageVersion.VisualBasic17_13
+                Case "vbnext"
+                    result = LanguageVersion.VbNext
                 Case "default"
                     result = LanguageVersion.Default
                 Case "latest"
