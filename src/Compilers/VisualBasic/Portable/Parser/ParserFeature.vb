@@ -45,6 +45,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         OverloadResolutionPriority
         EnumConstraint
         AsyncMain
+        ModuleInitializers
     End Enum
 
     Friend Module FeatureExtensions
@@ -115,7 +116,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return LanguageVersion.VisualBasic17_13
 
                 Case Feature.EnumConstraint,
-                     Feature.AsyncMain
+                     Feature.AsyncMain,
+                     Feature.ModuleInitializers
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -199,6 +201,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_EnumConstraint
                 Case Feature.AsyncMain
                     Return ERRID.FEATURE_AsyncMain
+                Case Feature.ModuleInitializers
+                    Return ERRID.FEATURE_ModuleInitializers
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

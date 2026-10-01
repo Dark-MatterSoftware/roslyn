@@ -174,6 +174,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Contains the main method of this assembly, if there is one.
         ''' </summary>
         Private _lazyEntryPoint As EntryPoint
+        Private _moduleInitializerMethods As ConcurrentSet(Of MethodSymbol)
 
         ''' <summary>
         ''' The set of trees for which a <see cref="CompilationUnitCompletedEvent"/> has been added to the queue.
@@ -1496,6 +1497,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return If(entryPoint Is Nothing, Nothing, entryPoint.MethodSymbol)
         End Function
 
+        Friend Sub AddModuleInitializerMethod(method As MethodSymbol)
+            If _moduleInitializerMethods Is Nothing Then
+                Interlocked.CompareExchange(_moduleInitializerMethods, New ConcurrentSet(Of MethodSymbol)(ReferenceEqualityComparer.Instance), Nothing)
+            End If
+
+            _moduleInitializerMethods.Add(method)
+        End Sub
+
+        Private Sub GenerateModuleInitializer(moduleBeingBuilt As PEModuleBuilder, diagnostics As DiagnosticBag)
+            If _moduleInitializerMethods Is Nothing OrElse _moduleInitializerMethods.Count = 0 Then
+                Return
+            End If
+
+            Dim methods = ArrayBuilder(Of MethodSymbol).GetInstance()
+            methods.AddRange(_moduleInitializerMethods)
+            methods.Sort(Function(left, right) LexicalOrderSymbolComparer.Instance.Compare(left, right))
+
+            Dim ilBuilder = New ILBuilder(moduleBeingBuilt, New LocalSlotManager(slotAllocator:=Nothing), diagnostics, OptimizationLevel.Release, areLocalsZeroed:=False)
+            Dim syntax = VisualBasicSyntaxTree.Dummy.GetRoot()
+
+            For Each method In methods
+                ilBuilder.EmitOpCode(ILOpCode.Call, stackAdjustment:=0)
+                ilBuilder.EmitToken(DirectCast(moduleBeingBuilt.Translate(method, diagnostics, needDeclaration:=True), IReference), syntax)
+            Next
+
+            methods.Free()
+            ilBuilder.EmitRet(isVoid:=True)
+            ilBuilder.Realize()
+            ilBuilder.FreeBasicBlocks()
+            moduleBeingBuilt.RootModuleType.SetStaticConstructorBody(ilBuilder.RealizedIL)
+        End Sub
+
         Friend Function GetEntryPointAndDiagnostics(cancellationToken As CancellationToken) As EntryPoint
             If Not Me.Options.OutputKind.IsApplication() AndAlso ScriptClass Is Nothing Then
                 Return Nothing
@@ -2528,6 +2561,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     filterOpt,
                     methodBodyDiagnosticBag,
                     cancellationToken)
+
+                ' Edits cannot change a module initializer in a loaded assembly.
+                If Not hasDeclarationErrors AndAlso filterOpt Is Nothing AndAlso Not CommonCompiler.HasUnsuppressableErrors(methodBodyDiagnosticBag.DiagnosticBag) Then
+                    GenerateModuleInitializer(moduleBeingBuilt, methodBodyDiagnosticBag.DiagnosticBag)
+                End If
 
                 Dim hasMethodBodyErrors As Boolean = Not FilterAndAppendDiagnostics(diagnostics, methodBodyDiagnosticBag.DiagnosticBag, cancellationToken)
                 methodBodyDiagnosticBag.Free()

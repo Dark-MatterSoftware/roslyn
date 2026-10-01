@@ -72,6 +72,26 @@
         <target state="translated">El argumento diagnosticId del atributo "Experimental" debe ser un identificador válido.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerMethodMustBeAccessible">
+        <source>Module initializer '{0}' must be accessible outside its containing type.</source>
+        <target state="new">Module initializer '{0}' must be accessible outside its containing type.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerMethodMustBeOrdinary">
+        <source>A module initializer must be an ordinary method.</source>
+        <target state="new">A module initializer must be an ordinary method.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerMethodMustBeSharedParameterlessSub">
+        <source>Module initializer '{0}' must be Shared, must have no parameters, and must be a Sub.</source>
+        <target state="new">Module initializer '{0}' must be Shared, must have no parameters, and must be a Sub.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ModuleInitializerMethodMustNotBeGeneric">
+        <source>Module initializer '{0}' must not be generic and must not be contained in a generic type.</source>
+        <target state="new">Module initializer '{0}' must not be generic and must not be contained in a generic type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RuntimeDoesNotSupportExtendedLayoutTypes">
         <source>The target runtime does not support extended layout types.</source>
         <target state="translated">El runtime de destino no admite tipos con diseño extendido.</target>
@@ -215,6 +235,11 @@
       <trans-unit id="FEATURE_InitOnlySettersUsage">
         <source>assigning to or passing 'ByRef' properties with init-only setters</source>
         <target state="translated">se asigna a propiedades "ByRef" o se pasa a estas con establecedores init-only</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_ModuleInitializers">
+        <source>module initializers</source>
+        <target state="new">module initializers</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_OverloadResolutionPriority">

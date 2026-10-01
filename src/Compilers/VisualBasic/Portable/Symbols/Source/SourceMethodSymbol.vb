@@ -1749,7 +1749,12 @@ lReportErrorOnTwoTokens:
             ElseIf VerifyObsoleteAttributeAppliedToMethod(arguments, AttributeDescription.ObsoleteAttribute) Then
             ElseIf VerifyObsoleteAttributeAppliedToMethod(arguments, AttributeDescription.DeprecatedAttribute) Then
             ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.ModuleInitializerAttribute) Then
-                diagnostics.Add(ERRID.WRN_AttributeNotSupportedInVB, arguments.AttributeSyntaxOpt.Location, AttributeDescription.ModuleInitializerAttribute.FullName)
+                Dim languageVersion = DirectCast(arguments.AttributeSyntaxOpt.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If Not InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.ModuleInitializers) Then
+                    diagnostics.Add(ERRID.WRN_AttributeNotSupportedInVB, arguments.AttributeSyntaxOpt.Location, AttributeDescription.ModuleInitializerAttribute.FullName)
+                Else
+                    DecodeModuleInitializerAttribute(arguments, diagnostics)
+                End If
             ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.OverloadResolutionPriorityAttribute) Then
 
                 If Not CanHaveOverloadResolutionPriority Then
@@ -1777,6 +1782,52 @@ lReportErrorOnTwoTokens:
                 End If
             End If
         End Sub
+
+        Private Sub DecodeModuleInitializerAttribute(
+            ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation),
+            diagnostics As BindingDiagnosticBag)
+
+            If MethodKind <> MethodKind.Ordinary Then
+                diagnostics.Add(ERRID.ERR_ModuleInitializerMethodMustBeOrdinary, arguments.AttributeSyntaxOpt.Location)
+                Return
+            End If
+
+            Dim hasError = False
+            Dim useSiteInfo As New CompoundUseSiteInfo(Of AssemblySymbol)(diagnostics, ContainingAssembly)
+            If Not AccessCheck.IsSymbolAccessible(Me, ContainingAssembly, useSiteInfo) Then
+                diagnostics.Add(ERRID.ERR_ModuleInitializerMethodMustBeAccessible, arguments.AttributeSyntaxOpt.Location, Name)
+                hasError = True
+            End If
+
+            diagnostics.Add(arguments.AttributeSyntaxOpt, useSiteInfo)
+
+            If Not IsShared OrElse ParameterCount > 0 OrElse Not IsSub OrElse IsMustOverride OrElse IsOverridable OrElse IsOverrides Then
+                diagnostics.Add(ERRID.ERR_ModuleInitializerMethodMustBeSharedParameterlessSub, arguments.AttributeSyntaxOpt.Location, Name)
+                hasError = True
+            End If
+
+            If IsGenericMethod OrElse IsContainedInGenericType() Then
+                diagnostics.Add(ERRID.ERR_ModuleInitializerMethodMustNotBeGeneric, arguments.AttributeSyntaxOpt.Location, Name)
+                hasError = True
+            End If
+
+            If Not hasError Then
+                DeclaringCompilation.AddModuleInitializerMethod(Me)
+            End If
+        End Sub
+
+        Private Function IsContainedInGenericType() As Boolean
+            Dim type = ContainingType
+            While type IsNot Nothing
+                If type.Arity > 0 Then
+                    Return True
+                End If
+
+                type = type.ContainingType
+            End While
+
+            Return False
+        End Function
 
         Private Function VerifyObsoleteAttributeAppliedToMethod(
             ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation),

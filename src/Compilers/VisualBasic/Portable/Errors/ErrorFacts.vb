@@ -1551,7 +1551,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_MethodImplAttributeAsyncCannotBeUsed,
                      ERRID.ERR_AttributeCannotBeAppliedManually,
                      ERRID.ERR_StructLayoutAndExtendedLayout,
-                     ERRID.ERR_RuntimeDoesNotSupportExtendedLayoutTypes
+                     ERRID.ERR_RuntimeDoesNotSupportExtendedLayoutTypes,
+                     ERRID.ERR_ModuleInitializerMethodMustBeOrdinary,
+                     ERRID.ERR_ModuleInitializerMethodMustBeAccessible,
+                     ERRID.ERR_ModuleInitializerMethodMustBeSharedParameterlessSub,
+                     ERRID.ERR_ModuleInitializerMethodMustNotBeGeneric
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

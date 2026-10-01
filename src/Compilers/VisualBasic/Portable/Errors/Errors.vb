@@ -1795,7 +1795,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_AttributeCannotBeAppliedManually = 37338
         ERR_EncUpdateRequiresEmittingExplicitInterfaceImplementationNotSupportedByTheRuntime = 37339
 
-        ERR_NextAvailable = 37340
+        ERR_ModuleInitializerMethodMustBeOrdinary = 37340
+        ERR_ModuleInitializerMethodMustBeAccessible = 37341
+        ERR_ModuleInitializerMethodMustBeSharedParameterlessSub = 37342
+        ERR_ModuleInitializerMethodMustNotBeGeneric = 37343
+
+        ERR_NextAvailable = 37344
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2100,5 +2105,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_OverloadResolutionPriority
         FEATURE_EnumConstraint
         FEATURE_AsyncMain
+        FEATURE_ModuleInitializers
     End Enum
 End Namespace

@@ -5715,6 +5715,21 @@
   <data name="FEATURE_AsyncMain" xml:space="preserve">
     <value>async entry points</value>
   </data>
+  <data name="FEATURE_ModuleInitializers" xml:space="preserve">
+    <value>module initializers</value>
+  </data>
+  <data name="ERR_ModuleInitializerMethodMustBeOrdinary" xml:space="preserve">
+    <value>A module initializer must be an ordinary method.</value>
+  </data>
+  <data name="ERR_ModuleInitializerMethodMustBeAccessible" xml:space="preserve">
+    <value>Module initializer '{0}' must be accessible outside its containing type.</value>
+  </data>
+  <data name="ERR_ModuleInitializerMethodMustBeSharedParameterlessSub" xml:space="preserve">
+    <value>Module initializer '{0}' must be Shared, must have no parameters, and must be a Sub.</value>
+  </data>
+  <data name="ERR_ModuleInitializerMethodMustNotBeGeneric" xml:space="preserve">
+    <value>Module initializer '{0}' must not be generic and must not be contained in a generic type.</value>
+  </data>
   <data name="ERR_EmbeddedAttributeMustFollowPattern" xml:space="preserve">
     <value>The type 'Microsoft.CodeAnalysis.EmbeddedAttribute' must be non-generic, Friend, NotInheritable, have a Public parameterless constructor, inherit from System.Attribute, and be able to be applied to any type</value>
   </data>
