@@ -3,6 +3,8 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis.Test.Utilities
+Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
@@ -61,6 +63,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
             Else
                 Assert.Null(underlyingType)
             End If
+        End Sub
+
+        <Fact>
+        Public Sub TypeNames_UseIntegerAndLongConversions()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim signed As nint = CType(4, nint)
+        Dim fromLong As nint = CType(4L, nint)
+        Dim asInteger As Integer = CType(signed, Integer)
+        Dim asLong As Long = CType(fromLong, Long)
+        Dim unsigned As nuint = CType(4UI, nuint)
+        Dim asULong As ULong = CType(unsigned, ULong)
+        System.Console.Write(asInteger)
+        System.Console.Write(asLong)
+        System.Console.Write(asULong)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+
+            CompileAndVerify(compilation, expectedOutput:="444").VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim signedName = tree.GetRoot().DescendantNodes().OfType(Of IdentifierNameSyntax)().First(Function(name) name.Identifier.ValueText = "nint")
+            Assert.Equal(SpecialType.System_IntPtr, model.GetTypeInfo(signedName).Type.SpecialType)
+            Dim unsignedName = tree.GetRoot().DescendantNodes().OfType(Of IdentifierNameSyntax)().First(Function(name) name.Identifier.ValueText = "nuint")
+            Assert.Equal(SpecialType.System_UIntPtr, model.GetTypeInfo(unsignedName).Type.SpecialType)
+            Assert.False(model.GetTypeInfo(signedName).Type.IsNativeIntegerType)
+        End Sub
+
+        <Fact>
+        Public Sub TypeName_UserDefinitionWins()
+            Dim compilation = CreateCompilation("
+Class nint
+End Class
+
+Class Holder
+    Public Value As nint
+End Class
+", parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+
+            compilation.VerifyDiagnostics()
+            Dim field = compilation.GetMember(Of FieldSymbol)("Holder.Value")
+            Assert.Equal("nint", field.Type.Name)
+            Assert.Equal(SpecialType.None, field.Type.SpecialType)
+        End Sub
+
+        <Fact>
+        Public Sub TypeNames_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Program
+    Dim Value As nint
+End Class
+", parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_UndefinedType1, "nint").WithArguments("nint").WithLocation(3, 18))
         End Sub
 
         <Fact>

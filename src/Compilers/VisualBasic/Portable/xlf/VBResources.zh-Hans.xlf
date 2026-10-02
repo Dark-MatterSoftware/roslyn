@@ -327,6 +327,11 @@
         <target state="new">module initializers</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_NativeIntegers">
+        <source>native integers</source>
+        <target state="new">native integers</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_NothingCoalescingAssignment">
         <source>nothing-coalescing assignment</source>
         <target state="new">nothing-coalescing assignment</target>

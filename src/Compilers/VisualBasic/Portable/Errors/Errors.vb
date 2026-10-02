@@ -2135,5 +2135,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_SetsRequiredMembers
         FEATURE_GenericAttributes
         FEATURE_ReadOnlyStructures
+        FEATURE_NativeIntegers
     End Enum
 End Namespace

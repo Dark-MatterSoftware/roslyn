@@ -205,6 +205,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' On vbnext, an unqualified name nint or nuint that does not bind to another symbol
+        ''' is the corresponding native integer type. Those types already convert with Integer
+        ''' and Long through the IntPtr and UIntPtr operators.
+        ''' </summary>
+        Friend Function TryBindNativeIntegerType(name As String, syntax As SyntaxNodeOrToken, diagnostics As BindingDiagnosticBag) As NamedTypeSymbol
+            Dim specialType As SpecialType
+            If IdentifierComparison.Equals(name, "nint") Then
+                specialType = SpecialType.System_IntPtr
+            ElseIf IdentifierComparison.Equals(name, "nuint") Then
+                specialType = SpecialType.System_UIntPtr
+            Else
+                Return Nothing
+            End If
+
+            If Not Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.Parser.CheckFeatureAvailability(Compilation.LanguageVersion, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.Feature.NativeIntegers) Then
+                Return Nothing
+            End If
+
+            Return GetSpecialType(specialType, syntax, diagnostics)
+        End Function
+
+        ''' <summary>
         ''' The type binder class handles binding of type names.
         ''' </summary>
         Private Class TypeBinder
@@ -855,6 +877,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         binder.LookupAttributeType(lookupResult, Nothing, idText, LookupOptions.AttributeTypeOnly, useSiteInfo)
                     Else
                         binder.Lookup(lookupResult, idText, 0, LookupOptions.NamespacesOrTypesOnly, useSiteInfo)
+                        If lookupResult.Kind = LookupResultKind.Empty Then
+                            Dim nativeInteger = binder.TryBindNativeIntegerType(idText, basicNameSyntax, diagBag)
+                            If nativeInteger IsNot Nothing Then
+                                lookupResult.SetFrom(SingleLookupResult.Good(nativeInteger))
+                            End If
+                        End If
                     End If
 
                     diagBag.Add(basicNameSyntax, useSiteInfo)

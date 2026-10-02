@@ -2491,6 +2491,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.Lookup(result, name, arity, options, useSiteInfo)
             diagnostics.Add(node, useSiteInfo)
 
+            If Not result.HasSymbol AndAlso arity = 0 AndAlso node.Kind = SyntaxKind.IdentifierName Then
+                Dim nativeInteger = TryBindNativeIntegerType(name, node, diagnostics)
+                If nativeInteger IsNot Nothing Then
+                    result.SetFrom(SingleLookupResult.Good(nativeInteger))
+                End If
+            End If
+
             If Not result.IsGoodOrAmbiguous AndAlso
                Me.ImplicitVariableDeclarationAllowed AndAlso
                Not Me.AllImplicitVariableDeclarationsAreHandled AndAlso

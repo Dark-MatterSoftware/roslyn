@@ -5766,6 +5766,9 @@
   <data name="FEATURE_ReadOnlyStructures" xml:space="preserve">
     <value>readonly structures</value>
   </data>
+  <data name="FEATURE_NativeIntegers" xml:space="preserve">
+    <value>native integers</value>
+  </data>
   <data name="ERR_FieldInReadOnlyStructure" xml:space="preserve">
     <value>Instance fields in a ReadOnly structure must be ReadOnly.</value>
   </data>
