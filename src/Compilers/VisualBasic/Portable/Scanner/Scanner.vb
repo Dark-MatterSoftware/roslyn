@@ -1310,7 +1310,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ScanBracketedIdentifier(precedingTrivia)
 
                 Case "?"c
-                    Return MakeQuestionToken(precedingTrivia, fullWidth)
+                    ' Nullable "?" must stay a separate token from a following "=".
+                    If CanGet(1) AndAlso Not IsWhitespace(Peek(1)) AndAlso TrySkipFollowingEquals(lengthWithMaybeEquals) Then
+                        Return MakeQuestionEqualsToken(precedingTrivia, lengthWithMaybeEquals)
+                    Else
+                        Return MakeQuestionToken(precedingTrivia, fullWidth)
+                    End If
 
                 Case "%"c
                     If NextIs(1, ">"c) Then

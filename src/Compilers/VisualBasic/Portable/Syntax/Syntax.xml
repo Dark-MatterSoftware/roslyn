@@ -4629,6 +4629,10 @@ Unify Enum declarations with other block type declarations.
         <lm-equiv name="Assignment" />
         <native-equiv name="Expression.Opcodes.AssignConcatenate" />
       </node-kind>
+      <node-kind name="NothingCoalescingAssignmentStatement">
+        <lm-equiv name="Assignment" />
+        <native-equiv name="Expression.Opcodes.Assign" />
+      </node-kind>
 
       <child name="Left" kind="@ExpressionSyntax">
         <description>The target (left hand side) of the assignment.</description>
@@ -4637,7 +4641,7 @@ Unify Enum declarations with other block type declarations.
       </child>
 
       <child name="OperatorToken">
-        <description>The operator used in the assignment statement. One of "=", "+=", "-=", "*=", "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".</description>
+        <description>The operator used in the assignment statement. One of "=", "+=", "-=", "*=", "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".</description>
         <lm-equiv name="Operator"></lm-equiv>
         <native-equiv name="Operator"></native-equiv>
 
@@ -4652,6 +4656,7 @@ Unify Enum declarations with other block type declarations.
         <kind name="LessThanLessThanEqualsToken" node-kind="LeftShiftAssignmentStatement" />
         <kind name="GreaterThanGreaterThanEqualsToken" node-kind="RightShiftAssignmentStatement" />
         <kind name="AmpersandEqualsToken" node-kind="ConcatenateAssignmentStatement" />
+        <kind name="QuestionEqualsToken" node-kind="NothingCoalescingAssignmentStatement" />
       </child>
 
       <child name="Right" kind="@ExpressionSyntax">
@@ -8757,6 +8762,10 @@ Unify Enum declarations with other block type declarations.
       </node-kind>
       <node-kind name="QuestionToken" token-text="?">
         <lm-equiv name="QuestionMarkToken" />
+        <native-equiv name="" />
+      </node-kind>
+      <node-kind name="QuestionEqualsToken" token-text="?=">
+        <lm-equiv name="" />
         <native-equiv name="" />
       </node-kind>
       <node-kind name="DoubleQuoteToken" token-text="&quot;">

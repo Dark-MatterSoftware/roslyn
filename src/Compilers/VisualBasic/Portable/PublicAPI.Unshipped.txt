@@ -1,2 +1,6 @@
 Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.VbNext = 9999 -> Microsoft.CodeAnalysis.VisualBasic.LanguageVersion
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.NothingCoalescingAssignmentStatement(left As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax, operatorToken As Microsoft.CodeAnalysis.SyntaxToken, right As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.AssignmentStatementSyntax
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.NothingCoalescingAssignmentStatement(left As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax, right As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.AssignmentStatementSyntax
+Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.NothingCoalescingAssignmentStatement = 793 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
+Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.QuestionEqualsToken = 794 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
 Microsoft.CodeAnalysis.VisualBasic.VisualBasicExtensions.GetValueConversion(coalesceExpression As Microsoft.CodeAnalysis.Operations.ICoalesceOperation) -> Microsoft.CodeAnalysis.VisualBasic.Conversion

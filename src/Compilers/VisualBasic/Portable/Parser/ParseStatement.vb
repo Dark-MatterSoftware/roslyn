@@ -1098,6 +1098,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Dim operatorToken As PunctuationSyntax = DirectCast(CurrentToken, PunctuationSyntax)
                 GetNextToken()
 
+                If operatorToken.Kind = SyntaxKind.QuestionEqualsToken Then
+                    operatorToken = CheckFeatureAvailability(Feature.NothingCoalescingAssignment, operatorToken)
+                End If
+
                 TryEatNewLine()
 
                 Dim source = ParseExpressionCore()
@@ -1189,6 +1193,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 Case SyntaxKind.AmpersandEqualsToken
                     Return SyntaxFactory.ConcatenateAssignmentStatement(left, operatorToken, right)
+
+                Case SyntaxKind.QuestionEqualsToken
+                    Return SyntaxFactory.NothingCoalescingAssignmentStatement(left, operatorToken, right)
 
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(operatorToken.Kind)

@@ -268,6 +268,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.LeftShiftAssignmentStatement,
                      SyntaxKind.RightShiftAssignmentStatement,
                      SyntaxKind.ConcatenateAssignmentStatement,
+                     SyntaxKind.NothingCoalescingAssignmentStatement,
                      SyntaxKind.CallStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.LabelStatement,

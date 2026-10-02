@@ -243,6 +243,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                 SyntaxKind.AmpersandEqualsToken, PrecedenceConcatenate,
                 SyntaxKind.AsteriskEqualsToken, PrecedenceMultiply,
                 SyntaxKind.PlusEqualsToken, PrecedenceAdd,
+                SyntaxKind.QuestionEqualsToken, None,
                 SyntaxKind.MinusEqualsToken, PrecedenceAdd,
                 SyntaxKind.SlashEqualsToken, PrecedenceMultiply,
                 SyntaxKind.BackslashEqualsToken, PrecedenceIntegerDivide,

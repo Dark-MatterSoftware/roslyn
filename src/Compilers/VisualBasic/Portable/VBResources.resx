@@ -5730,6 +5730,9 @@
   <data name="FEATURE_TargetTypedDefault" xml:space="preserve">
     <value>target-typed default</value>
   </data>
+  <data name="FEATURE_NothingCoalescingAssignment" xml:space="preserve">
+    <value>nothing-coalescing assignment</value>
+  </data>
   <data name="ERR_TargetTypedNewRequiresTargetType" xml:space="preserve">
     <value>Target-typed New requires a target type.</value>
   </data>

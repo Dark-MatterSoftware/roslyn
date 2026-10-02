@@ -3201,5 +3201,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ConflictMarkerTrivia = 792
 
+        ''' <summary>
+        ''' Represents a nothing-coalescing assignment statement, <c>x ?= y</c>.
+        ''' </summary>
+        NothingCoalescingAssignmentStatement = 793 ' AssignmentStatementSyntax : ExecutableStatementSyntax : StatementSyntax
+
+        ''' <summary>
+        ''' Represents the <c>?=</c> operator.
+        ''' </summary>
+        QuestionEqualsToken = 794                    ' PunctuationSyntax : SyntaxToken
+
     End Enum
 End Namespace

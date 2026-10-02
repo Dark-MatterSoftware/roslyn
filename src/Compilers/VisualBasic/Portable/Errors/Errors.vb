@@ -2121,5 +2121,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_UnmanagedCallersOnly
         FEATURE_TargetTypedNew
         FEATURE_TargetTypedDefault
+        FEATURE_NothingCoalescingAssignment
     End Enum
 End Namespace

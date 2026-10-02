@@ -20063,6 +20063,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     ''' <item><description><see cref="SyntaxKind.LeftShiftAssignmentStatement"/></description></item>
     ''' <item><description><see cref="SyntaxKind.RightShiftAssignmentStatement"/></description></item>
     ''' <item><description><see cref="SyntaxKind.ConcatenateAssignmentStatement"/></description></item>
+    ''' <item><description><see cref="SyntaxKind.NothingCoalescingAssignmentStatement"/></description></item>
     ''' </list>
     ''' </remarks>
     Public NotInheritable Class AssignmentStatementSyntax
@@ -20100,7 +20101,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
 
         ''' <summary>
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </summary>
         Public ReadOnly Property OperatorToken As SyntaxToken
             Get

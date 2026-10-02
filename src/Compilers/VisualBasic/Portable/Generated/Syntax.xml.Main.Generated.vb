@@ -20149,7 +20149,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -20277,7 +20277,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.CaretEqualsToken :
                 Case SyntaxKind.LessThanLessThanEqualsToken :
                 Case SyntaxKind.GreaterThanGreaterThanEqualsToken :
-                Case SyntaxKind.AmpersandEqualsToken
+                Case SyntaxKind.AmpersandEqualsToken :
+                Case SyntaxKind.QuestionEqualsToken
                 Case Else
                     Throw new ArgumentException("operatorToken")
             End Select
@@ -20421,7 +20422,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -20684,7 +20685,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -20947,7 +20948,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -21210,7 +21211,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -21473,7 +21474,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -21736,7 +21737,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -21999,7 +22000,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -22262,7 +22263,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -22525,7 +22526,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -22788,7 +22789,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -23046,6 +23047,269 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Represents a simple, compound, or Mid assignment statement. Which one can be
         ''' determined by checking the Kind.
         ''' </summary>
+        ''' <param name="left">
+        ''' The target (left hand side) of the assignment.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
+        ''' </param>
+        ''' <param name="right">
+        ''' The source (right hand side) of the assignment.
+        ''' </param>
+        Public Shared Function NothingCoalescingAssignmentStatement(left As ExpressionSyntax, operatorToken As SyntaxToken, right As ExpressionSyntax) As AssignmentStatementSyntax
+            if left Is Nothing Then
+                Throw New ArgumentNullException(NameOf(left))
+            End If
+            Select Case left.Kind()
+                Case SyntaxKind.KeywordEventContainer,
+                     SyntaxKind.WithEventsEventContainer,
+                     SyntaxKind.WithEventsPropertyEventContainer,
+                     SyntaxKind.IdentifierLabel,
+                     SyntaxKind.NumericLabel,
+                     SyntaxKind.NextLabel,
+                     SyntaxKind.MidExpression,
+                     SyntaxKind.CharacterLiteralExpression,
+                     SyntaxKind.TrueLiteralExpression,
+                     SyntaxKind.FalseLiteralExpression,
+                     SyntaxKind.NumericLiteralExpression,
+                     SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.StringLiteralExpression,
+                     SyntaxKind.NothingLiteralExpression,
+                     SyntaxKind.ParenthesizedExpression,
+                     SyntaxKind.TupleExpression,
+                     SyntaxKind.TupleType,
+                     SyntaxKind.MeExpression,
+                     SyntaxKind.MyBaseExpression,
+                     SyntaxKind.MyClassExpression,
+                     SyntaxKind.GetTypeExpression,
+                     SyntaxKind.TypeOfIsExpression,
+                     SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.GetXmlNamespaceExpression,
+                     SyntaxKind.SimpleMemberAccessExpression,
+                     SyntaxKind.DictionaryAccessExpression,
+                     SyntaxKind.XmlElementAccessExpression,
+                     SyntaxKind.XmlDescendantAccessExpression,
+                     SyntaxKind.XmlAttributeAccessExpression,
+                     SyntaxKind.InvocationExpression,
+                     SyntaxKind.ObjectCreationExpression,
+                     SyntaxKind.AnonymousObjectCreationExpression,
+                     SyntaxKind.ArrayCreationExpression,
+                     SyntaxKind.CollectionInitializer,
+                     SyntaxKind.CTypeExpression,
+                     SyntaxKind.DirectCastExpression,
+                     SyntaxKind.TryCastExpression,
+                     SyntaxKind.PredefinedCastExpression,
+                     SyntaxKind.AddExpression,
+                     SyntaxKind.SubtractExpression,
+                     SyntaxKind.MultiplyExpression,
+                     SyntaxKind.DivideExpression,
+                     SyntaxKind.IntegerDivideExpression,
+                     SyntaxKind.ExponentiateExpression,
+                     SyntaxKind.LeftShiftExpression,
+                     SyntaxKind.RightShiftExpression,
+                     SyntaxKind.ConcatenateExpression,
+                     SyntaxKind.ModuloExpression,
+                     SyntaxKind.EqualsExpression,
+                     SyntaxKind.NotEqualsExpression,
+                     SyntaxKind.LessThanExpression,
+                     SyntaxKind.LessThanOrEqualExpression,
+                     SyntaxKind.GreaterThanOrEqualExpression,
+                     SyntaxKind.GreaterThanExpression,
+                     SyntaxKind.IsExpression,
+                     SyntaxKind.IsNotExpression,
+                     SyntaxKind.LikeExpression,
+                     SyntaxKind.OrExpression,
+                     SyntaxKind.ExclusiveOrExpression,
+                     SyntaxKind.AndExpression,
+                     SyntaxKind.OrElseExpression,
+                     SyntaxKind.AndAlsoExpression,
+                     SyntaxKind.UnaryPlusExpression,
+                     SyntaxKind.UnaryMinusExpression,
+                     SyntaxKind.NotExpression,
+                     SyntaxKind.AddressOfExpression,
+                     SyntaxKind.BinaryConditionalExpression,
+                     SyntaxKind.TernaryConditionalExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression,
+                     SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.QueryExpression,
+                     SyntaxKind.FunctionAggregation,
+                     SyntaxKind.GroupAggregation,
+                     SyntaxKind.XmlDocument,
+                     SyntaxKind.XmlElement,
+                     SyntaxKind.XmlText,
+                     SyntaxKind.XmlElementStartTag,
+                     SyntaxKind.XmlElementEndTag,
+                     SyntaxKind.XmlEmptyElement,
+                     SyntaxKind.XmlAttribute,
+                     SyntaxKind.XmlString,
+                     SyntaxKind.XmlPrefixName,
+                     SyntaxKind.XmlName,
+                     SyntaxKind.XmlBracketedName,
+                     SyntaxKind.XmlComment,
+                     SyntaxKind.XmlProcessingInstruction,
+                     SyntaxKind.XmlCDataSection,
+                     SyntaxKind.XmlEmbeddedExpression,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference,
+                     SyntaxKind.AwaitExpression,
+                     SyntaxKind.XmlCrefAttribute,
+                     SyntaxKind.XmlNameAttribute,
+                     SyntaxKind.ConditionalAccessExpression,
+                     SyntaxKind.NameOfExpression,
+                     SyntaxKind.InterpolatedStringExpression
+                Case Else
+                    Throw new ArgumentException("left")
+            End Select
+            Select Case operatorToken.Kind()
+                Case SyntaxKind.QuestionEqualsToken
+                Case Else
+                    Throw new ArgumentException("operatorToken")
+            End Select
+            if right Is Nothing Then
+                Throw New ArgumentNullException(NameOf(right))
+            End If
+            Select Case right.Kind()
+                Case SyntaxKind.KeywordEventContainer,
+                     SyntaxKind.WithEventsEventContainer,
+                     SyntaxKind.WithEventsPropertyEventContainer,
+                     SyntaxKind.IdentifierLabel,
+                     SyntaxKind.NumericLabel,
+                     SyntaxKind.NextLabel,
+                     SyntaxKind.MidExpression,
+                     SyntaxKind.CharacterLiteralExpression,
+                     SyntaxKind.TrueLiteralExpression,
+                     SyntaxKind.FalseLiteralExpression,
+                     SyntaxKind.NumericLiteralExpression,
+                     SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.StringLiteralExpression,
+                     SyntaxKind.NothingLiteralExpression,
+                     SyntaxKind.ParenthesizedExpression,
+                     SyntaxKind.TupleExpression,
+                     SyntaxKind.TupleType,
+                     SyntaxKind.MeExpression,
+                     SyntaxKind.MyBaseExpression,
+                     SyntaxKind.MyClassExpression,
+                     SyntaxKind.GetTypeExpression,
+                     SyntaxKind.TypeOfIsExpression,
+                     SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.GetXmlNamespaceExpression,
+                     SyntaxKind.SimpleMemberAccessExpression,
+                     SyntaxKind.DictionaryAccessExpression,
+                     SyntaxKind.XmlElementAccessExpression,
+                     SyntaxKind.XmlDescendantAccessExpression,
+                     SyntaxKind.XmlAttributeAccessExpression,
+                     SyntaxKind.InvocationExpression,
+                     SyntaxKind.ObjectCreationExpression,
+                     SyntaxKind.AnonymousObjectCreationExpression,
+                     SyntaxKind.ArrayCreationExpression,
+                     SyntaxKind.CollectionInitializer,
+                     SyntaxKind.CTypeExpression,
+                     SyntaxKind.DirectCastExpression,
+                     SyntaxKind.TryCastExpression,
+                     SyntaxKind.PredefinedCastExpression,
+                     SyntaxKind.AddExpression,
+                     SyntaxKind.SubtractExpression,
+                     SyntaxKind.MultiplyExpression,
+                     SyntaxKind.DivideExpression,
+                     SyntaxKind.IntegerDivideExpression,
+                     SyntaxKind.ExponentiateExpression,
+                     SyntaxKind.LeftShiftExpression,
+                     SyntaxKind.RightShiftExpression,
+                     SyntaxKind.ConcatenateExpression,
+                     SyntaxKind.ModuloExpression,
+                     SyntaxKind.EqualsExpression,
+                     SyntaxKind.NotEqualsExpression,
+                     SyntaxKind.LessThanExpression,
+                     SyntaxKind.LessThanOrEqualExpression,
+                     SyntaxKind.GreaterThanOrEqualExpression,
+                     SyntaxKind.GreaterThanExpression,
+                     SyntaxKind.IsExpression,
+                     SyntaxKind.IsNotExpression,
+                     SyntaxKind.LikeExpression,
+                     SyntaxKind.OrExpression,
+                     SyntaxKind.ExclusiveOrExpression,
+                     SyntaxKind.AndExpression,
+                     SyntaxKind.OrElseExpression,
+                     SyntaxKind.AndAlsoExpression,
+                     SyntaxKind.UnaryPlusExpression,
+                     SyntaxKind.UnaryMinusExpression,
+                     SyntaxKind.NotExpression,
+                     SyntaxKind.AddressOfExpression,
+                     SyntaxKind.BinaryConditionalExpression,
+                     SyntaxKind.TernaryConditionalExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression,
+                     SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.QueryExpression,
+                     SyntaxKind.FunctionAggregation,
+                     SyntaxKind.GroupAggregation,
+                     SyntaxKind.XmlDocument,
+                     SyntaxKind.XmlElement,
+                     SyntaxKind.XmlText,
+                     SyntaxKind.XmlElementStartTag,
+                     SyntaxKind.XmlElementEndTag,
+                     SyntaxKind.XmlEmptyElement,
+                     SyntaxKind.XmlAttribute,
+                     SyntaxKind.XmlString,
+                     SyntaxKind.XmlPrefixName,
+                     SyntaxKind.XmlName,
+                     SyntaxKind.XmlBracketedName,
+                     SyntaxKind.XmlComment,
+                     SyntaxKind.XmlProcessingInstruction,
+                     SyntaxKind.XmlCDataSection,
+                     SyntaxKind.XmlEmbeddedExpression,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference,
+                     SyntaxKind.AwaitExpression,
+                     SyntaxKind.XmlCrefAttribute,
+                     SyntaxKind.XmlNameAttribute,
+                     SyntaxKind.ConditionalAccessExpression,
+                     SyntaxKind.NameOfExpression,
+                     SyntaxKind.InterpolatedStringExpression
+                Case Else
+                    Throw new ArgumentException("right")
+            End Select
+            Return New AssignmentStatementSyntax(SyntaxKind.NothingCoalescingAssignmentStatement, Nothing, Nothing, left, DirectCast(operatorToken.Node, InternalSyntax.PunctuationSyntax), right)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a simple, compound, or Mid assignment statement. Which one can be
+        ''' determined by checking the Kind.
+        ''' </summary>
+        ''' <param name="left">
+        ''' The target (left hand side) of the assignment.
+        ''' </param>
+        ''' <param name="right">
+        ''' The source (right hand side) of the assignment.
+        ''' </param>
+        Public Shared Function NothingCoalescingAssignmentStatement(left As ExpressionSyntax, right As ExpressionSyntax) As AssignmentStatementSyntax
+            Return SyntaxFactory.NothingCoalescingAssignmentStatement(left, SyntaxFactory.Token(SyntaxKind.QuestionEqualsToken), right)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a simple, compound, or Mid assignment statement. Which one can be
+        ''' determined by checking the Kind.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' AssignmentStatementSyntax. One of SimpleAssignmentStatement,
@@ -23053,14 +23317,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' MultiplyAssignmentStatement, DivideAssignmentStatement,
         ''' IntegerDivideAssignmentStatement, ExponentiateAssignmentStatement,
         ''' LeftShiftAssignmentStatement, RightShiftAssignmentStatement,
-        ''' ConcatenateAssignmentStatement.
+        ''' ConcatenateAssignmentStatement, NothingCoalescingAssignmentStatement.
         ''' </param>
         ''' <param name="left">
         ''' The target (left hand side) of the assignment.
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -23323,6 +23587,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return SyntaxKind.GreaterThanGreaterThanEqualsToken
                 Case SyntaxKind.ConcatenateAssignmentStatement
                     Return SyntaxKind.AmpersandEqualsToken
+                Case SyntaxKind.NothingCoalescingAssignmentStatement
+                    Return SyntaxKind.QuestionEqualsToken
                 Case Else
                     Throw New ArgumentException("OperatorToken")
             End Select
@@ -24799,7 +25065,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -24835,7 +25102,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -24871,7 +25139,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -24907,7 +25176,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -24943,7 +25213,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -24979,7 +25250,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -25015,7 +25287,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -25060,7 +25333,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
-                Case SyntaxKind.NothingKeyword
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
                 Case Else
                     Throw new ArgumentException("token")
             End Select
@@ -35928,6 +36202,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.LeftShiftAssignmentStatement,
                      SyntaxKind.RightShiftAssignmentStatement,
                      SyntaxKind.ConcatenateAssignmentStatement,
+                     SyntaxKind.NothingCoalescingAssignmentStatement,
                      SyntaxKind.CallStatement,
                      SyntaxKind.AddHandlerStatement,
                      SyntaxKind.RemoveHandlerStatement,
@@ -36222,6 +36497,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.LeftShiftAssignmentStatement,
                      SyntaxKind.RightShiftAssignmentStatement,
                      SyntaxKind.ConcatenateAssignmentStatement,
+                     SyntaxKind.NothingCoalescingAssignmentStatement,
                      SyntaxKind.CallStatement,
                      SyntaxKind.AddHandlerStatement,
                      SyntaxKind.RemoveHandlerStatement,
@@ -36524,6 +36800,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.LeftShiftAssignmentStatement,
                      SyntaxKind.RightShiftAssignmentStatement,
                      SyntaxKind.ConcatenateAssignmentStatement,
+                     SyntaxKind.NothingCoalescingAssignmentStatement,
                      SyntaxKind.CallStatement,
                      SyntaxKind.AddHandlerStatement,
                      SyntaxKind.RemoveHandlerStatement,
@@ -44542,7 +44819,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.ExponentiateAssignmentStatement,
                 SyntaxKind.LeftShiftAssignmentStatement,
                 SyntaxKind.RightShiftAssignmentStatement,
-                SyntaxKind.ConcatenateAssignmentStatement
+                SyntaxKind.ConcatenateAssignmentStatement,
+                SyntaxKind.NothingCoalescingAssignmentStatement
                     Return True
             End Select
             Return False
@@ -44561,7 +44839,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.CaretEqualsToken,
                 SyntaxKind.LessThanLessThanEqualsToken,
                 SyntaxKind.GreaterThanGreaterThanEqualsToken,
-                SyntaxKind.AmpersandEqualsToken
+                SyntaxKind.AmpersandEqualsToken,
+                SyntaxKind.QuestionEqualsToken
                     Return True
             End Select
             Return False
@@ -45238,6 +45517,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.LessThanLessThanEqualsToken,
                 SyntaxKind.GreaterThanGreaterThanEqualsToken,
                 SyntaxKind.QuestionToken,
+                SyntaxKind.QuestionEqualsToken,
                 SyntaxKind.DoubleQuoteToken,
                 SyntaxKind.DollarSignDoubleQuoteToken,
                 SyntaxKind.EndOfInterpolatedStringToken,
@@ -45828,6 +46108,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return ">>="
                 Case SyntaxKind.QuestionToken
                     Return "?"
+                Case SyntaxKind.QuestionEqualsToken
+                    Return "?="
                 Case SyntaxKind.DoubleQuoteToken
                     Return """"
                 Case SyntaxKind.DollarSignDoubleQuoteToken

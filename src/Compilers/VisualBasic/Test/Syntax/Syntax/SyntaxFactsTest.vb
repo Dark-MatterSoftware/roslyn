@@ -274,7 +274,7 @@ End Namespace
 
     <Fact>
     Public Sub IsAssignmentStatement()
-        For Each item As SyntaxKind In {SyntaxKind.SimpleAssignmentStatement, SyntaxKind.MidAssignmentStatement, SyntaxKind.AddAssignmentStatement, SyntaxKind.SubtractAssignmentStatement, SyntaxKind.MultiplyAssignmentStatement, SyntaxKind.DivideAssignmentStatement, SyntaxKind.IntegerDivideAssignmentStatement, SyntaxKind.ExponentiateAssignmentStatement, SyntaxKind.LeftShiftAssignmentStatement, SyntaxKind.RightShiftAssignmentStatement, SyntaxKind.ConcatenateAssignmentStatement}
+        For Each item As SyntaxKind In {SyntaxKind.SimpleAssignmentStatement, SyntaxKind.MidAssignmentStatement, SyntaxKind.AddAssignmentStatement, SyntaxKind.SubtractAssignmentStatement, SyntaxKind.MultiplyAssignmentStatement, SyntaxKind.DivideAssignmentStatement, SyntaxKind.IntegerDivideAssignmentStatement, SyntaxKind.ExponentiateAssignmentStatement, SyntaxKind.LeftShiftAssignmentStatement, SyntaxKind.RightShiftAssignmentStatement, SyntaxKind.ConcatenateAssignmentStatement, SyntaxKind.NothingCoalescingAssignmentStatement}
             Assert.True(SyntaxFacts.IsAssignmentStatement(item))
         Next
         Assert.False(SyntaxFacts.IsAssignmentStatement(SyntaxKind.ExitKeyword))
@@ -283,7 +283,7 @@ End Namespace
 
     <Fact>
     Public Sub IsAssignmentStatementOperatorToken()
-        For Each item As SyntaxKind In {SyntaxKind.EqualsToken, SyntaxKind.PlusEqualsToken, SyntaxKind.MinusEqualsToken, SyntaxKind.AsteriskEqualsToken, SyntaxKind.SlashEqualsToken, SyntaxKind.BackslashEqualsToken, SyntaxKind.CaretEqualsToken, SyntaxKind.LessThanLessThanEqualsToken, SyntaxKind.GreaterThanGreaterThanEqualsToken, SyntaxKind.AmpersandEqualsToken}
+        For Each item As SyntaxKind In {SyntaxKind.EqualsToken, SyntaxKind.PlusEqualsToken, SyntaxKind.MinusEqualsToken, SyntaxKind.AsteriskEqualsToken, SyntaxKind.SlashEqualsToken, SyntaxKind.BackslashEqualsToken, SyntaxKind.CaretEqualsToken, SyntaxKind.LessThanLessThanEqualsToken, SyntaxKind.GreaterThanGreaterThanEqualsToken, SyntaxKind.AmpersandEqualsToken, SyntaxKind.QuestionEqualsToken}
             Assert.True(SyntaxFacts.IsAssignmentStatementOperatorToken(item))
         Next
         Assert.False(SyntaxFacts.IsAssignmentStatementOperatorToken(SyntaxKind.ExitKeyword))

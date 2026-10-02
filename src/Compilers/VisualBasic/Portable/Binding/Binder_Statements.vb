@@ -31,7 +31,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.ExponentiateAssignmentStatement,
                      SyntaxKind.LeftShiftAssignmentStatement,
                      SyntaxKind.RightShiftAssignmentStatement,
-                     SyntaxKind.ConcatenateAssignmentStatement
+                     SyntaxKind.ConcatenateAssignmentStatement,
+                     SyntaxKind.NothingCoalescingAssignmentStatement
                     Return BindAssignmentStatement(DirectCast(node, AssignmentStatementSyntax), diagnostics)
 
                 Case SyntaxKind.MidAssignmentStatement
@@ -2045,6 +2046,60 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundAssignmentOperator(node, op1, op2, False, hasErrors:=isError)
         End Function
 
+        Private Function BindNothingCoalescingAssignment(
+            node As AssignmentStatementSyntax,
+            left As BoundExpression,
+            right As BoundExpression,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundAssignmentOperator
+
+            Dim isError As Boolean = False
+            Dim assignmentTarget As BoundExpression = AdjustAssignmentTarget(node, left, diagnostics, isError)
+
+            Dim value As BoundExpression
+            If isError Then
+                value = MakeRValueAndIgnoreDiagnostics(left)
+            Else
+                value = MakeRValue(left, diagnostics)
+                isError = value.HasErrors
+            End If
+
+            Dim targetType As TypeSymbol = If(assignmentTarget.Type, ErrorTypeSymbol.UnknownResultType)
+
+            If isError Then
+                diagnostics = BindingDiagnosticBag.Discarded
+            ElseIf value.Type IsNot Nothing AndAlso Not (value.Type.IsReferenceType OrElse value.Type.IsNullableType) Then
+                If Not value.Type.IsValueType Then
+                    If Not InternalSyntax.Parser.CheckFeatureAvailability(diagnostics,
+                                                                           node.Left.GetLocation(),
+                                                                           DirectCast(node.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion,
+                                                                           InternalSyntax.Feature.UnconstrainedTypeParameterInConditional) Then
+                        isError = True
+                    End If
+                Else
+                    ReportDiagnostic(diagnostics, node.Left, ERRID.ERR_IllegalCondTypeInIIF)
+                    isError = True
+                End If
+            End If
+
+            If isError Then
+                diagnostics = BindingDiagnosticBag.Discarded
+            End If
+
+            ' x ?= y lowers to x = If(x, y).
+            Dim elseExpression = ApplyImplicitConversion(node.Right, targetType, right, diagnostics)
+            Dim coalesced = AnalyzeConversionAndCreateBinaryConditionalExpression(
+                node,
+                testExpression:=value,
+                elseExpression:=elseExpression,
+                constantValueOpt:=Nothing,
+                type:=targetType,
+                hasErrors:=isError OrElse elseExpression.HasErrors,
+                diagnostics:=diagnostics)
+
+            Return BindAssignment(node, assignmentTarget, coalesced, diagnostics)
+        End Function
+
         Private Function BindCompoundAssignment(
             node As VisualBasicSyntaxNode,
             left As BoundExpression,
@@ -2177,6 +2232,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             ElseIf node.Kind = SyntaxKind.SimpleAssignmentStatement Then
                 expr = BindAssignment(node, op1, op2, diagnostics)
+            ElseIf node.Kind = SyntaxKind.NothingCoalescingAssignmentStatement Then
+                expr = BindNothingCoalescingAssignment(node, op1, op2, diagnostics)
             Else
                 Dim operatorKind As BinaryOperatorKind
                 Dim binaryTokenKind As SyntaxKind

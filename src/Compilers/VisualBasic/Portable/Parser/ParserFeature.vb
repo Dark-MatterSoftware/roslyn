@@ -50,6 +50,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         UnmanagedCallersOnly
         TargetTypedNew
         TargetTypedDefault
+        NothingCoalescingAssignment
     End Enum
 
     Friend Module FeatureExtensions
@@ -125,7 +126,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.SkipLocalsInit,
                      Feature.UnmanagedCallersOnly,
                      Feature.TargetTypedNew,
-                     Feature.TargetTypedDefault
+                     Feature.TargetTypedDefault,
+                     Feature.NothingCoalescingAssignment
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -219,6 +221,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_TargetTypedNew
                 Case Feature.TargetTypedDefault
                     Return ERRID.FEATURE_TargetTypedDefault
+                Case Feature.NothingCoalescingAssignment
+                    Return ERRID.FEATURE_NothingCoalescingAssignment
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

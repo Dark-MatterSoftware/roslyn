@@ -14577,7 +14577,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         ''' <summary>
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </summary>
         Friend ReadOnly Property OperatorToken As InternalSyntax.PunctuationSyntax
             Get
@@ -40498,7 +40498,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40532,7 +40532,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40566,7 +40566,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40600,7 +40600,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40634,7 +40634,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40668,7 +40668,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40702,7 +40702,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40736,7 +40736,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40770,7 +40770,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40804,7 +40804,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40838,7 +40838,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -40867,6 +40867,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Represents a simple, compound, or Mid assignment statement. Which one can be
         ''' determined by checking the Kind.
         ''' </summary>
+        ''' <param name="left">
+        ''' The target (left hand side) of the assignment.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
+        ''' </param>
+        ''' <param name="right">
+        ''' The source (right hand side) of the assignment.
+        ''' </param>
+        Friend Shared Function NothingCoalescingAssignmentStatement(left As ExpressionSyntax, operatorToken As PunctuationSyntax, right As ExpressionSyntax) As AssignmentStatementSyntax
+            Debug.Assert(left IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.QuestionEqualsToken)
+            Debug.Assert(right IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.NothingCoalescingAssignmentStatement, left, operatorToken, right, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, AssignmentStatementSyntax)
+            End If
+
+            Dim result = New AssignmentStatementSyntax(SyntaxKind.NothingCoalescingAssignmentStatement, left, operatorToken, right)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a simple, compound, or Mid assignment statement. Which one can be
+        ''' determined by checking the Kind.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' AssignmentStatementSyntax. One of SimpleAssignmentStatement,
@@ -40874,14 +40908,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' MultiplyAssignmentStatement, DivideAssignmentStatement,
         ''' IntegerDivideAssignmentStatement, ExponentiateAssignmentStatement,
         ''' LeftShiftAssignmentStatement, RightShiftAssignmentStatement,
-        ''' ConcatenateAssignmentStatement.
+        ''' ConcatenateAssignmentStatement, NothingCoalescingAssignmentStatement.
         ''' </param>
         ''' <param name="left">
         ''' The target (left hand side) of the assignment.
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52564,7 +52598,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52598,7 +52632,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52632,7 +52666,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52666,7 +52700,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52700,7 +52734,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52734,7 +52768,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52768,7 +52802,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52802,7 +52836,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52836,7 +52870,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52870,7 +52904,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52904,7 +52938,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.
@@ -52933,6 +52967,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Represents a simple, compound, or Mid assignment statement. Which one can be
         ''' determined by checking the Kind.
         ''' </summary>
+        ''' <param name="left">
+        ''' The target (left hand side) of the assignment.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
+        ''' </param>
+        ''' <param name="right">
+        ''' The source (right hand side) of the assignment.
+        ''' </param>
+        Friend Function NothingCoalescingAssignmentStatement(left As ExpressionSyntax, operatorToken As PunctuationSyntax, right As ExpressionSyntax) As AssignmentStatementSyntax
+            Debug.Assert(left IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.QuestionEqualsToken)
+            Debug.Assert(right IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.NothingCoalescingAssignmentStatement, left, operatorToken, right, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, AssignmentStatementSyntax)
+            End If
+
+            Dim result = New AssignmentStatementSyntax(SyntaxKind.NothingCoalescingAssignmentStatement, left, operatorToken, right, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a simple, compound, or Mid assignment statement. Which one can be
+        ''' determined by checking the Kind.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' AssignmentStatementSyntax. One of SimpleAssignmentStatement,
@@ -52940,14 +53008,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' MultiplyAssignmentStatement, DivideAssignmentStatement,
         ''' IntegerDivideAssignmentStatement, ExponentiateAssignmentStatement,
         ''' LeftShiftAssignmentStatement, RightShiftAssignmentStatement,
-        ''' ConcatenateAssignmentStatement.
+        ''' ConcatenateAssignmentStatement, NothingCoalescingAssignmentStatement.
         ''' </param>
         ''' <param name="left">
         ''' The target (left hand side) of the assignment.
         ''' </param>
         ''' <param name="operatorToken">
         ''' The operator used in the assignment statement. One of "=", "+=", "-=", "*=",
-        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=" or "&gt;&gt;=".
+        ''' "/=", "\=", "^=", "&amp;=", "&lt;&lt;=", "&gt;&gt;=", or "?=".
         ''' </param>
         ''' <param name="right">
         ''' The source (right hand side) of the assignment.

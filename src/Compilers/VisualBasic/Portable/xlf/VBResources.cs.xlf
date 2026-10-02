@@ -287,6 +287,11 @@
         <target state="new">module initializers</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_NothingCoalescingAssignment">
+        <source>nothing-coalescing assignment</source>
+        <target state="new">nothing-coalescing assignment</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">priorita řešení přetížení</target>
