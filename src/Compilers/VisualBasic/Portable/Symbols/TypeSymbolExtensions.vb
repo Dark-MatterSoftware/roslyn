@@ -1293,6 +1293,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         <Extension>
+        Friend Function IsWellKnownSetsRequiredMembersAttribute(typeSymbol As TypeSymbol) As Boolean
+            Return typeSymbol.Name = "SetsRequiredMembersAttribute" AndAlso
+                typeSymbol.ContainingType Is Nothing AndAlso
+                IsContainedInNamespace(typeSymbol, "System", "Diagnostics", "CodeAnalysis")
+        End Function
+
+        <Extension>
         Friend Function IsWellKnownTypeIsExternalInit(typeSymbol As TypeSymbol) As Boolean
             Return typeSymbol.IsWellKnownCompilerServicesTopLevelType("IsExternalInit")
         End Function

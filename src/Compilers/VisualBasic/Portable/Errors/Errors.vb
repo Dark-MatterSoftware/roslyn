@@ -2129,5 +2129,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_NullConditionalAssignment
         FEATURE_InitOnlyProperty
         FEATURE_RequiredProperty
+        FEATURE_SetsRequiredMembers
     End Enum
 End Namespace

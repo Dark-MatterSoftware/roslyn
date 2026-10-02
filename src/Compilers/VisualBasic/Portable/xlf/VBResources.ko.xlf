@@ -327,6 +327,11 @@
         <target state="new">required properties</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SetsRequiredMembers">
+        <source>SetsRequiredMembers</source>
+        <target state="new">SetsRequiredMembers</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_SkipLocalsInit">
         <source>SkipLocalsInit</source>
         <target state="new">SkipLocalsInit</target>

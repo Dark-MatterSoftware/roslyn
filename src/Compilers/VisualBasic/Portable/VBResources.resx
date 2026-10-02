@@ -5757,6 +5757,9 @@
   <data name="FEATURE_RequiredProperty" xml:space="preserve">
     <value>required properties</value>
   </data>
+  <data name="FEATURE_SetsRequiredMembers" xml:space="preserve">
+    <value>SetsRequiredMembers</value>
+  </data>
   <data name="ERR_UnmanagedCallersOnlyRequiresShared" xml:space="preserve">
     <value>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</value>
   </data>

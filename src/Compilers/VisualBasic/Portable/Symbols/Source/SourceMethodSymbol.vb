@@ -1530,6 +1530,20 @@ lReportErrorOnTwoTokens:
                     Else
                         Return Nothing
                     End If
+                ElseIf VisualBasicAttributeData.IsTargetEarlyAttribute(arguments.AttributeType, arguments.AttributeSyntax, AttributeDescription.SetsRequiredMembersAttribute) Then
+                    Dim languageVersion = DirectCast(arguments.AttributeSyntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                    If Me.MethodKind = MethodKind.Constructor AndAlso
+                       InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.SetsRequiredMembers) Then
+                        arguments.GetOrCreateData(Of MethodEarlyWellKnownAttributeData)().HasSetsRequiredMembersAttribute = True
+
+                        ' Binding the attribute application on the attribute type itself re-enters this constructor.
+                        If Me.ContainingType.IsWellKnownSetsRequiredMembersAttribute() Then
+                            Return Nothing
+                        End If
+                    End If
+
+                    Dim setsRequiredMembersData = arguments.Binder.GetAttribute(arguments.AttributeSyntax, arguments.AttributeType, hasAnyDiagnostics)
+                    Return If(Not setsRequiredMembersData.HasErrors AndAlso Not hasAnyDiagnostics, setsRequiredMembersData, Nothing)
                 ElseIf VisualBasicAttributeData.IsTargetEarlyAttribute(arguments.AttributeType, arguments.AttributeSyntax, AttributeDescription.UnmanagedCallersOnlyAttribute) Then
                     Dim languageVersion = DirectCast(arguments.AttributeSyntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
                     If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.UnmanagedCallersOnly) Then
@@ -1774,6 +1788,11 @@ lReportErrorOnTwoTokens:
                 End If
             ElseIf VerifyObsoleteAttributeAppliedToMethod(arguments, AttributeDescription.ObsoleteAttribute) Then
             ElseIf VerifyObsoleteAttributeAppliedToMethod(arguments, AttributeDescription.DeprecatedAttribute) Then
+            ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.SetsRequiredMembersAttribute) Then
+                Dim languageVersion = DirectCast(arguments.AttributeSyntaxOpt.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If Not InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.SetsRequiredMembers) Then
+                    diagnostics.Add(ERRID.WRN_AttributeNotSupportedInVB, arguments.AttributeSyntaxOpt.Location, AttributeDescription.SetsRequiredMembersAttribute.FullName)
+                End If
             ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.ModuleInitializerAttribute) Then
                 Dim languageVersion = DirectCast(arguments.AttributeSyntaxOpt.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
                 If Not InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.ModuleInitializers) Then
@@ -2236,7 +2255,12 @@ lReportErrorOnTwoTokens:
 
         Friend NotOverridable Overrides ReadOnly Property HasSetsRequiredMembers As Boolean
             Get
-                Return False
+                If MethodKind <> MethodKind.Constructor Then
+                    Return False
+                End If
+
+                Dim data = GetEarlyDecodedWellKnownAttributeData()
+                Return data IsNot Nothing AndAlso data.HasSetsRequiredMembersAttribute
             End Get
         End Property
     End Class

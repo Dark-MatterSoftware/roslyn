@@ -56,6 +56,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         NullConditionalAssignment
         InitOnlyProperty
         RequiredProperty
+        SetsRequiredMembers
     End Enum
 
     Friend Module FeatureExtensions
@@ -137,7 +138,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.ConstantInterpolatedString,
                      Feature.NullConditionalAssignment,
                      Feature.InitOnlyProperty,
-                     Feature.RequiredProperty
+                     Feature.RequiredProperty,
+                     Feature.SetsRequiredMembers
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -243,6 +245,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_InitOnlyProperty
                 Case Feature.RequiredProperty
                     Return ERRID.FEATURE_RequiredProperty
+                Case Feature.SetsRequiredMembers
+                    Return ERRID.FEATURE_SetsRequiredMembers
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select
