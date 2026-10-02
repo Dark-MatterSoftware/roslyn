@@ -56,5 +56,95 @@ End Class
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_LanguageVersion, "InitOnly").WithArguments("17.13", "init-only properties", "vbnext").WithLocation(3, 12))
         End Sub
+
+        <Fact>
+        Public Sub InitOnlyProperty_AssignmentOutsideConstructorIsAnError()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Class Box
+    Public InitOnly Property Value As Integer
+
+    Public Sub New()
+        Me.Value = 1
+    End Sub
+
+    Public Sub SetLater()
+        Me.Value = 2
+    End Sub
+End Class
+
+Class Program
+    Shared Sub Main()
+        Dim box = New Box()
+        box.Value = 3
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_AssignmentInitOnly, "Me.Value = 2").WithArguments("Value").WithLocation(15, 9),
+                Diagnostic(ERRID.ERR_AssignmentInitOnly, "box.Value = 3").WithArguments("Value").WithLocation(22, 9))
+        End Sub
+
+        <Fact>
+        Public Sub InitOnlyProperty_ObjectInitializerCanAssign()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Class Box
+    Public InitOnly Property Value As Integer
+End Class
+
+Class Program
+    Shared Sub Main()
+        Dim box = New Box() With {.Value = 5}
+        System.Console.Write(box.Value)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="5").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub InitOnlyProperty_ImplementationMustMatchAccessor()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Interface IBox
+    InitOnly Property Value As Integer
+End Interface
+
+Class Good
+    Implements IBox
+    Public InitOnly Property Value As Integer Implements IBox.Value
+
+    Public Sub New()
+        Me.Value = 1
+    End Sub
+End Class
+
+Class Bad
+    Implements IBox
+    Public Property Value As Integer Implements IBox.Value
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_PropertyDoesntImplementInitOnly, "IBox.Value").WithArguments("Property Value As Integer").WithLocation(22, 49))
+
+            Assert.True(compilation.GetMember(Of PropertySymbol)("IBox.Value").SetMethod.IsInitOnly)
+            Assert.True(compilation.GetMember(Of PropertySymbol)("Good.Value").SetMethod.IsInitOnly)
+        End Sub
     End Class
 End Namespace

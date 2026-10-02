@@ -136,7 +136,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim isReadOnly = (modifiers.FoundFlags And SourceMemberFlags.ReadOnly) <> 0
             Dim isWriteOnly = (modifiers.FoundFlags And SourceMemberFlags.WriteOnly) <> 0
 
-            If isInitOnly AndAlso (blockSyntaxOpt IsNot Nothing OrElse prop.IsMustOverride OrElse prop.IsShared OrElse isReadOnly OrElse isWriteOnly) Then
+            If isInitOnly AndAlso (blockSyntaxOpt IsNot Nothing OrElse (prop.IsMustOverride AndAlso Not prop.ContainingType.IsInterface) OrElse prop.IsShared OrElse isReadOnly OrElse isWriteOnly) Then
                 diagnostics.Add(ERRID.ERR_BadInitOnlyProperty, syntax.Modifiers.First(SyntaxKind.InitOnlyKeyword).GetLocation())
                 isInitOnly = False
             End If
