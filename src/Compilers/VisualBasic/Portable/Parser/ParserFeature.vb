@@ -51,6 +51,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         TargetTypedNew
         TargetTypedDefault
         NothingCoalescingAssignment
+        UsingDeclaration
     End Enum
 
     Friend Module FeatureExtensions
@@ -127,7 +128,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.UnmanagedCallersOnly,
                      Feature.TargetTypedNew,
                      Feature.TargetTypedDefault,
-                     Feature.NothingCoalescingAssignment
+                     Feature.NothingCoalescingAssignment,
+                     Feature.UsingDeclaration
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -223,6 +225,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_TargetTypedDefault
                 Case Feature.NothingCoalescingAssignment
                     Return ERRID.FEATURE_NothingCoalescingAssignment
+                Case Feature.UsingDeclaration
+                    Return ERRID.FEATURE_UsingDeclaration
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

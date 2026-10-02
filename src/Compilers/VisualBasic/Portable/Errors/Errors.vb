@@ -2122,5 +2122,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_TargetTypedNew
         FEATURE_TargetTypedDefault
         FEATURE_NothingCoalescingAssignment
+        FEATURE_UsingDeclaration
     End Enum
 End Namespace

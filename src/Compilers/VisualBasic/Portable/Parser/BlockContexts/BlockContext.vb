@@ -107,6 +107,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Dim errorId As ERRID
                 endStmt = DirectCast(CreateMissingEnd(errorId), T2)
 
+                ' A Using with no End Using keeps the resource through the rest of this block.
+                If errorId = ERRID.ERR_ExpectedEndUsing AndAlso Parser.CheckFeatureAvailability(Feature.UsingDeclaration) Then
+                    errorId = Nothing
+                End If
+
                 If errorId <> Nothing Then
                     beginStmt = Parser.ReportSyntaxError(beginStmt, errorId)
                 End If

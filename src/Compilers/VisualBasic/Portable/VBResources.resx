@@ -5733,6 +5733,9 @@
   <data name="FEATURE_NothingCoalescingAssignment" xml:space="preserve">
     <value>nothing-coalescing assignment</value>
   </data>
+  <data name="FEATURE_UsingDeclaration" xml:space="preserve">
+    <value>Using declaration</value>
+  </data>
   <data name="ERR_TargetTypedNewRequiresTargetType" xml:space="preserve">
     <value>Target-typed New requires a target type.</value>
   </data>

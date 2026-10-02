@@ -415,8 +415,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function CreateUsingStatementDisposePrologue(original As BoundUsingStatement) As BoundStatement
             ' The block should start with a sequence point that points to the "End Using" statement. This is required in order to
             ' highlight the end using when someone step next after the last statement of the original body and in case an exception
-            ' was thrown.
-            Return New BoundSequencePoint(DirectCast(original.Syntax, UsingBlockSyntax).EndUsingStatement, MyBase.CreateUsingStatementDisposePrologue(original))
+            ' was thrown. A Using declaration has no End Using, so the dispose point stays hidden.
+            Dim endUsing = DirectCast(original.Syntax, UsingBlockSyntax).EndUsingStatement
+            Dim sequencePointSyntax As SyntaxNode = If(endUsing.EndKeyword.IsMissing, Nothing, endUsing)
+            Return New BoundSequencePoint(sequencePointSyntax, MyBase.CreateUsingStatementDisposePrologue(original))
         End Function
 
         Public Overrides Function CreateWithStatementPrologue(original As BoundWithStatement) As BoundStatement
