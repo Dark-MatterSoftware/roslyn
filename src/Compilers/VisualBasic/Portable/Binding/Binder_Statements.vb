@@ -1391,6 +1391,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' Use a LocalInProgressBinder to detect cycles using locals.
                     Dim binder = New LocalInProgressBinder(Me, symbol)
                     valueExpression = binder.BindValue(valueSyntax, diagnostics)
+                    If binder.IsTargetTypedNewPlaceholder(valueExpression) Then
+                        ' Inference has no target type to construct.
+                        Dim creation = DirectCast(valueExpression.Syntax, ObjectCreationExpressionSyntax)
+                        diagnostics.Add(ERRID.ERR_TargetTypedNewRequiresTargetType, creation.NewKeyword.GetLocation())
+                        valueExpression = New BoundBadExpression(
+                            valueExpression.Syntax,
+                            LookupResultKind.Empty,
+                            ImmutableArray(Of Symbol).Empty,
+                            ImmutableArray(Of BoundExpression).Empty,
+                            ErrorTypeSymbol.UnknownResultType,
+                            hasErrors:=True)
+                    End If
 
                     Dim inferFrom As BoundExpression = valueExpression
 

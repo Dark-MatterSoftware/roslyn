@@ -330,6 +330,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(Not isOperandOfConditionalBranch OrElse Not isExplicit)
             Debug.Assert(argument.IsValue())
 
+            ' Target-typed New is unbound until this conversion supplies the type.
+            Dim targetTypedNew = TryBindTargetTypedNew(argument, targetType, diagnostics)
+            If targetTypedNew IsNot Nothing Then
+                argument = targetTypedNew
+            End If
+
             ' Deal with erroneous arguments
             If targetType.IsErrorType Then
                 argument = MakeRValueAndIgnoreDiagnostics(argument)
@@ -439,6 +445,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' don't need representation in the bound tree (they would be optimized away in emit, but are so common
             ' that this is an important way to save both time and memory).
             If (Not isExplicit OrElse explicitSemanticForConcatArgument) AndAlso Conversions.IsIdentityConversion(convKind.Key) Then
+                Dim targetTyped = TryBindTargetTypedNew(argument, targetType, diagnostics)
+                If targetTyped IsNot Nothing Then
+                    argument = targetTyped
+                End If
+
                 Debug.Assert(argument.Type.IsSameTypeIgnoringAll(targetType))
                 Debug.Assert(tree Is argument.Syntax)
                 Return MakeRValue(argument, diagnostics)

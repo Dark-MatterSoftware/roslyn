@@ -1052,6 +1052,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Return ClassifyExpressionReclassification(DirectCast(source, BoundParenthesized).Expression, destination, binder, useSiteInfo)
                     End If
 
+                Case BoundKind.RValuePlaceholder
+                    If binder.TargetTypedNewHasConversion(source, destination) Then
+                        Return ConversionKind.Identity
+                    End If
+
                 Case BoundKind.UnboundLambda
                     Return ClassifyUnboundLambdaConversion(DirectCast(source, UnboundLambda), destination)
 

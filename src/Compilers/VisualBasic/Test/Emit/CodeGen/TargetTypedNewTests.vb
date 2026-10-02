@@ -90,6 +90,74 @@ End Class
                 Diagnostic(ERRID.ERR_UnrecognizedType, "").WithLocation(8, 33))
         End Sub
 
+        <Fact>
+        Public Sub TargetTypedNew_InAssignment()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public ReadOnly X As Integer
+    Public Sub New(x As Integer)
+        Me.X = x
+    End Sub
+End Class
+Class Program
+    Shared Sub Main()
+        Dim p As Point = Nothing
+        p = New(1)
+        System.Console.Write(p.X)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub TargetTypedNew_InReturn()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public ReadOnly X As Integer
+    Public Sub New(x As Integer)
+        Me.X = x
+    End Sub
+End Class
+Class Program
+    Shared Function Make() As Point
+        Return New(2)
+    End Function
+
+    Shared Sub Main()
+        System.Console.Write(Make().X)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="2").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub TargetTypedNew_InArgument()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public ReadOnly X As Integer
+    Public Sub New(x As Integer)
+        Me.X = x
+    End Sub
+End Class
+Class Program
+    Shared Sub Take(value As Point)
+        System.Console.Write(value.X)
+    End Sub
+
+    Shared Sub Main()
+        Take(New(3))
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            CompileAndVerify(compilation, expectedOutput:="3").VerifyDiagnostics()
+        End Sub
+
     End Class
 
 End Namespace

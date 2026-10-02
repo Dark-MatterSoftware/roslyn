@@ -16,23 +16,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ) As BoundExpression
 
             If node.Type.IsMissing Then
-                ' The type comes from the target of a conversion. Callers that have a target type
-                ' bind through the overload that takes that type.
-                diagnostics.Add(ERRID.ERR_TargetTypedNewRequiresTargetType, node.NewKeyword.GetLocation())
-
-                Dim argumentDiagnostics = BindingDiagnosticBag.Discarded
-                Dim boundArguments As ImmutableArray(Of BoundExpression) = Nothing
-                Dim argumentNames As ImmutableArray(Of String) = Nothing
-                Dim argumentNamesLocations As ImmutableArray(Of Location) = Nothing
-                BindArgumentsAndNames(node.ArgumentList, boundArguments, argumentNames, argumentNamesLocations, argumentDiagnostics)
-
-                Dim boundNodes = ArrayBuilder(Of BoundExpression).GetInstance()
-                For Each arg In boundArguments
-                    boundNodes.Add(MakeRValueAndIgnoreDiagnostics(arg))
-                Next
-
-                argumentDiagnostics.Free()
-                Return BadExpression(node, boundNodes.ToImmutableAndFree(), ErrorTypeSymbol.UnknownResultType)
+                ' The target type arrives later, through a conversion. Keep this unbound until then.
+                Return New BoundRValuePlaceholder(node, ErrorTypeSymbol.UnknownResultType, hasErrors:=False)
             End If
 
             DisallowNewOnTupleType(node.Type, diagnostics)
@@ -79,6 +64,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return BindObjectCreationExpression(node.Type, node.ArgumentList, type, node, diagnostics, Nothing)
+        End Function
+
+        Friend Function IsTargetTypedNewPlaceholder(expression As BoundExpression) As Boolean
+            If expression Is Nothing OrElse expression.Kind <> BoundKind.RValuePlaceholder Then
+                Return False
+            End If
+
+            Dim creation = TryCast(expression.Syntax, ObjectCreationExpressionSyntax)
+            Return creation IsNot Nothing AndAlso creation.Type.IsMissing
+        End Function
+
+        Friend Function TryBindTargetTypedNew(expression As BoundExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If Not IsTargetTypedNewPlaceholder(expression) OrElse targetType Is Nothing OrElse targetType.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim creation = DirectCast(expression.Syntax, ObjectCreationExpressionSyntax)
+            Return BindObjectCreationExpression(creation.Type, creation.ArgumentList, targetType, creation, diagnostics, Nothing)
+        End Function
+
+        Friend Function TargetTypedNewHasConversion(expression As BoundExpression, destination As TypeSymbol) As Boolean
+            If Not IsTargetTypedNewPlaceholder(expression) OrElse destination Is Nothing OrElse destination.IsErrorType() Then
+                Return False
+            End If
+
+            Dim probe = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+            Try
+                Dim bound = TryBindTargetTypedNew(expression, destination, probe)
+                Return bound IsNot Nothing AndAlso Not bound.HasErrors AndAlso Not probe.HasAnyErrors()
+            Finally
+                probe.Free()
+            End Try
         End Function
 
         Private Shared Sub DisallowNewOnTupleType(type As TypeSyntax, diagnostics As BindingDiagnosticBag)

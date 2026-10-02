@@ -50,7 +50,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 2a | VB-001 | Done. `Dim p As Point = New(1, 2)` binds on `vbnext` and calls the matching constructor. Visual Basic 17.13 still parses that form as a tuple type. |
-| 2b | VB-001 | The same `New` works in assignment, `Return`, and an argument. Attributes and array sizes stay out of this slice. |
+| 2b | VB-001 | Done. On `vbnext`, `New(arguments)` takes its type from an assignment, a `Return`, or an argument. |
 | 2c | VB-007 | Target-typed `New` conversions accept a typeless default in the same positions as 2b. |
 | 2d | VB-010 | `x ?= y` (final token chosen in the slice note) lowers to the existing `If` assignment. |
 | 2e | VB-023 | `Using` without `End Using` lowers to a block `Using`. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 2a, target-typed `New` in a local declaration, is implemented. The next slice is 2b, the same `New` in assignment, `Return`, and an argument.
+Slice 2b, target-typed `New` in assignment, `Return`, and arguments, is implemented. The next slice is 2c, target-typed `default`.
