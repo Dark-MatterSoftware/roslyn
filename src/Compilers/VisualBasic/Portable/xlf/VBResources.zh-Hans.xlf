@@ -297,6 +297,11 @@
         <target state="new">nothing-coalescing assignment</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_NullConditionalAssignment">
+        <source>null-conditional assignment</source>
+        <target state="new">null-conditional assignment</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">重载解析优先级</target>

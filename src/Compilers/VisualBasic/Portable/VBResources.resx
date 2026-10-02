@@ -5739,6 +5739,9 @@
   <data name="FEATURE_ConstantInterpolatedString" xml:space="preserve">
     <value>constant interpolated strings</value>
   </data>
+  <data name="FEATURE_NullConditionalAssignment" xml:space="preserve">
+    <value>null-conditional assignment</value>
+  </data>
   <data name="ERR_TargetTypedNewRequiresTargetType" xml:space="preserve">
     <value>Target-typed New requires a target type.</value>
   </data>

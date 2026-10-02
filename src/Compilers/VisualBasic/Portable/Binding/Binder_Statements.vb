@@ -2046,6 +2046,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundAssignmentOperator(node, op1, op2, False, hasErrors:=isError)
         End Function
 
+        Private Function BindNullConditionalAssignment(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
+            Dim accessSyntax = DirectCast(node.Left, ConditionalAccessExpressionSyntax)
+            Dim placeholder As BoundRValuePlaceholder = Nothing
+            Dim receiver = BindConditionalAccessReceiver(accessSyntax, diagnostics, placeholder)
+            Dim accessBinder As New ConditionalAccessBinder(Me, accessSyntax, placeholder)
+            Dim target = accessBinder.BindAssignmentTarget(accessSyntax.WhenNotNull, diagnostics)
+            Dim value = BindValue(node.Right, diagnostics)
+
+            Dim assignment As BoundExpression
+            If receiver.HasErrors OrElse target.HasErrors OrElse value.HasErrors Then
+                value = MakeRValueAndIgnoreDiagnostics(value)
+                assignment = New BoundAssignmentOperator(node, target, value, suppressObjectClone:=False, If(target.Type, ErrorTypeSymbol.UnknownResultType), hasErrors:=True)
+            Else
+                assignment = BindAssignment(node, target, value, diagnostics)
+            End If
+
+            Dim voidType = GetSpecialType(SpecialType.System_Void, node, diagnostics)
+            Dim conditional = New BoundConditionalAccess(accessSyntax, receiver, placeholder, assignment, voidType, hasErrors:=receiver.HasErrors OrElse assignment.HasErrors)
+            Return New BoundExpressionStatement(node, conditional)
+        End Function
+
         Private Function BindNothingCoalescingAssignment(
             node As AssignmentStatementSyntax,
             left As BoundExpression,
@@ -2210,6 +2231,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function BindAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
             Debug.Assert(node IsNot Nothing)
+
+            If node.Kind = SyntaxKind.SimpleAssignmentStatement AndAlso node.Left.Kind = SyntaxKind.ConditionalAccessExpression Then
+                Dim languageVersion = DirectCast(node.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.NullConditionalAssignment) Then
+                    Return BindNullConditionalAssignment(node, diagnostics)
+                End If
+            End If
 
             Dim op1 As BoundExpression = Me.BindAssignmentTarget(node.Left, diagnostics)
             Dim op2 As BoundExpression = Me.BindValue(node.Right, diagnostics)

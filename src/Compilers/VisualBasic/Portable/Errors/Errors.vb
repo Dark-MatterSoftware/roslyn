@@ -2124,5 +2124,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_NothingCoalescingAssignment
         FEATURE_UsingDeclaration
         FEATURE_ConstantInterpolatedString
+        FEATURE_NullConditionalAssignment
     End Enum
 End Namespace

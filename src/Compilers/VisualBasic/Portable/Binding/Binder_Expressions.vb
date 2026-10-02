@@ -1700,7 +1700,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                            isOperandOfConditionalBranch:=False)
         End Function
 
-        Private Function BindAssignmentTarget(
+        Friend Function BindAssignmentTarget(
             node As ExpressionSyntax,
             diagnostics As BindingDiagnosticBag
         ) As BoundExpression
