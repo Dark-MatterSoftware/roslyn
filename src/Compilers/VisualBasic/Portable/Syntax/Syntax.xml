@@ -4988,7 +4988,7 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="Expression.Opcodes.Nothing" />
       </node-kind>
 
-      <child name="Token" kind="IntegerLiteralToken|CharacterLiteralToken|DecimalLiteralToken|FloatingLiteralToken|DateLiteralToken|StringLiteralToken|TrueKeyword|FalseKeyword|NothingKeyword">
+      <child name="Token" kind="IntegerLiteralToken|CharacterLiteralToken|DecimalLiteralToken|FloatingLiteralToken|DateLiteralToken|StringLiteralToken|TrueKeyword|FalseKeyword|NothingKeyword|DefaultKeyword">
         <description>
           The token that represents the literal. The Kind property determines what type this property returns:
           Kind=IntegerLiteral ==&gt; Returns IntegerLiteralToken.

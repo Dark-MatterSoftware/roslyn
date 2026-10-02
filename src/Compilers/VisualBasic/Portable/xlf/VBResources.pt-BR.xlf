@@ -297,6 +297,11 @@
         <target state="new">SkipLocalsInit</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_TargetTypedDefault">
+        <source>target-typed default</source>
+        <target state="new">target-typed default</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_TargetTypedNew">
         <source>target-typed New</source>
         <target state="new">target-typed New</target>

@@ -5727,6 +5727,9 @@
   <data name="FEATURE_TargetTypedNew" xml:space="preserve">
     <value>target-typed New</value>
   </data>
+  <data name="FEATURE_TargetTypedDefault" xml:space="preserve">
+    <value>target-typed default</value>
+  </data>
   <data name="ERR_TargetTypedNewRequiresTargetType" xml:space="preserve">
     <value>Target-typed New requires a target type.</value>
   </data>

@@ -4451,7 +4451,8 @@ lElseClause:
         End Function
 
         Private Function BindLiteralConstant(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundLiteral
-            Dim value = node.Token.Value
+            ' Nothing and typeless Default are null constants. Other literals use the token value.
+            Dim value = If(node.Kind = SyntaxKind.NothingLiteralExpression, Nothing, node.Token.Value)
 
             Dim cv As ConstantValue
             Dim type As TypeSymbol = Nothing

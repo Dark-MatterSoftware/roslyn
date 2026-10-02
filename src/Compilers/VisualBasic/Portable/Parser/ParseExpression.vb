@@ -338,6 +338,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     term = SyntaxFactory.NothingLiteralExpression(CurrentToken)
                     GetNextToken()
 
+                Case SyntaxKind.DefaultKeyword
+                    ' Typeless Default is the default value of the target type, same as Nothing.
+                    If CheckFeatureAvailability(Feature.TargetTypedDefault) Then
+                        term = SyntaxFactory.NothingLiteralExpression(CurrentToken)
+                        GetNextToken()
+                    Else
+                        If BailIfFirstTokenRejected Then
+                            Return Nothing
+                        End If
+
+                        term = InternalSyntaxFactory.MissingExpression()
+                        term = ReportSyntaxError(term, ERRID.ERR_ExpectedExpression)
+                    End If
+
                 Case SyntaxKind.TypeOfKeyword
                     term = ParseTypeOf()
 

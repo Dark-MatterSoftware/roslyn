@@ -44623,7 +44623,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.StringLiteralToken,
                 SyntaxKind.TrueKeyword,
                 SyntaxKind.FalseKeyword,
-                SyntaxKind.NothingKeyword
+                SyntaxKind.NothingKeyword,
+                SyntaxKind.DefaultKeyword
                     Return True
             End Select
             Return False

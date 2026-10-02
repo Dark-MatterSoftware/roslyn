@@ -2120,5 +2120,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_SkipLocalsInit
         FEATURE_UnmanagedCallersOnly
         FEATURE_TargetTypedNew
+        FEATURE_TargetTypedDefault
     End Enum
 End Namespace
