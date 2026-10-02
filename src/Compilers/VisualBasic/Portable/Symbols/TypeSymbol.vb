@@ -599,7 +599,12 @@ Done:
 
         Private ReadOnly Property ITypeSymbol_IsReadOnly As Boolean Implements ITypeSymbol.IsReadOnly
             Get
-                ' VB does not have readonly structures
+                Return IsReadOnly
+            End Get
+        End Property
+
+        Public Overridable ReadOnly Property IsReadOnly As Boolean
+            Get
                 Return False
             End Get
         End Property

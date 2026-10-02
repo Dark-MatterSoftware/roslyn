@@ -36,6 +36,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _flags As TypeAttributes
         Private ReadOnly _arity As UShort
         Private ReadOnly _mangleName As Boolean ' CONSIDER: combine with flags
+        Private _lazyIsReadOnly As ThreeState = ThreeState.Unknown
 #End Region
 
         ''' <summary>
@@ -889,6 +890,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Public Overrides ReadOnly Property IsNotInheritable As Boolean
             Get
                 Return (_flags And TypeAttributes.Sealed) <> 0
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsReadOnly As Boolean
+            Get
+                If Not _lazyIsReadOnly.HasValue() Then
+                    Dim hasAttribute = DirectCast(ContainingModule, PEModuleSymbol).Module.HasIsReadOnlyAttribute(_handle)
+                    _lazyIsReadOnly = hasAttribute.ToThreeState()
+                End If
+
+                Return _lazyIsReadOnly.Value()
             End Get
         End Property
 

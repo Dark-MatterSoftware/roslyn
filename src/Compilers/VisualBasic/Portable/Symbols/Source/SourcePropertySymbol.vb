@@ -148,6 +148,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 isRequired = False
             End If
 
+            If containingType.IsReadOnly AndAlso blockSyntaxOpt Is Nothing AndAlso Not prop.IsShared AndAlso Not isReadOnly AndAlso Not isInitOnly Then
+                diagnostics.Add(ERRID.ERR_AutoPropertyInReadOnlyStructure, identifier.GetLocation())
+            End If
+
             If Not prop.IsMustOverride Then
                 If isReadOnly Then
                     If getMethod IsNot Nothing Then

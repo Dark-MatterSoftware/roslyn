@@ -402,6 +402,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 foundModifiers = (foundModifiers And (Not DeclarationModifiers.Protected))
             End If
 
+            If node.Kind = SyntaxKind.StructureBlock AndAlso (foundModifiers And DeclarationModifiers.ReadOnly) <> 0 Then
+                Dim useSiteInfo As UseSiteInfo(Of AssemblySymbol) = Nothing
+                Binder.GetWellKnownTypeMember(binder.Compilation, WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor, useSiteInfo)
+                If useSiteInfo.DiagnosticInfo IsNot Nothing Then
+                    diagBag.Add(New VBDiagnostic(useSiteInfo.DiagnosticInfo, id.GetLocation()))
+                End If
+            End If
+
             Return foundModifiers
         End Function
 
@@ -432,6 +440,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Case SyntaxKind.StructureBlock
                     err = ERRID.ERR_BadRecordFlags1
                     allowableModifiers = SourceMemberFlags.AllAccessibilityModifiers Or SourceMemberFlags.Shadows Or SourceMemberFlags.Partial
+                    If InternalSyntax.Parser.CheckFeatureAvailability(binder.Compilation.LanguageVersion, InternalSyntax.Feature.ReadOnlyStructures) Then
+                        allowableModifiers = allowableModifiers Or SourceMemberFlags.ReadOnly
+                    End If
                     typeBlock = DirectCast(node, TypeBlockSyntax)
                     modifiers = typeBlock.BlockStatement.Modifiers
                     id = typeBlock.BlockStatement.Identifier

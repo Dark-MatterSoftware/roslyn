@@ -553,6 +553,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                     Dim modifiedIdentifier = declarator.Names(nameIndex)
                     Dim identifier = modifiedIdentifier.Identifier
+                    If container.IsReadOnly AndAlso
+                       (flags And SourceMemberFlags.Shared) = 0 AndAlso
+                       (flags And SourceMemberFlags.ReadOnly) = 0 Then
+                        binder.ReportDiagnostic(diagBag, identifier, ERRID.ERR_FieldInReadOnlyStructure)
+                    End If
                     Dim omitFurtherDiagnostics As Boolean = String.IsNullOrEmpty(modifiedIdentifier.Identifier.ValueText)
 
                     If (modifiers.FoundFlags And SourceMemberFlags.Const) <> 0 AndAlso

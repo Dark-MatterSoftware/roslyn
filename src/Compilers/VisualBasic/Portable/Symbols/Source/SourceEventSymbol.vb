@@ -147,6 +147,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 ' if this is a concrete class, add a backing field too
                 If Not containingType.IsInterfaceType Then
                     _backingField = New SynthesizedEventBackingFieldSymbol(Me, Me.Name & StringConstants.EventVariableSuffix, Me.IsShared)
+                    If Not Me.IsShared AndAlso containingType.IsReadOnly Then
+                        diagnostics.Add(ERRID.ERR_EventInReadOnlyStructure, location)
+                    End If
                 End If
             End If
         End Sub

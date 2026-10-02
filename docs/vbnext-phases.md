@@ -68,7 +68,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | 3c | VB-011 | Done. On `vbnext`, `Public Required Property Name As String` must be set in an object initializer. A constructor assignment does not count. Visual Basic 17.13 reports BC36716. |
 | 3d | VB-011 | Done. On `vbnext`, `<SetsRequiredMembers>` on a constructor lets callers skip the object initializer. Visual Basic 17.13 reports BC42381 and still requires the initializer. |
 | 3e | VB-014 | Done. On `vbnext`, an attribute class may be generic, and a use site may pass type arguments, as in `<Info(Of String)>`. Visual Basic 17.13 still rejects both. |
-| 3f | VB-018 | `Structure` can be declared readonly. Instance members that mutate are errors. |
+| 3f | VB-018 | Done. On `vbnext`, `ReadOnly Structure Point` is a readonly structure. Instance fields must be ReadOnly, auto-implemented instance properties must be ReadOnly, and field-like instance events are errors. Visual Basic 17.13 reports that ReadOnly is not valid on a Structure. |
 | 3g | VB-020 | `nint` and `nuint` are type names with the conversions `Integer` and `Long` already use for native integers. |
 
 ## Phase 4 — Index and text
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 3e, generic attributes, is implemented. The next slice is 3f, readonly structures.
+Slice 3f, readonly structures, is implemented. The next slice is 3g, `nint` and `nuint`.

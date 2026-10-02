@@ -1812,8 +1812,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_TargetTypedNewRequiresTargetType = 37352
         ERR_BadInitOnlyProperty = 37353
         ERR_BadRequiredProperty = 37354
+        ERR_FieldInReadOnlyStructure = 37355
+        ERR_AutoPropertyInReadOnlyStructure = 37356
+        ERR_EventInReadOnlyStructure = 37357
 
-        ERR_NextAvailable = 37355
+        ERR_NextAvailable = 37358
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2131,5 +2134,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_RequiredProperty
         FEATURE_SetsRequiredMembers
         FEATURE_GenericAttributes
+        FEATURE_ReadOnlyStructures
     End Enum
 End Namespace

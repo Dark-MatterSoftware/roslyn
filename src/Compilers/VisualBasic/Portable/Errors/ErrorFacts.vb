@@ -1566,7 +1566,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_CannotUseByRefInUnmanagedCallersOnly,
                      ERRID.ERR_TargetTypedNewRequiresTargetType,
                      ERRID.ERR_BadInitOnlyProperty,
-                     ERRID.ERR_BadRequiredProperty
+                     ERRID.ERR_BadRequiredProperty,
+                     ERRID.ERR_FieldInReadOnlyStructure,
+                     ERRID.ERR_AutoPropertyInReadOnlyStructure,
+                     ERRID.ERR_EventInReadOnlyStructure
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

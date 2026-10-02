@@ -5763,6 +5763,18 @@
   <data name="FEATURE_GenericAttributes" xml:space="preserve">
     <value>generic attributes</value>
   </data>
+  <data name="FEATURE_ReadOnlyStructures" xml:space="preserve">
+    <value>readonly structures</value>
+  </data>
+  <data name="ERR_FieldInReadOnlyStructure" xml:space="preserve">
+    <value>Instance fields in a ReadOnly structure must be ReadOnly.</value>
+  </data>
+  <data name="ERR_AutoPropertyInReadOnlyStructure" xml:space="preserve">
+    <value>Auto-implemented instance properties in a ReadOnly structure must be ReadOnly.</value>
+  </data>
+  <data name="ERR_EventInReadOnlyStructure" xml:space="preserve">
+    <value>Field-like instance events are not allowed in a ReadOnly structure.</value>
+  </data>
   <data name="ERR_UnmanagedCallersOnlyRequiresShared" xml:space="preserve">
     <value>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</value>
   </data>

@@ -12,6 +12,11 @@
         <target state="translated">'{0}'은(는) 수동으로 적용할 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AutoPropertyInReadOnlyStructure">
+        <source>Auto-implemented instance properties in a ReadOnly structure must be ReadOnly.</source>
+        <target state="new">Auto-implemented instance properties in a ReadOnly structure must be ReadOnly.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadAbstractStaticMemberAccess">
         <source>A shared abstract or virtual interface member cannot be accessed.</source>
         <target state="translated">공유 추상 또는 가상 인터페이스 구성원에 액세스할 수 없습니다.</target>
@@ -90,6 +95,16 @@
       <trans-unit id="ERR_EntryPointCannotBeUnmanagedCallersOnly">
         <source>The entry point cannot be marked UnmanagedCallersOnly.</source>
         <target state="new">The entry point cannot be marked UnmanagedCallersOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_EventInReadOnlyStructure">
+        <source>Field-like instance events are not allowed in a ReadOnly structure.</source>
+        <target state="new">Field-like instance events are not allowed in a ReadOnly structure.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_FieldInReadOnlyStructure">
+        <source>Instance fields in a ReadOnly structure must be ReadOnly.</source>
+        <target state="new">Instance fields in a ReadOnly structure must be ReadOnly.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
@@ -325,6 +340,11 @@
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">오버로드 해결 우선 순위</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_ReadOnlyStructures">
+        <source>readonly structures</source>
+        <target state="new">readonly structures</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_RequiredProperty">

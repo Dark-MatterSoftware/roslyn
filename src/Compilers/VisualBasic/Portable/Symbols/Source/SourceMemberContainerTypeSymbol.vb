@@ -46,6 +46,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             [NotInheritable] = 1 << 9
             [Shadows] = 1 << 10
             [Partial] = 1 << 11
+            [ReadOnly] = 1 << 12
         End Enum
 
         ' Flags about the type
@@ -162,6 +163,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                 Case DeclarationKind.Structure
                     flags = SourceTypeFlags.Structure Or SourceTypeFlags.NotInheritable
+                    If (modifiers And DeclarationModifiers.ReadOnly) <> 0 AndAlso
+                       InternalSyntax.Parser.CheckFeatureAvailability(m_containingModule.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion, InternalSyntax.Feature.ReadOnlyStructures) Then
+                        flags = flags Or SourceTypeFlags.ReadOnly
+                    End If
 
                 Case DeclarationKind.Interface
                     flags = SourceTypeFlags.Interface Or SourceTypeFlags.MustInherit
@@ -1250,6 +1255,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property IsNotInheritable As Boolean
             Get
                 Return (_flags And SourceTypeFlags.NotInheritable) <> 0
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsReadOnly As Boolean
+            Get
+                Return (_flags And SourceTypeFlags.ReadOnly) <> 0
             End Get
         End Property
 
@@ -4046,6 +4057,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             If HasAnyDeclaredRequiredMembers Then
                 AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_RequiredMemberAttribute__ctor))
+            End If
+
+            If IsReadOnly Then
+                AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
             End If
         End Sub
 #End Region
