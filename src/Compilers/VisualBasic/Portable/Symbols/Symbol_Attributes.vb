@@ -517,7 +517,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(Not attributeUsage.IsNull)
 
             ' check if this attribute was used multiple times and attributeUsage.AllowMultiple is False.
-            If Not uniqueAttributeTypes.Add(attributeType) AndAlso Not attributeUsage.AllowMultiple Then
+            If Not uniqueAttributeTypes.Add(attributeType.OriginalDefinition) AndAlso Not attributeUsage.AllowMultiple Then
                 diagnostics.Add(ERRID.ERR_InvalidMultipleAttributeUsage1, node.GetLocation(), CustomSymbolDisplayFormatter.ShortErrorName(attributeType))
                 Return False
             End If

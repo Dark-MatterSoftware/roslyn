@@ -292,6 +292,11 @@
         <target state="new">enum constraints</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_GenericAttributes">
+        <source>generic attributes</source>
+        <target state="new">generic attributes</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_InitOnlyProperty">
         <source>init-only properties</source>
         <target state="new">init-only properties</target>

@@ -45,7 +45,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                  ownerSymbol As Symbol,
                                                  diagnostics As BindingDiagnosticBag) As NamedTypeSymbol
             binder = New LocationSpecificBinder(VisualBasic.BindingLocation.Attribute, ownerSymbol, binder)
-            Return DirectCast(binder.BindTypeSyntax(attribute.Name, diagnostics), NamedTypeSymbol)
+            Dim bound = DirectCast(binder.BindTypeSyntax(attribute.Name, diagnostics), NamedTypeSymbol)
+            If Not bound.IsErrorType() AndAlso bound.IsGenericType AndAlso ContainsTypeParameter(bound) Then
+                diagnostics.Add(ERRID.ERR_AttrCannotBeGenerics, attribute.Name.GetLocation())
+            End If
+
+            Return bound
         End Function
 
         ''' <summary>
@@ -165,6 +170,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
         End Sub
 
+        Private Function IsClosedGenericAttributeType(namedType As NamedTypeSymbol) As Boolean
+            If namedType.IsUnboundGenericType OrElse
+               Not InternalSyntax.Parser.CheckFeatureAvailability(Compilation.LanguageVersion, InternalSyntax.Feature.GenericAttributes) Then
+                Return False
+            End If
+
+            Return Not ContainsTypeParameter(namedType)
+        End Function
+
+        Private Shared Function ContainsTypeParameter(type As TypeSymbol) As Boolean
+            If type Is Nothing Then
+                Return False
+            End If
+
+            If type.TypeKind = TypeKind.TypeParameter Then
+                Return True
+            End If
+
+            Dim arrayType = TryCast(type, ArrayTypeSymbol)
+            If arrayType IsNot Nothing Then
+                Return ContainsTypeParameter(arrayType.ElementType)
+            End If
+
+            Dim namedType = TryCast(type, NamedTypeSymbol)
+            If namedType Is Nothing Then
+                Return False
+            End If
+
+            For Each typeArgument In namedType.TypeArgumentsNoUseSiteDiagnostics
+                If ContainsTypeParameter(typeArgument) Then
+                    Return True
+                End If
+            Next
+
+            Return ContainsTypeParameter(namedType.ContainingType)
+        End Function
+
         Private Sub CheckAttributeTypeViability(lookupResult As LookupResult, ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol))
             Debug.Assert(lookupResult.HasSingleSymbol AndAlso lookupResult.IsGood)
 
@@ -189,8 +231,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim namedType = DirectCast(symbol, NamedTypeSymbol)
                 Dim localUseSiteInfo = If(useSiteInfo.AccumulatesDependencies, New CompoundUseSiteInfo(Of AssemblySymbol)(Compilation.Assembly), CompoundUseSiteInfo(Of AssemblySymbol).DiscardedDependencies)
 
-                ' type cannot be generic
-                If namedType.IsGenericType Then
+                ' An open generic, or a generic type whose arguments use a type parameter, cannot be an attribute.
+                If namedType.IsGenericType AndAlso Not IsClosedGenericAttributeType(namedType) Then
                     errorId = ERRID.ERR_AttrCannotBeGenerics
 
                     ' type must be a class

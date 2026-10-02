@@ -5543,13 +5543,14 @@ checkNullable:
                     ' Make sure the scanner is back in normal VB state
                     ResetCurrentToken(ScannerState.VB)
 
+                    Dim genericAttributes = CheckFeatureAvailability(_scanner.Options.LanguageVersion, Feature.GenericAttributes)
                     Dim typeName = ParseName(
                         requireQualification:=False,
                         allowGlobalNameSpace:=True,
-                        allowGenericArguments:=False,
+                        allowGenericArguments:=genericAttributes,
                         allowGenericsWithoutOf:=True)
 
-                    If BeginsGeneric() Then
+                    If Not genericAttributes AndAlso BeginsGeneric() Then
                         ' Don't want to mark the construct after the attribute bad, so pass in
                         ' temporary instead of ErrorInThisAttribute
 

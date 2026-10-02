@@ -572,7 +572,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim result = QuickAttributes.None
             For Each attributeList In attributeLists
                 For Each attribute In attributeList.Attributes
-                    result = result Or QuickAttributeHelpers.GetQuickAttributes(QuickAttributeChecker.GetFinalName(attribute.Name), inAttribute:=True)
+                    Dim finalName = QuickAttributeChecker.GetFinalName(attribute.Name)
+                    If finalName IsNot Nothing Then
+                        result = result Or QuickAttributeHelpers.GetQuickAttributes(finalName, inAttribute:=True)
+                    End If
                 Next
             Next
 

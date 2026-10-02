@@ -114,6 +114,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Select Case node.Kind
                     Case SyntaxKind.IdentifierName
                         Return DirectCast(node, IdentifierNameSyntax).Identifier.ValueText
+                    Case SyntaxKind.GenericName
+                        Return DirectCast(node, GenericNameSyntax).Identifier.ValueText
                     Case SyntaxKind.QualifiedName
                         node = DirectCast(node, QualifiedNameSyntax).Right
                     Case Else

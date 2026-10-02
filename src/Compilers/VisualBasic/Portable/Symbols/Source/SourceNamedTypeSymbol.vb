@@ -1647,7 +1647,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                         diagnostics.Add(location, useSiteInfo)
 
-                        If isBaseType Then
+                        If isBaseType AndAlso
+                           Not InternalSyntax.Parser.CheckFeatureAvailability(DeclaringCompilation.LanguageVersion, InternalSyntax.Feature.GenericAttributes) Then
                             ' WARNING: in case System_Attribute was not found or has errors, the above check may 
                             '          fail to detect inheritance from System.Attribute, but we assume that in this case 
                             '          another error will be generated anyway

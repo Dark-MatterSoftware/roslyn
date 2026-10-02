@@ -2130,5 +2130,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_InitOnlyProperty
         FEATURE_RequiredProperty
         FEATURE_SetsRequiredMembers
+        FEATURE_GenericAttributes
     End Enum
 End Namespace
