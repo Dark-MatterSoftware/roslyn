@@ -9230,7 +9230,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend NotInheritable Class BoundInterpolatedStringExpression
         Inherits BoundExpression
 
-        Public Sub New(syntax As SyntaxNode, contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+        Public Sub New(syntax As SyntaxNode, contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False, Optional constantValueOpt As ConstantValue = Nothing)
             MyBase.New(BoundKind.InterpolatedStringExpression, syntax, type, hasErrors OrElse contents.NonNullAndHasErrors() OrElse constructionOpt.NonNullAndHasErrors())
 
             Debug.Assert(Not (contents.IsDefault), "Field 'contents' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
@@ -9238,6 +9238,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Me._Contents = contents
             Me._ConstructionOpt = constructionOpt
+            Me._ConstantValueOpt = constantValueOpt
 
             Validate()
         End Sub
@@ -9260,6 +9261,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
+        Private ReadOnly _ConstantValueOpt As ConstantValue
+        Public Overrides ReadOnly Property ConstantValueOpt As ConstantValue
+            Get
+                Return _ConstantValueOpt
+            End Get
+        End Property
+
         <DebuggerStepThrough>
         Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
             Return visitor.VisitInterpolatedStringExpression(Me)
@@ -9267,7 +9275,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function Update(contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, type As TypeSymbol) As BoundInterpolatedStringExpression
             If contents <> Me.Contents OrElse constructionOpt IsNot Me.ConstructionOpt OrElse type IsNot Me.Type Then
-                Dim result = New BoundInterpolatedStringExpression(Me.Syntax, contents, constructionOpt, type, Me.HasErrors)
+                Dim result = New BoundInterpolatedStringExpression(Me.Syntax, contents, constructionOpt, type, Me.HasErrors, Me.ConstantValueOpt)
                 result.CopyAttributes(Me)
                 Return result
             End If

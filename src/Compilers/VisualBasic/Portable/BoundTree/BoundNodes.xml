@@ -1932,6 +1932,7 @@
     <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
     <Field Name="Contents" Type="ImmutableArray(Of BoundNode)"/>
     <Field Name="ConstructionOpt" Type="BoundExpression" Null="allow" SkipInVisitor="true"/>
+    <Field Name="ConstantValueOpt" PropertyOverrides="true" Type="ConstantValue" Null="allow"/>
   </Node>
   
   <!-- There is no BoundInterpolatedStringText because we use BoundLiteral of type string for this purpose. -->

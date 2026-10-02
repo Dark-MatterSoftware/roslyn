@@ -54,7 +54,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | 2c | VB-007 | Done. On `vbnext`, `Default` in a local `As` clause, an assignment, a `Return`, or an argument is the default of that type. Visual Basic 17.13 still reports an expected-expression error. |
 | 2d | VB-010 | Done. On `vbnext`, `x ?= y` assigns `y` when `x` is `Nothing` and leaves `x` unchanged otherwise. It lowers to `x = If(x, y)`. Visual Basic 17.13 reports BC36716. |
 | 2e | VB-023 | Done. On `vbnext`, a `Using` with no `End Using` disposes at the end of the enclosing block. An explicit `End Using` still releases the resource there. Visual Basic 17.13 still expects `End Using`. |
-| 2f | VB-025 | A constant interpolated string is a constant when every hole is a constant. |
+| 2f | VB-025 | Done. On `vbnext`, `$"..."` is a constant when every hole is a string constant and no hole has an alignment or format. A number hole stays non-constant. Visual Basic 17.13 still requires a constant expression. |
 | 2g | VB-024 | `receiver?.Member = value` lowers to a null check plus assignment. |
 
 2d uses `?=`. The backlog did not lock the spelling.
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 2e, `Using` without `End Using`, is implemented. The next slice is 2f, constant interpolated strings.
+Slice 2f, constant interpolated strings, is implemented. The next slice is 2g, null-conditional assignment.

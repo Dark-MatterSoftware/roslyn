@@ -52,6 +52,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         TargetTypedDefault
         NothingCoalescingAssignment
         UsingDeclaration
+        ConstantInterpolatedString
     End Enum
 
     Friend Module FeatureExtensions
@@ -129,7 +130,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.TargetTypedNew,
                      Feature.TargetTypedDefault,
                      Feature.NothingCoalescingAssignment,
-                     Feature.UsingDeclaration
+                     Feature.UsingDeclaration,
+                     Feature.ConstantInterpolatedString
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -227,6 +229,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_NothingCoalescingAssignment
                 Case Feature.UsingDeclaration
                     Return ERRID.FEATURE_UsingDeclaration
+                Case Feature.ConstantInterpolatedString
+                    Return ERRID.FEATURE_ConstantInterpolatedString
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

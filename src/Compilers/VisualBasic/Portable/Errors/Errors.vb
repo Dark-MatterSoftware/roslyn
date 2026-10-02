@@ -2123,5 +2123,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_TargetTypedDefault
         FEATURE_NothingCoalescingAssignment
         FEATURE_UsingDeclaration
+        FEATURE_ConstantInterpolatedString
     End Enum
 End Namespace

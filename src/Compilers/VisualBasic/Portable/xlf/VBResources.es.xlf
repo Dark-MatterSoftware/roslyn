@@ -272,6 +272,11 @@
         <target state="translated">comentarios después de la continuación de línea</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_ConstantInterpolatedString">
+        <source>constant interpolated strings</source>
+        <target state="new">constant interpolated strings</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_EnumConstraint">
         <source>enum constraints</source>
         <target state="new">enum constraints</target>

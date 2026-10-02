@@ -29,7 +29,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End Select
             Next
 
-            Return New BoundInterpolatedStringExpression(syntax, contentBuilder.ToImmutableAndFree(), constructionOpt:=Nothing, type:=GetSpecialType(SpecialType.System_String, syntax, diagnostics))
+            Dim constantValue As ConstantValue = Nothing
+            Dim languageVersion = DirectCast(syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+            If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.ConstantInterpolatedString) Then
+                constantValue = TryFoldConstantInterpolatedString(contentBuilder)
+            End If
+
+            Return New BoundInterpolatedStringExpression(syntax, contentBuilder.ToImmutableAndFree(), constructionOpt:=Nothing, type:=GetSpecialType(SpecialType.System_String, syntax, diagnostics), constantValueOpt:=constantValue)
 
         End Function
 
@@ -70,6 +76,52 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return New BoundInterpolation(syntax, expression, alignmentOpt, formatStringOpt)
 
+        End Function
+
+        ' A constant interpolated string is the concatenation of its text and its holes when every hole is a string constant
+        ' and no hole has an alignment or format. Other constants, such as numbers, stay non-constant.
+        Private Shared Function TryFoldConstantInterpolatedString(contents As ArrayBuilder(Of BoundNode)) As ConstantValue
+            Dim builder = PooledStringBuilder.GetInstance()
+
+            For Each item In contents
+                Dim part As String
+
+                Select Case item.Kind
+                    Case BoundKind.Literal
+                        Dim literal = DirectCast(item, BoundLiteral)
+                        If literal.ConstantValueOpt Is Nothing OrElse Not literal.ConstantValueOpt.IsString OrElse literal.ConstantValueOpt.IsBad Then
+                            builder.Free()
+                            Return Nothing
+                        End If
+
+                        part = literal.ConstantValueOpt.StringValue
+
+                    Case BoundKind.Interpolation
+                        Dim interpolation = DirectCast(item, BoundInterpolation)
+                        Dim value = interpolation.Expression.ConstantValueOpt
+                        If interpolation.HasErrors OrElse
+                           interpolation.AlignmentOpt IsNot Nothing OrElse
+                           interpolation.FormatStringOpt IsNot Nothing OrElse
+                           value Is Nothing OrElse
+                           Not value.IsString OrElse
+                           value.IsBad Then
+                            builder.Free()
+                            Return Nothing
+                        End If
+
+                        part = value.StringValue
+
+                    Case Else
+                        builder.Free()
+                        Return Nothing
+                End Select
+
+                builder.Builder.Append(part)
+            Next
+
+            Dim result = ConstantValue.Create(builder.Builder.ToString())
+            builder.Free()
+            Return result
         End Function
 
         Private Function BindUnconvertedInterpolatedStringToString(node As BoundInterpolatedStringExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
