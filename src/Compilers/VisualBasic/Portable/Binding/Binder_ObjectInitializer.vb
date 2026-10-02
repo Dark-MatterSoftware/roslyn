@@ -15,6 +15,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             diagnostics As BindingDiagnosticBag
         ) As BoundExpression
 
+            If node.Type.IsMissing Then
+                ' The type comes from the target of a conversion. Callers that have a target type
+                ' bind through the overload that takes that type.
+                diagnostics.Add(ERRID.ERR_TargetTypedNewRequiresTargetType, node.NewKeyword.GetLocation())
+
+                Dim argumentDiagnostics = BindingDiagnosticBag.Discarded
+                Dim boundArguments As ImmutableArray(Of BoundExpression) = Nothing
+                Dim argumentNames As ImmutableArray(Of String) = Nothing
+                Dim argumentNamesLocations As ImmutableArray(Of Location) = Nothing
+                BindArgumentsAndNames(node.ArgumentList, boundArguments, argumentNames, argumentNamesLocations, argumentDiagnostics)
+
+                Dim boundNodes = ArrayBuilder(Of BoundExpression).GetInstance()
+                For Each arg In boundArguments
+                    boundNodes.Add(MakeRValueAndIgnoreDiagnostics(arg))
+                Next
+
+                argumentDiagnostics.Free()
+                Return BadExpression(node, boundNodes.ToImmutableAndFree(), ErrorTypeSymbol.UnknownResultType)
+            End If
+
             DisallowNewOnTupleType(node.Type, diagnostics)
             Dim type As TypeSymbol = Me.BindTypeSyntax(node.Type, diagnostics)
 

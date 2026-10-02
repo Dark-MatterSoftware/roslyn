@@ -202,6 +202,11 @@
         <target state="translated">{0} je definováno v sestavení {1}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_TargetTypedNewRequiresTargetType">
+        <source>Target-typed New requires a target type.</source>
+        <target state="new">Target-typed New requires a target type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_TooManyUserStrings_RestartRequired">
         <source>Combined length of user strings used by the program exceeds allowed limit. Adding a string or XML literal requires restarting the application.</source>
         <target state="translated">Kombinovaná délka uživatelských řetězců používaných programem překračuje povolený limit. Přidání řetězce nebo literálu XML vyžaduje restartování aplikace.</target>
@@ -290,6 +295,11 @@
       <trans-unit id="FEATURE_SkipLocalsInit">
         <source>SkipLocalsInit</source>
         <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_TargetTypedNew">
+        <source>target-typed New</source>
+        <target state="new">target-typed New</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">

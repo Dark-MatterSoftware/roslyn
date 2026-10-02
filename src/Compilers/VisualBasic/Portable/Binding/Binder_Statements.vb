@@ -1186,7 +1186,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ElseIf equalsValueOpt IsNot Nothing Then
                     Dim valueSyntax = equalsValueOpt.Value
-                    declarationInitializer = BindValue(valueSyntax, diagnostics)
+                    Dim targetTypedNew = TryCast(valueSyntax, ObjectCreationExpressionSyntax)
+                    If targetTypedNew IsNot Nothing AndAlso targetTypedNew.Type.IsMissing AndAlso
+                        asClauseOpt IsNot Nothing AndAlso asClauseOpt.Kind = SyntaxKind.SimpleAsClause Then
+
+                        declarationInitializer = BindObjectCreationExpression(
+                            targetTypedNew.Type,
+                            targetTypedNew.ArgumentList,
+                            type,
+                            targetTypedNew,
+                            diagnostics,
+                            Nothing)
+                    Else
+                        declarationInitializer = BindValue(valueSyntax, diagnostics)
+                    End If
                 End If
 
             End If

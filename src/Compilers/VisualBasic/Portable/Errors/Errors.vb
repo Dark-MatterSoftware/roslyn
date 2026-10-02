@@ -1809,7 +1809,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ModuleInitializerCannotBeUnmanagedCallersOnly = 37350
         ERR_CannotUseByRefInUnmanagedCallersOnly = 37351
 
-        ERR_NextAvailable = 37352
+        ERR_TargetTypedNewRequiresTargetType = 37352
+
+        ERR_NextAvailable = 37353
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2117,5 +2119,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_ModuleInitializers
         FEATURE_SkipLocalsInit
         FEATURE_UnmanagedCallersOnly
+        FEATURE_TargetTypedNew
     End Enum
 End Namespace

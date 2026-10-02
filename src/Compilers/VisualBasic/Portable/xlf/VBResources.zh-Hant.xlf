@@ -202,6 +202,11 @@
         <target state="translated">'{0}' 於組件 '{1}' 中定義。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_TargetTypedNewRequiresTargetType">
+        <source>Target-typed New requires a target type.</source>
+        <target state="new">Target-typed New requires a target type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_TooManyUserStrings_RestartRequired">
         <source>Combined length of user strings used by the program exceeds allowed limit. Adding a string or XML literal requires restarting the application.</source>
         <target state="translated">程式使用的使用者字串結合長度超過允許限制。新增字串或 XML 字面量時，必須重新啟動應用程式。</target>
@@ -290,6 +295,11 @@
       <trans-unit id="FEATURE_SkipLocalsInit">
         <source>SkipLocalsInit</source>
         <target state="new">SkipLocalsInit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_TargetTypedNew">
+        <source>target-typed New</source>
+        <target state="new">target-typed New</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">

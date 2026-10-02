@@ -803,15 +803,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Return SyntaxFactory.AnonymousObjectCreationExpression(NewKeyword, Nothing, objInitializer)
             End If
 
-            Dim Type = ParseTypeName()
-
-            If Type.ContainsDiagnostics Then
-                Type = ResyncAt(Type, SyntaxKind.OpenParenToken)
-            End If
-
+            Dim Type As TypeSyntax
             Dim Arguments As ArgumentListSyntax = Nothing
 
-            If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
+            ' New(arguments) takes its type from the surrounding target. A parenthesized type
+            ' followed by another argument list, such as New(Integer, String)(1, "a"), stays a typed New.
+            If CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso
+                CheckFeatureAvailability(Feature.TargetTypedNew) AndAlso
+                Not IsNewOfParenthesizedType() Then
+
+                Type = SyntaxFactory.IdentifierName(InternalSyntaxFactory.MissingIdentifier())
+                Arguments = ParseParenthesizedArguments(True)
+            Else
+                Type = ParseTypeName()
+
+                If Type.ContainsDiagnostics Then
+                    Type = ResyncAt(Type, SyntaxKind.OpenParenToken)
+                End If
+
+                If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
                 ' This is an ambiguity in the grammar between
                 '
                 ' New <Type> ( <Arguments> )
@@ -861,9 +871,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         initializer)
 
                 End If
+                End If
             End If
 
-            ' Here we are after parsing " New Blah(a1,a2)"
+            ' Here we are after parsing " New Blah(a1,a2)" or target-typed "New(a1,a2)"
 
             Dim FromToken As KeywordSyntax = Nothing
             If TryTokenAsContextualKeyword(CurrentToken, SyntaxKind.FromKeyword, FromToken) Then
@@ -914,6 +925,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Return SyntaxFactory.ObjectCreationExpression(NewKeyword, Nothing, Type, Arguments, Nothing)
+        End Function
+
+        ' True when New is followed by a parenthesized type and then another argument list:
+        ' New(Integer, String)(1, "a"). That form stays a typed New. New(1, 2) does not.
+        Private Function IsNewOfParenthesizedType() As Boolean
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.OpenParenToken)
+
+            Dim depth = 0
+            Dim offset = 0
+            Do
+                Dim token = PeekToken(offset)
+                Select Case token.Kind
+                    Case SyntaxKind.OpenParenToken
+                        depth += 1
+
+                    Case SyntaxKind.CloseParenToken
+                        depth -= 1
+                        If depth = 0 Then
+                            Return PeekToken(offset + 1).Kind = SyntaxKind.OpenParenToken
+                        End If
+
+                    Case SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken
+                        Return False
+                End Select
+
+                offset += 1
+                If offset > 256 Then
+                    Return False
+                End If
+            Loop
         End Function
 
         ''' <summary>

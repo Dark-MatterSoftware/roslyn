@@ -5724,6 +5724,12 @@
   <data name="FEATURE_UnmanagedCallersOnly" xml:space="preserve">
     <value>UnmanagedCallersOnly</value>
   </data>
+  <data name="FEATURE_TargetTypedNew" xml:space="preserve">
+    <value>target-typed New</value>
+  </data>
+  <data name="ERR_TargetTypedNewRequiresTargetType" xml:space="preserve">
+    <value>Target-typed New requires a target type.</value>
+  </data>
   <data name="ERR_UnmanagedCallersOnlyRequiresShared" xml:space="preserve">
     <value>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</value>
   </data>

@@ -48,6 +48,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ModuleInitializers
         SkipLocalsInit
         UnmanagedCallersOnly
+        TargetTypedNew
     End Enum
 
     Friend Module FeatureExtensions
@@ -121,7 +122,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.AsyncMain,
                      Feature.ModuleInitializers,
                      Feature.SkipLocalsInit,
-                     Feature.UnmanagedCallersOnly
+                     Feature.UnmanagedCallersOnly,
+                     Feature.TargetTypedNew
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -211,6 +213,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_SkipLocalsInit
                 Case Feature.UnmanagedCallersOnly
                     Return ERRID.FEATURE_UnmanagedCallersOnly
+                Case Feature.TargetTypedNew
+                    Return ERRID.FEATURE_TargetTypedNew
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

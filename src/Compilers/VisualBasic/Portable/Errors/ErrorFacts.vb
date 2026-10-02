@@ -1563,7 +1563,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly,
                      ERRID.ERR_EntryPointCannotBeUnmanagedCallersOnly,
                      ERRID.ERR_ModuleInitializerCannotBeUnmanagedCallersOnly,
-                     ERRID.ERR_CannotUseByRefInUnmanagedCallersOnly
+                     ERRID.ERR_CannotUseByRefInUnmanagedCallersOnly,
+                     ERRID.ERR_TargetTypedNewRequiresTargetType
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement
