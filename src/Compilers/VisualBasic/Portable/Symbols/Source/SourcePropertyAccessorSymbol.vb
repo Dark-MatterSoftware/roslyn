@@ -16,6 +16,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Protected ReadOnly m_property As SourcePropertySymbol
         Private ReadOnly _name As String
+        Private ReadOnly _isInitOnly As Boolean
         Private _lazyMetadataName As String
 
         Private _lazyExplicitImplementations As ImmutableArray(Of MethodSymbol) ' lazily populated with explicit implementations
@@ -30,7 +31,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                        name As String,
                        flags As SourceMemberFlags,
                        syntaxRef As SyntaxReference,
-                       locations As ImmutableArray(Of Location))
+                       locations As ImmutableArray(Of Location),
+                       Optional isInitOnly As Boolean = False)
 
             MyBase.New(
                 propertySymbol.ContainingSourceType,
@@ -40,7 +42,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             m_property = propertySymbol
             _name = name
+            _isInitOnly = isInitOnly
         End Sub
+
+        Public Overrides ReadOnly Property IsInitOnly As Boolean
+            Get
+                Return _isInitOnly
+            End Get
+        End Property
 
         Private Shared Function SynthesizeAutoGetterParameters(getter As SourcePropertyAccessorSymbol, propertySymbol As SourcePropertySymbol) As ImmutableArray(Of ParameterSymbol)
             If propertySymbol.ParameterCount = 0 Then
@@ -240,6 +249,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Case MethodKind.PropertySet
                     Debug.Assert(Me.IsSub)
                     Dim binder As Binder = BinderBuilder.CreateBinderForType(sourceModule, Me.SyntaxTree, Me.m_property.ContainingSourceType)
+                    If Me.IsInitOnly Then
+                        binder.GetWellKnownType(WellKnownType.System_Runtime_CompilerServices_IsExternalInit, Me.DeclarationSyntax, diagBag)
+                    End If
                     Return binder.GetSpecialType(SpecialType.System_Void, Me.DeclarationSyntax, diagBag)
 
                 Case Else
@@ -349,6 +361,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Dim overriddenMethod = Me.OverriddenMethod
                 If overriddenMethod IsNot Nothing Then
                     Return overriddenMethod.ReturnTypeCustomModifiers
+                End If
+
+                If Me.IsInitOnly Then
+                    Dim modifierType = DeclaringCompilation.GetWellKnownType(WellKnownType.System_Runtime_CompilerServices_IsExternalInit)
+                    Return ImmutableArray.Create(Of CustomModifier)(VisualBasicCustomModifier.CreateRequired(modifierType))
                 End If
 
                 Return If(Me.MethodKind = MethodKind.PropertySet, ImmutableArray(Of CustomModifier).Empty, m_property.TypeCustomModifiers)

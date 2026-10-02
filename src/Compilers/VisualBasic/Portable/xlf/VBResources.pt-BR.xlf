@@ -17,6 +17,11 @@
         <target state="translated">Um membro de interface com abstrato compartilhado ou virtual não pode ser acessado.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BadInitOnlyProperty">
+        <source>'InitOnly' is only valid on an instance auto-implemented property.</source>
+        <target state="new">'InitOnly' is only valid on an instance auto-implemented property.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadSwitchValue">
         <source>Command-line syntax error: '{0}' is not a valid value for the '{1}' option. The value must be of the form '{2}'.</source>
         <target state="translated">Erro de sintaxe de linha de comando: '{0}' não é um valor válido para a opção '{1}'. O valor precisa estar no formato '{2}'.</target>
@@ -280,6 +285,11 @@
       <trans-unit id="FEATURE_EnumConstraint">
         <source>enum constraints</source>
         <target state="new">enum constraints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_InitOnlyProperty">
+        <source>init-only properties</source>
+        <target state="new">init-only properties</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

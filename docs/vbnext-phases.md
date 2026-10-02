@@ -63,7 +63,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 3a | VB-002 | An auto-property can be declared init-only, and a constructor can assign it. |
+| 3a | VB-002 | Done. On `vbnext`, `Public InitOnly Property Name As String` is an auto-property whose setter is init-only, and a constructor can assign it. Visual Basic 17.13 reports BC36716. |
 | 3b | VB-002 | Assignment outside a constructor is an error. Implementing an init-only property matches the accessor. |
 | 3c | VB-011 | `required` on a property must be set in an object initializer. |
 | 3d | VB-011 | A constructor can opt out with the sets-required-members attribute. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 2g, null-conditional assignment, is implemented. The next slice is 3a, an init-only auto-property.
+Slice 3a, an init-only auto-property, is implemented. The next slice is 3b, assignment outside a constructor and matching an init-only accessor.

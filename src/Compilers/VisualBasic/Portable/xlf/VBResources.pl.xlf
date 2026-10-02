@@ -17,6 +17,11 @@
         <target state="translated">Nie można uzyskać dostępu do współużytkowanego abstrakcyjnego elementu członkowskiego interfejsu.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BadInitOnlyProperty">
+        <source>'InitOnly' is only valid on an instance auto-implemented property.</source>
+        <target state="new">'InitOnly' is only valid on an instance auto-implemented property.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadSwitchValue">
         <source>Command-line syntax error: '{0}' is not a valid value for the '{1}' option. The value must be of the form '{2}'.</source>
         <target state="translated">Błąd składni wiersza polecenia: „{0}” nie jest prawidłową wartością dla opcji „{1}”. Wartość musi mieć postać „{2}”.</target>
@@ -280,6 +285,11 @@
       <trans-unit id="FEATURE_EnumConstraint">
         <source>enum constraints</source>
         <target state="new">enum constraints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_InitOnlyProperty">
+        <source>init-only properties</source>
+        <target state="new">init-only properties</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

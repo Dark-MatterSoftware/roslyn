@@ -8599,6 +8599,10 @@ Unify Enum declarations with other block type declarations.
         <lm-equiv name="YieldKeyword" />
         <native-equiv name="" />
       </node-kind>
+      <node-kind name="InitOnlyKeyword" token-text="InitOnly">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
 
     </node-structure>
 

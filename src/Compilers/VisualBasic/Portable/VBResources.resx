@@ -5742,8 +5742,14 @@
   <data name="FEATURE_NullConditionalAssignment" xml:space="preserve">
     <value>null-conditional assignment</value>
   </data>
+  <data name="FEATURE_InitOnlyProperty" xml:space="preserve">
+    <value>init-only properties</value>
+  </data>
   <data name="ERR_TargetTypedNewRequiresTargetType" xml:space="preserve">
     <value>Target-typed New requires a target type.</value>
+  </data>
+  <data name="ERR_BadInitOnlyProperty" xml:space="preserve">
+    <value>'InitOnly' is only valid on an instance auto-implemented property.</value>
   </data>
   <data name="ERR_UnmanagedCallersOnlyRequiresShared" xml:space="preserve">
     <value>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</value>

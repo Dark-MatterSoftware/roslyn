@@ -1810,8 +1810,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_CannotUseByRefInUnmanagedCallersOnly = 37351
 
         ERR_TargetTypedNewRequiresTargetType = 37352
+        ERR_BadInitOnlyProperty = 37353
 
-        ERR_NextAvailable = 37353
+        ERR_NextAvailable = 37354
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2125,5 +2126,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_UsingDeclaration
         FEATURE_ConstantInterpolatedString
         FEATURE_NullConditionalAssignment
+        FEATURE_InitOnlyProperty
     End Enum
 End Namespace

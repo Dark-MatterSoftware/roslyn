@@ -87,7 +87,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                       diagnostics As DiagnosticBag) As SourcePropertySymbol
 
             ' Decode the flags.
-            Dim modifiers = DecodeModifiers(syntax.Modifiers,
+            Dim isInitOnly = TakeInitOnlyModifier(syntax, diagnostics)
+            Dim modifiers = DecodeModifiers(WithoutInitOnly(syntax.Modifiers),
                                             containingType,
                                             bodyBinder,
                                             diagnostics)
@@ -134,6 +135,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Dim isReadOnly = (modifiers.FoundFlags And SourceMemberFlags.ReadOnly) <> 0
             Dim isWriteOnly = (modifiers.FoundFlags And SourceMemberFlags.WriteOnly) <> 0
+
+            If isInitOnly AndAlso (blockSyntaxOpt IsNot Nothing OrElse prop.IsMustOverride OrElse prop.IsShared OrElse isReadOnly OrElse isWriteOnly) Then
+                diagnostics.Add(ERRID.ERR_BadInitOnlyProperty, syntax.Modifiers.First(SyntaxKind.InitOnlyKeyword).GetLocation())
+                isInitOnly = False
+            End If
 
             If Not prop.IsMustOverride Then
                 If isReadOnly Then
@@ -215,7 +221,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                isWinMd:=prop.IsCompilationOutputWinMdObj()),
                         flags Or SourceMemberFlags.MethodKindPropertySet Or SourceMemberFlags.MethodIsSub,
                         prop._syntaxRef,
-                        prop.Locations)
+                        prop.Locations,
+                        isInitOnly:=isInitOnly)
                 End If
             Else
                 prop._getMethod = getMethod
@@ -1108,6 +1115,45 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Else
                 Return GetAndCacheDocumentationComment(Me, preferredCulture, expandIncludes, _lazyDocComment, cancellationToken)
             End If
+        End Function
+
+        Private Shared Function TakeInitOnlyModifier(syntax As PropertyStatementSyntax, diagnostics As DiagnosticBag) As Boolean
+            Dim seenInitOnly = False
+            For Each modifier In syntax.Modifiers
+                If modifier.Kind <> SyntaxKind.InitOnlyKeyword Then
+                    Continue For
+                End If
+
+                If seenInitOnly Then
+                    diagnostics.Add(ERRID.ERR_DuplicateSpecifier, modifier.GetLocation())
+                End If
+
+                seenInitOnly = True
+            Next
+
+            If Not seenInitOnly Then
+                Return False
+            End If
+
+            Dim languageVersion = DirectCast(syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+            Return InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.InitOnlyProperty)
+        End Function
+
+        Private Shared Function WithoutInitOnly(modifiers As SyntaxTokenList) As SyntaxTokenList
+            If Not modifiers.Any(SyntaxKind.InitOnlyKeyword) Then
+                Return modifiers
+            End If
+
+            Dim builder = ArrayBuilder(Of SyntaxToken).GetInstance()
+            For Each modifier In modifiers
+                If modifier.Kind <> SyntaxKind.InitOnlyKeyword Then
+                    builder.Add(modifier)
+                End If
+            Next
+
+            Dim result = SyntaxFactory.TokenList(builder.ToArray())
+            builder.Free()
+            Return result
         End Function
 
         Private Shared Function DecodeModifiers(modifiers As SyntaxTokenList,

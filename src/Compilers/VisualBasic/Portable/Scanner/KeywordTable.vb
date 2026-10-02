@@ -215,6 +215,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                 SyntaxKind.AwaitKeyword, PrecedenceAwait,
                 SyntaxKind.IteratorKeyword, None,
                 SyntaxKind.YieldKeyword, None,
+                SyntaxKind.InitOnlyKeyword, None,
                 SyntaxKind.EndIfKeyword, None,
                 SyntaxKind.GosubKeyword, None,
                 SyntaxKind.TypeKeyword, None,

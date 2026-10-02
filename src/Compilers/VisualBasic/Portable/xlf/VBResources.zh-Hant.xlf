@@ -17,6 +17,11 @@
         <target state="translated">無法存取共用摘要或虛擬介面成員。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BadInitOnlyProperty">
+        <source>'InitOnly' is only valid on an instance auto-implemented property.</source>
+        <target state="new">'InitOnly' is only valid on an instance auto-implemented property.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadSwitchValue">
         <source>Command-line syntax error: '{0}' is not a valid value for the '{1}' option. The value must be of the form '{2}'.</source>
         <target state="translated">命令列語法錯誤: '{0}' 對 '{1}' 選項而言不是有效的值。此值的格式必須是 '{2}'。</target>
@@ -280,6 +285,11 @@
       <trans-unit id="FEATURE_EnumConstraint">
         <source>enum constraints</source>
         <target state="new">enum constraints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_InitOnlyProperty">
+        <source>init-only properties</source>
+        <target state="new">init-only properties</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlySettersUsage">

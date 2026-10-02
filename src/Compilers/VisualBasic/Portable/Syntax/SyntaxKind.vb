@@ -3211,5 +3211,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         QuestionEqualsToken = 794                    ' PunctuationSyntax : SyntaxToken
 
+        ''' <summary>
+        ''' Represents the contextual <c>InitOnly</c> modifier.
+        ''' </summary>
+        InitOnlyKeyword = 795                        ' KeywordSyntax : SyntaxToken
+
     End Enum
 End Namespace

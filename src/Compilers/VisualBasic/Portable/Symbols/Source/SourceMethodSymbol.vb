@@ -1290,7 +1290,7 @@ lReportErrorOnTwoTokens:
             End Get
         End Property
 
-        Public NotOverridable Overrides ReadOnly Property IsInitOnly As Boolean
+        Public Overrides ReadOnly Property IsInitOnly As Boolean
             Get
                 Return False
             End Get

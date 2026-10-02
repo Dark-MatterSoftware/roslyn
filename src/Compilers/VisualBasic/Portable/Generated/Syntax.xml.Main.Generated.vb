@@ -45470,7 +45470,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.AsyncKeyword,
                 SyntaxKind.AwaitKeyword,
                 SyntaxKind.IteratorKeyword,
-                SyntaxKind.YieldKeyword
+                SyntaxKind.YieldKeyword,
+                SyntaxKind.InitOnlyKeyword
                     Return True
             End Select
             Return False
@@ -46032,6 +46033,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "Iterator"
                 Case SyntaxKind.YieldKeyword
                     Return "Yield"
+                Case SyntaxKind.InitOnlyKeyword
+                    Return "InitOnly"
                 Case SyntaxKind.ExclamationToken
                     Return "!"
                 Case SyntaxKind.AtToken
