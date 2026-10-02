@@ -30,6 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _blockRef As SyntaxReference
         Private ReadOnly _location As Location
         Private ReadOnly _flags As SourceMemberFlags
+        Private _isRequired As Boolean
         Private _lazyType As TypeSymbol
         Private _lazyParameters As ImmutableArray(Of ParameterSymbol)
         Private _getMethod As MethodSymbol
@@ -88,7 +89,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             ' Decode the flags.
             Dim isInitOnly = TakeInitOnlyModifier(syntax, diagnostics)
-            Dim modifiers = DecodeModifiers(WithoutInitOnly(syntax.Modifiers),
+            Dim isRequired = TakeRequiredModifier(syntax, diagnostics)
+            Dim modifiers = DecodeModifiers(WithoutRequired(WithoutInitOnly(syntax.Modifiers)),
                                             containingType,
                                             bodyBinder,
                                             diagnostics)
@@ -139,6 +141,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If isInitOnly AndAlso (blockSyntaxOpt IsNot Nothing OrElse (prop.IsMustOverride AndAlso Not prop.ContainingType.IsInterface) OrElse prop.IsShared OrElse isReadOnly OrElse isWriteOnly) Then
                 diagnostics.Add(ERRID.ERR_BadInitOnlyProperty, syntax.Modifiers.First(SyntaxKind.InitOnlyKeyword).GetLocation())
                 isInitOnly = False
+            End If
+
+            If isRequired AndAlso Not IsAcceptableRequiredProperty(syntax, blockSyntaxOpt, containingType) Then
+                diagnostics.Add(ERRID.ERR_BadRequiredProperty, syntax.Modifiers.First(SyntaxKind.RequiredKeyword).GetLocation())
+                isRequired = False
             End If
 
             If Not prop.IsMustOverride Then
@@ -232,6 +239,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Debug.Assert((prop._getMethod Is Nothing) OrElse prop._getMethod.ImplicitlyDefinedBy Is prop)
             Debug.Assert((prop._setMethod Is Nothing) OrElse prop._setMethod.ImplicitlyDefinedBy Is prop)
 
+            If isRequired Then
+                Dim useSiteInfo As UseSiteInfo(Of AssemblySymbol) = Nothing
+                Binder.GetWellKnownTypeMember(containingType.DeclaringCompilation, WellKnownMember.System_Runtime_CompilerServices_RequiredMemberAttribute__ctor, useSiteInfo)
+                If useSiteInfo.DiagnosticInfo IsNot Nothing Then
+                    diagnostics.Add(New VBDiagnostic(useSiteInfo.DiagnosticInfo, syntax.GetLocation()))
+                End If
+            End If
+
+            prop._isRequired = isRequired
             Return prop
         End Function
 
@@ -1117,6 +1133,76 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
         End Function
 
+        Friend Shared Function DeclaresRequiredAutoProperty(statement As PropertyStatementSyntax) As Boolean
+            Dim hasRequired = False
+            For Each modifier In statement.Modifiers
+                Select Case modifier.Kind
+                    Case SyntaxKind.RequiredKeyword
+                        hasRequired = True
+                    Case SyntaxKind.SharedKeyword,
+                         SyntaxKind.ReadOnlyKeyword,
+                         SyntaxKind.WriteOnlyKeyword,
+                         SyntaxKind.MustOverrideKeyword
+                        Return False
+                End Select
+            Next
+
+            If Not hasRequired Then
+                Return False
+            End If
+
+            Dim parameters = statement.ParameterList
+            Return parameters Is Nothing OrElse parameters.Parameters.Count = 0
+        End Function
+
+        Private Shared Function IsAcceptableRequiredProperty(syntax As PropertyStatementSyntax,
+                                                             blockSyntaxOpt As PropertyBlockSyntax,
+                                                             containingType As SourceMemberContainerTypeSymbol) As Boolean
+            Return blockSyntaxOpt Is Nothing AndAlso
+                Not containingType.IsInterface AndAlso
+                containingType.TypeKind <> TypeKind.Module AndAlso
+                DeclaresRequiredAutoProperty(syntax)
+        End Function
+
+        Private Shared Function TakeRequiredModifier(syntax As PropertyStatementSyntax, diagnostics As DiagnosticBag) As Boolean
+            Dim seenRequired = False
+            For Each modifier In syntax.Modifiers
+                If modifier.Kind <> SyntaxKind.RequiredKeyword Then
+                    Continue For
+                End If
+
+                If seenRequired Then
+                    diagnostics.Add(ERRID.ERR_DuplicateSpecifier, modifier.GetLocation())
+                End If
+
+                seenRequired = True
+            Next
+
+            If Not seenRequired Then
+                Return False
+            End If
+
+            Dim languageVersion = DirectCast(syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+            Return InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.RequiredProperty)
+        End Function
+
+        Private Shared Function WithoutRequired(modifiers As SyntaxTokenList) As SyntaxTokenList
+            If Not modifiers.Any(SyntaxKind.RequiredKeyword) Then
+                Return modifiers
+            End If
+
+            Dim builder = ArrayBuilder(Of SyntaxToken).GetInstance()
+            For Each modifier In modifiers
+                If modifier.Kind <> SyntaxKind.RequiredKeyword Then
+                    builder.Add(modifier)
+                End If
+            Next
+
+            Dim result = SyntaxFactory.TokenList(builder.ToArray())
+            builder.Free()
+            Return result
+        End Function
+
         Private Shared Function TakeInitOnlyModifier(syntax As PropertyStatementSyntax, diagnostics As DiagnosticBag) As Boolean
             Dim seenInitOnly = False
             For Each modifier In syntax.Modifiers
@@ -1316,11 +1402,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If Me.Type.ContainsTupleNames() Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.SynthesizeTupleNamesAttribute(Type))
             End If
+
+            If _isRequired Then
+                AddSynthesizedAttribute(attributes, DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_RequiredMemberAttribute__ctor))
+            End If
         End Sub
 
         Public Overrides ReadOnly Property IsRequired As Boolean
             Get
-                Return False
+                Return _isRequired
             End Get
         End Property
     End Class

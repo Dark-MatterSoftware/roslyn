@@ -3216,5 +3216,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         InitOnlyKeyword = 795                        ' KeywordSyntax : SyntaxToken
 
+        ''' <summary>
+        ''' Represents the contextual <c>Required</c> modifier.
+        ''' </summary>
+        RequiredKeyword = 796                        ' KeywordSyntax : SyntaxToken
+
     End Enum
 End Namespace

@@ -22,6 +22,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Shared Function IsContextualKeyword(kind As SyntaxKind) As Boolean
             Return kind = SyntaxKind.ReferenceKeyword OrElse
                 kind = SyntaxKind.InitOnlyKeyword OrElse
+                kind = SyntaxKind.RequiredKeyword OrElse
                 (SyntaxKind.AggregateKeyword <= kind AndAlso kind <= SyntaxKind.YieldKeyword)
         End Function
 
@@ -290,7 +291,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             SyntaxKind.AwaitKeyword,
             SyntaxKind.IteratorKeyword,
             SyntaxKind.YieldKeyword,
-            SyntaxKind.InitOnlyKeyword
+            SyntaxKind.InitOnlyKeyword,
+            SyntaxKind.RequiredKeyword
             }
         ''' <summary>
         ''' Get contextual keywords
@@ -401,7 +403,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     SyntaxKind.CustomKeyword,
                     SyntaxKind.AsyncKeyword,
                     SyntaxKind.IteratorKeyword,
-                    SyntaxKind.InitOnlyKeyword
+                    SyntaxKind.InitOnlyKeyword,
+                    SyntaxKind.RequiredKeyword
                     Return True
             End Select
 
@@ -819,7 +822,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    {"await", SyntaxKind.AwaitKeyword},
                    {"iterator", SyntaxKind.IteratorKeyword},
                    {"yield", SyntaxKind.YieldKeyword},
-                   {"initonly", SyntaxKind.InitOnlyKeyword}
+                   {"initonly", SyntaxKind.InitOnlyKeyword},
+                   {"required", SyntaxKind.RequiredKeyword}
             }
 
         Public Shared Function GetContextualKeywordKind(text As String) As SyntaxKind

@@ -1811,8 +1811,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         ERR_TargetTypedNewRequiresTargetType = 37352
         ERR_BadInitOnlyProperty = 37353
+        ERR_BadRequiredProperty = 37354
 
-        ERR_NextAvailable = 37354
+        ERR_NextAvailable = 37355
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2127,5 +2128,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_ConstantInterpolatedString
         FEATURE_NullConditionalAssignment
         FEATURE_InitOnlyProperty
+        FEATURE_RequiredProperty
     End Enum
 End Namespace

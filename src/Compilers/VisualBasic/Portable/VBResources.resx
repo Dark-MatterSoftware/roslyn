@@ -5751,6 +5751,12 @@
   <data name="ERR_BadInitOnlyProperty" xml:space="preserve">
     <value>'InitOnly' is only valid on an instance auto-implemented property.</value>
   </data>
+  <data name="ERR_BadRequiredProperty" xml:space="preserve">
+    <value>'Required' is only valid on an instance auto-implemented property that can be set.</value>
+  </data>
+  <data name="FEATURE_RequiredProperty" xml:space="preserve">
+    <value>required properties</value>
+  </data>
   <data name="ERR_UnmanagedCallersOnlyRequiresShared" xml:space="preserve">
     <value>UnmanagedCallersOnly can only be applied to an ordinary Shared method.</value>
   </data>

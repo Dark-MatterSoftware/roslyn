@@ -55,6 +55,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ConstantInterpolatedString
         NullConditionalAssignment
         InitOnlyProperty
+        RequiredProperty
     End Enum
 
     Friend Module FeatureExtensions
@@ -135,7 +136,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.UsingDeclaration,
                      Feature.ConstantInterpolatedString,
                      Feature.NullConditionalAssignment,
-                     Feature.InitOnlyProperty
+                     Feature.InitOnlyProperty,
+                     Feature.RequiredProperty
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -239,6 +241,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_NullConditionalAssignment
                 Case Feature.InitOnlyProperty
                     Return ERRID.FEATURE_InitOnlyProperty
+                Case Feature.RequiredProperty
+                    Return ERRID.FEATURE_RequiredProperty
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

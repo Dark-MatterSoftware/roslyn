@@ -93,6 +93,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private _lazyEmitExtensionAttribute As ThreeState = ThreeState.Unknown
         Private _lazyContainsExtensionMethods As ThreeState = ThreeState.Unknown
         Private _lazyAnyMemberHasAttributes As ThreeState = ThreeState.Unknown
+        Private _lazyHasDeclaredRequiredMembers As ThreeState = ThreeState.Unknown
 
         Private _lazyStructureCycle As Integer = ThreeState.Unknown  ' Interlocked
 
@@ -4042,6 +4043,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If EmitExtensionAttribute Then
                 AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.SynthesizeExtensionAttribute())
             End If
+
+            If HasAnyDeclaredRequiredMembers Then
+                AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_RequiredMemberAttribute__ctor))
+            End If
         End Sub
 #End Region
 
@@ -4057,9 +4062,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend NotOverridable Overrides ReadOnly Property HasAnyDeclaredRequiredMembers As Boolean
             Get
-                Return False
+                If Not _lazyHasDeclaredRequiredMembers.HasValue() Then
+                    _lazyHasDeclaredRequiredMembers = ComputeHasDeclaredRequiredMembers().ToThreeState()
+                End If
+
+                Return _lazyHasDeclaredRequiredMembers.Value()
             End Get
         End Property
+
+        Private Function ComputeHasDeclaredRequiredMembers() As Boolean
+            If IsInterface OrElse TypeKind = TypeKind.Module Then
+                Return False
+            End If
+
+            For Each syntaxRef In SyntaxReferences
+                Dim options = TryCast(syntaxRef.SyntaxTree.Options, VisualBasicParseOptions)
+                If options Is Nothing OrElse options.LanguageVersion < LanguageVersion.VbNext Then
+                    Continue For
+                End If
+
+                Dim block = TryCast(syntaxRef.GetSyntax(), TypeBlockSyntax)
+                If block Is Nothing Then
+                    Continue For
+                End If
+
+                For Each member In block.Members
+                    Dim statement = TryCast(member, PropertyStatementSyntax)
+                    If statement IsNot Nothing AndAlso SourcePropertySymbol.DeclaresRequiredAutoProperty(statement) Then
+                        Return True
+                    End If
+                Next
+            Next
+
+            Return False
+        End Function
     End Class
 
     Friend Class EqualsIgnoringComparer

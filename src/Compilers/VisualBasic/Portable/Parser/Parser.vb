@@ -783,7 +783,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ElseIf contextualKind = SyntaxKind.TypeKeyword Then
                             ' "Type" is now "Structure"
                             Return ReportUnrecognizedStatementError(ERRID.ERR_ObsoleteStructureNotType)
-                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword Then
+                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword Then
                             Return ParseSpecifierDeclaration()
                         End If
                     End If
@@ -1110,7 +1110,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ElseIf contextualKind = SyntaxKind.CustomKeyword AndAlso PeekToken(1).Kind = SyntaxKind.EventKeyword Then ' BeginsEvent
                             Return ParseSpecifierDeclaration()
 
-                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword Then
+                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword Then
 
                             Dim nextToken = PeekToken(1)
 
@@ -1875,14 +1875,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         SyntaxKind.CustomKeyword,
                         SyntaxKind.AsyncKeyword,
                         SyntaxKind.IteratorKeyword,
-                        SyntaxKind.InitOnlyKeyword
+                        SyntaxKind.InitOnlyKeyword,
+                        SyntaxKind.RequiredKeyword
 
                     Case SyntaxKind.IdentifierToken
                         Select Case DirectCast(token, IdentifierTokenSyntax).PossibleKeywordKind
                             Case SyntaxKind.CustomKeyword,
                                 SyntaxKind.AsyncKeyword,
                                 SyntaxKind.IteratorKeyword,
-                                SyntaxKind.InitOnlyKeyword
+                                SyntaxKind.InitOnlyKeyword,
+                                SyntaxKind.RequiredKeyword
 
                             Case Else
                                 Return False
@@ -1933,6 +1935,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         'a list of modifiers. Deferring semantic errors is important for incremental parsing. Note that some
         ' errors are done here and one in semantics. For consistency the errors should be reports in the same
         ' component, i.e. semantics or parser.
+
+        Private Shared Function SpecifierFeature(kind As SyntaxKind) As Feature
+            Select Case kind
+                Case SyntaxKind.AsyncKeyword
+                    Return Feature.AsyncExpressions
+                Case SyntaxKind.IteratorKeyword
+                    Return Feature.Iterators
+                Case SyntaxKind.InitOnlyKeyword
+                    Return Feature.InitOnlyProperty
+                Case Else
+                    Return Feature.RequiredProperty
+            End Select
+        End Function
 
         Private Function ParseSpecifiers() As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
 
@@ -2005,14 +2020,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                             ElseIf possibleKeyword.Kind = SyntaxKind.AsyncKeyword OrElse
                                    possibleKeyword.Kind = SyntaxKind.IteratorKeyword OrElse
-                                   possibleKeyword.Kind = SyntaxKind.InitOnlyKeyword Then
+                                   possibleKeyword.Kind = SyntaxKind.InitOnlyKeyword OrElse
+                                   possibleKeyword.Kind = SyntaxKind.RequiredKeyword Then
 
                                 Dim nextToken As SyntaxToken = PeekToken(1)
                                 If SyntaxFacts.IsSpecifier(nextToken.Kind) OrElse
                                    SyntaxFacts.CanStartSpecifierDeclaration(nextToken.Kind) Then
 
                                     t = possibleKeyword
-                                    t = CheckFeatureAvailability(If(possibleKeyword.Kind = SyntaxKind.AsyncKeyword, Feature.AsyncExpressions, If(possibleKeyword.Kind = SyntaxKind.IteratorKeyword, Feature.Iterators, Feature.InitOnlyProperty)), t)
+                                    t = CheckFeatureAvailability(SpecifierFeature(possibleKeyword.Kind), t)
                                     Exit Select
                                 End If
 

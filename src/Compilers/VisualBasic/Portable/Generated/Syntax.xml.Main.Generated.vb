@@ -45471,7 +45471,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.AwaitKeyword,
                 SyntaxKind.IteratorKeyword,
                 SyntaxKind.YieldKeyword,
-                SyntaxKind.InitOnlyKeyword
+                SyntaxKind.InitOnlyKeyword,
+                SyntaxKind.RequiredKeyword
                     Return True
             End Select
             Return False
@@ -46035,6 +46036,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "Yield"
                 Case SyntaxKind.InitOnlyKeyword
                     Return "InitOnly"
+                Case SyntaxKind.RequiredKeyword
+                    Return "Required"
                 Case SyntaxKind.ExclamationToken
                     Return "!"
                 Case SyntaxKind.AtToken

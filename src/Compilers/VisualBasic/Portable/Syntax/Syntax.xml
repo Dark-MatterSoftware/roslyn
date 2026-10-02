@@ -8603,6 +8603,10 @@ Unify Enum declarations with other block type declarations.
         <lm-equiv name="" />
         <native-equiv name="" />
       </node-kind>
+      <node-kind name="RequiredKeyword" token-text="Required">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
 
     </node-structure>
 

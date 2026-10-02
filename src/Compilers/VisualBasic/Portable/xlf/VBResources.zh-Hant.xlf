@@ -22,6 +22,11 @@
         <target state="new">'InitOnly' is only valid on an instance auto-implemented property.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BadRequiredProperty">
+        <source>'Required' is only valid on an instance auto-implemented property that can be set.</source>
+        <target state="new">'Required' is only valid on an instance auto-implemented property that can be set.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadSwitchValue">
         <source>Command-line syntax error: '{0}' is not a valid value for the '{1}' option. The value must be of the form '{2}'.</source>
         <target state="translated">命令列語法錯誤: '{0}' 對 '{1}' 選項而言不是有效的值。此值的格式必須是 '{2}'。</target>
@@ -315,6 +320,11 @@
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">多載解析優先順序</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_RequiredProperty">
+        <source>required properties</source>
+        <target state="new">required properties</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_SkipLocalsInit">

@@ -65,7 +65,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | --- | --- | --- |
 | 3a | VB-002 | Done. On `vbnext`, `Public InitOnly Property Name As String` is an auto-property whose setter is init-only, and a constructor can assign it. Visual Basic 17.13 reports BC36716. |
 | 3b | VB-002 | Done. On `vbnext`, assigning an `InitOnly` property outside a constructor or object initializer is an error. An interface can declare one, and an implementing property must use an init-only setter. |
-| 3c | VB-011 | `required` on a property must be set in an object initializer. |
+| 3c | VB-011 | Done. On `vbnext`, `Public Required Property Name As String` must be set in an object initializer. A constructor assignment does not count. Visual Basic 17.13 reports BC36716. |
 | 3d | VB-011 | A constructor can opt out with the sets-required-members attribute. |
 | 3e | VB-014 | An attribute class may be generic, and a use site may pass type arguments. |
 | 3f | VB-018 | `Structure` can be declared readonly. Instance members that mutate are errors. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 3b, init-only assignment and implementation matching, is implemented. The next slice is 3c, `required` on a property.
+Slice 3c, required properties, is implemented. The next slice is 3d, the sets-required-members attribute.

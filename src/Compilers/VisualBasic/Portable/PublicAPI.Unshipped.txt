@@ -3,5 +3,6 @@ Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.NothingCoalescingAssignm
 Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.NothingCoalescingAssignmentStatement(left As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax, right As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.AssignmentStatementSyntax
 Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.NothingCoalescingAssignmentStatement = 793 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
 Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.InitOnlyKeyword = 795 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
+Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.RequiredKeyword = 796 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
 Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.QuestionEqualsToken = 794 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
 Microsoft.CodeAnalysis.VisualBasic.VisualBasicExtensions.GetValueConversion(coalesceExpression As Microsoft.CodeAnalysis.Operations.ICoalesceOperation) -> Microsoft.CodeAnalysis.VisualBasic.Conversion
