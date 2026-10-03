@@ -157,5 +157,26 @@ End Module
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_UseOfObsoleteSymbol2, "Span(Of Integer)").WithArguments("System.Span(Of Integer)", "Types with embedded references are not supported in this version of your compiler.").WithLocation(5, 23))
         End Sub
+
+        <Fact>
+        Public Sub Span_IndexAndSliceCompile()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Sub Main()
+        Dim values As Span(Of Integer) = Nothing
+        Dim last = values(^1)
+        Dim middle = values(1..4)
+        values(^1) = 9
+        Dim text As ReadOnlySpan(Of Char) = Nothing
+        Dim lastChar = text(^1)
+        Dim piece = text(1..3)
+    End Sub
+End Module
+", parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
     End Class
 End Namespace

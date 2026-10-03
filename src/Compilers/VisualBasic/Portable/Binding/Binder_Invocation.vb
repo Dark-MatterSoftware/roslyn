@@ -766,6 +766,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(group.ResultKind = LookupResultKind.Good OrElse group.ResultKind = LookupResultKind.Inaccessible)
 
             If Not boundArguments.IsDefaultOrEmpty Then
+                Dim spanAccess = TryBindSpanIndexOrSlice(node, group, boundArguments, diagnostics)
+                If spanAccess IsNot Nothing Then
+                    Return spanAccess
+                End If
+
                 For Each argument In boundArguments
                     ReportFromEndIndexUsedOutsideArray(argument, diagnostics)
                     ReportRangeUsedOutsideArray(argument, diagnostics)

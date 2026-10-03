@@ -4102,6 +4102,127 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 argument.Parent IsNot Nothing AndAlso argument.Parent.Kind = SyntaxKind.TupleExpression
         End Function
 
+        Private Function TryBindSpanIndexOrSlice(node As SyntaxNode, group As BoundMethodOrPropertyGroup, boundArguments As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse boundArguments.Length <> 1 OrElse group.Kind <> BoundKind.PropertyGroup Then
+                Return Nothing
+            End If
+
+            Dim receiver = group.ReceiverOpt
+            If receiver Is Nothing OrElse receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim members = GetSpanMembers(receiver.Type)
+            If members Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim fromEnd = UnwrapFromEndIndex(boundArguments(0))
+            Dim range = UnwrapRange(boundArguments(0))
+            If fromEnd Is Nothing AndAlso range Is Nothing Then
+                Return Nothing
+            End If
+
+            Return BindSpanIndexOrSlice(node, receiver, fromEnd, range, members, diagnostics)
+        End Function
+
+        Private Class SpanMembers
+            Friend ReadOnly Length As MethodSymbol
+            Friend ReadOnly Item As MethodSymbol
+            Friend ReadOnly Slice As MethodSymbol
+
+            Friend Sub New(length As MethodSymbol, item As MethodSymbol, slice As MethodSymbol)
+                Me.Length = length
+                Me.Item = item
+                Me.Slice = slice
+            End Sub
+        End Class
+
+        Private Function GetSpanMembers(spanType As TypeSymbol) As SpanMembers
+            Dim named = TryCast(spanType, NamedTypeSymbol)
+            If named Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim original = named.OriginalDefinition
+            Dim lengthMember As WellKnownMember
+            Dim itemMember As WellKnownMember
+            Dim sliceMember As WellKnownMember
+            If TypeSymbol.Equals(original, Compilation.GetWellKnownType(WellKnownType.System_Span_T), TypeCompareKind.ConsiderEverything) Then
+                lengthMember = WellKnownMember.System_Span_T__get_Length
+                itemMember = WellKnownMember.System_Span_T__get_Item
+                sliceMember = WellKnownMember.System_Span_T__Slice_Int_Int
+            ElseIf TypeSymbol.Equals(original, Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.ConsiderEverything) Then
+                lengthMember = WellKnownMember.System_ReadOnlySpan_T__get_Length
+                itemMember = WellKnownMember.System_ReadOnlySpan_T__get_Item
+                sliceMember = WellKnownMember.System_ReadOnlySpan_T__Slice_Int_Int
+            Else
+                Return Nothing
+            End If
+
+            Dim lengthMethod = TryCast(Compilation.GetWellKnownTypeMember(lengthMember), MethodSymbol)
+            Dim itemMethod = TryCast(Compilation.GetWellKnownTypeMember(itemMember), MethodSymbol)
+            Dim sliceMethod = TryCast(Compilation.GetWellKnownTypeMember(sliceMember), MethodSymbol)
+            If lengthMethod Is Nothing OrElse itemMethod Is Nothing OrElse sliceMethod Is Nothing Then
+                Return Nothing
+            End If
+
+            Return New SpanMembers(lengthMethod.AsMember(named), itemMethod.AsMember(named), sliceMethod.AsMember(named))
+        End Function
+
+        Private Function BindSpanIndexOrSlice(node As SyntaxNode, receiver As BoundExpression, fromEnd As BoundFromEndIndexExpression, range As BoundRangeExpression, members As SpanMembers, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim syntax = If(fromEnd IsNot Nothing, fromEnd.Syntax, range.Syntax)
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
+            Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+
+            If receiver.Kind <> BoundKind.Local AndAlso receiver.Kind <> BoundKind.Parameter AndAlso ContainingMember IsNot Nothing Then
+                Dim spillLocal = New SynthesizedLocal(ContainingMember, receiver.Type, SynthesizedLocalKind.LoweringTemp)
+                Dim storeTarget = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type)
+                sideEffects.Add(New BoundAssignmentOperator(receiver.Syntax, storeTarget, receiver, suppressObjectClone:=True, type:=receiver.Type))
+                locals.Add(spillLocal)
+                receiver = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type)
+            End If
+
+            Dim result As BoundExpression
+            If fromEnd IsNot Nothing Then
+                Dim index = New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type)
+                result = New BoundCall(node, members.Item, Nothing, receiver, ImmutableArray.Create(Of BoundExpression)(index), Nothing, members.Item.ReturnType)
+            Else
+                Dim startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
+                Dim endValue = If(range.RightOperandOpt Is Nothing, SpanLength(receiver, members.Length, syntax, int32Type), SpanNormalizeBound(range.RightOperandOpt, receiver, members, int32Type, diagnostics))
+                Dim startLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
+                Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
+                locals.Add(startLocal)
+                locals.Add(endLocal)
+                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, isLValue:=True, type:=int32Type), startValue, suppressObjectClone:=True, type:=int32Type))
+                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, isLValue:=True, type:=int32Type), endValue, suppressObjectClone:=True, type:=int32Type))
+                Dim count = SliceLength(syntax, startLocal, endLocal, int32Type)
+                result = New BoundCall(node, members.Slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeRValue(), count), Nothing, members.Slice.ReturnType)
+            End If
+
+            If locals.Count = 0 Then
+                locals.Free()
+                sideEffects.Free()
+                Return result
+            End If
+
+            Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), result, result.Type)
+        End Function
+
+        Private Function SpanNormalizeBound(operand As BoundExpression, receiver As BoundExpression, members As SpanMembers, int32Type As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim fromEnd = UnwrapFromEndIndex(operand)
+            If fromEnd IsNot Nothing Then
+                Return New BoundBinaryOperator(fromEnd.Syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, fromEnd.Syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type)
+            End If
+
+            Return ApplyImplicitConversion(operand.Syntax, int32Type, operand, diagnostics)
+        End Function
+
+        Private Function SpanLength(receiver As BoundExpression, lengthMethod As MethodSymbol, syntax As SyntaxNode, int32Type As TypeSymbol) As BoundExpression
+            Return New BoundCall(syntax, lengthMethod, Nothing, receiver, ImmutableArray(Of BoundExpression).Empty, Nothing, int32Type)
+        End Function
+
         Private Function BindArrayRange(node As InvocationExpressionSyntax, expr As BoundExpression, range As BoundRangeExpression, arrayType As ArrayTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim copyMethod = FindArrayCopy(node, diagnostics)
             If copyMethod Is Nothing OrElse ContainingMember Is Nothing Then

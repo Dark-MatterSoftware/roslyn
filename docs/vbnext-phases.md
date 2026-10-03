@@ -123,7 +123,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 7f | VB-019 | Done. On `vbnext`, `ByRef ReadOnly Property First As Integer` returns an assignable value. `Return items(0)` returns that element, and `First = 9` writes through the returned address. A `ByRef ReadOnly` auto-property returns its backing field. Visual Basic 17.13 still rejects `ByRef` before `Property`. |
 | 7g | VB-037 | Done. On `vbnext`, `ByRef Structure Buffer` is a ref-like structure. It can be a local and a field of another ByRef structure. It cannot be boxed, stored as a field of a class, or lifted into an iterator, an async method, or a lambda. Visual Basic 17.13 still rejects `ByRef` before `Structure`. |
 | 7h | VB-037 | Done. On `vbnext`, `Span(Of T)` is a ref-like type. A local of that type is legal and can be emitted. It cannot be boxed or stored as a field of a class. Visual Basic 17.13 still reports that the type is obsolete. |
-| 7i | VB-006 | Range and index syntax from phase 4 apply to `Span(Of T)`. |
+| 7i | VB-006 | Done. On `vbnext`, `values(^1)` and `values(1..4)` index and slice a `Span(Of T)` or `ReadOnlySpan(Of T)`. The start is inclusive and the end is exclusive. `values(^1) = 9` writes through the span indexer. |
 | 7j | VB-034 | The UTF-8 literal from 4f has type `ReadOnlySpan(Of Byte)` when 7h is in. |
 | 7k | VB-035 | Spread and a collection expression may target a span. |
 | 7l | VB-026 | `ParamArray` of `Span(Of T)` is legal. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7h, `Span(Of T)` in the synchronous positions a ByRef structure allows, is implemented. The next slice is 7i, range and index syntax on `Span(Of T)`.
+Slice 7i, range and index syntax on `Span(Of T)`, is implemented. The next slice is 7j, a UTF-8 literal whose type is `ReadOnlySpan(Of Byte)`.
