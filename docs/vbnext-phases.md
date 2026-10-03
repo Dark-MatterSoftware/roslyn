@@ -117,7 +117,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | --- | --- | --- |
 | 7a | VB-035 | Done. On `vbnext`, `(1, 2, 3)` builds an array when the target type is an array. `(1, 2)` with no target type stays a tuple. `()` is an empty array when the target type is an array. Square brackets stay escaped identifiers. Visual Basic 17.13 still treats the parentheses as a tuple. |
 | 7b | VB-035 | Done. On `vbnext`, `(1, 2, 3)` creates a type that already accepts a collection initializer and adds each element. `()` creates an empty instance. A parenthesized value that already converts to that type stays that value. Visual Basic 17.13 still treats the parentheses as a tuple. |
-| 7c | VB-035 | Spread copies an array or list into that target. |
+| 7c | VB-035 | Done. On `vbnext`, `.. items` inside the parentheses copies an array or a list through `AddRange`. An array target is that list converted with `ToArray`. A parenthesized range stays a range. Visual Basic 17.13 still rejects the range. |
 | 7d | VB-026 | `ParamArray` accepts a list or `IEnumerable` expansion. |
 | 7e | VB-019 | A `Function` may return `ByRef`. |
 | 7f | VB-019 | A property may return `ByRef`. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7b, a collection expression that targets a list or a type with a collection initializer, is implemented. The next slice is 7c, spread inside a collection expression.
+Slice 7c, spread inside a collection expression, is implemented. The next slice is 7d, `ParamArray` accepting a list or `IEnumerable`.

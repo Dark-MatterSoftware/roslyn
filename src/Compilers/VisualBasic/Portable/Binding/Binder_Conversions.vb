@@ -337,13 +337,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If arrayType IsNot Nothing Then
                 ' An empty () is an array literal. The existing array-literal conversion builds the array.
                 If arrayType.Rank <> 1 OrElse argument.Kind = BoundKind.ArrayLiteral Then
-                    Return Nothing
+                    Return ReportUnconsumedSpreads(elements, diagnostics)
+                End If
+
+                If HasSpreadElement(elements) Then
+                    Return BindArrayFromSpreadElements(argument, arrayType, elements, diagnostics)
                 End If
 
                 Return BindArrayCreationFromElements(argument, arrayType, elements, diagnostics)
             End If
 
-            Return TryBindCollectionInitializerFromElements(argument, targetType, elements, diagnostics)
+            Dim collection = TryBindCollectionInitializerFromElements(argument, targetType, elements, diagnostics)
+            If collection IsNot Nothing Then
+                Return collection
+            End If
+
+            Return ReportUnconsumedSpreads(elements, diagnostics)
         End Function
 
         Private Function TryGetParenthesizedCollectionElements(argument As BoundExpression, targetType As TypeSymbol, ByRef elements As ImmutableArray(Of BoundExpression)) As Boolean
@@ -432,7 +441,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim addInvocations = ArrayBuilder(Of BoundExpression).GetInstance()
             For Each element In elements
-                addInvocations.Add(BindCollectionElementAdd(element, placeholder, result, diagnostics))
+                If IsSpreadElement(element) Then
+                    addInvocations.Add(BindSpreadAddRange(element, placeholder, named, diagnostics))
+                Else
+                    addInvocations.Add(BindCollectionElementAdd(element, placeholder, result, diagnostics))
+                End If
             Next
 
             result.Free()
@@ -486,6 +499,121 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             Return Nothing
+        End Function
+
+        Private Function BindArrayFromSpreadElements(argument As BoundExpression, arrayType As ArrayTypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim listOpen = GetWellKnownType(WellKnownType.System_Collections_Generic_List_T, argument.Syntax, diagnostics)
+            If listOpen.IsErrorType Then
+                Return BadExpression(argument.Syntax, argument, arrayType)
+            End If
+
+            Dim listType = listOpen.Construct(ImmutableArray.Create(Of TypeSymbol)(arrayType.ElementType))
+            Dim listCreation = TryBindCollectionInitializerFromElements(argument, listType, elements, diagnostics)
+            If listCreation Is Nothing Then
+                Return BadExpression(argument.Syntax, argument, arrayType)
+            End If
+
+            Return BindParameterlessInstanceCall(listCreation, "ToArray", diagnostics)
+        End Function
+
+        Private Shared Function HasSpreadElement(elements As ImmutableArray(Of BoundExpression)) As Boolean
+            For Each element In elements
+                If IsSpreadElement(element) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        Private Shared Function IsSpreadElement(element As BoundExpression) As Boolean
+            Dim range = TryCast(element, BoundRangeExpression)
+            Return range IsNot Nothing AndAlso Not range.HasErrors AndAlso range.LeftOperandOpt Is Nothing AndAlso range.RightOperandOpt IsNot Nothing
+        End Function
+
+        Private Function ReportUnconsumedSpreads(elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim reported As BoundExpression = Nothing
+            For Each element In elements
+                If IsSpreadElement(element) Then
+                    ReportDiagnostic(diagnostics, element.Syntax, ERRID.ERR_RangeRequiresArray)
+                    reported = element
+                End If
+            Next
+
+            If reported Is Nothing Then
+                Return Nothing
+            End If
+
+            Return BadExpression(reported.Syntax, reported, ErrorTypeSymbol.UnknownResultType)
+        End Function
+
+        ''' <summary>
+        ''' ..items copies an array or a list through AddRange. The source converts to that parameter.
+        ''' </summary>
+        Private Function BindSpreadAddRange(spread As BoundExpression, placeholder As BoundWithLValueExpressionPlaceholder, collectionType As NamedTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim source = DirectCast(spread, BoundRangeExpression).RightOperandOpt
+            Dim lookup = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(lookup, collectionType, "AddRange", 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(spread.Syntax, useSiteInfo)
+
+            If Not lookup.IsGood Then
+                lookup.Free()
+                ReportDiagnostic(diagnostics, spread.Syntax, ErrorFactory.ErrorInfo(ERRID.ERR_NameNotMember2, "AddRange", collectionType))
+                Return BadExpression(spread.Syntax, source, ErrorTypeSymbol.UnknownResultType)
+            End If
+
+            Dim methodGroup = CreateBoundMethodGroup(spread.Syntax,
+                                                     lookup,
+                                                     LookupOptions.AllMethodsOfAnyArity,
+                                                     diagnostics.AccumulatesDependencies,
+                                                     placeholder,
+                                                     Nothing,
+                                                     QualificationKind.QualifiedViaValue).MakeCompilerGenerated()
+            lookup.Free()
+
+            Dim invocation = BindInvocationExpression(spread.Syntax,
+                                                      spread.Syntax,
+                                                      TypeCharacter.None,
+                                                      methodGroup,
+                                                      ImmutableArray.Create(source),
+                                                      Nothing,
+                                                      diagnostics,
+                                                      callerInfoOpt:=spread.Syntax)
+            invocation.SetWasCompilerGenerated()
+            Return invocation
+        End Function
+
+        Private Function BindParameterlessInstanceCall(receiver As BoundExpression, methodName As String, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim lookup = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(lookup, receiver.Type, methodName, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(receiver.Syntax, useSiteInfo)
+
+            If Not lookup.IsGood Then
+                lookup.Free()
+                Return BadExpression(receiver.Syntax, receiver, ErrorTypeSymbol.UnknownResultType)
+            End If
+
+            Dim methodGroup = CreateBoundMethodGroup(receiver.Syntax,
+                                                     lookup,
+                                                     LookupOptions.AllMethodsOfAnyArity,
+                                                     diagnostics.AccumulatesDependencies,
+                                                     receiver,
+                                                     Nothing,
+                                                     QualificationKind.QualifiedViaValue).MakeCompilerGenerated()
+            lookup.Free()
+
+            Dim invocation = BindInvocationExpression(receiver.Syntax,
+                                                      receiver.Syntax,
+                                                      TypeCharacter.None,
+                                                      methodGroup,
+                                                      ImmutableArray(Of BoundExpression).Empty,
+                                                      Nothing,
+                                                      diagnostics,
+                                                      callerInfoOpt:=receiver.Syntax)
+            invocation.SetWasCompilerGenerated()
+            Return invocation
         End Function
 
         Private Function BindCollectionElementAdd(element As BoundExpression, placeholder As BoundWithLValueExpressionPlaceholder, result As LookupResult, diagnostics As BindingDiagnosticBag) As BoundExpression

@@ -4081,12 +4081,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim reported = False
-            If Not IsIndexArgument(node) Then
+            If Not IsIndexArgument(node) AndAlso Not IsCollectionSpread(node) Then
                 ReportDiagnostic(diagnostics, node, ERRID.ERR_RangeRequiresArray)
                 reported = True
             End If
 
             Return New BoundRangeExpression(node, left, right, ErrorTypeSymbol.UnknownResultType, hasErrors:=reported)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, ..items as a tuple element is a spread. A parenthesized range stays a range.
+        ''' </summary>
+        Private Function IsCollectionSpread(node As RangeExpressionSyntax) As Boolean
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse node.Left IsNot Nothing OrElse node.Right Is Nothing Then
+                Return False
+            End If
+
+            Dim argument = TryCast(node.Parent, SimpleArgumentSyntax)
+            Return argument IsNot Nothing AndAlso argument.Expression Is node AndAlso
+                argument.Parent IsNot Nothing AndAlso argument.Parent.Kind = SyntaxKind.TupleExpression
         End Function
 
         Private Function BindArrayRange(node As InvocationExpressionSyntax, expr As BoundExpression, range As BoundRangeExpression, arrayType As ArrayTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression

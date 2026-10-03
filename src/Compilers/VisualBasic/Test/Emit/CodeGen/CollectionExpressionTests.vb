@@ -268,5 +268,56 @@ End Module
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_TypeMismatch2, "(1, 2)").WithArguments("(Integer, Integer)", "System.Collections.Generic.List(Of Integer)").WithLocation(5, 42))
         End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_SpreadIntoArray()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim extras = {8, 9}
+        Dim values As Integer() = (1, .. extras, 4)
+        System.Console.Write(values(0))
+        System.Console.Write(values(1))
+        System.Console.Write(values(2))
+        System.Console.Write(values(3))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1894").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_SpreadIntoList()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim extras As New List(Of Integer) From {8, 9}
+        Dim values As List(Of Integer) = (1, .. extras, 4)
+        System.Console.Write(values(0))
+        System.Console.Write(values(1))
+        System.Console.Write(values(2))
+        System.Console.Write(values(3))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1894").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_ParenthesizedRangeIsNotSpread()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim values As Integer() = (1, (..4))
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_RangeRequiresArray, "..4").WithLocation(4, 40))
+        End Sub
     End Class
 End Namespace
