@@ -1453,6 +1453,20 @@ lReportErrorOnTwoTokens:
                         WellKnownMember.System_STAThreadAttribute__ctor))
                 End If
             End If
+
+            If OverrideHidingHelper.RequiresExplicitOverride(Me) AndAlso
+               Me.OverriddenMethod IsNot Nothing AndAlso
+               Not Me.ReturnType.IsSameType(Me.OverriddenMethod.ReturnType, TypeCompareKind.AllIgnoreOptions) Then
+
+                Dim constructor = TryCast(compilation.GetSpecialTypeMember(SpecialMember.System_Runtime_CompilerServices_PreserveBaseOverridesAttribute__ctor), MethodSymbol)
+                If constructor IsNot Nothing Then
+                    AddSynthesizedAttribute(attributes, New SynthesizedAttributeData(
+                        compilation,
+                        constructor,
+                        ImmutableArray(Of TypedConstant).Empty,
+                        ImmutableArray(Of KeyValuePair(Of String, TypedConstant)).Empty))
+                End If
+            End If
         End Sub
 
         Friend Overrides Sub AddSynthesizedReturnTypeAttributes(ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))

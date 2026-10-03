@@ -537,6 +537,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             If method.OverriddenMethod IsNot Nothing Then
+                ' The runtime treats the return type as part of the signature, so a narrower
+                ' return needs a new slot and an explicit method implementation.
+                If Not method.ReturnType.IsSameType(method.OverriddenMethod.ReturnType, TypeCompareKind.AllIgnoreOptions) Then
+                    Return True
+                End If
+
                 For Each inaccessibleOverride In method.OverriddenMembers.InaccessibleMembers
                     If inaccessibleOverride.IsOverridable OrElse inaccessibleOverride.IsMustOverride OrElse inaccessibleOverride.IsOverrides Then
                         Return True
@@ -545,6 +551,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Return False
+        End Function
+
+        Friend Shared Function IsCovariantReturn(overriding As MethodSymbol, overridden As MethodSymbol) As Boolean
+            If overriding Is Nothing OrElse overridden Is Nothing OrElse overriding.IsAccessor Then
+                Return False
+            End If
+
+            Dim compilation = overriding.DeclaringCompilation
+            If compilation Is Nothing OrElse
+               Not Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.Parser.CheckFeatureAvailability(compilation.LanguageVersion, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.Feature.CovariantReturns) OrElse
+               Not overriding.ContainingAssembly.SupportsRuntimeCapability(RuntimeCapability.CovariantReturnsOfClasses) Then
+                Return False
+            End If
+
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            Dim conversion = Conversions.ClassifyConversion(overriding.ReturnType, overridden.ReturnType, useSiteInfo)
+            Return (conversion.Key And ConversionKind.WideningReference) = ConversionKind.WideningReference
         End Function
 
         Private Shared Function RequiresExplicitOverride(prop As PropertySymbol) As Boolean
@@ -879,7 +902,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     ReportBadOverriding(ERRID.ERR_OverrideWithByref2, member, overriddenMember, diagnostics)
                 ElseIf (comparisonResults And SymbolComparisonResults.OptionalParameterMismatch) <> 0 Then
                     ReportBadOverriding(ERRID.ERR_OverrideWithOptional2, member, overriddenMember, diagnostics)
-                ElseIf (comparisonResults And SymbolComparisonResults.ReturnTypeMismatch) <> 0 Then
+                ElseIf (comparisonResults And SymbolComparisonResults.ReturnTypeMismatch) <> 0 AndAlso
+                       Not OverrideHidingHelper.IsCovariantReturn(TryCast(member, MethodSymbol), TryCast(overriddenMember, MethodSymbol)) Then
                     ReportBadOverriding(ERRID.ERR_InvalidOverrideDueToReturn2, member, overriddenMember, diagnostics)
                 ElseIf (comparisonResults And SymbolComparisonResults.PropertyAccessorMismatch) <> 0 Then
                     ReportBadOverriding(ERRID.ERR_OverridingPropertyKind2, member, overriddenMember, diagnostics)

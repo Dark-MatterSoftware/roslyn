@@ -2140,5 +2140,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_NativeIntegers
         FEATURE_IndexFromEnd
         FEATURE_ArrayRange
+        FEATURE_CovariantReturns
     End Enum
 End Namespace

@@ -5778,6 +5778,9 @@
   <data name="FEATURE_ArrayRange" xml:space="preserve">
     <value>array ranges</value>
   </data>
+  <data name="FEATURE_CovariantReturns" xml:space="preserve">
+    <value>covariant returns</value>
+  </data>
   <data name="ERR_RangeRequiresArray" xml:space="preserve">
     <value>A range can only be used to slice a one-dimensional array.</value>
   </data>
