@@ -4089,6 +4089,50 @@ Unify Enum declarations with other block type declarations.
       </child>
     </node-structure>
 
+    <!--****************
+      -  TypeCaseClause
+      ******************-->
+    <node-structure name="TypeCaseClauseSyntax" parent="CaseClauseSyntax">
+      <description>Represents a type test in a Case, optionally combined with a relational test. Example: Is TypeOf Integer AndAlso Is &gt; 0.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="TypeCaseClause">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="IsKeyword" kind="IsKeyword">
+        <description>The Is keyword that introduces the type test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="TypeOfKeyword" kind="TypeOfKeyword">
+        <description>The TypeOf keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Type" kind="@TypeSyntax">
+        <description>The type being tested.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="AndAlsoKeyword" kind="AndAlsoKeyword" optional="true">
+        <description>The AndAlso keyword, when a relational test follows.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Relation" kind="@RelationalCaseClauseSyntax" optional="true">
+        <description>The relational test applied to the same value, when present.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
 
     <!--****************
       -  SyncLockStatement

@@ -66,6 +66,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         RawStringLiteral
         Utf8StringLiteral
         TupleDeconstruction
+        SelectCaseTypePattern
     End Enum
 
     Friend Module FeatureExtensions
@@ -157,7 +158,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.CovariantReturns,
                      Feature.RawStringLiteral,
                      Feature.Utf8StringLiteral,
-                     Feature.TupleDeconstruction
+                     Feature.TupleDeconstruction,
+                     Feature.SelectCaseTypePattern
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -283,6 +285,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_Utf8StringLiteral
                 Case Feature.TupleDeconstruction
                     Return ERRID.FEATURE_TupleDeconstruction
+                Case Feature.SelectCaseTypePattern
+                    Return ERRID.FEATURE_SelectCaseTypePattern
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

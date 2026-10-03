@@ -2148,5 +2148,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_RawStringLiteral
         FEATURE_Utf8StringLiteral
         FEATURE_TupleDeconstruction
+        FEATURE_SelectCaseTypePattern
     End Enum
 End Namespace

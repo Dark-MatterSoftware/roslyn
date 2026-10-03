@@ -366,6 +366,9 @@ Namespace Microsoft.CodeAnalysis.Operations
             End If
 
             Select Case conditionOpt.Kind
+                Case BoundKind.TypeOf
+                    Return conditionOpt
+
                 Case BoundKind.BinaryOperator
                     Dim binaryOp As BoundBinaryOperator = DirectCast(conditionOpt, BoundBinaryOperator)
                     Return binaryOp.Right

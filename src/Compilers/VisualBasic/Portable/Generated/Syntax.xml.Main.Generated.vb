@@ -338,6 +338,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitRelationalCaseClause(ByVal node As RelationalCaseClauseSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitSyncLockStatement(ByVal node As SyncLockStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1077,6 +1080,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitRelationalCaseClause(ByVal node As RelationalCaseClauseSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitSyncLockStatement(ByVal node As SyncLockStatementSyntax)
@@ -3375,6 +3381,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New RelationalCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newOperatorToken, newValue)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newIsKeyword = DirectCast(VisitToken(node.IsKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.IsKeyword.Node IsNot newIsKeyword Then anyChanges = True
+            Dim newTypeOfKeyword = DirectCast(VisitToken(node.TypeOfKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.TypeOfKeyword.Node IsNot newTypeOfKeyword Then anyChanges = True
+            Dim newType = DirectCast(Visit(node.Type), TypeSyntax)
+            If node.Type IsNot newType Then anyChanges = True
+            Dim newAndAlsoKeyword = DirectCast(VisitToken(node.AndAlsoKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.AndAlsoKeyword.Node IsNot newAndAlsoKeyword Then anyChanges = True
+            Dim newRelation = DirectCast(Visit(node.Relation), RelationalCaseClauseSyntax)
+            If node.Relation IsNot newRelation Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newAndAlsoKeyword, newRelation)
             Else
                 Return node
             End If
@@ -17742,6 +17769,84 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function RelationalCaseClause(ByVal kind As SyntaxKind, operatorToken As SyntaxToken, value As ExpressionSyntax) As RelationalCaseClauseSyntax
             Return SyntaxFactory.RelationalCaseClause(kind, Nothing, operatorToken, value)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test in a Case, optionally combined with a relational test.
+        ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword that introduces the type test.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="type">
+        ''' The type being tested.
+        ''' </param>
+        ''' <param name="andAlsoKeyword">
+        ''' The AndAlso keyword, when a relational test follows.
+        ''' </param>
+        ''' <param name="relation">
+        ''' The relational test applied to the same value, when present.
+        ''' </param>
+        Public Shared Function TypeCaseClause(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, andAlsoKeyword As SyntaxToken, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+            Select Case isKeyword.Kind()
+                Case SyntaxKind.IsKeyword
+                Case Else
+                    Throw new ArgumentException("isKeyword")
+            End Select
+            Select Case typeOfKeyword.Kind()
+                Case SyntaxKind.TypeOfKeyword
+                Case Else
+                    Throw new ArgumentException("typeOfKeyword")
+            End Select
+            if type Is Nothing Then
+                Throw New ArgumentNullException(NameOf(type))
+            End If
+            Select Case type.Kind()
+                Case SyntaxKind.TupleType,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference
+                Case Else
+                    Throw new ArgumentException("type")
+            End Select
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, Nothing, Nothing, DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), type, DirectCast(andAlsoKeyword.Node, InternalSyntax.KeywordSyntax), relation)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test in a Case, optionally combined with a relational test.
+        ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+        ''' </summary>
+        ''' <param name="type">
+        ''' The type being tested.
+        ''' </param>
+        ''' <param name="relation">
+        ''' The relational test applied to the same value, when present.
+        ''' </param>
+        Public Shared Function TypeCaseClause(type As TypeSyntax, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, relation)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test in a Case, optionally combined with a relational test.
+        ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+        ''' </summary>
+        ''' <param name="type">
+        ''' The type being tested.
+        ''' </param>
+        Public Shared Function TypeCaseClause(type As TypeSyntax) As TypeCaseClauseSyntax
+            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, Nothing)
         End Function
 
 

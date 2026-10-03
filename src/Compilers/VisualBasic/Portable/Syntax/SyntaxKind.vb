@@ -3241,5 +3241,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         TupleDeconstructionStatement = 800           ' TupleDeconstructionStatementSyntax : ExecutableStatementSyntax : StatementSyntax
 
+        ''' <summary>
+        ''' Represents a type test in a Case, <c>Case Is TypeOf Integer</c>, optionally combined with a relational test.
+        ''' </summary>
+        TypeCaseClause = 801                         ' TypeCaseClauseSyntax : CaseClauseSyntax
+
     End Enum
 End Namespace

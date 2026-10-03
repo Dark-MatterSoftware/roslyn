@@ -5790,6 +5790,9 @@
   <data name="FEATURE_TupleDeconstruction" xml:space="preserve">
     <value>tuple deconstruction</value>
   </data>
+  <data name="FEATURE_SelectCaseTypePattern" xml:space="preserve">
+    <value>type patterns in Select Case</value>
+  </data>
   <data name="ERR_DeconstructionRequiresTuple" xml:space="preserve">
     <value>Deconstruction requires a tuple with {0} elements.</value>
   </data>

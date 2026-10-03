@@ -407,6 +407,11 @@
         <target state="new">required properties</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_SelectCaseTypePattern">
+        <source>type patterns in Select Case</source>
+        <target state="new">type patterns in Select Case</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_SetsRequiredMembers">
         <source>SetsRequiredMembers</source>
         <target state="new">SetsRequiredMembers</target>

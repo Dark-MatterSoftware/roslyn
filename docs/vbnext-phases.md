@@ -92,7 +92,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 5b | VB-005 | Done. On `vbnext`, `(x, y) = point` assigns each element into an existing variable. The tuple is evaluated once. A value that is not a tuple of the same length is an error. Visual Basic 17.13 still reports a syntax error on `(`. |
 | 5c | VB-005 | Done. On `vbnext`, `Dim (x, , z) = point` and `(x, , z) = point` skip the empty slot. The empty slot still counts toward the tuple length, and the tuple is evaluated once. Visual Basic 17.13 still treats the parentheses as array bounds or a syntax error. |
 | 5d | VB-005 | Done. On `vbnext`, a type that is not a tuple is deconstructed by an accessible method named `Deconstruct` whose `ByRef` parameters match the slots. An extension method is used when the type has no instance method of that name. The value is evaluated once, and an empty slot is still passed to the method. A value that is neither a tuple of that length nor a match for `Deconstruct` is an error. |
-| 5e | VB-004 | `Case` accepts a logical combination of type and relational tests that already exist separately. |
+| 5e | VB-004 | Done. On `vbnext`, `Case Is TypeOf Integer AndAlso Is > 0` matches when the Select expression has that type and passes the relational test. `Case Is TypeOf String` is the type test alone. The Select expression is evaluated once. Visual Basic 17.13 still reports an expected relational operator. |
 | 5f | VB-004 | Property patterns. |
 | 5g | VB-004 | Positional patterns on tuples and on types with `Deconstruct`. |
 | 5h | VB-004 | A `Select Case` expression produces a value. List patterns wait until phase 7. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-The VB-004 spelling is locked in `docs/vbnext-vb004-syntax.md`. The next slice is 5e, `Case Is TypeOf` combined with a relational test.
+Slice 5e, a Case that combines a type test with a relational test, is implemented. The next slice is 5f, a property pattern such as `Case Is TypeOf Customer AndAlso .Balance Is > 0`.

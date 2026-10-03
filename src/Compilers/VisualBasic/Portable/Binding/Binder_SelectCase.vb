@@ -181,6 +181,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.RangeCaseClause
                     Return BindRangeCaseClause(DirectCast(node, RangeCaseClauseSyntax), selectExpressionOpt, convertCaseElements, diagnostics)
 
+                Case SyntaxKind.TypeCaseClause
+                    Return BindTypeCaseClause(DirectCast(node, TypeCaseClauseSyntax), selectExpressionOpt, convertCaseElements, diagnostics)
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(node.Kind)
             End Select
@@ -467,7 +470,67 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Select
         End Function
 
+        Private Function BindTypeCaseClause(
+            node As TypeCaseClauseSyntax,
+            selectExpressionOpt As BoundRValuePlaceholder,
+            convertCaseElements As Boolean,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundCaseClause
+
+            If selectExpressionOpt Is Nothing Then
+                Dim missing = BadExpression(node, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
+                Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, missing, Nothing, hasErrors:=True)
+            End If
+
+            Dim targetSymbol = BindTypeOrAliasSyntax(node.Type, diagnostics)
+            Dim targetType = DirectCast(If(TryCast(targetSymbol, TypeSymbol), DirectCast(targetSymbol, AliasSymbol).Target), TypeSymbol)
+            Dim booleanType = GetSpecialType(SpecialType.System_Boolean, node, diagnostics)
+            Dim operandType = selectExpressionOpt.Type
+            Dim hasErrors = targetType.IsErrorType()
+
+            If operandType IsNot Nothing AndAlso Not operandType.IsErrorType() AndAlso Not targetType.IsErrorType() Then
+                If Not operandType.IsReferenceType AndAlso Not operandType.IsTypeParameter() Then
+                    ReportDiagnostic(diagnostics, node.Type, ERRID.ERR_TypeOfRequiresReferenceType1, operandType)
+                    hasErrors = True
+                Else
+                    Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+                    Dim convKind = Conversions.ClassifyTryCastConversion(operandType, targetType, useSiteInfo)
+                    If Not diagnostics.Add(node, useSiteInfo) AndAlso Not Conversions.ConversionExists(convKind) Then
+                        ReportDiagnostic(diagnostics, node, ERRID.ERR_TypeOfExprAlwaysFalse2, operandType, targetType)
+                    End If
+                End If
+            End If
+
+            Dim typeTest As BoundExpression = New BoundTypeOf(node, selectExpressionOpt, isTypeOfIsNotExpression:=False, targetType, booleanType, hasErrors:=hasErrors)
+            Dim condition = typeTest
+
+            If node.Relation IsNot Nothing Then
+                Dim relational = DirectCast(BindRelationalCaseClause(node.Relation, selectExpressionOpt, convertCaseElements, diagnostics), BoundRelationalCaseClause)
+                Dim relationalCondition As BoundExpression = Nothing
+                ComputeRelationalCaseClauseCondition(relational, relationalCondition, selectExpressionOpt, diagnostics)
+                condition = BindBinaryOperator(
+                    node:=node,
+                    left:=typeTest,
+                    right:=relationalCondition,
+                    operatorTokenKind:=SyntaxKind.AndAlsoKeyword,
+                    preliminaryOperatorKind:=BinaryOperatorKind.AndAlso,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True).MakeCompilerGenerated()
+                hasErrors = hasErrors OrElse condition.HasErrors
+            End If
+
+            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=hasErrors)
+        End Function
+
         Private Function ComputeRelationalCaseClauseCondition(boundClause As BoundRelationalCaseClause, <Out()> ByRef conditionOpt As BoundExpression, selectExpression As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause
+            Debug.Assert(boundClause.ConditionOpt IsNot Nothing Xor boundClause.ValueOpt IsNot Nothing)
+
+            If boundClause.ConditionOpt IsNot Nothing Then
+                conditionOpt = boundClause.ConditionOpt
+                Return boundClause
+            End If
+
             Dim syntax = DirectCast(boundClause.Syntax, RelationalCaseClauseSyntax)
 
             ' Exactly one of the operand or condition must be non-null

@@ -12,9 +12,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If conditionOpt IsNot Nothing Then
                 Select Case conditionOpt.Kind
+                    Case BoundKind.TypeOf
+                        ' Case Is TypeOf T carries the type test itself.
+
                     Case BoundKind.BinaryOperator
                         Dim binaryOp As BoundBinaryOperator = DirectCast(conditionOpt, BoundBinaryOperator)
-                        Debug.Assert((binaryOp.OperatorKind And BinaryOperatorKind.OpMask) = operatorKind)
+                        Dim op = binaryOp.OperatorKind And BinaryOperatorKind.OpMask
+                        ' AndAlso joins a type test to the relational test.
+                        Debug.Assert(op = operatorKind OrElse op = BinaryOperatorKind.AndAlso)
 
                     Case BoundKind.UserDefinedBinaryOperator
                         Dim binaryOp As BoundUserDefinedBinaryOperator = DirectCast(conditionOpt, BoundUserDefinedBinaryOperator)

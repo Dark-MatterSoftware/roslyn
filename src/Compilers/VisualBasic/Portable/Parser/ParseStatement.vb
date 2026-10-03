@@ -264,31 +264,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     If StartCase = SyntaxKind.IsKeyword OrElse SyntaxFacts.IsRelationalOperator(StartCase) Then
 
-                        ' dev10_526560 Allow implicit newline after IS
-                        Dim optionalIsKeyword As KeywordSyntax = Nothing
-                        TryGetTokenAndEatNewLine(SyntaxKind.IsKeyword, optionalIsKeyword)
-
-                        If SyntaxFacts.IsRelationalOperator(CurrentToken.Kind) Then
-
-                            Dim relationalOperator = DirectCast(CurrentToken, PunctuationSyntax)
-                            GetNextToken() ' get off relational operator
-                            TryEatNewLine() ' dev10_503248
-
-                            Dim CaseExpr As ExpressionSyntax = ParseExpressionCore()
-
-                            If CaseExpr.ContainsDiagnostics Then
-                                CaseExpr = ResyncAt(CaseExpr)
-                            End If
-
-                            caseClause = SyntaxFactory.RelationalCaseClause(RelationalOperatorKindToCaseKind(relationalOperator.Kind), optionalIsKeyword, relationalOperator, CaseExpr)
-
+                        If StartCase = SyntaxKind.IsKeyword AndAlso
+                           PeekToken(1).Kind = SyntaxKind.TypeOfKeyword AndAlso
+                           CheckFeatureAvailability(Feature.SelectCaseTypePattern) Then
+                            caseClause = ParseTypeCaseClause()
                         Else
-                            ' Since we saw IS, create a relational case.
-                            ' This helps intellisense do a drop down of
-                            ' the operators that can follow "Is".
-                            Dim relationalOperator = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.EqualsToken), ERRID.ERR_ExpectedRelational)
-
-                            caseClause = ResyncAt(InternalSyntaxFactory.RelationalCaseClause(SyntaxKind.CaseEqualsClause, optionalIsKeyword, relationalOperator, InternalSyntaxFactory.MissingExpression))
+                            caseClause = ParseRelationalCaseClause()
                         End If
 
                     Else
@@ -340,6 +321,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Return statement
 
+        End Function
+
+        Private Function ParseRelationalCaseClause() As RelationalCaseClauseSyntax
+            ' dev10_526560 Allow implicit newline after IS
+            Dim optionalIsKeyword As KeywordSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.IsKeyword, optionalIsKeyword)
+
+            If SyntaxFacts.IsRelationalOperator(CurrentToken.Kind) Then
+
+                Dim relationalOperator = DirectCast(CurrentToken, PunctuationSyntax)
+                GetNextToken() ' get off relational operator
+                TryEatNewLine() ' dev10_503248
+
+                Dim caseExpr As ExpressionSyntax = ParseExpressionCore()
+
+                If caseExpr.ContainsDiagnostics Then
+                    caseExpr = ResyncAt(caseExpr)
+                End If
+
+                Return SyntaxFactory.RelationalCaseClause(RelationalOperatorKindToCaseKind(relationalOperator.Kind), optionalIsKeyword, relationalOperator, caseExpr)
+            End If
+
+            ' Since we saw IS, create a relational case.
+            ' This helps intellisense do a drop down of
+            ' the operators that can follow "Is".
+            Dim missingOperator = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.EqualsToken), ERRID.ERR_ExpectedRelational)
+            Return ResyncAt(InternalSyntaxFactory.RelationalCaseClause(SyntaxKind.CaseEqualsClause, optionalIsKeyword, missingOperator, InternalSyntaxFactory.MissingExpression))
+        End Function
+
+        Private Function ParseTypeCaseClause() As TypeCaseClauseSyntax
+            Dim isKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Dim typeOfKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Dim typeName = ParseGeneralType()
+            Dim andAlsoKeyword As KeywordSyntax = Nothing
+            Dim relation As RelationalCaseClauseSyntax = Nothing
+            If TryGetTokenAndEatNewLine(SyntaxKind.AndAlsoKeyword, andAlsoKeyword) Then
+                relation = ParseRelationalCaseClause()
+            End If
+
+            Return SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, andAlsoKeyword, relation)
         End Function
 
         Private Shared Function RelationalOperatorKindToCaseKind(kind As SyntaxKind) As SyntaxKind

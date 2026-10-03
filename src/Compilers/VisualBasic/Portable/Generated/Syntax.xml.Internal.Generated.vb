@@ -13051,6 +13051,171 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents a type test in a Case, optionally combined with a relational test.
+    ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+    ''' </summary>
+    Friend NotInheritable Class TypeCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend ReadOnly _isKeyword as KeywordSyntax
+        Friend ReadOnly _typeOfKeyword as KeywordSyntax
+        Friend ReadOnly _type as TypeSyntax
+        Friend ReadOnly _andAlsoKeyword as KeywordSyntax
+        Friend ReadOnly _relation as RelationalCaseClauseSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 5
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(typeOfKeyword)
+            Me._typeOfKeyword = typeOfKeyword
+            AdjustFlagsAndWidth(type)
+            Me._type = type
+            If andAlsoKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(andAlsoKeyword)
+                Me._andAlsoKeyword = andAlsoKeyword
+            End If
+            If relation IsNot Nothing Then
+                AdjustFlagsAndWidth(relation)
+                Me._relation = relation
+            End If
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 5
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(typeOfKeyword)
+            Me._typeOfKeyword = typeOfKeyword
+            AdjustFlagsAndWidth(type)
+            Me._type = type
+            If andAlsoKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(andAlsoKeyword)
+                Me._andAlsoKeyword = andAlsoKeyword
+            End If
+            If relation IsNot Nothing Then
+                AdjustFlagsAndWidth(relation)
+                Me._relation = relation
+            End If
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 5
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(typeOfKeyword)
+            Me._typeOfKeyword = typeOfKeyword
+            AdjustFlagsAndWidth(type)
+            Me._type = type
+            If andAlsoKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(andAlsoKeyword)
+                Me._andAlsoKeyword = andAlsoKeyword
+            End If
+            If relation IsNot Nothing Then
+                AdjustFlagsAndWidth(relation)
+                Me._relation = relation
+            End If
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeCaseClauseSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Is keyword that introduces the type test.
+        ''' </summary>
+        Friend ReadOnly Property IsKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._isKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The TypeOf keyword.
+        ''' </summary>
+        Friend ReadOnly Property TypeOfKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._typeOfKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The type being tested.
+        ''' </summary>
+        Friend ReadOnly Property Type As InternalSyntax.TypeSyntax
+            Get
+                Return Me._type
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The AndAlso keyword, when a relational test follows.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property AndAlsoKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._andAlsoKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The relational test applied to the same value, when present.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Relation As InternalSyntax.RelationalCaseClauseSyntax
+            Get
+                Return Me._relation
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._isKeyword
+                Case 1
+                    Return Me._typeOfKeyword
+                Case 2
+                    Return Me._type
+                Case 3
+                    Return Me._andAlsoKeyword
+                Case 4
+                    Return Me._relation
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new TypeCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _typeOfKeyword, _type, _andAlsoKeyword, _relation)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new TypeCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _typeOfKeyword, _type, _andAlsoKeyword, _relation)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitTypeCaseClause(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents the "SyncLock" statement. This statement always occurs as the Begin
     ''' of a SyncLockBlock.
     ''' </summary>
@@ -29472,6 +29637,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
         End Function
+        Public Overridable Function VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitCaseClause(node)
+        End Function
         Public Overridable Function VisitSyncLockStatement(ByVal node As SyncLockStatementSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitStatement(node)
@@ -31985,6 +32154,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New RelationalCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newOperatorToken, newValue)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newIsKeyword = DirectCast(Visit(node.IsKeyword), KeywordSyntax)
+            If node._isKeyword IsNot newIsKeyword Then anyChanges = True
+            Dim newTypeOfKeyword = DirectCast(Visit(node.TypeOfKeyword), KeywordSyntax)
+            If node._typeOfKeyword IsNot newTypeOfKeyword Then anyChanges = True
+            Dim newType = DirectCast(Visit(node._type), TypeSyntax)
+            If node._type IsNot newType Then anyChanges = True
+            Dim newAndAlsoKeyword = DirectCast(Visit(node.AndAlsoKeyword), KeywordSyntax)
+            If node._andAlsoKeyword IsNot newAndAlsoKeyword Then anyChanges = True
+            Dim newRelation = DirectCast(Visit(node._relation), RelationalCaseClauseSyntax)
+            If node._relation IsNot newRelation Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newAndAlsoKeyword, newRelation)
             Else
                 Return node
             End If
@@ -39993,6 +40183,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test in a Case, optionally combined with a relational test.
+        ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword that introduces the type test.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="type">
+        ''' The type being tested.
+        ''' </param>
+        ''' <param name="andAlsoKeyword">
+        ''' The AndAlso keyword, when a relational test follows.
+        ''' </param>
+        ''' <param name="relation">
+        ''' The relational test applied to the same value, when present.
+        ''' </param>
+        Friend Shared Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, andAlsoKeyword As KeywordSyntax, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+            Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(type IsNot Nothing)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, andAlsoKeyword, relation)
         End Function
 
 
@@ -52178,6 +52395,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test in a Case, optionally combined with a relational test.
+        ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword that introduces the type test.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="type">
+        ''' The type being tested.
+        ''' </param>
+        ''' <param name="andAlsoKeyword">
+        ''' The AndAlso keyword, when a relational test follows.
+        ''' </param>
+        ''' <param name="relation">
+        ''' The relational test applied to the same value, when present.
+        ''' </param>
+        Friend Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, andAlsoKeyword As KeywordSyntax, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+            Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(type IsNot Nothing)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, andAlsoKeyword, relation, _factoryContext)
         End Function
 
 

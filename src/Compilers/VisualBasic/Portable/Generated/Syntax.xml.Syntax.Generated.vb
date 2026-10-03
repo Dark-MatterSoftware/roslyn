@@ -18023,6 +18023,195 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents a type test in a Case, optionally combined with a relational test.
+    ''' Example: Is TypeOf Integer AndAlso Is &gt; 0.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.TypeCaseClause"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class TypeCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend _type as TypeSyntax
+        Friend _relation as RelationalCaseClauseSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax(kind, errors, annotations, isKeyword, typeOfKeyword, DirectCast(type.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeSyntax), andAlsoKeyword, if(relation IsNot Nothing, DirectCast(relation.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RelationalCaseClauseSyntax), Nothing)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Is keyword that introduces the type test.
+        ''' </summary>
+        Public ReadOnly Property IsKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax)._isKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the IsKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIsKeyword(isKeyword as SyntaxToken) As TypeCaseClauseSyntax
+            return Update(isKeyword, Me.TypeOfKeyword, Me.Type, Me.AndAlsoKeyword, Me.Relation)
+        End Function
+
+        ''' <summary>
+        ''' The TypeOf keyword.
+        ''' </summary>
+        Public ReadOnly Property TypeOfKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax)._typeOfKeyword, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the TypeOfKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithTypeOfKeyword(typeOfKeyword as SyntaxToken) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, typeOfKeyword, Me.Type, Me.AndAlsoKeyword, Me.Relation)
+        End Function
+
+        ''' <summary>
+        ''' The type being tested.
+        ''' </summary>
+        Public ReadOnly Property Type As TypeSyntax
+            Get
+                Return GetRed(_type, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Type property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithType(type as TypeSyntax) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, type, Me.AndAlsoKeyword, Me.Relation)
+        End Function
+
+        ''' <summary>
+        ''' The AndAlso keyword, when a relational test follows.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property AndAlsoKeyword As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax)._andAlsoKeyword
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(3), Me.GetChildIndex(3))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the AndAlsoKeyword property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithAndAlsoKeyword(andAlsoKeyword as SyntaxToken) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, andAlsoKeyword, Me.Relation)
+        End Function
+
+        ''' <summary>
+        ''' The relational test applied to the same value, when present.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property Relation As RelationalCaseClauseSyntax
+            Get
+                Return GetRed(_relation, 4)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Relation property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithRelation(relation as RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, Me.AndAlsoKeyword, relation)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me._type
+                Case 4
+                    Return Me._relation
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me.Type
+                Case 4
+                    Return Me.Relation
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitTypeCaseClause(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitTypeCaseClause(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The value for the IsKeyword property.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The value for the TypeOfKeyword property.
+        ''' </param>
+        ''' <param name="type">
+        ''' The value for the Type property.
+        ''' </param>
+        ''' <param name="andAlsoKeyword">
+        ''' The value for the AndAlsoKeyword property.
+        ''' </param>
+        ''' <param name="relation">
+        ''' The value for the Relation property.
+        ''' </param>
+        Public Function Update(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, andAlsoKeyword As SyntaxToken, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+            If isKeyword <> Me.IsKeyword OrElse typeOfKeyword <> Me.TypeOfKeyword OrElse type IsNot Me.Type OrElse andAlsoKeyword <> Me.AndAlsoKeyword OrElse relation IsNot Me.Relation Then
+                Dim newNode = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, type, andAlsoKeyword, relation)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents the "SyncLock" statement. This statement always occurs as the Begin
     ''' of a SyncLockBlock.
     ''' </summary>
