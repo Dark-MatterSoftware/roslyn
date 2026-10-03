@@ -323,7 +323,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Function
 
-        Private Function ParseRelationalCaseClause() As RelationalCaseClauseSyntax
+        Private Function ParseRelationalCaseClause(Optional stopBeforeAndAlso As Boolean = False) As RelationalCaseClauseSyntax
             ' dev10_526560 Allow implicit newline after IS
             Dim optionalIsKeyword As KeywordSyntax = Nothing
             TryGetTokenAndEatNewLine(SyntaxKind.IsKeyword, optionalIsKeyword)
@@ -334,7 +334,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 GetNextToken() ' get off relational operator
                 TryEatNewLine() ' dev10_503248
 
-                Dim caseExpr As ExpressionSyntax = ParseExpressionCore()
+                Dim caseExpr As ExpressionSyntax = If(stopBeforeAndAlso, ParseExpressionCore(OperatorPrecedence.PrecedenceRelational), ParseExpressionCore())
 
                 If caseExpr.ContainsDiagnostics Then
                     caseExpr = ResyncAt(caseExpr)
@@ -358,13 +358,59 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             GetNextToken()
 
             Dim typeName = ParseGeneralType()
-            Dim andAlsoKeyword As KeywordSyntax = Nothing
-            Dim relation As RelationalCaseClauseSyntax = Nothing
-            If TryGetTokenAndEatNewLine(SyntaxKind.AndAlsoKeyword, andAlsoKeyword) Then
-                relation = ParseRelationalCaseClause()
+            Dim filters = _pool.Allocate(Of CaseFilterSyntax)()
+
+            Do
+                Dim andAlsoKeyword As KeywordSyntax = Nothing
+                If Not TryGetTokenAndEatNewLine(SyntaxKind.AndAlsoKeyword, andAlsoKeyword) Then
+                    Exit Do
+                End If
+
+                Dim clause As CaseClauseSyntax
+                If CurrentToken.Kind = SyntaxKind.DotToken Then
+                    clause = ParsePropertyCaseClause()
+                Else
+                    clause = ParseRelationalCaseClause(stopBeforeAndAlso:=True)
+                End If
+
+                filters.Add(SyntaxFactory.CaseFilter(andAlsoKeyword, clause))
+            Loop
+
+            Dim result = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, filters.ToList())
+            _pool.Free(filters)
+            Return result
+        End Function
+
+        Private Function ParsePropertyCaseClause() As PropertyCaseClauseSyntax
+            Dim dotToken = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim name As IdentifierTokenSyntax
+            If CurrentToken.Kind = SyntaxKind.IdentifierToken Then
+                name = DirectCast(CurrentToken, IdentifierTokenSyntax)
+                GetNextToken()
+            Else
+                name = ReportSyntaxError(InternalSyntaxFactory.MissingIdentifier(), ERRID.ERR_ExpectedIdentifier)
             End If
 
-            Return SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, andAlsoKeyword, relation)
+            Dim isKeyword As KeywordSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.IsKeyword, isKeyword)
+
+            Dim operatorToken As PunctuationSyntax
+            If SyntaxFacts.IsRelationalOperator(CurrentToken.Kind) Then
+                operatorToken = DirectCast(CurrentToken, PunctuationSyntax)
+                GetNextToken()
+                TryEatNewLine()
+            Else
+                operatorToken = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.EqualsToken), ERRID.ERR_ExpectedRelational)
+            End If
+
+            Dim value = ParseExpressionCore(OperatorPrecedence.PrecedenceRelational)
+            If value.ContainsDiagnostics Then
+                value = ResyncAt(value)
+            End If
+
+            Return SyntaxFactory.PropertyCaseClause(dotToken, name, isKeyword, operatorToken, value)
         End Function
 
         Private Shared Function RelationalOperatorKindToCaseKind(kind As SyntaxKind) As SyntaxKind

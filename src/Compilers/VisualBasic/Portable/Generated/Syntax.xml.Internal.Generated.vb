@@ -13060,12 +13060,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend ReadOnly _isKeyword as KeywordSyntax
         Friend ReadOnly _typeOfKeyword as KeywordSyntax
         Friend ReadOnly _type as TypeSyntax
-        Friend ReadOnly _andAlsoKeyword as KeywordSyntax
-        Friend ReadOnly _relation as RelationalCaseClauseSyntax
+        Friend ReadOnly _filters as GreenNode
 
-        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As GreenNode)
             MyBase.New(kind)
-            Me.SlotCount = 5
+            Me.SlotCount = 4
 
             AdjustFlagsAndWidth(isKeyword)
             Me._isKeyword = isKeyword
@@ -13073,20 +13072,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Me._typeOfKeyword = typeOfKeyword
             AdjustFlagsAndWidth(type)
             Me._type = type
-            If andAlsoKeyword IsNot Nothing Then
-                AdjustFlagsAndWidth(andAlsoKeyword)
-                Me._andAlsoKeyword = andAlsoKeyword
-            End If
-            If relation IsNot Nothing Then
-                AdjustFlagsAndWidth(relation)
-                Me._relation = relation
+            If filters IsNot Nothing Then
+                AdjustFlagsAndWidth(filters)
+                Me._filters = filters
             End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As GreenNode, context As ISyntaxFactoryContext)
             MyBase.New(kind)
-            Me.SlotCount = 5
+            Me.SlotCount = 4
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(isKeyword)
@@ -13095,20 +13090,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Me._typeOfKeyword = typeOfKeyword
             AdjustFlagsAndWidth(type)
             Me._type = type
-            If andAlsoKeyword IsNot Nothing Then
-                AdjustFlagsAndWidth(andAlsoKeyword)
-                Me._andAlsoKeyword = andAlsoKeyword
-            End If
-            If relation IsNot Nothing Then
-                AdjustFlagsAndWidth(relation)
-                Me._relation = relation
+            If filters IsNot Nothing Then
+                AdjustFlagsAndWidth(filters)
+                Me._filters = filters
             End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As GreenNode)
             MyBase.New(kind, errors, annotations)
-            Me.SlotCount = 5
+            Me.SlotCount = 4
 
             AdjustFlagsAndWidth(isKeyword)
             Me._isKeyword = isKeyword
@@ -13116,13 +13107,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Me._typeOfKeyword = typeOfKeyword
             AdjustFlagsAndWidth(type)
             Me._type = type
-            If andAlsoKeyword IsNot Nothing Then
-                AdjustFlagsAndWidth(andAlsoKeyword)
-                Me._andAlsoKeyword = andAlsoKeyword
-            End If
-            If relation IsNot Nothing Then
-                AdjustFlagsAndWidth(relation)
-                Me._relation = relation
+            If filters IsNot Nothing Then
+                AdjustFlagsAndWidth(filters)
+                Me._filters = filters
             End If
 
         End Sub
@@ -13159,26 +13146,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Property
 
         ''' <summary>
-        ''' The AndAlso keyword, when a relational test follows.
+        ''' The AndAlso tests that follow the type test.
         ''' </summary>
         ''' <remarks>
-        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' If nothing is present, an empty list is returned.
         ''' </remarks>
-        Friend ReadOnly Property AndAlsoKeyword As InternalSyntax.KeywordSyntax
+        Friend ReadOnly Property Filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of CaseFilterSyntax)
             Get
-                Return Me._andAlsoKeyword
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' The relational test applied to the same value, when present.
-        ''' </summary>
-        ''' <remarks>
-        ''' This child is optional. If it is not present, then Nothing is returned.
-        ''' </remarks>
-        Friend ReadOnly Property Relation As InternalSyntax.RelationalCaseClauseSyntax
-            Get
-                Return Me._relation
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of CaseFilterSyntax)(Me._filters)
             End Get
         End Property
 
@@ -13191,9 +13166,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case 2
                     Return Me._type
                 Case 3
-                    Return Me._andAlsoKeyword
-                Case 4
-                    Return Me._relation
+                    Return Me._filters
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -13202,15 +13175,262 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new TypeCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _typeOfKeyword, _type, _andAlsoKeyword, _relation)
+            Return new TypeCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _typeOfKeyword, _type, _filters)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new TypeCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _typeOfKeyword, _type, _andAlsoKeyword, _relation)
+            Return new TypeCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _typeOfKeyword, _type, _filters)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
             Return visitor.VisitTypeCaseClause(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' One AndAlso test in a type case.
+    ''' </summary>
+    Friend NotInheritable Class CaseFilterSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend ReadOnly _andAlsoKeyword as KeywordSyntax
+        Friend ReadOnly _clause as CaseClauseSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, andAlsoKeyword As InternalSyntax.KeywordSyntax, clause As CaseClauseSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(andAlsoKeyword)
+            Me._andAlsoKeyword = andAlsoKeyword
+            AdjustFlagsAndWidth(clause)
+            Me._clause = clause
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, andAlsoKeyword As InternalSyntax.KeywordSyntax, clause As CaseClauseSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(andAlsoKeyword)
+            Me._andAlsoKeyword = andAlsoKeyword
+            AdjustFlagsAndWidth(clause)
+            Me._clause = clause
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), andAlsoKeyword As InternalSyntax.KeywordSyntax, clause As CaseClauseSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(andAlsoKeyword)
+            Me._andAlsoKeyword = andAlsoKeyword
+            AdjustFlagsAndWidth(clause)
+            Me._clause = clause
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.CaseFilterSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The AndAlso keyword.
+        ''' </summary>
+        Friend ReadOnly Property AndAlsoKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._andAlsoKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The relational test or property test.
+        ''' </summary>
+        Friend ReadOnly Property Clause As InternalSyntax.CaseClauseSyntax
+            Get
+                Return Me._clause
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._andAlsoKeyword
+                Case 1
+                    Return Me._clause
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new CaseFilterSyntax(Me.Kind, newErrors, GetAnnotations, _andAlsoKeyword, _clause)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new CaseFilterSyntax(Me.Kind, GetDiagnostics, annotations, _andAlsoKeyword, _clause)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitCaseFilter(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' A property test in a type case, such as .Balance Is &gt; 0.
+    ''' </summary>
+    Friend NotInheritable Class PropertyCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend ReadOnly _dotToken as PunctuationSyntax
+        Friend ReadOnly _name as IdentifierTokenSyntax
+        Friend ReadOnly _isKeyword as KeywordSyntax
+        Friend ReadOnly _operatorToken as PunctuationSyntax
+        Friend ReadOnly _value as ExpressionSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, dotToken As InternalSyntax.PunctuationSyntax, name As InternalSyntax.IdentifierTokenSyntax, isKeyword As InternalSyntax.KeywordSyntax, operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 5
+
+            AdjustFlagsAndWidth(dotToken)
+            Me._dotToken = dotToken
+            AdjustFlagsAndWidth(name)
+            Me._name = name
+            If isKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(isKeyword)
+                Me._isKeyword = isKeyword
+            End If
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, dotToken As InternalSyntax.PunctuationSyntax, name As InternalSyntax.IdentifierTokenSyntax, isKeyword As InternalSyntax.KeywordSyntax, operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 5
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(dotToken)
+            Me._dotToken = dotToken
+            AdjustFlagsAndWidth(name)
+            Me._name = name
+            If isKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(isKeyword)
+                Me._isKeyword = isKeyword
+            End If
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), dotToken As InternalSyntax.PunctuationSyntax, name As InternalSyntax.IdentifierTokenSyntax, isKeyword As InternalSyntax.KeywordSyntax, operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 5
+
+            AdjustFlagsAndWidth(dotToken)
+            Me._dotToken = dotToken
+            AdjustFlagsAndWidth(name)
+            Me._name = name
+            If isKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(isKeyword)
+                Me._isKeyword = isKeyword
+            End If
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.PropertyCaseClauseSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The dot before the member name.
+        ''' </summary>
+        Friend ReadOnly Property DotToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._dotToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The member name.
+        ''' </summary>
+        Friend ReadOnly Property Name As InternalSyntax.IdentifierTokenSyntax
+            Get
+                Return Me._name
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The optional Is keyword.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property IsKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._isKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The comparison operator.
+        ''' </summary>
+        Friend ReadOnly Property OperatorToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._operatorToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The value compared to the member.
+        ''' </summary>
+        Friend ReadOnly Property Value As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._value
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._dotToken
+                Case 1
+                    Return Me._name
+                Case 2
+                    Return Me._isKeyword
+                Case 3
+                    Return Me._operatorToken
+                Case 4
+                    Return Me._value
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new PropertyCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _dotToken, _name, _isKeyword, _operatorToken, _value)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new PropertyCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _dotToken, _name, _isKeyword, _operatorToken, _value)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitPropertyCaseClause(Me)
         End Function
 
     End Class
@@ -29641,6 +29861,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
         End Function
+        Public Overridable Function VisitCaseFilter(ByVal node As CaseFilterSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitVisualBasicSyntaxNode(node)
+        End Function
+        Public Overridable Function VisitPropertyCaseClause(ByVal node As PropertyCaseClauseSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitCaseClause(node)
+        End Function
         Public Overridable Function VisitSyncLockStatement(ByVal node As SyncLockStatementSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitStatement(node)
@@ -32168,13 +32396,47 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._typeOfKeyword IsNot newTypeOfKeyword Then anyChanges = True
             Dim newType = DirectCast(Visit(node._type), TypeSyntax)
             If node._type IsNot newType Then anyChanges = True
-            Dim newAndAlsoKeyword = DirectCast(Visit(node.AndAlsoKeyword), KeywordSyntax)
-            If node._andAlsoKeyword IsNot newAndAlsoKeyword Then anyChanges = True
-            Dim newRelation = DirectCast(Visit(node._relation), RelationalCaseClauseSyntax)
-            If node._relation IsNot newRelation Then anyChanges = True
+            Dim newFilters = VisitList(node.Filters)
+            If node._filters IsNot newFilters.Node Then anyChanges = True
 
             If anyChanges Then
-                Return New TypeCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newAndAlsoKeyword, newRelation)
+                Return New TypeCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newFilters.Node)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitCaseFilter(ByVal node As CaseFilterSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newAndAlsoKeyword = DirectCast(Visit(node.AndAlsoKeyword), KeywordSyntax)
+            If node._andAlsoKeyword IsNot newAndAlsoKeyword Then anyChanges = True
+            Dim newClause = DirectCast(Visit(node._clause), CaseClauseSyntax)
+            If node._clause IsNot newClause Then anyChanges = True
+
+            If anyChanges Then
+                Return New CaseFilterSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAndAlsoKeyword, newClause)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitPropertyCaseClause(ByVal node As PropertyCaseClauseSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newDotToken = DirectCast(Visit(node.DotToken), PunctuationSyntax)
+            If node._dotToken IsNot newDotToken Then anyChanges = True
+            Dim newName = DirectCast(Visit(node.Name), IdentifierTokenSyntax)
+            If node._name IsNot newName Then anyChanges = True
+            Dim newIsKeyword = DirectCast(Visit(node.IsKeyword), KeywordSyntax)
+            If node._isKeyword IsNot newIsKeyword Then anyChanges = True
+            Dim newOperatorToken = DirectCast(Visit(node.OperatorToken), PunctuationSyntax)
+            If node._operatorToken IsNot newOperatorToken Then anyChanges = True
+            Dim newValue = DirectCast(Visit(node._value), ExpressionSyntax)
+            If node._value IsNot newValue Then anyChanges = True
+
+            If anyChanges Then
+                Return New PropertyCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newDotToken, newName, newIsKeyword, newOperatorToken, newValue)
             Else
                 Return node
             End If
@@ -40199,17 +40461,69 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="type">
         ''' The type being tested.
         ''' </param>
-        ''' <param name="andAlsoKeyword">
-        ''' The AndAlso keyword, when a relational test follows.
+        ''' <param name="filters">
+        ''' The AndAlso tests that follow the type test.
         ''' </param>
-        ''' <param name="relation">
-        ''' The relational test applied to the same value, when present.
-        ''' </param>
-        Friend Shared Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, andAlsoKeyword As KeywordSyntax, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+        Friend Shared Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)) As TypeCaseClauseSyntax
             Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
             Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
             Debug.Assert(type IsNot Nothing)
-            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, andAlsoKeyword, relation)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, filters.Node)
+        End Function
+
+
+        ''' <summary>
+        ''' One AndAlso test in a type case.
+        ''' </summary>
+        ''' <param name="andAlsoKeyword">
+        ''' The AndAlso keyword.
+        ''' </param>
+        ''' <param name="clause">
+        ''' The relational test or property test.
+        ''' </param>
+        Friend Shared Function CaseFilter(andAlsoKeyword As KeywordSyntax, clause As CaseClauseSyntax) As CaseFilterSyntax
+            Debug.Assert(andAlsoKeyword IsNot Nothing AndAlso andAlsoKeyword.Kind = SyntaxKind.AndAlsoKeyword)
+            Debug.Assert(clause IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.CaseFilter, andAlsoKeyword, clause, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, CaseFilterSyntax)
+            End If
+
+            Dim result = New CaseFilterSyntax(SyntaxKind.CaseFilter, andAlsoKeyword, clause)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' A property test in a type case, such as .Balance Is &gt; 0.
+        ''' </summary>
+        ''' <param name="dotToken">
+        ''' The dot before the member name.
+        ''' </param>
+        ''' <param name="name">
+        ''' The member name.
+        ''' </param>
+        ''' <param name="isKeyword">
+        ''' The optional Is keyword.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The comparison operator.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value compared to the member.
+        ''' </param>
+        Friend Shared Function PropertyCaseClause(dotToken As PunctuationSyntax, name As IdentifierTokenSyntax, isKeyword As KeywordSyntax, operatorToken As PunctuationSyntax, value As ExpressionSyntax) As PropertyCaseClauseSyntax
+            Debug.Assert(dotToken IsNot Nothing AndAlso dotToken.Kind = SyntaxKind.DotToken)
+            Debug.Assert(name IsNot Nothing AndAlso name.Kind = SyntaxKind.IdentifierToken)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsPropertyCaseClauseOperatorToken(operatorToken.Kind))
+            Debug.Assert(value IsNot Nothing)
+            Return New PropertyCaseClauseSyntax(SyntaxKind.PropertyCaseClause, dotToken, name, isKeyword, operatorToken, value)
         End Function
 
 
@@ -52411,17 +52725,69 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="type">
         ''' The type being tested.
         ''' </param>
-        ''' <param name="andAlsoKeyword">
-        ''' The AndAlso keyword, when a relational test follows.
+        ''' <param name="filters">
+        ''' The AndAlso tests that follow the type test.
         ''' </param>
-        ''' <param name="relation">
-        ''' The relational test applied to the same value, when present.
-        ''' </param>
-        Friend Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, andAlsoKeyword As KeywordSyntax, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+        Friend Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)) As TypeCaseClauseSyntax
             Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
             Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
             Debug.Assert(type IsNot Nothing)
-            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, andAlsoKeyword, relation, _factoryContext)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, filters.Node, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' One AndAlso test in a type case.
+        ''' </summary>
+        ''' <param name="andAlsoKeyword">
+        ''' The AndAlso keyword.
+        ''' </param>
+        ''' <param name="clause">
+        ''' The relational test or property test.
+        ''' </param>
+        Friend Function CaseFilter(andAlsoKeyword As KeywordSyntax, clause As CaseClauseSyntax) As CaseFilterSyntax
+            Debug.Assert(andAlsoKeyword IsNot Nothing AndAlso andAlsoKeyword.Kind = SyntaxKind.AndAlsoKeyword)
+            Debug.Assert(clause IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.CaseFilter, andAlsoKeyword, clause, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, CaseFilterSyntax)
+            End If
+
+            Dim result = New CaseFilterSyntax(SyntaxKind.CaseFilter, andAlsoKeyword, clause, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' A property test in a type case, such as .Balance Is &gt; 0.
+        ''' </summary>
+        ''' <param name="dotToken">
+        ''' The dot before the member name.
+        ''' </param>
+        ''' <param name="name">
+        ''' The member name.
+        ''' </param>
+        ''' <param name="isKeyword">
+        ''' The optional Is keyword.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The comparison operator.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value compared to the member.
+        ''' </param>
+        Friend Function PropertyCaseClause(dotToken As PunctuationSyntax, name As IdentifierTokenSyntax, isKeyword As KeywordSyntax, operatorToken As PunctuationSyntax, value As ExpressionSyntax) As PropertyCaseClauseSyntax
+            Debug.Assert(dotToken IsNot Nothing AndAlso dotToken.Kind = SyntaxKind.DotToken)
+            Debug.Assert(name IsNot Nothing AndAlso name.Kind = SyntaxKind.IdentifierToken)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsPropertyCaseClauseOperatorToken(operatorToken.Kind))
+            Debug.Assert(value IsNot Nothing)
+            Return New PropertyCaseClauseSyntax(SyntaxKind.PropertyCaseClause, dotToken, name, isKeyword, operatorToken, value, _factoryContext)
         End Function
 
 

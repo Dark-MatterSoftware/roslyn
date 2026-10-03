@@ -18036,7 +18036,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         Inherits CaseClauseSyntax
 
         Friend _type as TypeSyntax
-        Friend _relation as RelationalCaseClauseSyntax
+        Friend _filters as SyntaxNode
 
         Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
             MyBase.New(green, parent, startLocation)
@@ -18044,8 +18044,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, andAlsoKeyword As InternalSyntax.KeywordSyntax, relation As RelationalCaseClauseSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax(kind, errors, annotations, isKeyword, typeOfKeyword, DirectCast(type.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeSyntax), andAlsoKeyword, if(relation IsNot Nothing, DirectCast(relation.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RelationalCaseClauseSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As SyntaxNode)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax(kind, errors, annotations, isKeyword, typeOfKeyword, DirectCast(type.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeSyntax), if(filters IsNot Nothing, filters.Green, Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -18063,7 +18063,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIsKeyword(isKeyword as SyntaxToken) As TypeCaseClauseSyntax
-            return Update(isKeyword, Me.TypeOfKeyword, Me.Type, Me.AndAlsoKeyword, Me.Relation)
+            return Update(isKeyword, Me.TypeOfKeyword, Me.Type, Me.Filters)
         End Function
 
         ''' <summary>
@@ -18081,7 +18081,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithTypeOfKeyword(typeOfKeyword as SyntaxToken) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, typeOfKeyword, Me.Type, Me.AndAlsoKeyword, Me.Relation)
+            return Update(Me.IsKeyword, typeOfKeyword, Me.Type, Me.Filters)
         End Function
 
         ''' <summary>
@@ -18098,61 +18098,41 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' Returns this instance if the specified value is the same as the current value.
         ''' </summary>
         Public Shadows Function WithType(type as TypeSyntax) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, Me.TypeOfKeyword, type, Me.AndAlsoKeyword, Me.Relation)
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, type, Me.Filters)
         End Function
 
         ''' <summary>
-        ''' The AndAlso keyword, when a relational test follows.
+        ''' The AndAlso tests that follow the type test.
         ''' </summary>
         ''' <remarks>
-        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' If nothing is present, an empty list is returned.
         ''' </remarks>
-        Public ReadOnly Property AndAlsoKeyword As SyntaxToken
+        Public ReadOnly Property Filters As SyntaxList(Of CaseFilterSyntax)
             Get
-                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax)._andAlsoKeyword
-                If slot IsNot Nothing
-                    return new SyntaxToken(Me, slot, Me.GetChildPosition(3), Me.GetChildIndex(3))
-                End If
-                Return Nothing
+                Dim listNode = GetRed(_filters, 3)
+                Return new SyntaxList(Of CaseFilterSyntax)(listNode)
             End Get
         End Property
 
         ''' <summary>
-        ''' Returns a copy of this with the AndAlsoKeyword property changed to the
-        ''' specified value. Returns this instance if the specified value is the same as
-        ''' the current value.
-        ''' </summary>
-        Public Shadows Function WithAndAlsoKeyword(andAlsoKeyword as SyntaxToken) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, andAlsoKeyword, Me.Relation)
-        End Function
-
-        ''' <summary>
-        ''' The relational test applied to the same value, when present.
-        ''' </summary>
-        ''' <remarks>
-        ''' This child is optional. If it is not present, then Nothing is returned.
-        ''' </remarks>
-        Public ReadOnly Property Relation As RelationalCaseClauseSyntax
-            Get
-                Return GetRed(_relation, 4)
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Returns a copy of this with the Relation property changed to the specified
+        ''' Returns a copy of this with the Filters property changed to the specified
         ''' value. Returns this instance if the specified value is the same as the current
         ''' value.
         ''' </summary>
-        Public Shadows Function WithRelation(relation as RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, Me.AndAlsoKeyword, relation)
+        Public Shadows Function WithFilters(filters as SyntaxList(Of CaseFilterSyntax)) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, filters)
+        End Function
+
+        Public Shadows Function AddFilters(ParamArray items As CaseFilterSyntax()) As TypeCaseClauseSyntax
+            Return Me.WithFilters(Me.Filters.AddRange(items))
         End Function
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 2
                     Return Me._type
-                Case 4
-                    Return Me._relation
+                Case 3
+                    Return Me._filters
                 Case Else
                     Return Nothing
             End Select
@@ -18162,8 +18142,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Select case i
                 Case 2
                     Return Me.Type
-                Case 4
-                    Return Me.Relation
+                Case 3
+                    Return GetRed(_filters, 3)
                 Case Else
                     Return Nothing
             End Select
@@ -18191,15 +18171,301 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="type">
         ''' The value for the Type property.
         ''' </param>
+        ''' <param name="filters">
+        ''' The value for the Filters property.
+        ''' </param>
+        Public Function Update(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
+            If isKeyword <> Me.IsKeyword OrElse typeOfKeyword <> Me.TypeOfKeyword OrElse type IsNot Me.Type OrElse filters <> Me.Filters Then
+                Dim newNode = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, type, filters)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' One AndAlso test in a type case.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.CaseFilter"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class CaseFilterSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend _clause as CaseClauseSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), andAlsoKeyword As InternalSyntax.KeywordSyntax, clause As CaseClauseSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CaseFilterSyntax(kind, errors, annotations, andAlsoKeyword, DirectCast(clause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CaseClauseSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The AndAlso keyword.
+        ''' </summary>
+        Public ReadOnly Property AndAlsoKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CaseFilterSyntax)._andAlsoKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the AndAlsoKeyword property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithAndAlsoKeyword(andAlsoKeyword as SyntaxToken) As CaseFilterSyntax
+            return Update(andAlsoKeyword, Me.Clause)
+        End Function
+
+        ''' <summary>
+        ''' The relational test or property test.
+        ''' </summary>
+        Public ReadOnly Property Clause As CaseClauseSyntax
+            Get
+                Return GetRed(_clause, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Clause property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithClause(clause as CaseClauseSyntax) As CaseFilterSyntax
+            return Update(Me.AndAlsoKeyword, clause)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._clause
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me.Clause
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitCaseFilter(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitCaseFilter(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
         ''' <param name="andAlsoKeyword">
         ''' The value for the AndAlsoKeyword property.
         ''' </param>
-        ''' <param name="relation">
-        ''' The value for the Relation property.
+        ''' <param name="clause">
+        ''' The value for the Clause property.
         ''' </param>
-        Public Function Update(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, andAlsoKeyword As SyntaxToken, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
-            If isKeyword <> Me.IsKeyword OrElse typeOfKeyword <> Me.TypeOfKeyword OrElse type IsNot Me.Type OrElse andAlsoKeyword <> Me.AndAlsoKeyword OrElse relation IsNot Me.Relation Then
-                Dim newNode = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, type, andAlsoKeyword, relation)
+        Public Function Update(andAlsoKeyword As SyntaxToken, clause As CaseClauseSyntax) As CaseFilterSyntax
+            If andAlsoKeyword <> Me.AndAlsoKeyword OrElse clause IsNot Me.Clause Then
+                Dim newNode = SyntaxFactory.CaseFilter(andAlsoKeyword, clause)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' A property test in a type case, such as .Balance Is &gt; 0.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.PropertyCaseClause"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class PropertyCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend _value as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), dotToken As InternalSyntax.PunctuationSyntax, name As InternalSyntax.IdentifierTokenSyntax, isKeyword As InternalSyntax.KeywordSyntax, operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyCaseClauseSyntax(kind, errors, annotations, dotToken, name, isKeyword, operatorToken, DirectCast(value.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The dot before the member name.
+        ''' </summary>
+        Public ReadOnly Property DotToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyCaseClauseSyntax)._dotToken, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the DotToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithDotToken(dotToken as SyntaxToken) As PropertyCaseClauseSyntax
+            return Update(dotToken, Me.Name, Me.IsKeyword, Me.OperatorToken, Me.Value)
+        End Function
+
+        ''' <summary>
+        ''' The member name.
+        ''' </summary>
+        Public ReadOnly Property Name As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyCaseClauseSyntax)._name, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Name property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithName(name as SyntaxToken) As PropertyCaseClauseSyntax
+            return Update(Me.DotToken, name, Me.IsKeyword, Me.OperatorToken, Me.Value)
+        End Function
+
+        ''' <summary>
+        ''' The optional Is keyword.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property IsKeyword As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyCaseClauseSyntax)._isKeyword
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(2), Me.GetChildIndex(2))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the IsKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIsKeyword(isKeyword as SyntaxToken) As PropertyCaseClauseSyntax
+            return Update(Me.DotToken, Me.Name, isKeyword, Me.OperatorToken, Me.Value)
+        End Function
+
+        ''' <summary>
+        ''' The comparison operator.
+        ''' </summary>
+        Public ReadOnly Property OperatorToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyCaseClauseSyntax)._operatorToken, Me.GetChildPosition(3), Me.GetChildIndex(3))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OperatorToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithOperatorToken(operatorToken as SyntaxToken) As PropertyCaseClauseSyntax
+            return Update(Me.DotToken, Me.Name, Me.IsKeyword, operatorToken, Me.Value)
+        End Function
+
+        ''' <summary>
+        ''' The value compared to the member.
+        ''' </summary>
+        Public ReadOnly Property Value As ExpressionSyntax
+            Get
+                Return GetRed(_value, 4)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Value property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithValue(value as ExpressionSyntax) As PropertyCaseClauseSyntax
+            return Update(Me.DotToken, Me.Name, Me.IsKeyword, Me.OperatorToken, value)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 4
+                    Return Me._value
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 4
+                    Return Me.Value
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitPropertyCaseClause(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitPropertyCaseClause(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="dotToken">
+        ''' The value for the DotToken property.
+        ''' </param>
+        ''' <param name="name">
+        ''' The value for the Name property.
+        ''' </param>
+        ''' <param name="isKeyword">
+        ''' The value for the IsKeyword property.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The value for the OperatorToken property.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value for the Value property.
+        ''' </param>
+        Public Function Update(dotToken As SyntaxToken, name As SyntaxToken, isKeyword As SyntaxToken, operatorToken As SyntaxToken, value As ExpressionSyntax) As PropertyCaseClauseSyntax
+            If dotToken <> Me.DotToken OrElse name <> Me.Name OrElse isKeyword <> Me.IsKeyword OrElse operatorToken <> Me.OperatorToken OrElse value IsNot Me.Value Then
+                Dim newNode = SyntaxFactory.PropertyCaseClause(dotToken, name, isKeyword, operatorToken, value)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

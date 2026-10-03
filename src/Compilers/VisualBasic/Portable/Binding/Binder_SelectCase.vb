@@ -502,25 +502,90 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim typeTest As BoundExpression = New BoundTypeOf(node, selectExpressionOpt, isTypeOfIsNotExpression:=False, targetType, booleanType, hasErrors:=hasErrors)
-            Dim condition = typeTest
+            Dim condition As BoundExpression = typeTest
+            Dim typedReceiver As BoundExpression = Nothing
 
-            If node.Relation IsNot Nothing Then
-                Dim relational = DirectCast(BindRelationalCaseClause(node.Relation, selectExpressionOpt, convertCaseElements, diagnostics), BoundRelationalCaseClause)
-                Dim relationalCondition As BoundExpression = Nothing
-                ComputeRelationalCaseClauseCondition(relational, relationalCondition, selectExpressionOpt, diagnostics)
+            For Each filter In node.Filters
+                Dim filterCondition As BoundExpression
+                If filter.Clause.Kind = SyntaxKind.PropertyCaseClause Then
+                    If typedReceiver Is Nothing Then
+                        typedReceiver = New BoundDirectCast(node, selectExpressionOpt, ConversionKind.NarrowingReference, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
+                    End If
+
+                    filterCondition = BindPropertyCaseFilter(DirectCast(filter.Clause, PropertyCaseClauseSyntax), typedReceiver, diagnostics)
+                Else
+                    Dim relational = DirectCast(BindRelationalCaseClause(DirectCast(filter.Clause, RelationalCaseClauseSyntax), selectExpressionOpt, convertCaseElements, diagnostics), BoundRelationalCaseClause)
+                    Dim relationalCondition As BoundExpression = Nothing
+                    ComputeRelationalCaseClauseCondition(relational, relationalCondition, selectExpressionOpt, diagnostics)
+                    filterCondition = relationalCondition
+                End If
+
                 condition = BindBinaryOperator(
-                    node:=node,
-                    left:=typeTest,
-                    right:=relationalCondition,
+                    node:=filter,
+                    left:=condition,
+                    right:=filterCondition,
                     operatorTokenKind:=SyntaxKind.AndAlsoKeyword,
                     preliminaryOperatorKind:=BinaryOperatorKind.AndAlso,
                     isOperandOfConditionalBranch:=False,
                     diagnostics:=diagnostics,
                     isSelectCase:=True).MakeCompilerGenerated()
                 hasErrors = hasErrors OrElse condition.HasErrors
-            End If
+            Next
 
             Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=hasErrors)
+        End Function
+
+        Private Function BindPropertyCaseFilter(node As PropertyCaseClauseSyntax, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim memberName = node.Name.ValueText
+            Dim result = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(result, receiver.Type, memberName, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(node.Name, useSiteInfo)
+
+            Dim member As BoundExpression = Nothing
+            If result.IsGood AndAlso result.HasSingleSymbol Then
+                Dim symbol = result.SingleSymbol
+                If symbol.Kind = SymbolKind.Field Then
+                    Dim field = DirectCast(symbol, FieldSymbol)
+                    Dim memberReceiver = If(field.IsShared, Nothing, receiver)
+                    member = New BoundFieldAccess(node, memberReceiver, field, isLValue:=False, type:=field.Type)
+                ElseIf symbol.Kind = SymbolKind.Property Then
+                    Dim [property] = DirectCast(symbol, PropertySymbol)
+                    If [property].Parameters.Length = 0 Then
+                        Dim memberReceiver = If([property].IsShared, Nothing, receiver)
+                        member = New BoundPropertyAccess(node, [property], Nothing, PropertyAccessKind.Get, isWriteable:=False, memberReceiver, ImmutableArray(Of BoundExpression).Empty)
+                    End If
+                End If
+            End If
+
+            result.Free()
+
+            If member Is Nothing Then
+                ReportDiagnostic(diagnostics, node.Name, ERRID.ERR_NameNotDeclared1, memberName)
+                member = BadExpression(node, ErrorTypeSymbol.UnknownResultType)
+            End If
+
+            Dim value = BindValue(node.Value, diagnostics)
+            Dim operatorKind As BinaryOperatorKind
+            Select Case node.OperatorToken.Kind
+                Case SyntaxKind.EqualsToken : operatorKind = BinaryOperatorKind.Equals
+                Case SyntaxKind.LessThanGreaterThanToken : operatorKind = BinaryOperatorKind.NotEquals
+                Case SyntaxKind.LessThanToken : operatorKind = BinaryOperatorKind.LessThan
+                Case SyntaxKind.LessThanEqualsToken : operatorKind = BinaryOperatorKind.LessThanOrEqual
+                Case SyntaxKind.GreaterThanToken : operatorKind = BinaryOperatorKind.GreaterThan
+                Case SyntaxKind.GreaterThanEqualsToken : operatorKind = BinaryOperatorKind.GreaterThanOrEqual
+                Case Else : operatorKind = BinaryOperatorKind.Equals
+            End Select
+
+            Return BindBinaryOperator(
+                node:=node,
+                left:=member,
+                right:=value,
+                operatorTokenKind:=node.OperatorToken.Kind,
+                preliminaryOperatorKind:=operatorKind,
+                isOperandOfConditionalBranch:=False,
+                diagnostics:=diagnostics,
+                isSelectCase:=True)
         End Function
 
         Private Function ComputeRelationalCaseClauseCondition(boundClause As BoundRelationalCaseClause, <Out()> ByRef conditionOpt As BoundExpression, selectExpression As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause

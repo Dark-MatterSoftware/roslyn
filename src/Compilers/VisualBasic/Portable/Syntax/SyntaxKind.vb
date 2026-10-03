@@ -3246,5 +3246,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         TypeCaseClause = 801                         ' TypeCaseClauseSyntax : CaseClauseSyntax
 
+        ''' <summary>
+        ''' Represents one <c>AndAlso</c> test in a type case.
+        ''' </summary>
+        CaseFilter = 802                             ' CaseFilterSyntax : VisualBasicSyntaxNode
+
+        ''' <summary>
+        ''' Represents a property test in a type case, <c>.Balance Is &gt; 0</c>.
+        ''' </summary>
+        PropertyCaseClause = 803                     ' PropertyCaseClauseSyntax : CaseClauseSyntax
+
     End Enum
 End Namespace

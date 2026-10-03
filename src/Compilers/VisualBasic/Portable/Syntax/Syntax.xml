@@ -4120,14 +4120,78 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name=""></native-equiv>
       </child>
 
-      <child name="AndAlsoKeyword" kind="AndAlsoKeyword" optional="true">
-        <description>The AndAlso keyword, when a relational test follows.</description>
+      <child name="Filters" optional="true" list="true" kind="@CaseFilterSyntax">
+        <description>The AndAlso tests that follow the type test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
+      -  CaseFilter
+      ******************-->
+    <node-structure name="CaseFilterSyntax" parent="VisualBasicSyntaxNode">
+      <description>One AndAlso test in a type case.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="CaseFilter">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="AndAlsoKeyword" kind="AndAlsoKeyword">
+        <description>The AndAlso keyword.</description>
         <lm-equiv name=""></lm-equiv>
         <native-equiv name=""></native-equiv>
       </child>
 
-      <child name="Relation" kind="@RelationalCaseClauseSyntax" optional="true">
-        <description>The relational test applied to the same value, when present.</description>
+      <child name="Clause" kind="@CaseClauseSyntax">
+        <description>The relational test or property test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
+      -  PropertyCaseClause
+      ******************-->
+    <node-structure name="PropertyCaseClauseSyntax" parent="CaseClauseSyntax">
+      <description>A property test in a type case, such as .Balance Is &gt; 0.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="PropertyCaseClause">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="DotToken" kind="DotToken">
+        <description>The dot before the member name.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Name" kind="IdentifierToken">
+        <description>The member name.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="IsKeyword" kind="IsKeyword" optional="true">
+        <description>The optional Is keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="OperatorToken" kind="EqualsToken|LessThanGreaterThanToken|LessThanToken|GreaterThanToken|LessThanEqualsToken|GreaterThanEqualsToken">
+        <description>The comparison operator.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Value" kind="@ExpressionSyntax">
+        <description>The value compared to the member.</description>
         <lm-equiv name=""></lm-equiv>
         <native-equiv name=""></native-equiv>
       </child>

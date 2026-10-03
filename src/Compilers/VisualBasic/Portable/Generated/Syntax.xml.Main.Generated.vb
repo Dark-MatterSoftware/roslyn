@@ -341,6 +341,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitCaseFilter(ByVal node As CaseFilterSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
+        Public Overridable Function VisitPropertyCaseClause(ByVal node As PropertyCaseClauseSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitSyncLockStatement(ByVal node As SyncLockStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1083,6 +1089,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitTypeCaseClause(ByVal node As TypeCaseClauseSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitCaseFilter(ByVal node As CaseFilterSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitPropertyCaseClause(ByVal node As PropertyCaseClauseSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitSyncLockStatement(ByVal node As SyncLockStatementSyntax)
@@ -3395,13 +3407,47 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.TypeOfKeyword.Node IsNot newTypeOfKeyword Then anyChanges = True
             Dim newType = DirectCast(Visit(node.Type), TypeSyntax)
             If node.Type IsNot newType Then anyChanges = True
-            Dim newAndAlsoKeyword = DirectCast(VisitToken(node.AndAlsoKeyword).Node, InternalSyntax.KeywordSyntax)
-            If node.AndAlsoKeyword.Node IsNot newAndAlsoKeyword Then anyChanges = True
-            Dim newRelation = DirectCast(Visit(node.Relation), RelationalCaseClauseSyntax)
-            If node.Relation IsNot newRelation Then anyChanges = True
+            Dim newFilters = VisitList(node.Filters)
+            If node._filters IsNot newFilters.Node Then anyChanges = True
 
             If anyChanges Then
-                Return New TypeCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newAndAlsoKeyword, newRelation)
+                Return New TypeCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newFilters.Node)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitCaseFilter(ByVal node As CaseFilterSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newAndAlsoKeyword = DirectCast(VisitToken(node.AndAlsoKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.AndAlsoKeyword.Node IsNot newAndAlsoKeyword Then anyChanges = True
+            Dim newClause = DirectCast(Visit(node.Clause), CaseClauseSyntax)
+            If node.Clause IsNot newClause Then anyChanges = True
+
+            If anyChanges Then
+                Return New CaseFilterSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAndAlsoKeyword, newClause)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitPropertyCaseClause(ByVal node As PropertyCaseClauseSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newDotToken = DirectCast(VisitToken(node.DotToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.DotToken.Node IsNot newDotToken Then anyChanges = True
+            Dim newName = DirectCast(VisitToken(node.Name).Node, InternalSyntax.IdentifierTokenSyntax)
+            If node.Name.Node IsNot newName Then anyChanges = True
+            Dim newIsKeyword = DirectCast(VisitToken(node.IsKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.IsKeyword.Node IsNot newIsKeyword Then anyChanges = True
+            Dim newOperatorToken = DirectCast(VisitToken(node.OperatorToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OperatorToken.Node IsNot newOperatorToken Then anyChanges = True
+            Dim newValue = DirectCast(Visit(node.Value), ExpressionSyntax)
+            If node.Value IsNot newValue Then anyChanges = True
+
+            If anyChanges Then
+                Return New PropertyCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newDotToken, newName, newIsKeyword, newOperatorToken, newValue)
             Else
                 Return node
             End If
@@ -17785,13 +17831,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="type">
         ''' The type being tested.
         ''' </param>
-        ''' <param name="andAlsoKeyword">
-        ''' The AndAlso keyword, when a relational test follows.
+        ''' <param name="filters">
+        ''' The AndAlso tests that follow the type test.
         ''' </param>
-        ''' <param name="relation">
-        ''' The relational test applied to the same value, when present.
-        ''' </param>
-        Public Shared Function TypeCaseClause(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, andAlsoKeyword As SyntaxToken, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
+        Public Shared Function TypeCaseClause(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
             Select Case isKeyword.Kind()
                 Case SyntaxKind.IsKeyword
                 Case Else
@@ -17819,7 +17862,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("type")
             End Select
-            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, Nothing, Nothing, DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), type, DirectCast(andAlsoKeyword.Node, InternalSyntax.KeywordSyntax), relation)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, Nothing, Nothing, DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), type, filters.Node)
         End Function
 
 
@@ -17830,11 +17873,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="type">
         ''' The type being tested.
         ''' </param>
-        ''' <param name="relation">
-        ''' The relational test applied to the same value, when present.
+        ''' <param name="filters">
+        ''' The AndAlso tests that follow the type test.
         ''' </param>
-        Public Shared Function TypeCaseClause(type As TypeSyntax, relation As RelationalCaseClauseSyntax) As TypeCaseClauseSyntax
-            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, relation)
+        Public Shared Function TypeCaseClause(type As TypeSyntax, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
+            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, filters)
         End Function
 
 
@@ -17846,7 +17889,246 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The type being tested.
         ''' </param>
         Public Shared Function TypeCaseClause(type As TypeSyntax) As TypeCaseClauseSyntax
-            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, Nothing)
+            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing)
+        End Function
+
+
+        ''' <summary>
+        ''' One AndAlso test in a type case.
+        ''' </summary>
+        ''' <param name="andAlsoKeyword">
+        ''' The AndAlso keyword.
+        ''' </param>
+        ''' <param name="clause">
+        ''' The relational test or property test.
+        ''' </param>
+        Public Shared Function CaseFilter(andAlsoKeyword As SyntaxToken, clause As CaseClauseSyntax) As CaseFilterSyntax
+            Select Case andAlsoKeyword.Kind()
+                Case SyntaxKind.AndAlsoKeyword
+                Case Else
+                    Throw new ArgumentException("andAlsoKeyword")
+            End Select
+            if clause Is Nothing Then
+                Throw New ArgumentNullException(NameOf(clause))
+            End If
+            Select Case clause.Kind()
+                Case SyntaxKind.ElseCaseClause,
+                     SyntaxKind.SimpleCaseClause,
+                     SyntaxKind.RangeCaseClause,
+                     SyntaxKind.CaseEqualsClause,
+                     SyntaxKind.CaseNotEqualsClause,
+                     SyntaxKind.CaseLessThanClause,
+                     SyntaxKind.CaseLessThanOrEqualClause,
+                     SyntaxKind.CaseGreaterThanOrEqualClause,
+                     SyntaxKind.CaseGreaterThanClause,
+                     SyntaxKind.TypeCaseClause,
+                     SyntaxKind.PropertyCaseClause
+                Case Else
+                    Throw new ArgumentException("clause")
+            End Select
+            Return New CaseFilterSyntax(SyntaxKind.CaseFilter, Nothing, Nothing, DirectCast(andAlsoKeyword.Node, InternalSyntax.KeywordSyntax), clause)
+        End Function
+
+
+        ''' <summary>
+        ''' One AndAlso test in a type case.
+        ''' </summary>
+        ''' <param name="clause">
+        ''' The relational test or property test.
+        ''' </param>
+        Public Shared Function CaseFilter(clause As CaseClauseSyntax) As CaseFilterSyntax
+            Return SyntaxFactory.CaseFilter(SyntaxFactory.Token(SyntaxKind.AndAlsoKeyword), clause)
+        End Function
+
+
+        ''' <summary>
+        ''' A property test in a type case, such as .Balance Is &gt; 0.
+        ''' </summary>
+        ''' <param name="dotToken">
+        ''' The dot before the member name.
+        ''' </param>
+        ''' <param name="name">
+        ''' The member name.
+        ''' </param>
+        ''' <param name="isKeyword">
+        ''' The optional Is keyword.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The comparison operator.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value compared to the member.
+        ''' </param>
+        Public Shared Function PropertyCaseClause(dotToken As SyntaxToken, name As SyntaxToken, isKeyword As SyntaxToken, operatorToken As SyntaxToken, value As ExpressionSyntax) As PropertyCaseClauseSyntax
+            Select Case dotToken.Kind()
+                Case SyntaxKind.DotToken
+                Case Else
+                    Throw new ArgumentException("dotToken")
+            End Select
+            Select Case name.Kind()
+                Case SyntaxKind.IdentifierToken
+                Case Else
+                    Throw new ArgumentException("name")
+            End Select
+            Select Case operatorToken.Kind()
+                Case SyntaxKind.EqualsToken :
+                Case SyntaxKind.LessThanGreaterThanToken :
+                Case SyntaxKind.LessThanToken :
+                Case SyntaxKind.GreaterThanToken :
+                Case SyntaxKind.LessThanEqualsToken :
+                Case SyntaxKind.GreaterThanEqualsToken
+                Case Else
+                    Throw new ArgumentException("operatorToken")
+            End Select
+            if value Is Nothing Then
+                Throw New ArgumentNullException(NameOf(value))
+            End If
+            Select Case value.Kind()
+                Case SyntaxKind.KeywordEventContainer,
+                     SyntaxKind.WithEventsEventContainer,
+                     SyntaxKind.WithEventsPropertyEventContainer,
+                     SyntaxKind.IdentifierLabel,
+                     SyntaxKind.NumericLabel,
+                     SyntaxKind.NextLabel,
+                     SyntaxKind.MidExpression,
+                     SyntaxKind.CharacterLiteralExpression,
+                     SyntaxKind.TrueLiteralExpression,
+                     SyntaxKind.FalseLiteralExpression,
+                     SyntaxKind.NumericLiteralExpression,
+                     SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.StringLiteralExpression,
+                     SyntaxKind.NothingLiteralExpression,
+                     SyntaxKind.ParenthesizedExpression,
+                     SyntaxKind.TupleExpression,
+                     SyntaxKind.TupleType,
+                     SyntaxKind.MeExpression,
+                     SyntaxKind.MyBaseExpression,
+                     SyntaxKind.MyClassExpression,
+                     SyntaxKind.GetTypeExpression,
+                     SyntaxKind.TypeOfIsExpression,
+                     SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.GetXmlNamespaceExpression,
+                     SyntaxKind.SimpleMemberAccessExpression,
+                     SyntaxKind.DictionaryAccessExpression,
+                     SyntaxKind.XmlElementAccessExpression,
+                     SyntaxKind.XmlDescendantAccessExpression,
+                     SyntaxKind.XmlAttributeAccessExpression,
+                     SyntaxKind.InvocationExpression,
+                     SyntaxKind.ObjectCreationExpression,
+                     SyntaxKind.AnonymousObjectCreationExpression,
+                     SyntaxKind.ArrayCreationExpression,
+                     SyntaxKind.CollectionInitializer,
+                     SyntaxKind.CTypeExpression,
+                     SyntaxKind.DirectCastExpression,
+                     SyntaxKind.TryCastExpression,
+                     SyntaxKind.PredefinedCastExpression,
+                     SyntaxKind.AddExpression,
+                     SyntaxKind.SubtractExpression,
+                     SyntaxKind.MultiplyExpression,
+                     SyntaxKind.DivideExpression,
+                     SyntaxKind.IntegerDivideExpression,
+                     SyntaxKind.ExponentiateExpression,
+                     SyntaxKind.LeftShiftExpression,
+                     SyntaxKind.RightShiftExpression,
+                     SyntaxKind.ConcatenateExpression,
+                     SyntaxKind.ModuloExpression,
+                     SyntaxKind.EqualsExpression,
+                     SyntaxKind.NotEqualsExpression,
+                     SyntaxKind.LessThanExpression,
+                     SyntaxKind.LessThanOrEqualExpression,
+                     SyntaxKind.GreaterThanOrEqualExpression,
+                     SyntaxKind.GreaterThanExpression,
+                     SyntaxKind.IsExpression,
+                     SyntaxKind.IsNotExpression,
+                     SyntaxKind.LikeExpression,
+                     SyntaxKind.OrExpression,
+                     SyntaxKind.ExclusiveOrExpression,
+                     SyntaxKind.AndExpression,
+                     SyntaxKind.OrElseExpression,
+                     SyntaxKind.AndAlsoExpression,
+                     SyntaxKind.UnaryPlusExpression,
+                     SyntaxKind.UnaryMinusExpression,
+                     SyntaxKind.NotExpression,
+                     SyntaxKind.AddressOfExpression,
+                     SyntaxKind.FromEndIndexExpression,
+                     SyntaxKind.RangeExpression,
+                     SyntaxKind.BinaryConditionalExpression,
+                     SyntaxKind.TernaryConditionalExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression,
+                     SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.QueryExpression,
+                     SyntaxKind.FunctionAggregation,
+                     SyntaxKind.GroupAggregation,
+                     SyntaxKind.XmlDocument,
+                     SyntaxKind.XmlElement,
+                     SyntaxKind.XmlText,
+                     SyntaxKind.XmlElementStartTag,
+                     SyntaxKind.XmlElementEndTag,
+                     SyntaxKind.XmlEmptyElement,
+                     SyntaxKind.XmlAttribute,
+                     SyntaxKind.XmlString,
+                     SyntaxKind.XmlPrefixName,
+                     SyntaxKind.XmlName,
+                     SyntaxKind.XmlBracketedName,
+                     SyntaxKind.XmlComment,
+                     SyntaxKind.XmlProcessingInstruction,
+                     SyntaxKind.XmlCDataSection,
+                     SyntaxKind.XmlEmbeddedExpression,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference,
+                     SyntaxKind.AwaitExpression,
+                     SyntaxKind.XmlCrefAttribute,
+                     SyntaxKind.XmlNameAttribute,
+                     SyntaxKind.ConditionalAccessExpression,
+                     SyntaxKind.NameOfExpression,
+                     SyntaxKind.InterpolatedStringExpression
+                Case Else
+                    Throw new ArgumentException("value")
+            End Select
+            Return New PropertyCaseClauseSyntax(SyntaxKind.PropertyCaseClause, Nothing, Nothing, DirectCast(dotToken.Node, InternalSyntax.PunctuationSyntax), DirectCast(name.Node, InternalSyntax.IdentifierTokenSyntax), DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(operatorToken.Node, InternalSyntax.PunctuationSyntax), value)
+        End Function
+
+
+        ''' <summary>
+        ''' A property test in a type case, such as .Balance Is &gt; 0.
+        ''' </summary>
+        ''' <param name="name">
+        ''' The member name.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The comparison operator.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value compared to the member.
+        ''' </param>
+        Public Shared Function PropertyCaseClause(name As SyntaxToken, operatorToken As SyntaxToken, value As ExpressionSyntax) As PropertyCaseClauseSyntax
+            Return SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), name, Nothing, operatorToken, value)
+        End Function
+
+
+        ''' <summary>
+        ''' A property test in a type case, such as .Balance Is &gt; 0.
+        ''' </summary>
+        ''' <param name="name">
+        ''' The member name.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The comparison operator.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value compared to the member.
+        ''' </param>
+        Public Shared Function PropertyCaseClause(name As String, operatorToken As SyntaxToken, value As ExpressionSyntax) As PropertyCaseClauseSyntax
+            Return SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), SyntaxFactory.Identifier(name), Nothing, operatorToken, value)
         End Function
 
 
@@ -45478,6 +45760,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.LessThanEqualsToken,
                 SyntaxKind.GreaterThanEqualsToken,
                 SyntaxKind.GreaterThanToken
+                    Return True
+            End Select
+            Return False
+        End Function
+
+        Public Shared Function IsPropertyCaseClauseOperatorToken(kind As SyntaxKind) As Boolean
+            Select Case kind
+                Case _
+                SyntaxKind.EqualsToken,
+                SyntaxKind.LessThanGreaterThanToken,
+                SyntaxKind.LessThanToken,
+                SyntaxKind.GreaterThanToken,
+                SyntaxKind.LessThanEqualsToken,
+                SyntaxKind.GreaterThanEqualsToken
                     Return True
             End Select
             Return False

@@ -61,5 +61,42 @@ End Class
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_ExpectedRelational, "").WithLocation(6, 21))
         End Sub
+
+        <Fact>
+        Public Sub SelectCase_PropertyPattern()
+            Dim compilation = CreateCompilation("
+Class Customer
+    Public Balance As Integer
+    Public Name As String
+End Class
+Class Program
+    Shared n As Integer
+    Shared Function NextCustomer() As Object
+        n += 1
+        Dim customer As New Customer()
+        customer.Balance = 20
+        customer.Name = ""A""
+        Return customer
+    End Function
+    Shared Sub Main()
+        Select Case NextCustomer()
+            Case Is TypeOf Customer AndAlso .Balance Is > 0 AndAlso .Name = ""A""
+                System.Console.Write(""match"")
+            Case Else
+                System.Console.Write(""other"")
+        End Select
+        Select Case DirectCast(""hi"", Object)
+            Case Is TypeOf Customer AndAlso .Name = ""A""
+                System.Console.Write(""customer"")
+            Case Else
+                System.Console.Write(""text"")
+        End Select
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="matchtext1").VerifyDiagnostics()
+        End Sub
     End Class
 End Namespace
