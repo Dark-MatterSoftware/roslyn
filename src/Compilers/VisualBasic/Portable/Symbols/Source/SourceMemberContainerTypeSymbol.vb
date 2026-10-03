@@ -1735,6 +1735,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 ' Find/process partial properties
                 ProcessPartialPropertiesIfAny(membersAndInitializers.Members, diagBag)
 
+                ' Find/process partial events
+                ProcessPartialEventsIfAny(membersAndInitializers.Members, diagBag)
+
                 ' Merge types with non-types
                 For Each typeSymbols In typeMembers.Values
                     Dim nontypeSymbols As ImmutableArray(Of Symbol) = Nothing
@@ -1978,6 +1981,143 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' <summary>
         ''' Compares two methods to check if the 'candidate' can be an implementation of the 'partialDeclaration'.
         ''' </summary>
+        Private Sub ProcessPartialEventsIfAny(members As Dictionary(Of String, ImmutableArray(Of Symbol)), diagnostics As BindingDiagnosticBag)
+            Dim partialEvents = ArrayBuilder(Of SourceEventSymbol).GetInstance()
+            For Each memberGroup In members.Values
+                For Each member In memberGroup
+                    Dim [event] = TryCast(member, SourceEventSymbol)
+                    If [event] IsNot Nothing AndAlso [event].IsPartial Then
+                        partialEvents.Add([event])
+                    End If
+                Next
+            Next
+
+            If partialEvents.Count = 0 Then
+                partialEvents.Free()
+                Return
+            End If
+
+            Dim index = 0
+            While index < partialEvents.Count
+                Dim current = partialEvents(index)
+                If current Is Nothing Then
+                    index += 1
+                    Continue While
+                End If
+
+                Dim sameName = ArrayBuilder(Of SourceEventSymbol).GetInstance()
+                sameName.Add(current)
+                partialEvents(index) = Nothing
+
+                Dim other = index + 1
+                While other < partialEvents.Count
+                    Dim candidate = partialEvents(other)
+                    If candidate IsNot Nothing AndAlso IdentifierComparison.Equals(current.Name, candidate.Name) Then
+                        sameName.Add(candidate)
+                        partialEvents(other) = Nothing
+                    End If
+
+                    other += 1
+                End While
+
+                MatchPartialEvent(sameName, members, diagnostics)
+                sameName.Free()
+                index += 1
+            End While
+
+            partialEvents.Free()
+        End Sub
+
+        Private Sub MatchPartialEvent(candidates As ArrayBuilder(Of SourceEventSymbol),
+                                      members As Dictionary(Of String, ImmutableArray(Of Symbol)),
+                                      diagnostics As BindingDiagnosticBag)
+            Dim definition As SourceEventSymbol = Nothing
+            Dim implementation As SourceEventSymbol = Nothing
+
+            For Each candidate In candidates
+                If candidate.IsPartialDefinition Then
+                    If definition Is Nothing OrElse IsEarlierEvent(candidate, definition) Then
+                        If definition IsNot Nothing Then
+                            RemovePartialEvent(definition, members)
+                        End If
+
+                        definition = candidate
+                    Else
+                        RemovePartialEvent(candidate, members)
+                    End If
+                ElseIf implementation Is Nothing OrElse IsEarlierEvent(candidate, implementation) Then
+                    If implementation IsNot Nothing Then
+                        RemovePartialEvent(implementation, members)
+                    End If
+
+                    implementation = candidate
+                Else
+                    RemovePartialEvent(candidate, members)
+                End If
+            Next
+
+            If candidates.Count <> 2 OrElse definition Is Nothing OrElse implementation Is Nothing Then
+                Dim blame = If(implementation, definition)
+                If candidates.Count > 1 Then
+                    blame = candidates(0)
+                    For Each candidate In candidates
+                        If IsEarlierEvent(blame, candidate) Then
+                            blame = candidate
+                        End If
+                    Next
+                End If
+
+                diagnostics.Add(ERRID.ERR_PartialEventDeclarationMismatch, blame.GetFirstLocation(), blame.Name)
+            End If
+
+            If definition Is Nothing OrElse implementation Is Nothing Then
+                Return
+            End If
+
+            If Not TypeSymbol.Equals(definition.Type, implementation.Type, TypeCompareKind.ConsiderEverything) Then
+                diagnostics.Add(ERRID.ERR_PartialEventTypeMismatch, implementation.GetFirstLocation(), implementation.Name)
+            End If
+
+            If definition.IsShared <> implementation.IsShared OrElse
+               definition.DeclaredAccessibility <> implementation.DeclaredAccessibility Then
+                diagnostics.Add(ERRID.ERR_PartialEventModifierMismatch, implementation.GetFirstLocation(), implementation.Name)
+            End If
+
+            definition.SetPartialEventPart(implementation)
+            implementation.SetPartialEventPart(definition)
+            RemovePartialEvent(definition, members)
+        End Sub
+
+        Private Function IsEarlierEvent(left As SourceEventSymbol, right As SourceEventSymbol) As Boolean
+            Return Me.DeclaringCompilation.CompareSourceLocations(left.GetFirstLocation(), right.GetFirstLocation()) < 0
+        End Function
+
+        Private Shared Sub RemovePartialEvent([event] As SourceEventSymbol, members As Dictionary(Of String, ImmutableArray(Of Symbol)))
+            RemoveMemberSymbol([event], members)
+            If [event].AddMethod IsNot Nothing Then
+                RemoveMemberSymbol([event].AddMethod, members)
+            End If
+
+            If [event].RemoveMethod IsNot Nothing Then
+                RemoveMemberSymbol([event].RemoveMethod, members)
+            End If
+
+            If [event].RaiseMethod IsNot Nothing Then
+                RemoveMemberSymbol([event].RaiseMethod, members)
+            End If
+
+            If [event].AssociatedField IsNot Nothing Then
+                RemoveMemberSymbol([event].AssociatedField, members)
+            End If
+        End Sub
+
+        Private Shared Function BothArePartialEvents(firstSymbol As Symbol, secondSymbol As Symbol) As Boolean
+            Dim firstEvent = TryCast(firstSymbol, SourceEventSymbol)
+            Dim secondEvent = TryCast(secondSymbol, SourceEventSymbol)
+            Return firstEvent IsNot Nothing AndAlso firstEvent.IsPartial AndAlso
+                   secondEvent IsNot Nothing AndAlso secondEvent.IsPartial
+        End Function
+
         Private Sub ProcessPartialPropertiesIfAny(members As Dictionary(Of String, ImmutableArray(Of Symbol)), diagnostics As BindingDiagnosticBag)
             Dim partialProperties = ArrayBuilder(Of SourcePropertySymbol).GetInstance()
             For Each memberGroup In members.Values
@@ -3373,6 +3513,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         Me.Name)
 
                 Return True
+
+            ElseIf BothArePartialEvents(firstSymbol, secondSymbol) Then
+                Return False
 
             ElseIf ((firstSymbol.Kind <> SymbolKind.Method) AndAlso (Not firstSymbol.IsPropertyAndNotWithEvents)) OrElse
                     (firstSymbol.Kind <> secondSymbol.Kind) Then

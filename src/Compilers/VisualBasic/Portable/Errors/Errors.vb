@@ -1824,8 +1824,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_PartialPropertyTypeMismatch = 37364
         ERR_PartialPropertyModifierMismatch = 37365
         ERR_PartialPropertyDeclarationMismatch = 37366
+        ERR_PartialEventTypeMismatch = 37367
+        ERR_PartialEventModifierMismatch = 37368
+        ERR_PartialEventDeclarationMismatch = 37369
 
-        ERR_NextAvailable = 37367
+        ERR_NextAvailable = 37370
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2153,5 +2156,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_TupleDeconstruction
         FEATURE_SelectCaseTypePattern
         FEATURE_PartialProperty
+        FEATURE_PartialEvent
     End Enum
 End Namespace

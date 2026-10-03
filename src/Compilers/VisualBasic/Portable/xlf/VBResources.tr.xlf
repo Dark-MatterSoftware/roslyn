@@ -152,6 +152,21 @@
         <target state="new">Module initializer '{0}' must not be generic and must not be contained in a generic type.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_PartialEventDeclarationMismatch">
+        <source>Partial event '{0}' must have one defining declaration and one implementing declaration.</source>
+        <target state="new">Partial event '{0}' must have one defining declaration and one implementing declaration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_PartialEventModifierMismatch">
+        <source>Partial event '{0}' must have the same modifiers in both declarations.</source>
+        <target state="new">Partial event '{0}' must have the same modifiers in both declarations.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_PartialEventTypeMismatch">
+        <source>Partial event '{0}' must have the same type in both declarations.</source>
+        <target state="new">Partial event '{0}' must have the same type in both declarations.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_PartialPropertyDeclarationMismatch">
         <source>Partial property '{0}' must have one defining declaration and one implementing declaration.</source>
         <target state="new">Partial property '{0}' must have one defining declaration and one implementing declaration.</target>
@@ -405,6 +420,11 @@
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">aşırı yükleme çözümlemesi önceliği</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_PartialEvent">
+        <source>partial events</source>
+        <target state="new">partial events</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_PartialProperty">

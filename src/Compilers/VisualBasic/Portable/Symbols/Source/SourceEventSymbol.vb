@@ -31,6 +31,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _raiseMethod As MethodSymbol
 
         Private ReadOnly _backingField As FieldSymbol
+        Private ReadOnly _isPartialDefinition As Boolean
+        Private _otherPartOfPartial As SourceEventSymbol
 
         ' Misc flags defining the state of this symbol (StateFlags)
         Private _lazyState As Integer
@@ -83,6 +85,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                             diagnostics)
 
             _memberFlags = modifiers.AllFlags
+            _isPartialDefinition = (_memberFlags And SourceMemberFlags.Partial) <> 0 AndAlso blockSyntaxOpt Is Nothing
 
             Dim identifier = syntax.Identifier
             _name = identifier.ValueText
@@ -98,7 +101,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             binder = New LocationSpecificBinder(BindingLocation.EventSignature, Me, binder)
 
-            If blockSyntaxOpt IsNot Nothing Then
+            If _isPartialDefinition Then
+                _addMethod = Nothing
+                _removeMethod = Nothing
+                _raiseMethod = Nothing
+            ElseIf blockSyntaxOpt IsNot Nothing Then
                 For Each accessorSyntax In blockSyntaxOpt.Accessors
                     Dim accessor As CustomEventAccessorSymbol = BindEventAccessor(accessorSyntax, binder)
                     Select Case (accessor.MethodKind)
@@ -533,6 +540,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend ReadOnly Property IsPartial As Boolean
+            Get
+                Return (_memberFlags And SourceMemberFlags.Partial) <> 0
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property IsPartialDefinition As Boolean
+            Get
+                Return _isPartialDefinition
+            End Get
+        End Property
+
+        Friend ReadOnly Property IsPartialImplementation As Boolean
+            Get
+                Return IsPartial AndAlso Not _isPartialDefinition
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property PartialDefinitionPart As EventSymbol
+            Get
+                Return If(IsPartialImplementation, _otherPartOfPartial, Nothing)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property PartialImplementationPart As EventSymbol
+            Get
+                Return If(IsPartialDefinition, _otherPartOfPartial, Nothing)
+            End Get
+        End Property
+
+        Friend Sub SetPartialEventPart(other As SourceEventSymbol)
+            _otherPartOfPartial = other
+        End Sub
+
         Public Overrides ReadOnly Property IsShared As Boolean
             Get
                 Return (_memberFlags And SourceMemberFlags.Shared) <> 0
@@ -710,10 +751,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                binder As Binder,
                                                diagBag As DiagnosticBag) As MemberModifiers
             ' Decode the flags.
-            Dim eventModifiers = binder.DecodeModifiers(modifiers,
+            Dim allowableModifiers =
                 SourceMemberFlags.AllAccessibilityModifiers Or
                 SourceMemberFlags.Shadows Or
-                SourceMemberFlags.Shared,
+                SourceMemberFlags.Shared
+
+            If modifiers.Any(SyntaxKind.PartialKeyword) Then
+                Dim languageVersion = DirectCast(modifiers.First().SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.PartialEvent) Then
+                    allowableModifiers = allowableModifiers Or SourceMemberFlags.Partial
+                End If
+            End If
+
+            Dim eventModifiers = binder.DecodeModifiers(modifiers,
+                allowableModifiers,
                 ERRID.ERR_BadEventFlags1,
                 Accessibility.Public,
                 diagBag)

@@ -1578,7 +1578,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_DeconstructionRequiresTuple,
                      ERRID.ERR_PartialPropertyTypeMismatch,
                      ERRID.ERR_PartialPropertyModifierMismatch,
-                     ERRID.ERR_PartialPropertyDeclarationMismatch
+                     ERRID.ERR_PartialPropertyDeclarationMismatch,
+                     ERRID.ERR_PartialEventTypeMismatch,
+                     ERRID.ERR_PartialEventModifierMismatch,
+                     ERRID.ERR_PartialEventDeclarationMismatch
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

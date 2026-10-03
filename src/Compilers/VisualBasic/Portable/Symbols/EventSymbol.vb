@@ -324,24 +324,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overridable ReadOnly Property PartialDefinitionPart As EventSymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property PartialImplementationPart As EventSymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property IsPartialDefinition As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
         Private ReadOnly Property IEventSymbol_PartialDefinitionPart As IEventSymbol Implements IEventSymbol.PartialDefinitionPart
             Get
-                ' Feature not supported in VB
-                Return Nothing
+                Return PartialDefinitionPart
             End Get
         End Property
 
         Private ReadOnly Property IEventSymbol_PartialImplementationPart As IEventSymbol Implements IEventSymbol.PartialImplementationPart
             Get
-                ' Feature not supported in VB
-                Return Nothing
+                Return PartialImplementationPart
             End Get
         End Property
 
         Private ReadOnly Property IEventSymbol_IsPartialDefinition As Boolean Implements IEventSymbol.IsPartialDefinition
             Get
-                ' Feature not supported in VB
-                Return False
+                Return IsPartialDefinition
             End Get
         End Property
 
