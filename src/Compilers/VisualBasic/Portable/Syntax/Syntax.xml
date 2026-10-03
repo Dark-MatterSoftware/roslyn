@@ -5950,6 +5950,38 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  RangeExpression
+      ******************-->
+    <node-structure name="RangeExpressionSyntax" parent="ExpressionSyntax">
+      <description>Represents an array range: start..end, start.., ..end, or ..</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="RangeExpression">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="Left" kind="@ExpressionSyntax" optional="true">
+        <description>The inclusive start. Omitted when the range begins at the first element.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="OperatorToken" kind="DotDotToken">
+        <description>The .. token.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Right" kind="@ExpressionSyntax" optional="true">
+        <description>The exclusive end. Omitted when the range runs through the last element.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  ConditionalExpression
       ******************-->
     <node-structure name="BinaryConditionalExpressionSyntax" parent="ExpressionSyntax">
@@ -8683,6 +8715,10 @@ Unify Enum declarations with other block type declarations.
       </node-kind>
       <node-kind name="DotToken" token-text=".">
         <lm-equiv name="DotToken" />
+        <native-equiv name="" />
+      </node-kind>
+      <node-kind name="DotDotToken" token-text="..">
+        <lm-equiv name="" />
         <native-equiv name="" />
       </node-kind>
       <node-kind name="SlashToken" token-text="/">

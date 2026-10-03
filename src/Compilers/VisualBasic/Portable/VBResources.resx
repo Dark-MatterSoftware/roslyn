@@ -5775,6 +5775,12 @@
   <data name="ERR_IndexFromEndRequiresArray" xml:space="preserve">
     <value>An index from the end can only be used as an array index.</value>
   </data>
+  <data name="FEATURE_ArrayRange" xml:space="preserve">
+    <value>array ranges</value>
+  </data>
+  <data name="ERR_RangeRequiresArray" xml:space="preserve">
+    <value>A range can only be used to slice a one-dimensional array.</value>
+  </data>
   <data name="ERR_FieldInReadOnlyStructure" xml:space="preserve">
     <value>Instance fields in a ReadOnly structure must be ReadOnly.</value>
   </data>

@@ -295,6 +295,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.SlashToken,
                     SyntaxKind.BackslashToken,
                     SyntaxKind.CaretToken,
+                    SyntaxKind.DotDotToken,
                     SyntaxKind.AmpersandToken,
                     SyntaxKind.LessThanLessThanToken,
                     SyntaxKind.GreaterThanGreaterThanToken,

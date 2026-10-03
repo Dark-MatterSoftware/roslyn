@@ -1247,6 +1247,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case "."c
                     If CanGet(1) AndAlso IsDecimalDigit(Peek(1)) Then
                         Return ScanNumericLiteral(precedingTrivia)
+                    ElseIf CanGet(1) AndAlso Peek(1) = "."c AndAlso CheckFeatureAvailability(Feature.ArrayRange) Then
+                        Return MakeDotDotToken(precedingTrivia)
                     Else
                         Return MakeDotToken(precedingTrivia, fullWidth)
                     End If

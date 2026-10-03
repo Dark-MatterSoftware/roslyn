@@ -31,6 +31,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         BadVariable
         ArrayAccess
         FromEndIndexExpression
+        RangeExpression
         ArrayLength
         [GetType]
         FieldInfo
@@ -821,6 +822,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(operand As BoundExpression, type As TypeSymbol) As BoundFromEndIndexExpression
             If operand IsNot Me.Operand OrElse type IsNot Me.Type Then
                 Dim result = New BoundFromEndIndexExpression(Me.Syntax, operand, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundRangeExpression
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, leftOperandOpt As BoundExpression, rightOperandOpt As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.RangeExpression, syntax, type, hasErrors OrElse leftOperandOpt.NonNullAndHasErrors() OrElse rightOperandOpt.NonNullAndHasErrors())
+
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._LeftOperandOpt = leftOperandOpt
+            Me._RightOperandOpt = rightOperandOpt
+        End Sub
+
+
+        Private ReadOnly _LeftOperandOpt As BoundExpression
+        Public ReadOnly Property LeftOperandOpt As BoundExpression
+            Get
+                Return _LeftOperandOpt
+            End Get
+        End Property
+
+        Private ReadOnly _RightOperandOpt As BoundExpression
+        Public ReadOnly Property RightOperandOpt As BoundExpression
+            Get
+                Return _RightOperandOpt
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitRangeExpression(Me)
+        End Function
+
+        Public Function Update(leftOperandOpt As BoundExpression, rightOperandOpt As BoundExpression, type As TypeSymbol) As BoundRangeExpression
+            If leftOperandOpt IsNot Me.LeftOperandOpt OrElse rightOperandOpt IsNot Me.RightOperandOpt OrElse type IsNot Me.Type Then
+                Dim result = New BoundRangeExpression(Me.Syntax, leftOperandOpt, rightOperandOpt, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9402,6 +9445,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitArrayAccess(CType(node, BoundArrayAccess), arg)
                 Case BoundKind.FromEndIndexExpression
                     Return VisitFromEndIndexExpression(CType(node, BoundFromEndIndexExpression), arg)
+                Case BoundKind.RangeExpression
+                    Return VisitRangeExpression(CType(node, BoundRangeExpression), arg)
                 Case BoundKind.ArrayLength
                     Return VisitArrayLength(CType(node, BoundArrayLength), arg)
                 Case BoundKind.[GetType]
@@ -9786,6 +9831,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitRangeExpression(node As BoundRangeExpression, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10493,6 +10542,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11210,6 +11263,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
             Me.Visit(node.Operand)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
+            Me.Visit(node.LeftOperandOpt)
+            Me.Visit(node.RightOperandOpt)
             Return Nothing
         End Function
 
@@ -12177,6 +12236,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim operand As BoundExpression = DirectCast(Me.Visit(node.Operand), BoundExpression)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(operand, type)
+        End Function
+
+        Public Overrides Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
+            Dim leftOperandOpt As BoundExpression = DirectCast(Me.Visit(node.LeftOperandOpt), BoundExpression)
+            Dim rightOperandOpt As BoundExpression = DirectCast(Me.Visit(node.RightOperandOpt), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(leftOperandOpt, rightOperandOpt, type)
         End Function
 
         Public Overrides Function VisitArrayLength(node As BoundArrayLength) As BoundNode
@@ -13298,6 +13364,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression, arg As Object) As TreeDumperNode
             Return New TreeDumperNode("fromEndIndexExpression", Nothing, New TreeDumperNode() {
                 New TreeDumperNode("operand", Nothing, new TreeDumperNode() {Visit(node.Operand, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitRangeExpression(node As BoundRangeExpression, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("rangeExpression", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("leftOperandOpt", Nothing, new TreeDumperNode() {Visit(node.LeftOperandOpt, Nothing)}),
+                New TreeDumperNode("rightOperandOpt", Nothing, new TreeDumperNode() {Visit(node.RightOperandOpt, Nothing)}),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

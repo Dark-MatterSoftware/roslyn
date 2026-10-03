@@ -742,6 +742,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If Not boundArguments.IsDefaultOrEmpty Then
                 For Each argument In boundArguments
                     ReportFromEndIndexUsedOutsideArray(argument, diagnostics)
+                    ReportRangeUsedOutsideArray(argument, diagnostics)
                 Next
             End If
 

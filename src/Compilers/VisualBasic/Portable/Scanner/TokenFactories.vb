@@ -408,6 +408,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return MakePunctuationToken(precedingTrivia, spelling, SyntaxKind.DotToken)
         End Function
 
+        Private Function MakeDotDotToken(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode)) As PunctuationSyntax
+            AdvanceChar(2)
+            Return MakePunctuationToken(precedingTrivia, "..", SyntaxKind.DotDotToken)
+        End Function
+
         Private Function MakeCommaToken(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode), charIsFullWidth As Boolean) As PunctuationSyntax
             Dim spelling = If(charIsFullWidth, FULLWIDTH_COMMA_STRING, ",")
             AdvanceChar()

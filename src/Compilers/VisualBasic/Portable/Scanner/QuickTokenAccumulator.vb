@@ -42,6 +42,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             TypeChar
             FollowingWhite
             Punctuation
+            AfterDotDot
             CompoundPunctStart
             CR
             Done
@@ -291,7 +292,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         End If
 
                     Case AccumulatorState.Punctuation
-                        If flags = CharFlags.White Then
+                        If c = "."c AndAlso index > qtStart AndAlso pageArr(index - 1) = "."c AndAlso CheckFeatureAvailability(Feature.ArrayRange) Then
+                            state = AccumulatorState.AfterDotDot
+                        ElseIf flags = CharFlags.White Then
                             state = AccumulatorState.FollowingWhite
                         ElseIf flags = CharFlags.CR Then
                             state = AccumulatorState.CR
@@ -304,6 +307,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                             Exit While
                         Else
                             state = AccumulatorState.Bad
+                            Exit While
+                        End If
+
+                    Case AccumulatorState.AfterDotDot
+                        If flags = CharFlags.White Then
+                            state = AccumulatorState.FollowingWhite
+                        ElseIf flags = CharFlags.CR Then
+                            state = AccumulatorState.CR
+                        ElseIf flags = CharFlags.LF Then
+                            terminatorLength = 1
+                            state = AccumulatorState.Done
+                            Exit While
+                        Else
+                            state = AccumulatorState.Done
                             Exit While
                         End If
 

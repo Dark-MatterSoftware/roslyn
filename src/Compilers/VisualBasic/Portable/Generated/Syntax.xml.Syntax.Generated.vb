@@ -25425,6 +25425,147 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents an array range: start..end, start.., ..end, or ..
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.RangeExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class RangeExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _left as ExpressionSyntax
+        Friend _right as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), left As ExpressionSyntax, operatorToken As InternalSyntax.PunctuationSyntax, right As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RangeExpressionSyntax(kind, errors, annotations, if(left IsNot Nothing, DirectCast(left.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), Nothing), operatorToken, if(right IsNot Nothing, DirectCast(right.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), Nothing)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The inclusive start. Omitted when the range begins at the first element.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property Left As ExpressionSyntax
+            Get
+                Return GetRedAtZero(_left)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Left property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithLeft(left as ExpressionSyntax) As RangeExpressionSyntax
+            return Update(left, Me.OperatorToken, Me.Right)
+        End Function
+
+        ''' <summary>
+        ''' The .. token.
+        ''' </summary>
+        Public ReadOnly Property OperatorToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RangeExpressionSyntax)._operatorToken, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OperatorToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithOperatorToken(operatorToken as SyntaxToken) As RangeExpressionSyntax
+            return Update(Me.Left, operatorToken, Me.Right)
+        End Function
+
+        ''' <summary>
+        ''' The exclusive end. Omitted when the range runs through the last element.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property Right As ExpressionSyntax
+            Get
+                Return GetRed(_right, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Right property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithRight(right as ExpressionSyntax) As RangeExpressionSyntax
+            return Update(Me.Left, Me.OperatorToken, right)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._left
+                Case 2
+                    Return Me._right
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.Left
+                Case 2
+                    Return Me.Right
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitRangeExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitRangeExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="left">
+        ''' The value for the Left property.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The value for the OperatorToken property.
+        ''' </param>
+        ''' <param name="right">
+        ''' The value for the Right property.
+        ''' </param>
+        Public Function Update(left As ExpressionSyntax, operatorToken As SyntaxToken, right As ExpressionSyntax) As RangeExpressionSyntax
+            If left IsNot Me.Left OrElse operatorToken <> Me.OperatorToken OrElse right IsNot Me.Right Then
+                Dim newNode = SyntaxFactory.RangeExpression(left, operatorToken, right)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a conditional expression, If(condition, true-expr, false-expr) or
     ''' If(expr, nothing-expr).
     ''' </summary>

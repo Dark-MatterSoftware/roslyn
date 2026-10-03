@@ -3226,5 +3226,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         FromEndIndexExpression = 797                 ' UnaryExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents the <c>..</c> operator.
+        ''' </summary>
+        DotDotToken = 798                            ' PunctuationSyntax : SyntaxToken
+
+        ''' <summary>
+        ''' Represents an array range, <c>start..end</c>.
+        ''' </summary>
+        RangeExpression = 799                        ' RangeExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

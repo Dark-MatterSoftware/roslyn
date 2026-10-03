@@ -147,6 +147,11 @@
         <target state="new">Module initializer '{0}' must not be generic and must not be contained in a generic type.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_RangeRequiresArray">
+        <source>A range can only be used to slice a one-dimensional array.</source>
+        <target state="new">A range can only be used to slice a one-dimensional array.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RuntimeDoesNotSupportExtendedLayoutTypes">
         <source>The target runtime does not support extended layout types.</source>
         <target state="translated">目标运行时不支持扩展布局类型。</target>
@@ -285,6 +290,11 @@
       <trans-unit id="ERR_UnsupportedRefReturningCallInWithStatement">
         <source>A call to a method or property that returns by reference may not be used as 'With' statement expression in an async or iterator method, or if referenced implicitly in a lambda.</source>
         <target state="translated">对通过引用返回的方法或属性的调用不能用作异步或迭代器方法中的 "With" 语句表达式，或者在 lambda 中隐式引用。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_ArrayRange">
+        <source>array ranges</source>
+        <target state="new">array ranges</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_AsyncMain">

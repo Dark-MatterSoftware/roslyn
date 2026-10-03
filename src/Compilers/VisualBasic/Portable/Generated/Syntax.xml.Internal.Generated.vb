@@ -18296,6 +18296,134 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents an array range: start..end, start.., ..end, or ..
+    ''' </summary>
+    Friend NotInheritable Class RangeExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _left as ExpressionSyntax
+        Friend ReadOnly _operatorToken as PunctuationSyntax
+        Friend ReadOnly _right as ExpressionSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, left As ExpressionSyntax, operatorToken As InternalSyntax.PunctuationSyntax, right As ExpressionSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            If left IsNot Nothing Then
+                AdjustFlagsAndWidth(left)
+                Me._left = left
+            End If
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            If right IsNot Nothing Then
+                AdjustFlagsAndWidth(right)
+                Me._right = right
+            End If
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, left As ExpressionSyntax, operatorToken As InternalSyntax.PunctuationSyntax, right As ExpressionSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            If left IsNot Nothing Then
+                AdjustFlagsAndWidth(left)
+                Me._left = left
+            End If
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            If right IsNot Nothing Then
+                AdjustFlagsAndWidth(right)
+                Me._right = right
+            End If
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), left As ExpressionSyntax, operatorToken As InternalSyntax.PunctuationSyntax, right As ExpressionSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            If left IsNot Nothing Then
+                AdjustFlagsAndWidth(left)
+                Me._left = left
+            End If
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            If right IsNot Nothing Then
+                AdjustFlagsAndWidth(right)
+                Me._right = right
+            End If
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.RangeExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The inclusive start. Omitted when the range begins at the first element.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Left As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._left
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The .. token.
+        ''' </summary>
+        Friend ReadOnly Property OperatorToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._operatorToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The exclusive end. Omitted when the range runs through the last element.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Right As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._right
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._left
+                Case 1
+                    Return Me._operatorToken
+                Case 2
+                    Return Me._right
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new RangeExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _left, _operatorToken, _right)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new RangeExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _left, _operatorToken, _right)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitRangeExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a conditional expression, If(condition, true-expr, false-expr) or
     ''' If(expr, nothing-expr).
     ''' </summary>
@@ -29401,6 +29529,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
         End Function
+        Public Overridable Function VisitRangeExpression(ByVal node As RangeExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
         Public Overridable Function VisitBinaryConditionalExpression(ByVal node As BinaryConditionalExpressionSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
@@ -32487,6 +32619,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New UnaryExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOperatorToken, newOperand)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitRangeExpression(ByVal node As RangeExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newLeft = DirectCast(Visit(node._left), ExpressionSyntax)
+            If node._left IsNot newLeft Then anyChanges = True
+            Dim newOperatorToken = DirectCast(Visit(node.OperatorToken), PunctuationSyntax)
+            If node._operatorToken IsNot newOperatorToken Then anyChanges = True
+            Dim newRight = DirectCast(Visit(node._right), ExpressionSyntax)
+            If node._right IsNot newRight Then anyChanges = True
+
+            If anyChanges Then
+                Return New RangeExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newLeft, newOperatorToken, newRight)
             Else
                 Return node
             End If
@@ -43326,6 +43475,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New UnaryExpressionSyntax(kind, operatorToken, operand)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an array range: start..end, start.., ..end, or ..
+        ''' </summary>
+        ''' <param name="left">
+        ''' The inclusive start. Omitted when the range begins at the first element.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The .. token.
+        ''' </param>
+        ''' <param name="right">
+        ''' The exclusive end. Omitted when the range runs through the last element.
+        ''' </param>
+        Friend Shared Function RangeExpression(left As ExpressionSyntax, operatorToken As PunctuationSyntax, right As ExpressionSyntax) As RangeExpressionSyntax
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.DotDotToken)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.RangeExpression, left, operatorToken, right, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, RangeExpressionSyntax)
+            End If
+
+            Dim result = New RangeExpressionSyntax(SyntaxKind.RangeExpression, left, operatorToken, right)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
@@ -55454,6 +55633,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New UnaryExpressionSyntax(kind, operatorToken, operand, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an array range: start..end, start.., ..end, or ..
+        ''' </summary>
+        ''' <param name="left">
+        ''' The inclusive start. Omitted when the range begins at the first element.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The .. token.
+        ''' </param>
+        ''' <param name="right">
+        ''' The exclusive end. Omitted when the range runs through the last element.
+        ''' </param>
+        Friend Function RangeExpression(left As ExpressionSyntax, operatorToken As PunctuationSyntax, right As ExpressionSyntax) As RangeExpressionSyntax
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.DotDotToken)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.RangeExpression, left, operatorToken, right, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, RangeExpressionSyntax)
+            End If
+
+            Dim result = New RangeExpressionSyntax(SyntaxKind.RangeExpression, left, operatorToken, right, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If

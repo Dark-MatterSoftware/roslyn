@@ -339,6 +339,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BadExpression(node, argument, ErrorTypeSymbol.UnknownResultType)
             End If
 
+            Dim range = UnwrapRange(argument)
+            If range IsNot Nothing Then
+                If Not range.HasErrors Then
+                    ReportDiagnostic(diagnostics, range.Syntax, ERRID.ERR_RangeRequiresArray)
+                End If
+
+                Return BadExpression(node, argument, ErrorTypeSymbol.UnknownResultType)
+            End If
+
             ' Target-typed New is unbound until this conversion supplies the type.
             Dim targetTypedNew = TryBindTargetTypedNew(argument, targetType, diagnostics)
             If targetTypedNew IsNot Nothing Then

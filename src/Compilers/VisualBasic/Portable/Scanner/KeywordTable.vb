@@ -241,6 +241,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                 SyntaxKind.GreaterThanEqualsToken, PrecedenceRelational,
                 SyntaxKind.BackslashToken, PrecedenceIntegerDivide Or CanFollowExpr,
                 SyntaxKind.CaretToken, PrecedenceExponentiate Or CanFollowExpr,
+                SyntaxKind.DotDotToken, PrecedenceRange Or CanFollowExpr,
                 SyntaxKind.ColonEqualsToken, None,
                 SyntaxKind.AmpersandEqualsToken, PrecedenceConcatenate,
                 SyntaxKind.AsteriskEqualsToken, PrecedenceMultiply,
@@ -389,6 +390,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     '//
     Friend Enum OperatorPrecedence As Byte
         PrecedenceNone = 0
+        PrecedenceRange
         PrecedenceXor
         PrecedenceOr
         PrecedenceAnd

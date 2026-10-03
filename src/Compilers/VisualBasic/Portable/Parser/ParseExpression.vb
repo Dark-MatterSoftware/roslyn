@@ -108,6 +108,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         Dim Operand = ParseExpressionCore(OperatorPrecedence.PrecedenceNegate)
                         expression = SyntaxFactory.AddressOfExpression(startToken, Operand)
 
+                    Case SyntaxKind.DotDotToken
+                        ' ..end and .. are ranges with no start. Binary start..end is handled after a term.
+                        If Not _evaluatingConditionCompilationExpression Then
+                            GetNextToken()
+                            Dim rightOperand As ExpressionSyntax = Nothing
+                            If CanStartRangeOperand() Then
+                                rightOperand = ParseExpressionCore(OperatorPrecedence.PrecedenceRange)
+                            End If
+                            expression = SyntaxFactory.RangeExpression(Nothing, DirectCast(startToken, PunctuationSyntax), rightOperand)
+                        Else
+                            expression = ParseTerm(bailIfFirstTokenRejected)
+                            If expression Is Nothing Then
+                                Return Nothing
+                            End If
+                        End If
+
                     Case SyntaxKind.CaretToken
                         ' ^n is an index from the end. Binary exponentiation still uses this token after a term.
                         If Not _evaluatingConditionCompilationExpression AndAlso CheckFeatureAvailability(Feature.IndexFromEnd) Then
@@ -168,13 +184,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                         Dim [operator] As SyntaxToken = ParseBinaryOperator()
 
-                        'Dim Binary As ParseTree.BinaryExpression = New ParseTree.BinaryExpression
-                        'Binary.Opcode = Opcode
-
-                        'Binary.Left = Expr
-                        Dim rightOperand As ExpressionSyntax = ParseExpressionCore(precedence)
-
-                        expression = SyntaxFactory.BinaryExpression(GetBinaryOperatorHelper([operator]), expression, [operator], rightOperand)
+                        If [operator].Kind = SyntaxKind.DotDotToken Then
+                            Dim rightOperand As ExpressionSyntax = Nothing
+                            If CanStartRangeOperand() Then
+                                rightOperand = ParseExpressionCore(precedence)
+                            End If
+                            expression = SyntaxFactory.RangeExpression(expression, DirectCast([operator], PunctuationSyntax), rightOperand)
+                        Else
+                            Dim rightOperand As ExpressionSyntax = ParseExpressionCore(precedence)
+                            expression = SyntaxFactory.BinaryExpression(GetBinaryOperatorHelper([operator]), expression, [operator], rightOperand)
+                        End If
 
                     Loop
                 End If
@@ -183,6 +202,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Finally
                 _recursionDepth -= 1
             End Try
+        End Function
+
+        Private Function CanStartRangeOperand() As Boolean
+            Select Case CurrentToken.Kind
+                Case SyntaxKind.CloseParenToken,
+                     SyntaxKind.CommaToken,
+                     SyntaxKind.CloseBraceToken,
+                     SyntaxKind.StatementTerminatorToken,
+                     SyntaxKind.ColonToken,
+                     SyntaxKind.EndOfFileToken
+                    Return False
+                Case Else
+                    Return True
+            End Select
         End Function
 
         Private Function ParseTerm(

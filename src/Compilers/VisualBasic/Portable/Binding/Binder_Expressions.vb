@@ -141,6 +141,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.FromEndIndexExpression
                     Return BindFromEndIndexExpression(DirectCast(node, UnaryExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.RangeExpression
+                    Return BindRangeExpression(DirectCast(node, RangeExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.AddExpression,
                      SyntaxKind.ConcatenateExpression,
                      SyntaxKind.LikeExpression,
@@ -3929,6 +3932,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 expr = expr.MakeRValue()
             End If
 
+            Dim rangeCount = 0
+            Dim onlyRange As BoundRangeExpression = Nothing
+            For Each argument In boundArguments
+                Dim range = UnwrapRange(argument)
+                If range IsNot Nothing Then
+                    rangeCount += 1
+                    onlyRange = range
+                End If
+            Next
+
+            If rangeCount > 0 Then
+                Dim sliceType = TryCast(expr.Type, ArrayTypeSymbol)
+                Dim hasNames = Not argumentNames.IsDefault AndAlso argumentNames.Length > 0
+                If rangeCount = 1 AndAlso boundArguments.Length = 1 AndAlso sliceType IsNot Nothing AndAlso sliceType.Rank = 1 AndAlso Not hasNames Then
+                    Return BindArrayRange(node, expr, onlyRange, sliceType, diagnostics)
+                End If
+
+                ReportDiagnostic(diagnostics, onlyRange.Syntax, ERRID.ERR_RangeRequiresArray)
+                Return BadExpression(node, expr, ErrorTypeSymbol.UnknownResultType)
+            End If
+
             Dim hasFromEnd = False
             For Each argument In boundArguments
                 If UnwrapFromEndIndex(argument) IsNot Nothing Then
@@ -4001,9 +4025,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             operand = ApplyImplicitConversion(node.Operand, int32Type, operand, diagnostics)
 
             ' An index argument is checked by the invocation or array access that consumes it.
-            ' Every other use is diagnosed here, before an error type would hide the failure.
+            ' A bound of a range is checked with that range. Every other use is diagnosed here,
+            ' before an error type would hide the failure.
             Dim reported = False
-            If Not IsIndexArgument(node) Then
+            If Not IsInsideRange(node) AndAlso Not IsIndexArgument(node) Then
                 ReportDiagnostic(diagnostics, node, ERRID.ERR_IndexFromEndRequiresArray)
                 reported = True
             End If
@@ -4013,12 +4038,152 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Shared Function IsIndexArgument(node As SyntaxNode) As Boolean
             Dim current = node.Parent
-            While current IsNot Nothing AndAlso current.Kind = SyntaxKind.ParenthesizedExpression
+            While current IsNot Nothing AndAlso
+                (current.Kind = SyntaxKind.ParenthesizedExpression OrElse current.Kind = SyntaxKind.RangeExpression)
                 current = current.Parent
             End While
 
             Return current IsNot Nothing AndAlso
                 (current.Kind = SyntaxKind.SimpleArgument OrElse current.Kind = SyntaxKind.RangeArgument)
+        End Function
+
+        Private Shared Function IsInsideRange(node As SyntaxNode) As Boolean
+            Dim current = node.Parent
+            While current IsNot Nothing AndAlso current.Kind = SyntaxKind.ParenthesizedExpression
+                current = current.Parent
+            End While
+
+            Return current IsNot Nothing AndAlso current.Kind = SyntaxKind.RangeExpression
+        End Function
+
+        Private Function BindRangeExpression(node As RangeExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim left As BoundExpression = Nothing
+            If node.Left IsNot Nothing Then
+                left = BindValue(node.Left, diagnostics)
+            End If
+
+            Dim right As BoundExpression = Nothing
+            If node.Right IsNot Nothing Then
+                right = BindValue(node.Right, diagnostics)
+            End If
+
+            Dim reported = False
+            If Not IsIndexArgument(node) Then
+                ReportDiagnostic(diagnostics, node, ERRID.ERR_RangeRequiresArray)
+                reported = True
+            End If
+
+            Return New BoundRangeExpression(node, left, right, ErrorTypeSymbol.UnknownResultType, hasErrors:=reported)
+        End Function
+
+        Private Function BindArrayRange(node As InvocationExpressionSyntax, expr As BoundExpression, range As BoundRangeExpression, arrayType As ArrayTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim copyMethod = FindArrayCopy(node, diagnostics)
+            If copyMethod Is Nothing OrElse ContainingMember Is Nothing Then
+                Return BadExpression(node, expr, arrayType)
+            End If
+
+            Dim syntax = range.Syntax
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
+            Dim receiver = expr
+            Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+
+            If expr.Kind <> BoundKind.Local AndAlso expr.Kind <> BoundKind.Parameter Then
+                Dim spillLocal = New SynthesizedLocal(ContainingMember, expr.Type, SynthesizedLocalKind.LoweringTemp)
+                Dim storeTarget = New BoundLocal(expr.Syntax, spillLocal, expr.Type)
+                sideEffects.Add(New BoundAssignmentOperator(expr.Syntax, storeTarget, expr, suppressObjectClone:=True, type:=expr.Type))
+                locals.Add(spillLocal)
+                receiver = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeRValue()
+            End If
+
+            Dim startLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
+            Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
+            locals.Add(startLocal)
+            locals.Add(endLocal)
+
+            Dim startValue = If(range.LeftOperandOpt Is Nothing,
+                                 IntegerLiteral(syntax, 0, int32Type),
+                                 NormalizeRangeBound(range.LeftOperandOpt, receiver, int32Type, diagnostics))
+            Dim endValue = If(range.RightOperandOpt Is Nothing,
+                               ArrayDimensionLength(receiver, 0, syntax, int32Type),
+                               NormalizeRangeBound(range.RightOperandOpt, receiver, int32Type, diagnostics))
+
+            sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, int32Type), startValue, suppressObjectClone:=True, type:=int32Type))
+            sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, int32Type), endValue, suppressObjectClone:=True, type:=int32Type))
+
+            Dim creation = New BoundArrayCreation(syntax, ImmutableArray.Create(SliceLength(syntax, startLocal, endLocal, int32Type)), Nothing, arrayType)
+
+            Dim resultLocal = New SynthesizedLocal(ContainingMember, arrayType, SynthesizedLocalKind.LoweringTemp)
+            locals.Add(resultLocal)
+            sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, resultLocal, arrayType), creation, suppressObjectClone:=True, type:=arrayType))
+
+            Dim arrayBase = GetSpecialType(SpecialType.System_Array, syntax, diagnostics)
+            Dim sourceArg = ApplyImplicitConversion(syntax, arrayBase, CopyArrayReceiver(receiver), diagnostics)
+            Dim destinationArg = ApplyImplicitConversion(syntax, arrayBase, New BoundLocal(syntax, resultLocal, arrayType).MakeRValue(), diagnostics)
+            Dim copy = New BoundCall(
+                syntax,
+                copyMethod,
+                Nothing,
+                Nothing,
+                ImmutableArray.Create(sourceArg, New BoundLocal(syntax, startLocal, int32Type).MakeRValue(), destinationArg, IntegerLiteral(syntax, 0, int32Type), SliceLength(syntax, startLocal, endLocal, int32Type)),
+                Nothing,
+                copyMethod.ReturnType)
+            sideEffects.Add(copy)
+
+            Dim result = New BoundLocal(node, resultLocal, arrayType).MakeRValue()
+            Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), result, arrayType)
+        End Function
+
+        Private Function SliceLength(syntax As SyntaxNode, startLocal As LocalSymbol, endLocal As LocalSymbol, int32Type As TypeSymbol) As BoundExpression
+            Dim startRead = New BoundLocal(syntax, startLocal, int32Type).MakeRValue()
+            Dim endRead = New BoundLocal(syntax, endLocal, int32Type).MakeRValue()
+            Return New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, endRead, startRead, CheckOverflow, int32Type)
+        End Function
+
+        Private Function NormalizeRangeBound(operand As BoundExpression, receiver As BoundExpression, int32Type As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim fromEnd = UnwrapFromEndIndex(operand)
+            If fromEnd IsNot Nothing Then
+                Return RewriteFromEndIndex(fromEnd, receiver, 0, int32Type)
+            End If
+
+            Return ApplyImplicitConversion(operand.Syntax, int32Type, operand, diagnostics)
+        End Function
+
+        Private Function IntegerLiteral(syntax As SyntaxNode, value As Integer, int32Type As TypeSymbol) As BoundLiteral
+            Return New BoundLiteral(syntax, ConstantValue.Create(value), int32Type)
+        End Function
+
+        Private Function FindArrayCopy(syntax As SyntaxNode, diagnostics As BindingDiagnosticBag) As MethodSymbol
+            For Each member In Compilation.GetSpecialType(SpecialType.System_Array).GetMembers("Copy")
+                Dim candidate = TryCast(member, MethodSymbol)
+                If candidate IsNot Nothing AndAlso candidate.IsShared AndAlso candidate.ParameterCount = 5 AndAlso
+                   candidate.Parameters(0).Type.SpecialType = SpecialType.System_Array AndAlso
+                   candidate.Parameters(1).Type.SpecialType = SpecialType.System_Int32 Then
+                    Return candidate
+                End If
+            Next
+
+            ReportDiagnostic(diagnostics, syntax, ERRID.ERR_NameNotDeclared1, "Copy")
+            Return Nothing
+        End Function
+
+        Private Shared Function UnwrapRange(argument As BoundExpression) As BoundRangeExpression
+            Dim current = argument
+            While current IsNot Nothing AndAlso current.Kind = BoundKind.Parenthesized
+                current = DirectCast(current, BoundParenthesized).Expression
+            End While
+
+            Return TryCast(current, BoundRangeExpression)
+        End Function
+
+        Private Function ReportRangeUsedOutsideArray(argument As BoundExpression, diagnostics As BindingDiagnosticBag) As Boolean
+            Dim range = UnwrapRange(argument)
+            If range Is Nothing Then
+                Return False
+            End If
+
+            ReportDiagnostic(diagnostics, range.Syntax, ERRID.ERR_RangeRequiresArray)
+            Return True
         End Function
 
         Private Function ReportFromEndIndexUsedOutsideArray(argument As BoundExpression, diagnostics As BindingDiagnosticBag) As Boolean

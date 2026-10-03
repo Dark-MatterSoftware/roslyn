@@ -76,7 +76,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 4a | VB-006 | Done. On `vbnext`, `items(^1)` is the last element of an array and `items(^2)` is the second to last. A receiver with side effects is evaluated once. `^` between two operands is still exponentiation. Visual Basic 17.13 reports an expected-expression error. Using `^n` other than as an array index is an error. |
-| 4b | VB-006 | `start..end` is a range on an array. `Span` slicing stays in phase 7. |
+| 4b | VB-006 | Done. On `vbnext`, `items(1..4)` is a slice of a one-dimensional array. The start is inclusive and the end is exclusive. Either side may be omitted, and either side may be an index from the end. A receiver with side effects is evaluated once. Visual Basic 17.13 still reports an expected-identifier error. Using a range other than to slice a one-dimensional array is an error. `Span` slicing stays in phase 7. |
 | 4c | VB-017 | An override may narrow a class return type. The emitted signature carries the covariant return. |
 | 4d | VB-033 | A raw string with no holes scans and binds as a string. |
 | 4e | VB-033 | A raw string may contain interpolation holes. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 4a, an index from the end, is implemented. The next slice is 4b, `start..end` as a range on an array.
+Slice 4b, a range on an array, is implemented. The next slice is 4c, an override that narrows a class return type.
