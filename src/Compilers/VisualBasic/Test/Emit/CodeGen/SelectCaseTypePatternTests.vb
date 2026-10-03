@@ -98,5 +98,51 @@ End Class
 
             CompileAndVerify(compilation, expectedOutput:="matchtext1").VerifyDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub SelectCase_PositionalPattern()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public X As Integer
+    Public Y As Integer
+    Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+    Sub Deconstruct(ByRef a As Integer, ByRef b As Integer)
+        a = X
+        b = Y
+    End Sub
+End Class
+Class Program
+    Shared n As Integer
+    Shared Function NextPoint() As Object
+        n += 1
+        Return New Point(1, 2)
+    End Function
+    Shared Function NextPair() As (Integer, Integer)
+        n += 1
+        Return (3, 4)
+    End Function
+    Shared Sub Main()
+        Select Case NextPoint()
+            Case Is TypeOf Point(1, 2)
+                System.Console.Write(""point"")
+            Case Else
+                System.Console.Write(""no"")
+        End Select
+        Select Case NextPair()
+            Case Is (3, 4)
+                System.Console.Write(""pair"")
+            Case Else
+                System.Console.Write(""no"")
+        End Select
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="pointpair2").VerifyDiagnostics()
+        End Sub
     End Class
 End Namespace

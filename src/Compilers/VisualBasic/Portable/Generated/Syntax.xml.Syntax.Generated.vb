@@ -18036,6 +18036,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         Inherits CaseClauseSyntax
 
         Friend _type as TypeSyntax
+        Friend _arguments as SyntaxNode
         Friend _filters as SyntaxNode
 
         Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
@@ -18044,8 +18045,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As SyntaxNode)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax(kind, errors, annotations, isKeyword, typeOfKeyword, DirectCast(type.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeSyntax), if(filters IsNot Nothing, filters.Green, Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As SyntaxNode, closeParenToken As InternalSyntax.PunctuationSyntax, filters As SyntaxNode)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax(kind, errors, annotations, isKeyword, typeOfKeyword, DirectCast(type.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeSyntax), openParenToken, if(arguments IsNot Nothing, arguments.Green, Nothing), closeParenToken, if(filters IsNot Nothing, filters.Green, Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -18063,7 +18064,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIsKeyword(isKeyword as SyntaxToken) As TypeCaseClauseSyntax
-            return Update(isKeyword, Me.TypeOfKeyword, Me.Type, Me.Filters)
+            return Update(isKeyword, Me.TypeOfKeyword, Me.Type, Me.OpenParenToken, Me.Arguments, Me.CloseParenToken, Me.Filters)
         End Function
 
         ''' <summary>
@@ -18081,7 +18082,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithTypeOfKeyword(typeOfKeyword as SyntaxToken) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, typeOfKeyword, Me.Type, Me.Filters)
+            return Update(Me.IsKeyword, typeOfKeyword, Me.Type, Me.OpenParenToken, Me.Arguments, Me.CloseParenToken, Me.Filters)
         End Function
 
         ''' <summary>
@@ -18098,7 +18099,86 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' Returns this instance if the specified value is the same as the current value.
         ''' </summary>
         Public Shadows Function WithType(type as TypeSyntax) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, Me.TypeOfKeyword, type, Me.Filters)
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, type, Me.OpenParenToken, Me.Arguments, Me.CloseParenToken, Me.Filters)
+        End Function
+
+        ''' <summary>
+        ''' The opening parenthesis of a positional test.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property OpenParenToken As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax)._openParenToken
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(3), Me.GetChildIndex(3))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenParenToken(openParenToken as SyntaxToken) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, openParenToken, Me.Arguments, Me.CloseParenToken, Me.Filters)
+        End Function
+
+        ''' <summary>
+        ''' The values compared to Deconstruct results.
+        ''' </summary>
+        ''' <remarks>
+        ''' If nothing is present, an empty list is returned.
+        ''' </remarks>
+        Public ReadOnly Property Arguments As SeparatedSyntaxList(Of ExpressionSyntax)
+            Get
+                Dim listNode = GetRed(_arguments, 4)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of ExpressionSyntax)(listNode, Me.GetChildIndex(4))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Arguments property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithArguments(arguments as SeparatedSyntaxList(Of ExpressionSyntax)) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, Me.OpenParenToken, arguments, Me.CloseParenToken, Me.Filters)
+        End Function
+
+        Public Shadows Function AddArguments(ParamArray items As ExpressionSyntax()) As TypeCaseClauseSyntax
+            Return Me.WithArguments(Me.Arguments.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing parenthesis of a positional test.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property CloseParenToken As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeCaseClauseSyntax)._closeParenToken
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(5), Me.GetChildIndex(5))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseParenToken(closeParenToken as SyntaxToken) As TypeCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, Me.OpenParenToken, Me.Arguments, closeParenToken, Me.Filters)
         End Function
 
         ''' <summary>
@@ -18109,7 +18189,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' </remarks>
         Public ReadOnly Property Filters As SyntaxList(Of CaseFilterSyntax)
             Get
-                Dim listNode = GetRed(_filters, 3)
+                Dim listNode = GetRed(_filters, 6)
                 Return new SyntaxList(Of CaseFilterSyntax)(listNode)
             End Get
         End Property
@@ -18120,7 +18200,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithFilters(filters as SyntaxList(Of CaseFilterSyntax)) As TypeCaseClauseSyntax
-            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, filters)
+            return Update(Me.IsKeyword, Me.TypeOfKeyword, Me.Type, Me.OpenParenToken, Me.Arguments, Me.CloseParenToken, filters)
         End Function
 
         Public Shadows Function AddFilters(ParamArray items As CaseFilterSyntax()) As TypeCaseClauseSyntax
@@ -18131,7 +18211,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Select case i
                 Case 2
                     Return Me._type
-                Case 3
+                Case 4
+                    Return Me._arguments
+                Case 6
                     Return Me._filters
                 Case Else
                     Return Nothing
@@ -18142,8 +18224,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Select case i
                 Case 2
                     Return Me.Type
-                Case 3
-                    Return GetRed(_filters, 3)
+                Case 4
+                    Return GetRed(_arguments, 4)
+                Case 6
+                    Return GetRed(_filters, 6)
                 Case Else
                     Return Nothing
             End Select
@@ -18171,12 +18255,182 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="type">
         ''' The value for the Type property.
         ''' </param>
+        ''' <param name="openParenToken">
+        ''' The value for the OpenParenToken property.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The value for the Arguments property.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The value for the CloseParenToken property.
+        ''' </param>
         ''' <param name="filters">
         ''' The value for the Filters property.
         ''' </param>
-        Public Function Update(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
-            If isKeyword <> Me.IsKeyword OrElse typeOfKeyword <> Me.TypeOfKeyword OrElse type IsNot Me.Type OrElse filters <> Me.Filters Then
-                Dim newNode = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, type, filters)
+        Public Function Update(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, openParenToken As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
+            If isKeyword <> Me.IsKeyword OrElse typeOfKeyword <> Me.TypeOfKeyword OrElse type IsNot Me.Type OrElse openParenToken <> Me.OpenParenToken OrElse arguments <> Me.Arguments OrElse closeParenToken <> Me.CloseParenToken OrElse filters <> Me.Filters Then
+                Dim newNode = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, type, openParenToken, arguments, closeParenToken, filters)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' A positional test of a tuple, such as Is (1, 2).
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.PositionalCaseClause"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class PositionalCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend _arguments as SyntaxNode
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As SyntaxNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PositionalCaseClauseSyntax(kind, errors, annotations, isKeyword, openParenToken, if(arguments IsNot Nothing, arguments.Green, Nothing), closeParenToken), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Is keyword.
+        ''' </summary>
+        Public ReadOnly Property IsKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PositionalCaseClauseSyntax)._isKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the IsKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIsKeyword(isKeyword as SyntaxToken) As PositionalCaseClauseSyntax
+            return Update(isKeyword, Me.OpenParenToken, Me.Arguments, Me.CloseParenToken)
+        End Function
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Public ReadOnly Property OpenParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PositionalCaseClauseSyntax)._openParenToken, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenParenToken(openParenToken as SyntaxToken) As PositionalCaseClauseSyntax
+            return Update(Me.IsKeyword, openParenToken, Me.Arguments, Me.CloseParenToken)
+        End Function
+
+        ''' <summary>
+        ''' The values compared to the tuple elements.
+        ''' </summary>
+        Public ReadOnly Property Arguments As SeparatedSyntaxList(Of ExpressionSyntax)
+            Get
+                Dim listNode = GetRed(_arguments, 2)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of ExpressionSyntax)(listNode, Me.GetChildIndex(2))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Arguments property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithArguments(arguments as SeparatedSyntaxList(Of ExpressionSyntax)) As PositionalCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.OpenParenToken, arguments, Me.CloseParenToken)
+        End Function
+
+        Public Shadows Function AddArguments(ParamArray items As ExpressionSyntax()) As PositionalCaseClauseSyntax
+            Return Me.WithArguments(Me.Arguments.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Public ReadOnly Property CloseParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PositionalCaseClauseSyntax)._closeParenToken, Me.GetChildPosition(3), Me.GetChildIndex(3))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseParenToken(closeParenToken as SyntaxToken) As PositionalCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.OpenParenToken, Me.Arguments, closeParenToken)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me._arguments
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return GetRed(_arguments, 2)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitPositionalCaseClause(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitPositionalCaseClause(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The value for the IsKeyword property.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The value for the OpenParenToken property.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The value for the Arguments property.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The value for the CloseParenToken property.
+        ''' </param>
+        Public Function Update(isKeyword As SyntaxToken, openParenToken As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken) As PositionalCaseClauseSyntax
+            If isKeyword <> Me.IsKeyword OrElse openParenToken <> Me.OpenParenToken OrElse arguments <> Me.Arguments OrElse closeParenToken <> Me.CloseParenToken Then
+                Dim newNode = SyntaxFactory.PositionalCaseClause(isKeyword, openParenToken, arguments, closeParenToken)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

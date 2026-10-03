@@ -4120,8 +4120,64 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name=""></native-equiv>
       </child>
 
+      <child name="OpenParenToken" kind="OpenParenToken" optional="true">
+        <description>The opening parenthesis of a positional test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Arguments" optional="true" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="@ExpressionSyntax">
+        <description>The values compared to Deconstruct results.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CloseParenToken" kind="CloseParenToken" optional="true">
+        <description>The closing parenthesis of a positional test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
       <child name="Filters" optional="true" list="true" kind="@CaseFilterSyntax">
         <description>The AndAlso tests that follow the type test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
+      -  PositionalCaseClause
+      ******************-->
+    <node-structure name="PositionalCaseClauseSyntax" parent="CaseClauseSyntax">
+      <description>A positional test of a tuple, such as Is (1, 2).</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="PositionalCaseClause">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="IsKeyword" kind="IsKeyword">
+        <description>The Is keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="OpenParenToken" kind="OpenParenToken">
+        <description>The opening parenthesis.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Arguments" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="@ExpressionSyntax">
+        <description>The values compared to the tuple elements.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CloseParenToken" kind="CloseParenToken">
+        <description>The closing parenthesis.</description>
         <lm-equiv name=""></lm-equiv>
         <native-equiv name=""></native-equiv>
       </child>

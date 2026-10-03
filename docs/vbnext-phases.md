@@ -94,7 +94,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 5d | VB-005 | Done. On `vbnext`, a type that is not a tuple is deconstructed by an accessible method named `Deconstruct` whose `ByRef` parameters match the slots. An extension method is used when the type has no instance method of that name. The value is evaluated once, and an empty slot is still passed to the method. A value that is neither a tuple of that length nor a match for `Deconstruct` is an error. |
 | 5e | VB-004 | Done. On `vbnext`, `Case Is TypeOf Integer AndAlso Is > 0` matches when the Select expression has that type and passes the relational test. `Case Is TypeOf String` is the type test alone. The Select expression is evaluated once. Visual Basic 17.13 still reports an expected relational operator. |
 | 5f | VB-004 | Done. On `vbnext`, `Case Is TypeOf Customer AndAlso .Balance Is > 0 AndAlso .Name = "A"` reads those members after the type test. The Select expression is evaluated once. |
-| 5g | VB-004 | Positional patterns on tuples and on types with `Deconstruct`. |
+| 5g | VB-004 | Done. On `vbnext`, `Case Is (1, 2)` compares tuple elements, and `Case Is TypeOf Point(1, 2)` compares the `ByRef` results of `Deconstruct`. The Select expression is evaluated once. |
 | 5h | VB-004 | A `Select Case` expression produces a value. List patterns wait until phase 7. |
 
 5e through 5h use the spelling locked in `docs/vbnext-vb004-syntax.md`.
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 5f, property patterns in a type case, is implemented. The next slice is 5g, positional patterns on tuples and on types with Deconstruct.
+Slice 5g, positional patterns on tuples and on types with Deconstruct, is implemented. The next slice is 5h, a Select Case expression that produces a value.

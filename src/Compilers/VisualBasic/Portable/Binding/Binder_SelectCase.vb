@@ -184,6 +184,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.TypeCaseClause
                     Return BindTypeCaseClause(DirectCast(node, TypeCaseClauseSyntax), selectExpressionOpt, convertCaseElements, diagnostics)
 
+                Case SyntaxKind.PositionalCaseClause
+                    Return BindPositionalCaseClause(DirectCast(node, PositionalCaseClauseSyntax), selectExpressionOpt, diagnostics)
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(node.Kind)
             End Select
@@ -505,6 +508,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim condition As BoundExpression = typeTest
             Dim typedReceiver As BoundExpression = Nothing
 
+            If node.Arguments.Count > 0 Then
+                typedReceiver = New BoundDirectCast(node, selectExpressionOpt, ConversionKind.NarrowingReference, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
+                Dim positional = BindPositionalComparisons(node, typedReceiver, node.Arguments, diagnostics)
+                condition = BindBinaryOperator(
+                    node:=node,
+                    left:=condition,
+                    right:=positional,
+                    operatorTokenKind:=SyntaxKind.AndAlsoKeyword,
+                    preliminaryOperatorKind:=BinaryOperatorKind.AndAlso,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True).MakeCompilerGenerated()
+                hasErrors = hasErrors OrElse condition.HasErrors
+            End If
+
             For Each filter In node.Filters
                 Dim filterCondition As BoundExpression
                 If filter.Clause.Kind = SyntaxKind.PropertyCaseClause Then
@@ -586,6 +604,90 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 isOperandOfConditionalBranch:=False,
                 diagnostics:=diagnostics,
                 isSelectCase:=True)
+        End Function
+
+        Private Function BindPositionalCaseClause(node As PositionalCaseClauseSyntax, selectExpressionOpt As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause
+            If selectExpressionOpt Is Nothing Then
+                Dim missing = BadExpression(node, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
+                Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, missing, Nothing, hasErrors:=True)
+            End If
+
+            Dim condition = BindPositionalComparisons(node, selectExpressionOpt, node.Arguments, diagnostics)
+            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=condition.HasErrors)
+        End Function
+
+        Private Function BindPositionalComparisons(syntax As SyntaxNode, receiver As BoundExpression, arguments As SeparatedSyntaxList(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim booleanType = GetSpecialType(SpecialType.System_Boolean, syntax, diagnostics)
+            Dim elements = GetDeconstructionElements(receiver, arguments.Count)
+            If Not elements.IsDefault Then
+                Return ComparePositionalValues(syntax, arguments, diagnostics, booleanType, Function(index) New BoundFieldAccess(syntax, receiver, elements(index), isLValue:=False, type:=elements(index).Type))
+            End If
+
+            Dim method = FindDeconstructMethod(receiver, arguments.Count, diagnostics, syntax)
+            If method Is Nothing Then
+                If Not receiver.HasErrors Then
+                    ReportDiagnostic(diagnostics, syntax, ERRID.ERR_DeconstructionRequiresTuple, arguments.Count)
+                End If
+
+                Return BadExpression(syntax, booleanType).MakeCompilerGenerated()
+            End If
+
+            Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim argumentsBuilder = ArrayBuilder(Of BoundExpression).GetInstance(arguments.Count)
+            For i = 0 To arguments.Count - 1
+                Dim parameterType = method.Parameters(i).Type
+                Dim slot = New SynthesizedLocal(ContainingMember, parameterType, SynthesizedLocalKind.LoweringTemp)
+                locals.Add(slot)
+                argumentsBuilder.Add(New BoundLocal(syntax, slot, parameterType))
+            Next
+
+            Dim callReceiver = receiver
+            If Not receiver.Type.IsReferenceType Then
+                callReceiver = receiver
+            Else
+                callReceiver = receiver.MakeRValue()
+            End If
+
+            Dim invocation = New BoundCall(syntax, method, Nothing, callReceiver, argumentsBuilder.ToImmutableAndFree(), Nothing, method.ReturnType)
+            Dim comparisons = ComparePositionalValues(syntax, arguments, diagnostics, booleanType, Function(index) New BoundLocal(syntax, locals(index), locals(index).Type).MakeRValue())
+            Dim sideEffects = ImmutableArray.Create(Of BoundExpression)(invocation)
+            Return New BoundSequence(syntax, locals.ToImmutableAndFree(), sideEffects, comparisons, booleanType)
+        End Function
+
+        Private Function ComparePositionalValues(syntax As SyntaxNode, arguments As SeparatedSyntaxList(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag, booleanType As TypeSymbol, readElement As Func(Of Integer, BoundExpression)) As BoundExpression
+            Dim condition As BoundExpression = Nothing
+            For i = 0 To arguments.Count - 1
+                Dim expected = BindValue(arguments(i), diagnostics)
+                Dim actual = readElement(i)
+                Dim compare = BindBinaryOperator(
+                    node:=arguments(i),
+                    left:=actual,
+                    right:=expected,
+                    operatorTokenKind:=SyntaxKind.EqualsToken,
+                    preliminaryOperatorKind:=BinaryOperatorKind.Equals,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True)
+                If condition Is Nothing Then
+                    condition = compare
+                Else
+                    condition = BindBinaryOperator(
+                        node:=syntax,
+                        left:=condition,
+                        right:=compare,
+                        operatorTokenKind:=SyntaxKind.AndAlsoKeyword,
+                        preliminaryOperatorKind:=BinaryOperatorKind.AndAlso,
+                        isOperandOfConditionalBranch:=False,
+                        diagnostics:=diagnostics,
+                        isSelectCase:=True).MakeCompilerGenerated()
+                End If
+            Next
+
+            If condition Is Nothing Then
+                Return New BoundLiteral(syntax, ConstantValue.True, booleanType)
+            End If
+
+            Return condition
         End Function
 
         Private Function ComputeRelationalCaseClauseCondition(boundClause As BoundRelationalCaseClause, <Out()> ByRef conditionOpt As BoundExpression, selectExpression As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause

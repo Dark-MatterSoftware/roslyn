@@ -3256,5 +3256,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         PropertyCaseClause = 803                     ' PropertyCaseClauseSyntax : CaseClauseSyntax
 
+        ''' <summary>
+        ''' Represents a positional tuple test, <c>Case Is (1, 2)</c>.
+        ''' </summary>
+        PositionalCaseClause = 804                   ' PositionalCaseClauseSyntax : CaseClauseSyntax
+
     End Enum
 End Namespace

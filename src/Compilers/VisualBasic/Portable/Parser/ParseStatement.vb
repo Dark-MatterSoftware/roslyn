@@ -264,10 +264,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     If StartCase = SyntaxKind.IsKeyword OrElse SyntaxFacts.IsRelationalOperator(StartCase) Then
 
-                        If StartCase = SyntaxKind.IsKeyword AndAlso
-                           PeekToken(1).Kind = SyntaxKind.TypeOfKeyword AndAlso
-                           CheckFeatureAvailability(Feature.SelectCaseTypePattern) Then
-                            caseClause = ParseTypeCaseClause()
+                        If StartCase = SyntaxKind.IsKeyword AndAlso CheckFeatureAvailability(Feature.SelectCaseTypePattern) Then
+                            Dim nextKind = PeekToken(1).Kind
+                            If nextKind = SyntaxKind.TypeOfKeyword Then
+                                caseClause = ParseTypeCaseClause()
+                            ElseIf nextKind = SyntaxKind.OpenParenToken Then
+                                caseClause = ParsePositionalCaseClause()
+                            Else
+                                caseClause = ParseRelationalCaseClause()
+                            End If
                         Else
                             caseClause = ParseRelationalCaseClause()
                         End If
@@ -357,7 +362,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim typeOfKeyword = DirectCast(CurrentToken, KeywordSyntax)
             GetNextToken()
 
-            Dim typeName = ParseGeneralType()
+            Dim allowedEmptyGenericArguments As Boolean = False
+            Dim typeName = ParseTypeName(allowedEmptyGenericArguments:=allowedEmptyGenericArguments)
+            If CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso
+               (PeekToken(1).Kind = SyntaxKind.CloseParenToken OrElse PeekToken(1).Kind = SyntaxKind.CommaToken) Then
+                typeName = SyntaxFactory.ArrayType(typeName, ParseArrayRankSpecifiers())
+            End If
+
+            Dim openParen As PunctuationSyntax = Nothing
+            Dim arguments = _pool.AllocateSeparated(Of ExpressionSyntax)()
+            Dim closeParen As PunctuationSyntax = Nothing
+            If TryGetToken(SyntaxKind.OpenParenToken, openParen) Then
+                If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
+                    Do
+                        arguments.Add(ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+                        Dim comma As PunctuationSyntax = Nothing
+                        If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                            Exit Do
+                        End If
+
+                        arguments.AddSeparator(comma)
+                    Loop
+                End If
+
+                If Not TryGetToken(SyntaxKind.CloseParenToken, closeParen) Then
+                    closeParen = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseParenToken), ERRID.ERR_ExpectedRparen)
+                End If
+            End If
+
             Dim filters = _pool.Allocate(Of CaseFilterSyntax)()
 
             Do
@@ -376,8 +408,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 filters.Add(SyntaxFactory.CaseFilter(andAlsoKeyword, clause))
             Loop
 
-            Dim result = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, filters.ToList())
+            Dim result = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, openParen, arguments.ToList(), closeParen, filters.ToList())
+            _pool.Free(arguments)
             _pool.Free(filters)
+            Return result
+        End Function
+
+        Private Function ParsePositionalCaseClause() As PositionalCaseClauseSyntax
+            Dim isKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim arguments = _pool.AllocateSeparated(Of ExpressionSyntax)()
+            If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
+                Do
+                    arguments.Add(ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+                    Dim comma As PunctuationSyntax = Nothing
+                    If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                        Exit Do
+                    End If
+
+                    arguments.AddSeparator(comma)
+                Loop
+            End If
+
+            Dim closeParen As PunctuationSyntax = Nothing
+            If Not TryGetToken(SyntaxKind.CloseParenToken, closeParen) Then
+                closeParen = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseParenToken), ERRID.ERR_ExpectedRparen)
+            End If
+            Dim result = SyntaxFactory.PositionalCaseClause(isKeyword, openParen, arguments.ToList(), closeParen)
+            _pool.Free(arguments)
             Return result
         End Function
 

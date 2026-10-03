@@ -13060,11 +13060,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend ReadOnly _isKeyword as KeywordSyntax
         Friend ReadOnly _typeOfKeyword as KeywordSyntax
         Friend ReadOnly _type as TypeSyntax
+        Friend ReadOnly _openParenToken as PunctuationSyntax
+        Friend ReadOnly _arguments as GreenNode
+        Friend ReadOnly _closeParenToken as PunctuationSyntax
         Friend ReadOnly _filters as GreenNode
 
-        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As GreenNode)
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, filters As GreenNode)
             MyBase.New(kind)
-            Me.SlotCount = 4
+            Me.SlotCount = 7
 
             AdjustFlagsAndWidth(isKeyword)
             Me._isKeyword = isKeyword
@@ -13072,6 +13075,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Me._typeOfKeyword = typeOfKeyword
             AdjustFlagsAndWidth(type)
             Me._type = type
+            If openParenToken IsNot Nothing Then
+                AdjustFlagsAndWidth(openParenToken)
+                Me._openParenToken = openParenToken
+            End If
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            If closeParenToken IsNot Nothing Then
+                AdjustFlagsAndWidth(closeParenToken)
+                Me._closeParenToken = closeParenToken
+            End If
             If filters IsNot Nothing Then
                 AdjustFlagsAndWidth(filters)
                 Me._filters = filters
@@ -13079,9 +13094,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As GreenNode, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, filters As GreenNode, context As ISyntaxFactoryContext)
             MyBase.New(kind)
-            Me.SlotCount = 4
+            Me.SlotCount = 7
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(isKeyword)
@@ -13090,6 +13105,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Me._typeOfKeyword = typeOfKeyword
             AdjustFlagsAndWidth(type)
             Me._type = type
+            If openParenToken IsNot Nothing Then
+                AdjustFlagsAndWidth(openParenToken)
+                Me._openParenToken = openParenToken
+            End If
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            If closeParenToken IsNot Nothing Then
+                AdjustFlagsAndWidth(closeParenToken)
+                Me._closeParenToken = closeParenToken
+            End If
             If filters IsNot Nothing Then
                 AdjustFlagsAndWidth(filters)
                 Me._filters = filters
@@ -13097,9 +13124,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, filters As GreenNode)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, typeOfKeyword As InternalSyntax.KeywordSyntax, type As TypeSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, filters As GreenNode)
             MyBase.New(kind, errors, annotations)
-            Me.SlotCount = 4
+            Me.SlotCount = 7
 
             AdjustFlagsAndWidth(isKeyword)
             Me._isKeyword = isKeyword
@@ -13107,6 +13134,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Me._typeOfKeyword = typeOfKeyword
             AdjustFlagsAndWidth(type)
             Me._type = type
+            If openParenToken IsNot Nothing Then
+                AdjustFlagsAndWidth(openParenToken)
+                Me._openParenToken = openParenToken
+            End If
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            If closeParenToken IsNot Nothing Then
+                AdjustFlagsAndWidth(closeParenToken)
+                Me._closeParenToken = closeParenToken
+            End If
             If filters IsNot Nothing Then
                 AdjustFlagsAndWidth(filters)
                 Me._filters = filters
@@ -13146,6 +13185,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Property
 
         ''' <summary>
+        ''' The opening parenthesis of a positional test.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property OpenParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openParenToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The values compared to Deconstruct results.
+        ''' </summary>
+        ''' <remarks>
+        ''' If nothing is present, an empty list is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of ExpressionSyntax)(Me._arguments))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing parenthesis of a positional test.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property CloseParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeParenToken
+            End Get
+        End Property
+
+        ''' <summary>
         ''' The AndAlso tests that follow the type test.
         ''' </summary>
         ''' <remarks>
@@ -13166,6 +13241,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case 2
                     Return Me._type
                 Case 3
+                    Return Me._openParenToken
+                Case 4
+                    Return Me._arguments
+                Case 5
+                    Return Me._closeParenToken
+                Case 6
                     Return Me._filters
                 Case Else
                     Debug.Assert(false, "child index out of range")
@@ -13175,15 +13256,149 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new TypeCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _typeOfKeyword, _type, _filters)
+            Return new TypeCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _typeOfKeyword, _type, _openParenToken, _arguments, _closeParenToken, _filters)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new TypeCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _typeOfKeyword, _type, _filters)
+            Return new TypeCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _typeOfKeyword, _type, _openParenToken, _arguments, _closeParenToken, _filters)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
             Return visitor.VisitTypeCaseClause(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' A positional test of a tuple, such as Is (1, 2).
+    ''' </summary>
+    Friend NotInheritable Class PositionalCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend ReadOnly _isKeyword as KeywordSyntax
+        Friend ReadOnly _openParenToken as PunctuationSyntax
+        Friend ReadOnly _arguments as GreenNode
+        Friend ReadOnly _closeParenToken as PunctuationSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 4
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 4
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, openParenToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 4
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.PositionalCaseClauseSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Is keyword.
+        ''' </summary>
+        Friend ReadOnly Property IsKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._isKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property OpenParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openParenToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The values compared to the tuple elements.
+        ''' </summary>
+        Friend ReadOnly Property Arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of ExpressionSyntax)(Me._arguments))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property CloseParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeParenToken
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._isKeyword
+                Case 1
+                    Return Me._openParenToken
+                Case 2
+                    Return Me._arguments
+                Case 3
+                    Return Me._closeParenToken
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new PositionalCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _openParenToken, _arguments, _closeParenToken)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new PositionalCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _openParenToken, _arguments, _closeParenToken)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitPositionalCaseClause(Me)
         End Function
 
     End Class
@@ -29861,6 +30076,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
         End Function
+        Public Overridable Function VisitPositionalCaseClause(ByVal node As PositionalCaseClauseSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitCaseClause(node)
+        End Function
         Public Overridable Function VisitCaseFilter(ByVal node As CaseFilterSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitVisualBasicSyntaxNode(node)
@@ -32396,11 +32615,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._typeOfKeyword IsNot newTypeOfKeyword Then anyChanges = True
             Dim newType = DirectCast(Visit(node._type), TypeSyntax)
             If node._type IsNot newType Then anyChanges = True
+            Dim newOpenParenToken = DirectCast(Visit(node.OpenParenToken), PunctuationSyntax)
+            If node._openParenToken IsNot newOpenParenToken Then anyChanges = True
+            Dim newArguments = VisitList(node.Arguments)
+            If node._arguments IsNot newArguments.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(Visit(node.CloseParenToken), PunctuationSyntax)
+            If node._closeParenToken IsNot newCloseParenToken Then anyChanges = True
             Dim newFilters = VisitList(node.Filters)
             If node._filters IsNot newFilters.Node Then anyChanges = True
 
             If anyChanges Then
-                Return New TypeCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newFilters.Node)
+                Return New TypeCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newOpenParenToken, newArguments.Node, newCloseParenToken, newFilters.Node)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitPositionalCaseClause(ByVal node As PositionalCaseClauseSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newIsKeyword = DirectCast(Visit(node.IsKeyword), KeywordSyntax)
+            If node._isKeyword IsNot newIsKeyword Then anyChanges = True
+            Dim newOpenParenToken = DirectCast(Visit(node.OpenParenToken), PunctuationSyntax)
+            If node._openParenToken IsNot newOpenParenToken Then anyChanges = True
+            Dim newArguments = VisitList(node.Arguments)
+            If node._arguments IsNot newArguments.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(Visit(node.CloseParenToken), PunctuationSyntax)
+            If node._closeParenToken IsNot newCloseParenToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New PositionalCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newOpenParenToken, newArguments.Node, newCloseParenToken)
             Else
                 Return node
             End If
@@ -40461,14 +40705,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="type">
         ''' The type being tested.
         ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis of a positional test.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to Deconstruct results.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis of a positional test.
+        ''' </param>
         ''' <param name="filters">
         ''' The AndAlso tests that follow the type test.
         ''' </param>
-        Friend Shared Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)) As TypeCaseClauseSyntax
+        Friend Shared Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, openParenToken As PunctuationSyntax, arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax, filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)) As TypeCaseClauseSyntax
             Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
             Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
             Debug.Assert(type IsNot Nothing)
-            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, filters.Node)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, openParenToken, arguments.Node, closeParenToken, filters.Node)
+        End Function
+
+
+        ''' <summary>
+        ''' A positional test of a tuple, such as Is (1, 2).
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to the tuple elements.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Friend Shared Function PositionalCaseClause(isKeyword As KeywordSyntax, openParenToken As PunctuationSyntax, arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As PositionalCaseClauseSyntax
+            Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+            Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken)
         End Function
 
 
@@ -52725,14 +53001,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="type">
         ''' The type being tested.
         ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis of a positional test.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to Deconstruct results.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis of a positional test.
+        ''' </param>
         ''' <param name="filters">
         ''' The AndAlso tests that follow the type test.
         ''' </param>
-        Friend Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)) As TypeCaseClauseSyntax
+        Friend Function TypeCaseClause(isKeyword As KeywordSyntax, typeOfKeyword As KeywordSyntax, type As TypeSyntax, openParenToken As PunctuationSyntax, arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax, filters As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)) As TypeCaseClauseSyntax
             Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
             Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
             Debug.Assert(type IsNot Nothing)
-            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, filters.Node, _factoryContext)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, isKeyword, typeOfKeyword, type, openParenToken, arguments.Node, closeParenToken, filters.Node, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' A positional test of a tuple, such as Is (1, 2).
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to the tuple elements.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Friend Function PositionalCaseClause(isKeyword As KeywordSyntax, openParenToken As PunctuationSyntax, arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As PositionalCaseClauseSyntax
+            Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+            Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken, _factoryContext)
         End Function
 
 
