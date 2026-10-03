@@ -164,6 +164,11 @@
     language (.Length is just a property on System.Array) 
     and is normally introduced during the lowering phases.
     -->
+    <Node Name="BoundFromEndIndexExpression" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+      <Field Name="Operand" Type="BoundExpression"/>
+    </Node>
+
     <Node Name="BoundArrayLength" Base="BoundExpression">
       <!-- Non-null type is required for this node kind -->
       <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>

@@ -108,6 +108,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         Dim Operand = ParseExpressionCore(OperatorPrecedence.PrecedenceNegate)
                         expression = SyntaxFactory.AddressOfExpression(startToken, Operand)
 
+                    Case SyntaxKind.CaretToken
+                        ' ^n is an index from the end. Binary exponentiation still uses this token after a term.
+                        If Not _evaluatingConditionCompilationExpression AndAlso CheckFeatureAvailability(Feature.IndexFromEnd) Then
+                            GetNextToken()
+                            Dim Operand = ParseExpressionCore(OperatorPrecedence.PrecedenceNegate)
+                            expression = SyntaxFactory.FromEndIndexExpression(startToken, Operand)
+                        Else
+                            expression = ParseTerm(bailIfFirstTokenRejected)
+                            If expression Is Nothing Then
+                                Return Nothing
+                            End If
+                        End If
+
                     Case Else
                         expression = ParseTerm(bailIfFirstTokenRejected)
 

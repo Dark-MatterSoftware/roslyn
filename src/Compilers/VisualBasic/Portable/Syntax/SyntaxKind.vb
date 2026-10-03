@@ -3221,5 +3221,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         RequiredKeyword = 796                        ' KeywordSyntax : SyntaxToken
 
+        ''' <summary>
+        ''' Represents an index from the end, <c>^n</c>.
+        ''' </summary>
+        FromEndIndexExpression = 797                 ' UnaryExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

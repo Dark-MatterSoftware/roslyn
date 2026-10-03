@@ -25316,6 +25316,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     ''' <item><description><see cref="SyntaxKind.UnaryMinusExpression"/></description></item>
     ''' <item><description><see cref="SyntaxKind.NotExpression"/></description></item>
     ''' <item><description><see cref="SyntaxKind.AddressOfExpression"/></description></item>
+    ''' <item><description><see cref="SyntaxKind.FromEndIndexExpression"/></description></item>
     ''' </list>
     ''' </remarks>
     Public NotInheritable Class UnaryExpressionSyntax

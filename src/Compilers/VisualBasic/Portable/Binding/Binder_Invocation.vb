@@ -739,6 +739,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(allowConstructorCall OrElse Not IsGroupOfConstructors(group))
             Debug.Assert(group.ResultKind = LookupResultKind.Good OrElse group.ResultKind = LookupResultKind.Inaccessible)
 
+            If Not boundArguments.IsDefaultOrEmpty Then
+                For Each argument In boundArguments
+                    ReportFromEndIndexUsedOutsideArray(argument, diagnostics)
+                Next
+            End If
+
             ' It is possible to get here with method group with ResultKind = LookupResultKind.Inaccessible.
             ' When this happens, it is worth trying to do overload resolution on the "bad" set
             ' to report better errors.

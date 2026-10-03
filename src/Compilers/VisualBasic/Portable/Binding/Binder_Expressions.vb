@@ -138,6 +138,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.NotExpression
                     Return BindUnaryOperator(DirectCast(node, UnaryExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.FromEndIndexExpression
+                    Return BindFromEndIndexExpression(DirectCast(node, UnaryExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.AddExpression,
                      SyntaxKind.ConcatenateExpression,
                      SyntaxKind.LikeExpression,
@@ -3926,38 +3929,152 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 expr = expr.MakeRValue()
             End If
 
+            Dim hasFromEnd = False
+            For Each argument In boundArguments
+                If UnwrapFromEndIndex(argument) IsNot Nothing Then
+                    hasFromEnd = True
+                    Exit For
+                End If
+            Next
+
+            ' A call or other side-effecting receiver is stored once, then both the access and the
+            ' length read that temporary. A local or parameter is already safe to read twice.
+            Dim receiver = expr
+            Dim spillLocal As LocalSymbol = Nothing
+            Dim spillStore As BoundExpression = Nothing
+            If hasFromEnd AndAlso expr.Kind <> BoundKind.Local AndAlso expr.Kind <> BoundKind.Parameter AndAlso expr.Type IsNot Nothing AndAlso ContainingMember IsNot Nothing Then
+                spillLocal = New SynthesizedLocal(ContainingMember, expr.Type, SynthesizedLocalKind.LoweringTemp)
+                Dim storeTarget = New BoundLocal(expr.Syntax, spillLocal, expr.Type)
+                spillStore = New BoundAssignmentOperator(expr.Syntax, storeTarget, expr, suppressObjectClone:=True, type:=expr.Type)
+                receiver = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeRValue()
+            End If
+
             Dim convertedArguments = ArrayBuilder(Of BoundExpression).GetInstance(boundArguments.Length)
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, node.ArgumentList, diagnostics)
+            Dim dimension = 0
 
             For Each argument In boundArguments
-                convertedArguments.Add(ApplyImplicitConversion(argument.Syntax, int32Type, argument, diagnostics))
+                Dim fromEnd = UnwrapFromEndIndex(argument)
+                If fromEnd IsNot Nothing AndAlso receiver.Type IsNot Nothing AndAlso receiver.Type.IsArrayType() Then
+                    convertedArguments.Add(RewriteFromEndIndex(fromEnd, receiver, dimension, int32Type))
+                Else
+                    convertedArguments.Add(ApplyImplicitConversion(argument.Syntax, int32Type, argument, diagnostics))
+                End If
+                dimension += 1
             Next
 
             boundArguments = convertedArguments.ToImmutableAndFree()
 
-            Dim exprType = expr.Type
+            Dim result As BoundExpression
+            Dim exprType = receiver.Type
             If exprType Is Nothing Then
-                Return New BoundArrayAccess(node, expr, boundArguments, Nothing, hasErrors:=True)
-            End If
-
-            If Not argumentNames.IsDefault AndAlso argumentNames.Length > 0 Then
+                result = New BoundArrayAccess(node, receiver, boundArguments, Nothing, hasErrors:=True)
+            ElseIf Not argumentNames.IsDefault AndAlso argumentNames.Length > 0 Then
                 ReportDiagnostic(diagnostics, node, ERRID.ERR_NamedSubscript)
-            End If
-
-            Dim arrayType As ArrayTypeSymbol = DirectCast(expr.Type, ArrayTypeSymbol)
-            Dim rank As Integer = arrayType.Rank
-            If boundArguments.Length <> arrayType.Rank Then
-                Dim err As ERRID
-                If boundArguments.Length > arrayType.Rank Then
-                    err = ERRID.ERR_TooManyIndices
+                result = New BoundArrayAccess(node, receiver, boundArguments, DirectCast(exprType, ArrayTypeSymbol).ElementType, hasErrors:=True)
+            Else
+                Dim arrayType As ArrayTypeSymbol = DirectCast(exprType, ArrayTypeSymbol)
+                If boundArguments.Length <> arrayType.Rank Then
+                    Dim err As ERRID
+                    If boundArguments.Length > arrayType.Rank Then
+                        err = ERRID.ERR_TooManyIndices
+                    Else
+                        err = ERRID.ERR_TooFewIndices
+                    End If
+                    ReportDiagnostic(diagnostics, node.ArgumentList, err)
+                    result = New BoundArrayAccess(node, receiver, boundArguments, arrayType.ElementType, hasErrors:=True)
                 Else
-                    err = ERRID.ERR_TooFewIndices
+                    result = New BoundArrayAccess(node, receiver, boundArguments, arrayType.ElementType)
                 End If
-                ReportDiagnostic(diagnostics, node.ArgumentList, err)
-                Return New BoundArrayAccess(node, expr, boundArguments, arrayType.ElementType, hasErrors:=True)
             End If
 
-            Return New BoundArrayAccess(node, expr, boundArguments, arrayType.ElementType)
+            If spillLocal Is Nothing Then
+                Return result
+            End If
+
+            Return New BoundSequence(node, ImmutableArray.Create(spillLocal), ImmutableArray.Create(spillStore), result, result.Type)
+        End Function
+
+        Private Function BindFromEndIndexExpression(node As UnaryExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim operand = BindValue(node.Operand, diagnostics)
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+            operand = ApplyImplicitConversion(node.Operand, int32Type, operand, diagnostics)
+
+            ' An index argument is checked by the invocation or array access that consumes it.
+            ' Every other use is diagnosed here, before an error type would hide the failure.
+            Dim reported = False
+            If Not IsIndexArgument(node) Then
+                ReportDiagnostic(diagnostics, node, ERRID.ERR_IndexFromEndRequiresArray)
+                reported = True
+            End If
+
+            Return New BoundFromEndIndexExpression(node, operand, ErrorTypeSymbol.UnknownResultType, hasErrors:=reported)
+        End Function
+
+        Private Shared Function IsIndexArgument(node As SyntaxNode) As Boolean
+            Dim current = node.Parent
+            While current IsNot Nothing AndAlso current.Kind = SyntaxKind.ParenthesizedExpression
+                current = current.Parent
+            End While
+
+            Return current IsNot Nothing AndAlso
+                (current.Kind = SyntaxKind.SimpleArgument OrElse current.Kind = SyntaxKind.RangeArgument)
+        End Function
+
+        Private Function ReportFromEndIndexUsedOutsideArray(argument As BoundExpression, diagnostics As BindingDiagnosticBag) As Boolean
+            Dim fromEnd = UnwrapFromEndIndex(argument)
+            If fromEnd Is Nothing Then
+                Return False
+            End If
+
+            ReportDiagnostic(diagnostics, fromEnd.Syntax, ERRID.ERR_IndexFromEndRequiresArray)
+            Return True
+        End Function
+
+        Private Shared Function UnwrapFromEndIndex(argument As BoundExpression) As BoundFromEndIndexExpression
+            Dim current = argument
+            While current IsNot Nothing AndAlso current.Kind = BoundKind.Parenthesized
+                current = DirectCast(current, BoundParenthesized).Expression
+            End While
+
+            Return TryCast(current, BoundFromEndIndexExpression)
+        End Function
+
+        Private Function RewriteFromEndIndex(fromEnd As BoundFromEndIndexExpression, receiver As BoundExpression, dimension As Integer, int32Type As TypeSymbol) As BoundExpression
+            Dim length = ArrayDimensionLength(receiver, dimension, fromEnd.Syntax, int32Type)
+            Return New BoundBinaryOperator(fromEnd.Syntax, BinaryOperatorKind.Subtract, length, fromEnd.Operand, CheckOverflow, int32Type)
+        End Function
+
+        Private Function ArrayDimensionLength(receiver As BoundExpression, dimension As Integer, syntax As SyntaxNode, int32Type As TypeSymbol) As BoundExpression
+            Dim arrayType = DirectCast(receiver.Type, ArrayTypeSymbol)
+            If arrayType.Rank = 1 Then
+                Return New BoundArrayLength(syntax, CopyArrayReceiver(receiver), int32Type)
+            End If
+
+            Dim getLength As MethodSymbol = Nothing
+            For Each member In Compilation.GetSpecialType(SpecialType.System_Array).GetMembers("GetLength")
+                Dim candidate = TryCast(member, MethodSymbol)
+                If candidate IsNot Nothing AndAlso candidate.ParameterCount = 1 Then
+                    getLength = candidate
+                    Exit For
+                End If
+            Next
+
+            Dim argument = New BoundLiteral(syntax, ConstantValue.Create(dimension), int32Type)
+            Return New BoundCall(syntax, getLength, Nothing, CopyArrayReceiver(receiver), ImmutableArray.Create(Of BoundExpression)(argument), Nothing, int32Type)
+        End Function
+
+        Private Shared Function CopyArrayReceiver(receiver As BoundExpression) As BoundExpression
+            Select Case receiver.Kind
+                Case BoundKind.Local
+                    Dim local = DirectCast(receiver, BoundLocal)
+                    Return New BoundLocal(receiver.Syntax, local.LocalSymbol, receiver.Type).MakeRValue()
+                Case BoundKind.Parameter
+                    Dim parameter = DirectCast(receiver, BoundParameter)
+                    Return New BoundParameter(receiver.Syntax, parameter.ParameterSymbol, isLValue:=False, suppressVirtualCalls:=False, type:=receiver.Type)
+                Case Else
+                    Return receiver
+            End Select
         End Function
 
         ' Get the common return type of a set of symbols, or error type if no common return type. Used

@@ -107,6 +107,11 @@
         <target state="new">Instance fields in a ReadOnly structure must be ReadOnly.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_IndexFromEndRequiresArray">
+        <source>An index from the end can only be used as an array index.</source>
+        <target state="new">An index from the end can only be used as an array index.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">'Experimental' 屬性的 diagnosticId 引數必須是有效的識別碼</target>
@@ -310,6 +315,11 @@
       <trans-unit id="FEATURE_GenericAttributes">
         <source>generic attributes</source>
         <target state="new">generic attributes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_IndexFromEnd">
+        <source>index from end</source>
+        <target state="new">index from end</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_InitOnlyProperty">

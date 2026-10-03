@@ -60,6 +60,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         GenericAttributes
         ReadOnlyStructures
         NativeIntegers
+        IndexFromEnd
     End Enum
 
     Friend Module FeatureExtensions
@@ -145,7 +146,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.SetsRequiredMembers,
                      Feature.GenericAttributes,
                      Feature.ReadOnlyStructures,
-                     Feature.NativeIntegers
+                     Feature.NativeIntegers,
+                     Feature.IndexFromEnd
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -259,6 +261,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_ReadOnlyStructures
                 Case Feature.NativeIntegers
                     Return ERRID.FEATURE_NativeIntegers
+                Case Feature.IndexFromEnd
+                    Return ERRID.FEATURE_IndexFromEnd
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

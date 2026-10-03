@@ -43275,10 +43275,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <summary>
         ''' Describes a unary operator: Plus, Negate, Not or AddressOf.
         ''' </summary>
+        ''' <param name="operatorToken">
+        ''' The token that is the operator.
+        ''' </param>
+        ''' <param name="operand">
+        ''' The expression being operated on.
+        ''' </param>
+        Friend Shared Function FromEndIndexExpression(operatorToken As SyntaxToken, operand As ExpressionSyntax) As UnaryExpressionSyntax
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.CaretToken)
+            Debug.Assert(operand IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.FromEndIndexExpression, operatorToken, operand, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, UnaryExpressionSyntax)
+            End If
+
+            Dim result = New UnaryExpressionSyntax(SyntaxKind.FromEndIndexExpression, operatorToken, operand)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Describes a unary operator: Plus, Negate, Not or AddressOf.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' UnaryExpressionSyntax. One of UnaryPlusExpression, UnaryMinusExpression,
-        ''' NotExpression, AddressOfExpression.
+        ''' NotExpression, AddressOfExpression, FromEndIndexExpression.
         ''' </param>
         ''' <param name="operatorToken">
         ''' The token that is the operator.
@@ -55375,10 +55403,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <summary>
         ''' Describes a unary operator: Plus, Negate, Not or AddressOf.
         ''' </summary>
+        ''' <param name="operatorToken">
+        ''' The token that is the operator.
+        ''' </param>
+        ''' <param name="operand">
+        ''' The expression being operated on.
+        ''' </param>
+        Friend Function FromEndIndexExpression(operatorToken As SyntaxToken, operand As ExpressionSyntax) As UnaryExpressionSyntax
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.CaretToken)
+            Debug.Assert(operand IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.FromEndIndexExpression, operatorToken, operand, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, UnaryExpressionSyntax)
+            End If
+
+            Dim result = New UnaryExpressionSyntax(SyntaxKind.FromEndIndexExpression, operatorToken, operand, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Describes a unary operator: Plus, Negate, Not or AddressOf.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' UnaryExpressionSyntax. One of UnaryPlusExpression, UnaryMinusExpression,
-        ''' NotExpression, AddressOfExpression.
+        ''' NotExpression, AddressOfExpression, FromEndIndexExpression.
         ''' </param>
         ''' <param name="operatorToken">
         ''' The token that is the operator.

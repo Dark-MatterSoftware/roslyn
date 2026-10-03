@@ -30,6 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Parenthesized
         BadVariable
         ArrayAccess
+        FromEndIndexExpression
         ArrayLength
         [GetType]
         FieldInfo
@@ -785,6 +786,41 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(expression As BoundExpression, indices As ImmutableArray(Of BoundExpression), isLValue As Boolean, type As TypeSymbol) As BoundArrayAccess
             If expression IsNot Me.Expression OrElse indices <> Me.Indices OrElse isLValue <> Me.IsLValue OrElse type IsNot Me.Type Then
                 Dim result = New BoundArrayAccess(Me.Syntax, expression, indices, isLValue, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundFromEndIndexExpression
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, operand As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.FromEndIndexExpression, syntax, type, hasErrors OrElse operand.NonNullAndHasErrors())
+
+            Debug.Assert(operand IsNot Nothing, "Field 'operand' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._Operand = operand
+        End Sub
+
+
+        Private ReadOnly _Operand As BoundExpression
+        Public ReadOnly Property Operand As BoundExpression
+            Get
+                Return _Operand
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitFromEndIndexExpression(Me)
+        End Function
+
+        Public Function Update(operand As BoundExpression, type As TypeSymbol) As BoundFromEndIndexExpression
+            If operand IsNot Me.Operand OrElse type IsNot Me.Type Then
+                Dim result = New BoundFromEndIndexExpression(Me.Syntax, operand, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9230,7 +9266,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend NotInheritable Class BoundInterpolatedStringExpression
         Inherits BoundExpression
 
-        Public Sub New(syntax As SyntaxNode, contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False, Optional constantValueOpt As ConstantValue = Nothing)
+        Public Sub New(syntax As SyntaxNode, contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, constantValueOpt As ConstantValue, type As TypeSymbol, Optional hasErrors As Boolean = False)
             MyBase.New(BoundKind.InterpolatedStringExpression, syntax, type, hasErrors OrElse contents.NonNullAndHasErrors() OrElse constructionOpt.NonNullAndHasErrors())
 
             Debug.Assert(Not (contents.IsDefault), "Field 'contents' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
@@ -9275,7 +9311,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function Update(contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, type As TypeSymbol) As BoundInterpolatedStringExpression
             If contents <> Me.Contents OrElse constructionOpt IsNot Me.ConstructionOpt OrElse type IsNot Me.Type Then
-                Dim result = New BoundInterpolatedStringExpression(Me.Syntax, contents, constructionOpt, type, Me.HasErrors, Me.ConstantValueOpt)
+                Dim result = New BoundInterpolatedStringExpression(Me.Syntax, contents, constructionOpt, Me.ConstantValueOpt, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9364,6 +9400,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitBadVariable(CType(node, BoundBadVariable), arg)
                 Case BoundKind.ArrayAccess
                     Return VisitArrayAccess(CType(node, BoundArrayAccess), arg)
+                Case BoundKind.FromEndIndexExpression
+                    Return VisitFromEndIndexExpression(CType(node, BoundFromEndIndexExpression), arg)
                 Case BoundKind.ArrayLength
                     Return VisitArrayLength(CType(node, BoundArrayLength), arg)
                 Case BoundKind.[GetType]
@@ -9744,6 +9782,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitArrayAccess(node As BoundArrayAccess, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10447,6 +10489,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitArrayAccess(node As BoundArrayAccess) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11159,6 +11205,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitArrayAccess(node As BoundArrayAccess) As BoundNode
             Me.Visit(node.Expression)
             Me.VisitList(node.Indices)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
+            Me.Visit(node.Operand)
             Return Nothing
         End Function
 
@@ -12120,6 +12171,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim indices As ImmutableArray(Of BoundExpression) = Me.VisitList(node.Indices)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(expression, indices, node.IsLValue, type)
+        End Function
+
+        Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
+            Dim operand As BoundExpression = DirectCast(Me.Visit(node.Operand), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(operand, type)
         End Function
 
         Public Overrides Function VisitArrayLength(node As BoundArrayLength) As BoundNode
@@ -13234,6 +13291,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 New TreeDumperNode("expression", Nothing, new TreeDumperNode() {Visit(node.Expression, Nothing)}),
                 New TreeDumperNode("indices", Nothing, From x In node.Indices Select Visit(x, Nothing)),
                 New TreeDumperNode("isLValue", node.IsLValue, Nothing),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("fromEndIndexExpression", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("operand", Nothing, new TreeDumperNode() {Visit(node.Operand, Nothing)}),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

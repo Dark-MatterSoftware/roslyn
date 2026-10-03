@@ -1569,7 +1569,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_BadRequiredProperty,
                      ERRID.ERR_FieldInReadOnlyStructure,
                      ERRID.ERR_AutoPropertyInReadOnlyStructure,
-                     ERRID.ERR_EventInReadOnlyStructure
+                     ERRID.ERR_EventInReadOnlyStructure,
+                     ERRID.ERR_IndexFromEndRequiresArray
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

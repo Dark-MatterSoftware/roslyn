@@ -5769,6 +5769,12 @@
   <data name="FEATURE_NativeIntegers" xml:space="preserve">
     <value>native integers</value>
   </data>
+  <data name="FEATURE_IndexFromEnd" xml:space="preserve">
+    <value>index from end</value>
+  </data>
+  <data name="ERR_IndexFromEndRequiresArray" xml:space="preserve">
+    <value>An index from the end can only be used as an array index.</value>
+  </data>
   <data name="ERR_FieldInReadOnlyStructure" xml:space="preserve">
     <value>Instance fields in a ReadOnly structure must be ReadOnly.</value>
   </data>

@@ -5,4 +5,7 @@ Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.NothingCoalescingAssignmentStateme
 Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.InitOnlyKeyword = 795 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
 Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.RequiredKeyword = 796 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
 Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.QuestionEqualsToken = 794 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
+Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.FromEndIndexExpression = 797 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.FromEndIndexExpression(operand As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.UnaryExpressionSyntax
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.FromEndIndexExpression(operatorToken As Microsoft.CodeAnalysis.SyntaxToken, operand As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.UnaryExpressionSyntax
 Microsoft.CodeAnalysis.VisualBasic.VisualBasicExtensions.GetValueConversion(coalesceExpression As Microsoft.CodeAnalysis.Operations.ICoalesceOperation) -> Microsoft.CodeAnalysis.VisualBasic.Conversion

@@ -330,6 +330,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(Not isOperandOfConditionalBranch OrElse Not isExplicit)
             Debug.Assert(argument.IsValue())
 
+            Dim fromEnd = UnwrapFromEndIndex(argument)
+            If fromEnd IsNot Nothing Then
+                If Not fromEnd.HasErrors Then
+                    ReportDiagnostic(diagnostics, fromEnd.Syntax, ERRID.ERR_IndexFromEndRequiresArray)
+                End If
+
+                Return BadExpression(node, argument, ErrorTypeSymbol.UnknownResultType)
+            End If
+
             ' Target-typed New is unbound until this conversion supplies the type.
             Dim targetTypedNew = TryBindTargetTypedNew(argument, targetType, diagnostics)
             If targetTypedNew IsNot Nothing Then

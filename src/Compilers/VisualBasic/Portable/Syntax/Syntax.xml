@@ -5926,6 +5926,10 @@ Unify Enum declarations with other block type declarations.
         <lm-equiv name="UnaryOperator" />
         <native-equiv name="Expression.Opcodes.AddressOf" />
       </node-kind>
+      <node-kind name="FromEndIndexExpression">
+        <lm-equiv name="UnaryOperator" />
+        <native-equiv name="Expression.Opcodes.AddressOf" />
+      </node-kind>
 
       <child name="OperatorToken" >
         <description>The token that is the operator.</description>
@@ -5935,6 +5939,7 @@ Unify Enum declarations with other block type declarations.
         <kind name="MinusToken"  node-kind="UnaryMinusExpression"/>
         <kind name="NotKeyword"  node-kind="NotExpression"/>
         <kind name="AddressOfKeyword"  node-kind="AddressOfExpression"/>
+        <kind name="CaretToken" node-kind="FromEndIndexExpression"/>
       </child>
 
       <child name="Operand" kind="@ExpressionSyntax">

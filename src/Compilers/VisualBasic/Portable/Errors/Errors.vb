@@ -1815,8 +1815,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_FieldInReadOnlyStructure = 37355
         ERR_AutoPropertyInReadOnlyStructure = 37356
         ERR_EventInReadOnlyStructure = 37357
+        ERR_IndexFromEndRequiresArray = 37358
 
-        ERR_NextAvailable = 37358
+        ERR_NextAvailable = 37359
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2136,5 +2137,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_GenericAttributes
         FEATURE_ReadOnlyStructures
         FEATURE_NativeIntegers
+        FEATURE_IndexFromEnd
     End Enum
 End Namespace
