@@ -462,6 +462,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     ' is no longer part of the object model.
                     term = ParseCollectionInitializer()
 
+                Case SyntaxKind.OpenBracketToken
+                    term = ParseCollectionExpression()
+
                 Case SyntaxKind.SubKeyword,
                      SyntaxKind.FunctionKeyword
                     term = ParseLambda(parseModifiers:=False)

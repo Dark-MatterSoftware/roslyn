@@ -5805,6 +5805,12 @@
   <data name="FEATURE_PrimaryConstructor" xml:space="preserve">
     <value>primary constructors</value>
   </data>
+  <data name="FEATURE_CollectionExpression" xml:space="preserve">
+    <value>collection expressions</value>
+  </data>
+  <data name="ERR_CollectionExpressionRequiresTarget" xml:space="preserve">
+    <value>A collection expression requires a target type.</value>
+  </data>
   <data name="ERR_DuplicatePrimaryConstructor" xml:space="preserve">
     <value>A type can have only one primary constructor.</value>
   </data>

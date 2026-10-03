@@ -71,6 +71,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         PartialEvent
         PartialConstructor
         PrimaryConstructor
+        CollectionExpression
     End Enum
 
     Friend Module FeatureExtensions
@@ -167,7 +168,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.PartialProperty,
                      Feature.PartialEvent,
                      Feature.PartialConstructor,
-                     Feature.PrimaryConstructor
+                     Feature.PrimaryConstructor,
+                     Feature.CollectionExpression
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -303,6 +305,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_PartialConstructor
                 Case Feature.PrimaryConstructor
                     Return ERRID.FEATURE_PrimaryConstructor
+                Case Feature.CollectionExpression
+                    Return ERRID.FEATURE_CollectionExpression
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

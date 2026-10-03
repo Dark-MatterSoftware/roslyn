@@ -1820,7 +1820,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                         Case BoundKind.ArrayLiteral
                             arrayLiteral = DirectCast(inferFrom, BoundArrayLiteral)
-                            inferredType = arrayLiteral.InferredType
+                            If arrayLiteral.Syntax.Kind = SyntaxKind.CollectionExpression Then
+                                diagnostics.Add(ERRID.ERR_CollectionExpressionRequiresTarget, arrayLiteral.Syntax.GetLocation())
+                                inferredType = ErrorTypeSymbol.UnknownResultType
+                                arrayLiteral = Nothing
+                            Else
+                                inferredType = arrayLiteral.InferredType
+                            End If
 
                         Case BoundKind.TupleLiteral
                             Dim tupleLiteral = DirectCast(inferFrom, BoundTupleLiteral)

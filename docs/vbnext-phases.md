@@ -115,7 +115,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 7a | VB-035 | A collection expression targets an array. |
+| 7a | VB-035 | Done. On `vbnext`, `[1, 2, 3]` builds an array when the target type is an array. `[Name]` stays an escaped identifier. A collection expression with no target type is an error. Visual Basic 17.13 still treats `[` as the start of an escaped identifier. |
 | 7b | VB-035 | A collection expression targets a list or a type with a collection initializer. |
 | 7c | VB-035 | Spread copies an array or list into that target. |
 | 7d | VB-026 | `ParamArray` accepts a list or `IEnumerable` expansion. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-The collection expression spelling is locked. The next slice is 7a, a collection expression that targets an array.
+Slice 7a, a collection expression that targets an array, is implemented. The next slice is 7b, a collection expression that targets a list or a type with a collection initializer.

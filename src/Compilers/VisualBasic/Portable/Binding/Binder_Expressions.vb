@@ -90,6 +90,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.CollectionInitializer
                     Return BindArrayLiteralExpression(DirectCast(node, CollectionInitializerSyntax), diagnostics)
 
+                Case SyntaxKind.CollectionExpression
+                    Return BindCollectionExpression(DirectCast(node, CollectionExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.AnonymousObjectCreationExpression
                     Return BindAnonymousObjectCreationExpression(DirectCast(node, AnonymousObjectCreationExpressionSyntax), diagnostics)
 
@@ -1694,6 +1697,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                          arrayLiteral As BoundArrayLiteral,
                                                          diagnostics As BindingDiagnosticBag
                                                          ) As BoundExpression
+            If arrayLiteral.Syntax.Kind = SyntaxKind.CollectionExpression Then
+                ReportDiagnostic(diagnostics, arrayLiteral.Syntax, ERRID.ERR_CollectionExpressionRequiresTarget)
+                Return BadExpression(arrayLiteral.Syntax, arrayLiteral, ErrorTypeSymbol.UnknownResultType)
+            End If
+
             Return ApplyImplicitConversion(arrayLiteral.Syntax,
                                            arrayLiteral.InferredType,
                                            arrayLiteral,
@@ -4419,6 +4427,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim sizes As ImmutableArray(Of BoundExpression) = CreateArrayBounds(node, knownSizes, diagnostics)
 
+            Return New BoundArrayLiteral(node, hasDominantType, numberOfCandidates, inferredArrayType, sizes, arrayInitializer, Me)
+        End Function
+
+        Private Function BindCollectionExpression(node As CollectionExpressionSyntax,
+                                                   diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim initializers = ArrayBuilder(Of BoundExpression).GetInstance()
+            For Each element In node.Elements
+                Dim boundElement As BoundExpression
+                If element.Kind = SyntaxKind.CollectionExpression Then
+                    boundElement = BindCollectionExpression(DirectCast(element, CollectionExpressionSyntax), diagnostics)
+                Else
+                    boundElement = BindValue(element, diagnostics)
+                End If
+
+                initializers.Add(boundElement)
+            Next
+
+            Dim hasDominantType As Boolean
+            Dim numberOfCandidates As Integer
+            Dim inferredElementType = InferDominantTypeOfExpressions(node, initializers, diagnostics, numberOfCandidates)
+            If inferredElementType Is Nothing Then
+                inferredElementType = GetSpecialType(SpecialType.System_Object, node, diagnostics)
+                hasDominantType = False
+            Else
+                hasDominantType = True
+            End If
+
+            Dim arrayInitializer = New BoundArrayInitialization(node, initializers.ToImmutableAndFree(), Nothing)
+            arrayInitializer.SetWasCompilerGenerated()
+
+            Dim inferredArrayType = ArrayTypeSymbol.CreateVBArray(inferredElementType, Nothing, 1, Compilation)
+            Dim knownSizes = {DimensionSize.ConstantSize(node.Elements.Count)}
+            Dim sizes = CreateArrayBounds(node, knownSizes, diagnostics)
             Return New BoundArrayLiteral(node, hasDominantType, numberOfCandidates, inferredArrayType, sizes, arrayInitializer, Me)
         End Function
 

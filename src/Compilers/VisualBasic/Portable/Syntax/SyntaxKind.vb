@@ -3271,5 +3271,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         SelectCaseExpression = 806                   ' SelectCaseExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' The "[" token that opens a collection expression.
+        ''' </summary>
+        OpenBracketToken = 807                       ' PunctuationSyntax : SyntaxToken
+
+        ''' <summary>
+        ''' The "]" token that closes a collection expression.
+        ''' </summary>
+        CloseBracketToken = 808                      ' PunctuationSyntax : SyntaxToken
+
+        ''' <summary>
+        ''' Represents a collection expression. The target type decides what is built.
+        ''' </summary>
+        CollectionExpression = 809                   ' CollectionExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

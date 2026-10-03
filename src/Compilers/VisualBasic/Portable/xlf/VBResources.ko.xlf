@@ -67,6 +67,11 @@
         <target state="new">Cannot use '{0}' as a {1} type on a method marked UnmanagedCallersOnly.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CollectionExpressionRequiresTarget">
+        <source>A collection expression requires a target type.</source>
+        <target state="new">A collection expression requires a target type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CommentsAfterLineContinuationNotAvailable1">
         <source>Please use language version {0} or greater to use comments after line continuation character.</source>
         <target state="translated">줄 연속 문자 뒤에 주석을 사용하려면 언어 버전 {0} 이상을 사용하세요.</target>
@@ -375,6 +380,11 @@
       <trans-unit id="FEATURE_CallerArgumentExpression">
         <source>caller argument expression</source>
         <target state="translated">호출자 인수 표현식</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_CollectionExpression">
+        <source>collection expressions</source>
+        <target state="new">collection expressions</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_CommentsAfterLineContinuation">
