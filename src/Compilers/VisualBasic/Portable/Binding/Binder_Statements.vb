@@ -1024,6 +1024,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim names = node.Names
             Dim elements = GetDeconstructionElements(value, names.Count)
             Dim matches = Not elements.IsDefault
+            Dim method As MethodSymbol = Nothing
+            If Not matches Then
+                method = FindDeconstructMethod(value, names.Count, diagnostics, node)
+            End If
+
+            If method IsNot Nothing Then
+                Return BindDeconstructInvocation(node, value, method, declaringLocals:=True, diagnostics)
+            End If
 
             If Not matches AndAlso Not value.HasErrors Then
                 ReportDiagnostic(diagnostics, node.Initializer, ERRID.ERR_DeconstructionRequiresTuple, names.Count)
@@ -1086,6 +1094,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim names = node.Names
             Dim elements = GetDeconstructionElements(value, names.Count)
             Dim matches = Not elements.IsDefault
+            Dim method As MethodSymbol = Nothing
+            If Not matches Then
+                method = FindDeconstructMethod(value, names.Count, diagnostics, node)
+            End If
+
+            If method IsNot Nothing Then
+                Return BindDeconstructInvocation(node, value, method, declaringLocals:=False, diagnostics)
+            End If
 
             If Not matches AndAlso Not value.HasErrors Then
                 ReportDiagnostic(diagnostics, node.Initializer, ERRID.ERR_DeconstructionRequiresTuple, names.Count)
@@ -1181,11 +1197,206 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim index = statement.Names.IndexOf(name)
             Dim value = BindValue(statement.Initializer.Value, BindingDiagnosticBag.Discarded)
             Dim elements = GetDeconstructionElements(value, statement.Names.Count)
-            If elements.IsDefault OrElse index < 0 OrElse index >= elements.Length Then
+            If Not elements.IsDefault AndAlso index >= 0 AndAlso index < elements.Length Then
+                Return elements(index).Type
+            End If
+
+            Dim method = FindDeconstructMethod(value, statement.Names.Count, BindingDiagnosticBag.Discarded, statement)
+            If method Is Nothing OrElse index < 0 OrElse index >= method.ParameterCount Then
                 Return ErrorTypeSymbol.UnknownResultType
             End If
 
-            Return elements(index).Type
+            Return method.Parameters(index).Type
+        End Function
+
+        Private Function BindDeconstructInvocation(
+            node As TupleDeconstructionStatementSyntax,
+            value As BoundExpression,
+            method As MethodSymbol,
+            declaringLocals As Boolean,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundStatement
+
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim blockLocals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim names = node.Names
+            Dim hasErrors = value.HasErrors
+
+            Dim temp As LocalSymbol = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
+            blockLocals.Add(temp)
+            Dim stored = New BoundExpressionStatement(
+                node,
+                New BoundAssignmentOperator(
+                    node,
+                    New BoundLocal(node, temp, value.Type),
+                    value,
+                    suppressObjectClone:=True,
+                    type:=value.Type))
+            stored.SetWasCompilerGenerated()
+            statements.Add(stored)
+
+            Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(names.Count)
+            Dim followUps = ArrayBuilder(Of BoundStatement).GetInstance()
+
+            For i = 0 To names.Count - 1
+                Dim name = names(i)
+                Dim parameterType = method.Parameters(i).Type
+                If name.Identifier.IsMissing Then
+                    arguments.Add(ByRefSlot(name, parameterType, blockLocals))
+                    Continue For
+                End If
+
+                If declaringLocals Then
+                    Dim local = GetLocalForDeclaration(name.Identifier)
+                    VerifyLocalSymbolNameAndSetType(local, parameterType, name, name.Identifier, diagnostics)
+                    blockLocals.Add(local)
+                    arguments.Add(New BoundLocal(name, local, parameterType))
+                Else
+                    Dim target = BindDeconstructionTarget(name, diagnostics)
+                    If CanPassByRef(target, parameterType) Then
+                        arguments.Add(target)
+                    Else
+                        Dim slot = New SynthesizedLocal(ContainingMember, parameterType, SynthesizedLocalKind.LoweringTemp)
+                        blockLocals.Add(slot)
+                        arguments.Add(New BoundLocal(name, slot, parameterType))
+                        If target.HasErrors Then
+                            hasErrors = True
+                        Else
+                            Dim storedValue = ApplyImplicitConversion(
+                                name,
+                                target.Type,
+                                New BoundLocal(name, slot, parameterType).MakeRValue(),
+                                diagnostics)
+                            Dim assignment = New BoundExpressionStatement(
+                                name,
+                                New BoundAssignmentOperator(
+                                    name,
+                                    target,
+                                    storedValue,
+                                    suppressObjectClone:=True,
+                                    hasErrors:=storedValue.HasErrors))
+                            assignment.SetWasCompilerGenerated()
+                            followUps.Add(assignment)
+                            hasErrors = hasErrors OrElse storedValue.HasErrors
+                        End If
+                    End If
+                End If
+            Next
+
+            Dim invocation = New BoundCall(
+                node,
+                method,
+                Nothing,
+                DeconstructReceiver(node, temp, method),
+                arguments.ToImmutableAndFree(),
+                Nothing,
+                method.ReturnType,
+                hasErrors:=hasErrors)
+            Dim callStatement = New BoundExpressionStatement(node, invocation)
+            callStatement.SetWasCompilerGenerated()
+            statements.Add(callStatement)
+
+            For Each followUp In followUps
+                statements.Add(followUp)
+            Next
+            followUps.Free()
+
+            Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+        End Function
+
+        Private Function ByRefSlot(syntax As SyntaxNode, type As TypeSymbol, blockLocals As ArrayBuilder(Of LocalSymbol)) As BoundExpression
+            Dim slot = New SynthesizedLocal(ContainingMember, type, SynthesizedLocalKind.LoweringTemp)
+            blockLocals.Add(slot)
+            Return New BoundLocal(syntax, slot, type)
+        End Function
+
+        Private Shared Function CanPassByRef(target As BoundExpression, parameterType As TypeSymbol) As Boolean
+            Return Not target.HasErrors AndAlso
+                   target.IsLValue AndAlso
+                   target.Kind <> BoundKind.PropertyAccess AndAlso
+                   target.Type.IsSameTypeIgnoringAll(parameterType)
+        End Function
+
+        Private Shared Function DeconstructReceiver(syntax As SyntaxNode, temp As LocalSymbol, method As MethodSymbol) As BoundExpression
+            Dim local = New BoundLocal(syntax, temp, temp.Type)
+            Dim reduced = method.CallsiteReducedFromMethod
+            Dim byRefReceiver = reduced IsNot Nothing AndAlso reduced.ParameterCount > 0 AndAlso reduced.Parameters(0).IsByRef
+            If byRefReceiver OrElse Not temp.Type.IsReferenceType Then
+                Return local
+            End If
+
+            Return local.MakeRValue()
+        End Function
+
+        Private Function FindDeconstructMethod(value As BoundExpression, nameCount As Integer, diagnostics As BindingDiagnosticBag, syntax As SyntaxNode) As MethodSymbol
+            Dim valueType = value.Type
+            If valueType Is Nothing OrElse valueType.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim result = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(result, valueType, "Deconstruct", 0, LookupOptions.MustBeInstance Or LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(syntax, useSiteInfo)
+
+            Dim match = SelectDeconstructMethod(result, nameCount)
+            Dim sawInstanceMethod = False
+            If result.HasSymbol Then
+                For Each candidate In result.Symbols
+                    Dim candidateMethod = TryCast(candidate, MethodSymbol)
+                    If candidateMethod IsNot Nothing AndAlso Not candidateMethod.IsReducedExtensionMethod Then
+                        sawInstanceMethod = True
+                        Exit For
+                    End If
+                Next
+            End If
+
+            If match Is Nothing AndAlso Not sawInstanceMethod Then
+                result.Clear()
+                useSiteInfo = New CompoundUseSiteInfo(Of AssemblySymbol)(diagnostics, Compilation.Assembly)
+                LookupExtensionMethods(result, valueType, "Deconstruct", 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+                diagnostics.Add(syntax, useSiteInfo)
+                match = SelectDeconstructMethod(result, nameCount)
+            End If
+
+            result.Free()
+            Return match
+        End Function
+
+        Private Shared Function SelectDeconstructMethod(result As LookupResult, nameCount As Integer) As MethodSymbol
+            If Not result.IsGoodOrAmbiguous OrElse Not result.HasSymbol Then
+                Return Nothing
+            End If
+
+            Dim match As MethodSymbol = Nothing
+            For Each candidate In result.Symbols
+                Dim method = TryCast(candidate, MethodSymbol)
+                If method Is Nothing OrElse Not IsDeconstructSignature(method, nameCount) Then
+                    Continue For
+                End If
+
+                If match IsNot Nothing Then
+                    Return Nothing
+                End If
+
+                match = method
+            Next
+
+            Return match
+        End Function
+
+        Private Shared Function IsDeconstructSignature(method As MethodSymbol, nameCount As Integer) As Boolean
+            If method.IsGenericMethod OrElse method.IsShared OrElse method.ParameterCount <> nameCount Then
+                Return False
+            End If
+
+            For Each parameter In method.Parameters
+                If Not parameter.IsByRef Then
+                    Return False
+                End If
+            Next
+
+            Return True
         End Function
 
         Private Shared Function GetDeconstructionElements(value As BoundExpression, nameCount As Integer) As ImmutableArray(Of FieldSymbol)

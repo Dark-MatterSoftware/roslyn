@@ -91,7 +91,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 5a | VB-005 | Done. On `vbnext`, `Dim (x, y) = point` declares locals from a tuple. The tuple is evaluated once, and each name takes the element in that position. A value that is not a tuple of the same length is an error. Visual Basic 17.13 still treats the parentheses as array bounds. |
 | 5b | VB-005 | Done. On `vbnext`, `(x, y) = point` assigns each element into an existing variable. The tuple is evaluated once. A value that is not a tuple of the same length is an error. Visual Basic 17.13 still reports a syntax error on `(`. |
 | 5c | VB-005 | Done. On `vbnext`, `Dim (x, , z) = point` and `(x, , z) = point` skip the empty slot. The empty slot still counts toward the tuple length, and the tuple is evaluated once. Visual Basic 17.13 still treats the parentheses as array bounds or a syntax error. |
-| 5d | VB-005 | A method named `Deconstruct` is used when the type is not a tuple. |
+| 5d | VB-005 | Done. On `vbnext`, a type that is not a tuple is deconstructed by an accessible method named `Deconstruct` whose `ByRef` parameters match the slots. An extension method is used when the type has no instance method of that name. The value is evaluated once, and an empty slot is still passed to the method. A value that is neither a tuple of that length nor a match for `Deconstruct` is an error. |
 | 5e | VB-004 | `Case` accepts a logical combination of type and relational tests that already exist separately. |
 | 5f | VB-004 | Property patterns. |
 | 5g | VB-004 | Positional patterns on tuples and on types with `Deconstruct`. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 5c, a discard that skips one element of a deconstruction, is implemented. The next slice is 5d, a method named Deconstruct when the type is not a tuple.
+Slice 5d, a method named Deconstruct when the type is not a tuple, is implemented. The next slice is 5e, a Case that combines type and relational tests. That slice waits on a short VB-004 syntax note before any parser change.

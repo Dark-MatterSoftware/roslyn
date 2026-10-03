@@ -163,5 +163,75 @@ End Class
 
             CompileAndVerify(compilation, expectedOutput:="13461").VerifyDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub DeconstructMethod_AssignsByRefParameters()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public X As Integer
+    Public Y As Integer
+    Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+    Sub Deconstruct(ByRef a As Integer, ByRef b As Integer)
+        a = X
+        b = Y
+    End Sub
+End Class
+Class Program
+    Shared n As Integer
+    Shared Function NextPoint() As Point
+        n += 1
+        Return New Point(n, n + 1)
+    End Function
+    Shared Sub Main()
+        Dim (x, y) = NextPoint()
+        Dim (a, ) = NextPoint()
+        Dim q = 0
+        Dim r = 0
+        (q, r) = NextPoint()
+        System.Console.Write(x)
+        System.Console.Write(y)
+        System.Console.Write(a)
+        System.Console.Write(q)
+        System.Console.Write(r)
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="122343").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub DeconstructMethod_Extension()
+            Dim compilation = CreateCompilation("
+Imports System.Runtime.CompilerServices
+Class Point
+    Public X As Integer
+    Public Y As Integer
+End Class
+Module PointExtensions
+    <Extension>
+    Sub Deconstruct(value As Point, ByRef a As Integer, ByRef b As Integer)
+        a = value.X
+        b = value.Y
+    End Sub
+End Module
+Class Program
+    Shared Sub Main()
+        Dim point As New Point()
+        point.X = 7
+        point.Y = 8
+        Dim (x, y) = point
+        System.Console.Write(x)
+        System.Console.Write(y)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="78").VerifyDiagnostics()
+        End Sub
     End Class
 End Namespace
