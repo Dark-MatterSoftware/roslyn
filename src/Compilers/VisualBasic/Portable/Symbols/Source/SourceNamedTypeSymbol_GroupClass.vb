@@ -323,6 +323,16 @@ DoneWithBindingAttributes:
                 Dim binder As Binder = BinderBuilder.CreateBinderForType(ContainingSourceModule, syntaxRef.SyntaxTree, Me)
 
                 Dim typeBlock = DirectCast(node, TypeBlockSyntax)
+                Dim classStatement = TryCast(typeBlock.BlockStatement, ClassStatementSyntax)
+                If classStatement?.ParameterList IsNot Nothing Then
+                    If classStatement.ParameterList.Parameters.Count = 0 Then
+                        diagnostics.Free()
+                        Return Not Me.IsMustInherit
+                    End If
+
+                    haveInstanceConstructor = True
+                End If
+
                 For Each memberSyntax In typeBlock.Members
                     Dim constructorSyntax As SubNewStatementSyntax
 

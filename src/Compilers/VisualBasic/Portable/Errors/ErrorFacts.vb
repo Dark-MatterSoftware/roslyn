@@ -1583,7 +1583,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_PartialEventModifierMismatch,
                      ERRID.ERR_PartialEventDeclarationMismatch,
                      ERRID.ERR_PartialConstructorModifierMismatch,
-                     ERRID.ERR_PartialConstructorDeclarationMismatch
+                     ERRID.ERR_PartialConstructorDeclarationMismatch,
+                     ERRID.ERR_DuplicatePrimaryConstructor
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

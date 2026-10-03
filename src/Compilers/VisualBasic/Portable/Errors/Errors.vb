@@ -1829,8 +1829,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_PartialEventDeclarationMismatch = 37369
         ERR_PartialConstructorModifierMismatch = 37370
         ERR_PartialConstructorDeclarationMismatch = 37371
+        ERR_DuplicatePrimaryConstructor = 37372
 
-        ERR_NextAvailable = 37372
+        ERR_NextAvailable = 37373
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2160,5 +2161,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_PartialProperty
         FEATURE_PartialEvent
         FEATURE_PartialConstructor
+        FEATURE_PrimaryConstructor
     End Enum
 End Namespace

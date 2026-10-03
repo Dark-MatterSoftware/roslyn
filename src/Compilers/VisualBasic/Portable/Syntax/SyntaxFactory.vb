@@ -454,6 +454,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Select
         End Function
 
+        Public Shared Function ModuleStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, moduleKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
+            Return ModuleStatement(attributeLists, modifiers, moduleKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function ModuleStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
+            Return ModuleStatement(attributeLists, modifiers, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function ClassStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, classKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
+            Return ClassStatement(attributeLists, modifiers, classKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function ClassStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
+            Return ClassStatement(attributeLists, modifiers, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function StructureStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, structureKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
+            Return StructureStatement(attributeLists, modifiers, structureKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function StructureStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
+            Return StructureStatement(attributeLists, modifiers, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function InterfaceStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, interfaceKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
+            Return InterfaceStatement(attributeLists, modifiers, interfaceKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Public Shared Function InterfaceStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
+            Return InterfaceStatement(attributeLists, modifiers, identifier, typeParameterList, Nothing)
+        End Function
+
         ''' <summary>
         ''' Creates an xml documentation comment that abstracts xml syntax creation.
         ''' </summary>

@@ -2054,8 +2054,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend ReadOnly _modifiers as GreenNode
         Friend ReadOnly _identifier as IdentifierTokenSyntax
         Friend ReadOnly _typeParameterList as TypeParameterListSyntax
+        Friend ReadOnly _parameterList as ParameterListSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
             MyBase.New(kind)
 
             If attributeLists IsNot Nothing Then
@@ -2072,10 +2073,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(typeParameterList)
                 Me._typeParameterList = typeParameterList
             End If
+            If parameterList IsNot Nothing Then
+                AdjustFlagsAndWidth(parameterList)
+                Me._parameterList = parameterList
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind)
             Me.SetFactoryContext(context)
 
@@ -2093,10 +2098,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(typeParameterList)
                 Me._typeParameterList = typeParameterList
             End If
+            If parameterList IsNot Nothing Then
+                AdjustFlagsAndWidth(parameterList)
+                Me._parameterList = parameterList
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
             MyBase.New(kind, errors, annotations)
 
             If attributeLists IsNot Nothing Then
@@ -2112,6 +2121,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If typeParameterList IsNot Nothing Then
                 AdjustFlagsAndWidth(typeParameterList)
                 Me._typeParameterList = typeParameterList
+            End If
+            If parameterList IsNot Nothing Then
+                AdjustFlagsAndWidth(parameterList)
+                Me._parameterList = parameterList
             End If
 
         End Sub
@@ -2164,6 +2177,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End Get
         End Property
 
+        ''' <summary>
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property ParameterList As InternalSyntax.ParameterListSyntax
+            Get
+                Return Me._parameterList
+            End Get
+        End Property
+
     End Class
 
     ''' <summary>
@@ -2175,18 +2201,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend ReadOnly _moduleKeyword as KeywordSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(moduleKeyword)
             Me._moduleKeyword = moduleKeyword
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, context As ISyntaxFactoryContext)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(moduleKeyword)
@@ -2194,9 +2220,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(moduleKeyword)
             Me._moduleKeyword = moduleKeyword
@@ -2228,6 +2254,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return Me._identifier
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -2236,11 +2264,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new ModuleStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _moduleKeyword, _identifier, _typeParameterList)
+            Return new ModuleStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _moduleKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new ModuleStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _moduleKeyword, _identifier, _typeParameterList)
+            Return new ModuleStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _moduleKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -2258,18 +2286,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend ReadOnly _structureKeyword as KeywordSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(structureKeyword)
             Me._structureKeyword = structureKeyword
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, context As ISyntaxFactoryContext)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(structureKeyword)
@@ -2277,9 +2305,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(structureKeyword)
             Me._structureKeyword = structureKeyword
@@ -2311,6 +2339,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return Me._identifier
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -2319,11 +2349,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new StructureStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _structureKeyword, _identifier, _typeParameterList)
+            Return new StructureStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _structureKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new StructureStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _structureKeyword, _identifier, _typeParameterList)
+            Return new StructureStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _structureKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -2341,18 +2371,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend ReadOnly _interfaceKeyword as KeywordSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(interfaceKeyword)
             Me._interfaceKeyword = interfaceKeyword
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, context As ISyntaxFactoryContext)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(interfaceKeyword)
@@ -2360,9 +2390,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(interfaceKeyword)
             Me._interfaceKeyword = interfaceKeyword
@@ -2394,6 +2424,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return Me._identifier
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -2402,11 +2434,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new InterfaceStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _interfaceKeyword, _identifier, _typeParameterList)
+            Return new InterfaceStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _interfaceKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new InterfaceStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _interfaceKeyword, _identifier, _typeParameterList)
+            Return new InterfaceStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _interfaceKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -2424,18 +2456,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend ReadOnly _classKeyword as KeywordSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(classKeyword)
             Me._classKeyword = classKeyword
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, context As ISyntaxFactoryContext)
-            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(classKeyword)
@@ -2443,9 +2475,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList)
-            Me.SlotCount = 5
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, errors, annotations, attributeLists, modifiers, identifier, typeParameterList, parameterList)
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(classKeyword)
             Me._classKeyword = classKeyword
@@ -2477,6 +2509,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return Me._identifier
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -2485,11 +2519,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new ClassStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _classKeyword, _identifier, _typeParameterList)
+            Return new ClassStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _classKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new ClassStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _classKeyword, _identifier, _typeParameterList)
+            Return new ClassStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _classKeyword, _identifier, _typeParameterList, _parameterList)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -31304,9 +31338,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._identifier IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node._typeParameterList), TypeParameterListSyntax)
             If node._typeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node._parameterList), ParameterListSyntax)
+            If node._parameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New ModuleStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newModuleKeyword, newIdentifier, newTypeParameterList)
+                Return New ModuleStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newModuleKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -31325,9 +31361,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._identifier IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node._typeParameterList), TypeParameterListSyntax)
             If node._typeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node._parameterList), ParameterListSyntax)
+            If node._parameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New StructureStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newStructureKeyword, newIdentifier, newTypeParameterList)
+                Return New StructureStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newStructureKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -31346,9 +31384,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._identifier IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node._typeParameterList), TypeParameterListSyntax)
             If node._typeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node._parameterList), ParameterListSyntax)
+            If node._parameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New InterfaceStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newInterfaceKeyword, newIdentifier, newTypeParameterList)
+                Return New InterfaceStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newInterfaceKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -31367,9 +31407,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._identifier IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node._typeParameterList), TypeParameterListSyntax)
             If node._typeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node._parameterList), ParameterListSyntax)
+            If node._parameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New ClassStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newClassKeyword, newIdentifier, newTypeParameterList)
+                Return New ClassStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newClassKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -36578,10 +36620,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Shared Function ModuleStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), moduleKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Shared Function ModuleStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), moduleKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ModuleStatementSyntax
             Debug.Assert(moduleKeyword IsNot Nothing AndAlso moduleKeyword.Kind = SyntaxKind.ModuleKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New ModuleStatementSyntax(SyntaxKind.ModuleStatement, attributeLists.Node, modifiers.Node, moduleKeyword, identifier, typeParameterList)
+            Return New ModuleStatementSyntax(SyntaxKind.ModuleStatement, attributeLists.Node, modifiers.Node, moduleKeyword, identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -36607,10 +36653,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Shared Function StructureStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), structureKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Shared Function StructureStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), structureKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As StructureStatementSyntax
             Debug.Assert(structureKeyword IsNot Nothing AndAlso structureKeyword.Kind = SyntaxKind.StructureKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New StructureStatementSyntax(SyntaxKind.StructureStatement, attributeLists.Node, modifiers.Node, structureKeyword, identifier, typeParameterList)
+            Return New StructureStatementSyntax(SyntaxKind.StructureStatement, attributeLists.Node, modifiers.Node, structureKeyword, identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -36636,10 +36686,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Shared Function InterfaceStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), interfaceKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Shared Function InterfaceStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), interfaceKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As InterfaceStatementSyntax
             Debug.Assert(interfaceKeyword IsNot Nothing AndAlso interfaceKeyword.Kind = SyntaxKind.InterfaceKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New InterfaceStatementSyntax(SyntaxKind.InterfaceStatement, attributeLists.Node, modifiers.Node, interfaceKeyword, identifier, typeParameterList)
+            Return New InterfaceStatementSyntax(SyntaxKind.InterfaceStatement, attributeLists.Node, modifiers.Node, interfaceKeyword, identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -36665,10 +36719,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Shared Function ClassStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), classKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Shared Function ClassStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), classKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ClassStatementSyntax
             Debug.Assert(classKeyword IsNot Nothing AndAlso classKeyword.Kind = SyntaxKind.ClassKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New ClassStatementSyntax(SyntaxKind.ClassStatement, attributeLists.Node, modifiers.Node, classKeyword, identifier, typeParameterList)
+            Return New ClassStatementSyntax(SyntaxKind.ClassStatement, attributeLists.Node, modifiers.Node, classKeyword, identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -48932,10 +48990,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Function ModuleStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), moduleKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Function ModuleStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), moduleKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ModuleStatementSyntax
             Debug.Assert(moduleKeyword IsNot Nothing AndAlso moduleKeyword.Kind = SyntaxKind.ModuleKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New ModuleStatementSyntax(SyntaxKind.ModuleStatement, attributeLists.Node, modifiers.Node, moduleKeyword, identifier, typeParameterList, _factoryContext)
+            Return New ModuleStatementSyntax(SyntaxKind.ModuleStatement, attributeLists.Node, modifiers.Node, moduleKeyword, identifier, typeParameterList, parameterList, _factoryContext)
         End Function
 
 
@@ -48961,10 +49023,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Function StructureStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), structureKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Function StructureStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), structureKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As StructureStatementSyntax
             Debug.Assert(structureKeyword IsNot Nothing AndAlso structureKeyword.Kind = SyntaxKind.StructureKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New StructureStatementSyntax(SyntaxKind.StructureStatement, attributeLists.Node, modifiers.Node, structureKeyword, identifier, typeParameterList, _factoryContext)
+            Return New StructureStatementSyntax(SyntaxKind.StructureStatement, attributeLists.Node, modifiers.Node, structureKeyword, identifier, typeParameterList, parameterList, _factoryContext)
         End Function
 
 
@@ -48990,10 +49056,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Function InterfaceStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), interfaceKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Function InterfaceStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), interfaceKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As InterfaceStatementSyntax
             Debug.Assert(interfaceKeyword IsNot Nothing AndAlso interfaceKeyword.Kind = SyntaxKind.InterfaceKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New InterfaceStatementSyntax(SyntaxKind.InterfaceStatement, attributeLists.Node, modifiers.Node, interfaceKeyword, identifier, typeParameterList, _factoryContext)
+            Return New InterfaceStatementSyntax(SyntaxKind.InterfaceStatement, attributeLists.Node, modifiers.Node, interfaceKeyword, identifier, typeParameterList, parameterList, _factoryContext)
         End Function
 
 
@@ -49019,10 +49089,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Friend Function ClassStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), classKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Friend Function ClassStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), classKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ClassStatementSyntax
             Debug.Assert(classKeyword IsNot Nothing AndAlso classKeyword.Kind = SyntaxKind.ClassKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New ClassStatementSyntax(SyntaxKind.ClassStatement, attributeLists.Node, modifiers.Node, classKeyword, identifier, typeParameterList, _factoryContext)
+            Return New ClassStatementSyntax(SyntaxKind.ClassStatement, attributeLists.Node, modifiers.Node, classKeyword, identifier, typeParameterList, parameterList, _factoryContext)
         End Function
 
 

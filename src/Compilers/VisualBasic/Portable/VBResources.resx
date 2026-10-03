@@ -5802,6 +5802,12 @@
   <data name="FEATURE_PartialConstructor" xml:space="preserve">
     <value>partial constructors</value>
   </data>
+  <data name="FEATURE_PrimaryConstructor" xml:space="preserve">
+    <value>primary constructors</value>
+  </data>
+  <data name="ERR_DuplicatePrimaryConstructor" xml:space="preserve">
+    <value>A class can have only one primary constructor.</value>
+  </data>
   <data name="ERR_DeconstructionRequiresTuple" xml:space="preserve">
     <value>Deconstruction requires a tuple with {0} elements.</value>
   </data>

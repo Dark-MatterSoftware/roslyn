@@ -1569,6 +1569,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim kind As SyntaxKind
             Dim optionalTypeParameters As TypeParameterListSyntax = Nothing
+            Dim parameterList As ParameterListSyntax = Nothing
 
             Dim typeKeyword As KeywordSyntax = DirectCast(CurrentToken, KeywordSyntax)
             GetNextToken()
@@ -1602,18 +1603,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 '
                 If kind = SyntaxKind.ModuleStatement Then
                     ident = ident.AddTrailingSyntax(ReportGenericParamsDisallowedError(ERRID.ERR_ModulesCannotBeGeneric))
+                ElseIf BeginsPrimaryConstructor(kind) Then
+                    parameterList = ParseParameterList()
                 Else
                     optionalTypeParameters = ParseGenericParameters()
                 End If
             End If
 
-            Dim statement As TypeStatementSyntax = InternalSyntaxFactory.TypeStatement(kind, attributes, modifiers, typeKeyword, ident, optionalTypeParameters)
+            ' Class Box(Of T)(value As T): type parameters come first, then the primary constructor.
+            If parameterList Is Nothing AndAlso CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso BeginsPrimaryConstructor(kind) Then
+                parameterList = ParseParameterList()
+            End If
+
+            Dim statement As TypeStatementSyntax = InternalSyntaxFactory.TypeStatement(kind, attributes, modifiers, typeKeyword, ident, optionalTypeParameters, parameterList)
 
             If (kind = SyntaxKind.ModuleStatement OrElse kind = SyntaxKind.InterfaceStatement) AndAlso statement.Modifiers.Any(SyntaxKind.PartialKeyword) Then
                 statement = CheckFeatureAvailability(If(kind = SyntaxKind.ModuleStatement, Feature.PartialModules, Feature.PartialInterfaces), statement)
             End If
 
             Return statement
+        End Function
+
+        Private Function BeginsPrimaryConstructor(kind As SyntaxKind) As Boolean
+            If kind <> SyntaxKind.ClassStatement OrElse Not CheckFeatureAvailability(Feature.PrimaryConstructor) Then
+                Return False
+            End If
+
+            ' A newline is allowed between "(" and "Of" in a type-parameter list.
+            Dim offset = 1
+            If PeekToken(offset).Kind = SyntaxKind.StatementTerminatorToken Then
+                offset += 1
+            End If
+
+            Return PeekToken(offset).Kind <> SyntaxKind.OfKeyword
         End Function
 
         ' File:Parser.cpp

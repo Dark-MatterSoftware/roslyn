@@ -77,6 +77,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ' The name of the type, might be different than m_decl.Name depending on lexical sort order.
         Private ReadOnly _name As String
 
+        Private _primaryConstructor As MethodSymbol
+
         ' The name of the default property if any.
         ' GetMembersAndInitializers must be called before accessing field.
         Private _defaultPropertyName As String
@@ -3318,6 +3320,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Sub EnsureCtor(members As MembersAndInitializersBuilder, isShared As Boolean, isDebuggable As Boolean, diagBag As BindingDiagnosticBag)
 
+            If Not isShared AndAlso TryAddPrimaryConstructor(members, diagBag) Then
+                Return
+            End If
+
             Dim constructorName = If(isShared, WellKnownMemberNames.StaticConstructorName, WellKnownMemberNames.InstanceConstructorName)
 
             ' Check to see if we have already declared an instance|shared constructor.
@@ -3789,6 +3795,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return Me.MemberAndInitializerLookup.InstanceInitializers
             End Get
         End Property
+
+        Friend ReadOnly Property PrimaryConstructor As MethodSymbol
+            Get
+                Return _primaryConstructor
+            End Get
+        End Property
+
+        Private Function TryAddPrimaryConstructor(members As MembersAndInitializersBuilder, diagBag As BindingDiagnosticBag) As Boolean
+            If TypeKind <> TypeKind.Class Then
+                Return False
+            End If
+
+            Dim syntaxRef As SyntaxReference = Nothing
+            Dim parameterList As ParameterListSyntax = Nothing
+
+            For Each reference In SyntaxReferences
+                Dim typeBlock = TryCast(reference.GetSyntax(), TypeBlockSyntax)
+                Dim statement = TryCast(typeBlock?.BlockStatement, ClassStatementSyntax)
+                Dim list = statement?.ParameterList
+                If list Is Nothing Then
+                    Continue For
+                End If
+
+                If parameterList IsNot Nothing Then
+                    diagBag.Add(ERRID.ERR_DuplicatePrimaryConstructor, list.GetLocation())
+                    Continue For
+                End If
+
+                syntaxRef = reference
+                parameterList = list
+            Next
+
+            If parameterList Is Nothing Then
+                Return False
+            End If
+
+            Dim isDebuggable = Me.AnyInitializerToBeInjectedIntoConstructor(members.InstanceInitializers, True)
+            Dim binder = BinderBuilder.CreateBinderForType(m_containingModule, syntaxRef.SyntaxTree, Me)
+            Dim constructor As New PrimaryConstructorSymbol(syntaxRef, Me, isDebuggable, binder, diagBag, parameterList)
+            AddMember(constructor, binder, members, omitDiagnostics:=False)
+            _primaryConstructor = constructor
+            Return True
+        End Function
 
         Friend Function CalculateSyntaxOffsetInSynthesizedConstructor(position As Integer, tree As SyntaxTree, isShared As Boolean) As Integer
             If IsScriptClass AndAlso Not isShared Then

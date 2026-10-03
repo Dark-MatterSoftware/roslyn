@@ -709,7 +709,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         If method.MethodKind = MethodKind.SharedConstructor Then
                             processedInitializers = processedStaticInitializers
                         ElseIf method.MethodKind = MethodKind.Constructor OrElse method.IsScriptInitializer Then
-                            processedInitializers = processedInstanceInitializers
+                            ' A primary constructor owns the instance initializers. Another instance constructor does not see those parameters.
+                            If sourceTypeSymbol Is Nothing OrElse
+                               sourceTypeSymbol.PrimaryConstructor Is Nothing OrElse
+                               method Is sourceTypeSymbol.PrimaryConstructor OrElse
+                               method.IsScriptInitializer Then
+                                processedInitializers = processedInstanceInitializers
+                            End If
                         End If
 
                         Dim referencedConstructor As MethodSymbol = Nothing

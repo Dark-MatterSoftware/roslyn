@@ -3021,6 +3021,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
 
         Friend _attributeLists as SyntaxNode
         Friend _typeParameterList as TypeParameterListSyntax
+        Friend _parameterList as ParameterListSyntax
 
         Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
             MyBase.New(green, parent, startLocation)
@@ -3150,6 +3151,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
         Friend MustOverride Function AddTypeParameterListParametersCore(ParamArray items As TypeParameterSyntax()) As TypeStatementSyntax
 
+        ''' <summary>
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property ParameterList As ParameterListSyntax
+            Get
+                Return Me.GetParameterListCore()
+            End Get
+        End Property
+
+        Friend Overridable Function GetParameterListCore() As ParameterListSyntax
+            Return GetRed(_parameterList, 4)
+        End Function
+
+        ''' <summary>
+        ''' Returns a copy of this with the ParameterList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Function WithParameterList(parameterList As ParameterListSyntax) As TypeStatementSyntax
+            Return WithParameterListCore(parameterList)
+        End Function
+        Friend MustOverride Function WithParameterListCore(parameterList As ParameterListSyntax) As TypeStatementSyntax
+
+        Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As TypeStatementSyntax
+            Return AddParameterListParametersCore(items)
+        End Function
+        Friend MustOverride Function AddParameterListParametersCore(ParamArray items As ParameterSyntax()) As TypeStatementSyntax
+
     End Class
 
     ''' <summary>
@@ -3172,8 +3205,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ModuleStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, moduleKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, moduleKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ModuleStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, moduleKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing), if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -3204,7 +3237,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithAttributeLists(attributeLists as SyntaxList(Of AttributeListSyntax)) As ModuleStatementSyntax
-            return Update(attributeLists, Me.Modifiers, Me.ModuleKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(attributeLists, Me.Modifiers, Me.ModuleKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddAttributeLists(ParamArray items As AttributeListSyntax()) As ModuleStatementSyntax
@@ -3246,7 +3279,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As ModuleStatementSyntax
-            return Update(Me.AttributeLists, modifiers, Me.ModuleKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, modifiers, Me.ModuleKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As ModuleStatementSyntax
@@ -3272,7 +3305,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModuleKeyword(moduleKeyword as SyntaxToken) As ModuleStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, moduleKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, moduleKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -3298,7 +3331,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIdentifier(identifier as SyntaxToken) As ModuleStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.ModuleKeyword, identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.ModuleKeyword, identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -3328,7 +3361,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithTypeParameterList(typeParameterList as TypeParameterListSyntax) As ModuleStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.ModuleKeyword, Me.Identifier, typeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.ModuleKeyword, Me.Identifier, typeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddTypeParameterListParameters(ParamArray items As TypeParameterSyntax()) As ModuleStatementSyntax
@@ -3340,12 +3373,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Return AddTypeParameterListParameters(items)
         End Function
 
+        ''' <summary>
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public Shadows ReadOnly Property ParameterList As ParameterListSyntax
+            Get
+                Return GetRed(_parameterList, 5)
+            End Get
+        End Property
+
+        Friend Overrides Function GetParameterListCore() As ParameterListSyntax
+            Return Me.ParameterList
+        End Function
+
+        Friend Overrides Function WithParameterListCore(parameterList As ParameterListSyntax) As TypeStatementSyntax
+            Return WithParameterList(parameterList)
+        End Function
+
+        ''' <summary>
+        ''' Returns a copy of this with the ParameterList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As ModuleStatementSyntax
+            return Update(Me.AttributeLists, Me.Modifiers, Me.ModuleKeyword, Me.Identifier, Me.TypeParameterList, parameterList)
+        End Function
+
+        Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As ModuleStatementSyntax
+            Dim _child = If(Me.ParameterList IsNot Nothing, Me.ParameterList, SyntaxFactory.ParameterList())
+            Return Me.WithParameterList(_child.AddParameters(items))
+        End Function
+
+        Friend Overrides Function AddParameterListParametersCore(ParamArray items As ParameterSyntax()) As TypeStatementSyntax
+            Return AddParameterListParameters(items)
+        End Function
+
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 0
                     Return Me._attributeLists
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Return Nothing
             End Select
@@ -3357,6 +3431,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                     Return GetRedAtZero(_attributeLists)
                 Case 4
                     Return Me.TypeParameterList
+                Case 5
+                    Return Me.ParameterList
                 Case Else
                     Return Nothing
             End Select
@@ -3390,9 +3466,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="typeParameterList">
         ''' The value for the TypeParameterList property.
         ''' </param>
-        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, moduleKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
-            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse moduleKeyword <> Me.ModuleKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList Then
-                Dim newNode = SyntaxFactory.ModuleStatement(attributeLists, modifiers, moduleKeyword, identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' The value for the ParameterList property.
+        ''' </param>
+        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, moduleKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ModuleStatementSyntax
+            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse moduleKeyword <> Me.ModuleKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList OrElse parameterList IsNot Me.ParameterList Then
+                Dim newNode = SyntaxFactory.ModuleStatement(attributeLists, modifiers, moduleKeyword, identifier, typeParameterList, parameterList)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)
@@ -3424,8 +3503,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.StructureStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, structureKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, structureKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.StructureStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, structureKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing), if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -3456,7 +3535,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithAttributeLists(attributeLists as SyntaxList(Of AttributeListSyntax)) As StructureStatementSyntax
-            return Update(attributeLists, Me.Modifiers, Me.StructureKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(attributeLists, Me.Modifiers, Me.StructureKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddAttributeLists(ParamArray items As AttributeListSyntax()) As StructureStatementSyntax
@@ -3498,7 +3577,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As StructureStatementSyntax
-            return Update(Me.AttributeLists, modifiers, Me.StructureKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, modifiers, Me.StructureKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As StructureStatementSyntax
@@ -3524,7 +3603,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithStructureKeyword(structureKeyword as SyntaxToken) As StructureStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, structureKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, structureKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -3550,7 +3629,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIdentifier(identifier as SyntaxToken) As StructureStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.StructureKeyword, identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.StructureKeyword, identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -3580,7 +3659,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithTypeParameterList(typeParameterList as TypeParameterListSyntax) As StructureStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.StructureKeyword, Me.Identifier, typeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.StructureKeyword, Me.Identifier, typeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddTypeParameterListParameters(ParamArray items As TypeParameterSyntax()) As StructureStatementSyntax
@@ -3592,12 +3671,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Return AddTypeParameterListParameters(items)
         End Function
 
+        ''' <summary>
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public Shadows ReadOnly Property ParameterList As ParameterListSyntax
+            Get
+                Return GetRed(_parameterList, 5)
+            End Get
+        End Property
+
+        Friend Overrides Function GetParameterListCore() As ParameterListSyntax
+            Return Me.ParameterList
+        End Function
+
+        Friend Overrides Function WithParameterListCore(parameterList As ParameterListSyntax) As TypeStatementSyntax
+            Return WithParameterList(parameterList)
+        End Function
+
+        ''' <summary>
+        ''' Returns a copy of this with the ParameterList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As StructureStatementSyntax
+            return Update(Me.AttributeLists, Me.Modifiers, Me.StructureKeyword, Me.Identifier, Me.TypeParameterList, parameterList)
+        End Function
+
+        Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As StructureStatementSyntax
+            Dim _child = If(Me.ParameterList IsNot Nothing, Me.ParameterList, SyntaxFactory.ParameterList())
+            Return Me.WithParameterList(_child.AddParameters(items))
+        End Function
+
+        Friend Overrides Function AddParameterListParametersCore(ParamArray items As ParameterSyntax()) As TypeStatementSyntax
+            Return AddParameterListParameters(items)
+        End Function
+
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 0
                     Return Me._attributeLists
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Return Nothing
             End Select
@@ -3609,6 +3729,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                     Return GetRedAtZero(_attributeLists)
                 Case 4
                     Return Me.TypeParameterList
+                Case 5
+                    Return Me.ParameterList
                 Case Else
                     Return Nothing
             End Select
@@ -3642,9 +3764,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="typeParameterList">
         ''' The value for the TypeParameterList property.
         ''' </param>
-        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, structureKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
-            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse structureKeyword <> Me.StructureKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList Then
-                Dim newNode = SyntaxFactory.StructureStatement(attributeLists, modifiers, structureKeyword, identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' The value for the ParameterList property.
+        ''' </param>
+        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, structureKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As StructureStatementSyntax
+            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse structureKeyword <> Me.StructureKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList OrElse parameterList IsNot Me.ParameterList Then
+                Dim newNode = SyntaxFactory.StructureStatement(attributeLists, modifiers, structureKeyword, identifier, typeParameterList, parameterList)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)
@@ -3676,8 +3801,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.InterfaceStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, interfaceKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, interfaceKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.InterfaceStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, interfaceKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing), if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -3708,7 +3833,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithAttributeLists(attributeLists as SyntaxList(Of AttributeListSyntax)) As InterfaceStatementSyntax
-            return Update(attributeLists, Me.Modifiers, Me.InterfaceKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(attributeLists, Me.Modifiers, Me.InterfaceKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddAttributeLists(ParamArray items As AttributeListSyntax()) As InterfaceStatementSyntax
@@ -3750,7 +3875,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As InterfaceStatementSyntax
-            return Update(Me.AttributeLists, modifiers, Me.InterfaceKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, modifiers, Me.InterfaceKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As InterfaceStatementSyntax
@@ -3776,7 +3901,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithInterfaceKeyword(interfaceKeyword as SyntaxToken) As InterfaceStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, interfaceKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, interfaceKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -3802,7 +3927,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIdentifier(identifier as SyntaxToken) As InterfaceStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.InterfaceKeyword, identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.InterfaceKeyword, identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -3832,7 +3957,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithTypeParameterList(typeParameterList as TypeParameterListSyntax) As InterfaceStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.InterfaceKeyword, Me.Identifier, typeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.InterfaceKeyword, Me.Identifier, typeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddTypeParameterListParameters(ParamArray items As TypeParameterSyntax()) As InterfaceStatementSyntax
@@ -3844,12 +3969,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Return AddTypeParameterListParameters(items)
         End Function
 
+        ''' <summary>
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public Shadows ReadOnly Property ParameterList As ParameterListSyntax
+            Get
+                Return GetRed(_parameterList, 5)
+            End Get
+        End Property
+
+        Friend Overrides Function GetParameterListCore() As ParameterListSyntax
+            Return Me.ParameterList
+        End Function
+
+        Friend Overrides Function WithParameterListCore(parameterList As ParameterListSyntax) As TypeStatementSyntax
+            Return WithParameterList(parameterList)
+        End Function
+
+        ''' <summary>
+        ''' Returns a copy of this with the ParameterList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As InterfaceStatementSyntax
+            return Update(Me.AttributeLists, Me.Modifiers, Me.InterfaceKeyword, Me.Identifier, Me.TypeParameterList, parameterList)
+        End Function
+
+        Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As InterfaceStatementSyntax
+            Dim _child = If(Me.ParameterList IsNot Nothing, Me.ParameterList, SyntaxFactory.ParameterList())
+            Return Me.WithParameterList(_child.AddParameters(items))
+        End Function
+
+        Friend Overrides Function AddParameterListParametersCore(ParamArray items As ParameterSyntax()) As TypeStatementSyntax
+            Return AddParameterListParameters(items)
+        End Function
+
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 0
                     Return Me._attributeLists
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Return Nothing
             End Select
@@ -3861,6 +4027,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                     Return GetRedAtZero(_attributeLists)
                 Case 4
                     Return Me.TypeParameterList
+                Case 5
+                    Return Me.ParameterList
                 Case Else
                     Return Nothing
             End Select
@@ -3894,9 +4062,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="typeParameterList">
         ''' The value for the TypeParameterList property.
         ''' </param>
-        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, interfaceKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
-            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse interfaceKeyword <> Me.InterfaceKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList Then
-                Dim newNode = SyntaxFactory.InterfaceStatement(attributeLists, modifiers, interfaceKeyword, identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' The value for the ParameterList property.
+        ''' </param>
+        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, interfaceKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As InterfaceStatementSyntax
+            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse interfaceKeyword <> Me.InterfaceKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList OrElse parameterList IsNot Me.ParameterList Then
+                Dim newNode = SyntaxFactory.InterfaceStatement(attributeLists, modifiers, interfaceKeyword, identifier, typeParameterList, parameterList)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)
@@ -3928,8 +4099,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ClassStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, classKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, classKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ClassStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, classKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing), if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -3960,7 +4131,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithAttributeLists(attributeLists as SyntaxList(Of AttributeListSyntax)) As ClassStatementSyntax
-            return Update(attributeLists, Me.Modifiers, Me.ClassKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(attributeLists, Me.Modifiers, Me.ClassKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddAttributeLists(ParamArray items As AttributeListSyntax()) As ClassStatementSyntax
@@ -4002,7 +4173,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As ClassStatementSyntax
-            return Update(Me.AttributeLists, modifiers, Me.ClassKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, modifiers, Me.ClassKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As ClassStatementSyntax
@@ -4028,7 +4199,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithClassKeyword(classKeyword as SyntaxToken) As ClassStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, classKeyword, Me.Identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, classKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -4054,7 +4225,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIdentifier(identifier as SyntaxToken) As ClassStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.ClassKeyword, identifier, Me.TypeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.ClassKeyword, identifier, Me.TypeParameterList, Me.ParameterList)
         End Function
 
         ''' <summary>
@@ -4084,7 +4255,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithTypeParameterList(typeParameterList as TypeParameterListSyntax) As ClassStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.ClassKeyword, Me.Identifier, typeParameterList)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.ClassKeyword, Me.Identifier, typeParameterList, Me.ParameterList)
         End Function
 
         Public Shadows Function AddTypeParameterListParameters(ParamArray items As TypeParameterSyntax()) As ClassStatementSyntax
@@ -4096,12 +4267,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Return AddTypeParameterListParameters(items)
         End Function
 
+        ''' <summary>
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public Shadows ReadOnly Property ParameterList As ParameterListSyntax
+            Get
+                Return GetRed(_parameterList, 5)
+            End Get
+        End Property
+
+        Friend Overrides Function GetParameterListCore() As ParameterListSyntax
+            Return Me.ParameterList
+        End Function
+
+        Friend Overrides Function WithParameterListCore(parameterList As ParameterListSyntax) As TypeStatementSyntax
+            Return WithParameterList(parameterList)
+        End Function
+
+        ''' <summary>
+        ''' Returns a copy of this with the ParameterList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As ClassStatementSyntax
+            return Update(Me.AttributeLists, Me.Modifiers, Me.ClassKeyword, Me.Identifier, Me.TypeParameterList, parameterList)
+        End Function
+
+        Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As ClassStatementSyntax
+            Dim _child = If(Me.ParameterList IsNot Nothing, Me.ParameterList, SyntaxFactory.ParameterList())
+            Return Me.WithParameterList(_child.AddParameters(items))
+        End Function
+
+        Friend Overrides Function AddParameterListParametersCore(ParamArray items As ParameterSyntax()) As TypeStatementSyntax
+            Return AddParameterListParameters(items)
+        End Function
+
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 0
                     Return Me._attributeLists
                 Case 4
                     Return Me._typeParameterList
+                Case 5
+                    Return Me._parameterList
                 Case Else
                     Return Nothing
             End Select
@@ -4113,6 +4325,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                     Return GetRedAtZero(_attributeLists)
                 Case 4
                     Return Me.TypeParameterList
+                Case 5
+                    Return Me.ParameterList
                 Case Else
                     Return Nothing
             End Select
@@ -4146,9 +4360,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="typeParameterList">
         ''' The value for the TypeParameterList property.
         ''' </param>
-        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, classKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
-            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse classKeyword <> Me.ClassKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList Then
-                Dim newNode = SyntaxFactory.ClassStatement(attributeLists, modifiers, classKeyword, identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' The value for the ParameterList property.
+        ''' </param>
+        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, classKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ClassStatementSyntax
+            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse classKeyword <> Me.ClassKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList OrElse parameterList IsNot Me.ParameterList Then
+                Dim newNode = SyntaxFactory.ClassStatement(attributeLists, modifiers, classKeyword, identifier, typeParameterList, parameterList)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

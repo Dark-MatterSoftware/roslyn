@@ -87,6 +87,11 @@
         <target state="translated">'System.Runtime.CompilerServices.RequiredMemberAttribute'는 컴파일러 용도로만 예약되어 있습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_DuplicatePrimaryConstructor">
+        <source>A class can have only one primary constructor.</source>
+        <target state="new">A class can have only one primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_EncUpdateFailedMissingSymbol">
         <source>Cannot update '{0}'; attribute '{1}' is missing.</source>
         <target state="translated">'{0}'을(를) 업데이트할 수 없습니다. 특성 '{1}'이(가) 없습니다.</target>
@@ -445,6 +450,11 @@
       <trans-unit id="FEATURE_PartialProperty">
         <source>partial properties</source>
         <target state="new">partial properties</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_PrimaryConstructor">
+        <source>primary constructors</source>
+        <target state="new">primary constructors</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_RawStringLiteral">

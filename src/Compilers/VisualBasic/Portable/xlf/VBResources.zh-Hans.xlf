@@ -87,6 +87,11 @@
         <target state="translated">"System.Runtime.CompilerServices.RequiredMemberAttribute" 仅供编译器使用。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_DuplicatePrimaryConstructor">
+        <source>A class can have only one primary constructor.</source>
+        <target state="new">A class can have only one primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_EncUpdateFailedMissingSymbol">
         <source>Cannot update '{0}'; attribute '{1}' is missing.</source>
         <target state="translated">无法更新“{0}”；特性“{1}”缺失。</target>
@@ -445,6 +450,11 @@
       <trans-unit id="FEATURE_PartialProperty">
         <source>partial properties</source>
         <target state="new">partial properties</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_PrimaryConstructor">
+        <source>primary constructors</source>
+        <target state="new">primary constructors</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_RawStringLiteral">

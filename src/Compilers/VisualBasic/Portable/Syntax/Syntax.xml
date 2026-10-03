@@ -835,6 +835,12 @@ Unify Enum declarations with other block type declarations.
         </description>
       </child>
 
+      <child name="ParameterList" optional="true" kind="ParameterList" order="60">
+        <description>
+          If present, the primary constructor parameter list. If no primary constructor was specified, Nothing is returned.
+        </description>
+      </child>
+
     </node-structure>
 
     <!--********************

@@ -1835,9 +1835,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.Identifier.Node IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node.TypeParameterList), TypeParameterListSyntax)
             If node.TypeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node.ParameterList), ParameterListSyntax)
+            If node.ParameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New ModuleStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newModuleKeyword, newIdentifier, newTypeParameterList)
+                Return New ModuleStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newModuleKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -1856,9 +1858,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.Identifier.Node IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node.TypeParameterList), TypeParameterListSyntax)
             If node.TypeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node.ParameterList), ParameterListSyntax)
+            If node.ParameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New StructureStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newStructureKeyword, newIdentifier, newTypeParameterList)
+                Return New StructureStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newStructureKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -1877,9 +1881,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.Identifier.Node IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node.TypeParameterList), TypeParameterListSyntax)
             If node.TypeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node.ParameterList), ParameterListSyntax)
+            If node.ParameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New InterfaceStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newInterfaceKeyword, newIdentifier, newTypeParameterList)
+                Return New InterfaceStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newInterfaceKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -1898,9 +1904,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.Identifier.Node IsNot newIdentifier Then anyChanges = True
             Dim newTypeParameterList = DirectCast(Visit(node.TypeParameterList), TypeParameterListSyntax)
             If node.TypeParameterList IsNot newTypeParameterList Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node.ParameterList), ParameterListSyntax)
+            If node.ParameterList IsNot newParameterList Then anyChanges = True
 
             If anyChanges Then
-                Return New ClassStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newClassKeyword, newIdentifier, newTypeParameterList)
+                Return New ClassStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newClassKeyword, newIdentifier, newTypeParameterList, newParameterList)
             Else
                 Return node
             End If
@@ -7702,7 +7710,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function ModuleStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, moduleKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function ModuleStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, moduleKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ModuleStatementSyntax
             Select Case moduleKeyword.Kind()
                 Case SyntaxKind.ModuleKeyword
                 Case Else
@@ -7713,7 +7725,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New ModuleStatementSyntax(SyntaxKind.ModuleStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(moduleKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList)
+            Return New ModuleStatementSyntax(SyntaxKind.ModuleStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(moduleKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList)
         End Function
 
 
@@ -7736,8 +7748,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function ModuleStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
-            Return SyntaxFactory.ModuleStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function ModuleStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ModuleStatementSyntax
+            Return SyntaxFactory.ModuleStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -7749,7 +7765,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function ModuleStatement(identifier As SyntaxToken) As ModuleStatementSyntax
-            Return SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), identifier, Nothing)
+            Return SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), identifier, Nothing, Nothing)
         End Function
 
 
@@ -7761,7 +7777,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function ModuleStatement(identifier As String) As ModuleStatementSyntax
-            Return SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), SyntaxFactory.Identifier(identifier), Nothing)
+            Return SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing)
         End Function
 
 
@@ -7787,7 +7803,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function StructureStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, structureKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function StructureStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, structureKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As StructureStatementSyntax
             Select Case structureKeyword.Kind()
                 Case SyntaxKind.StructureKeyword
                 Case Else
@@ -7798,7 +7818,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New StructureStatementSyntax(SyntaxKind.StructureStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(structureKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList)
+            Return New StructureStatementSyntax(SyntaxKind.StructureStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(structureKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList)
         End Function
 
 
@@ -7821,8 +7841,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function StructureStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
-            Return SyntaxFactory.StructureStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.StructureKeyword), identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function StructureStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As StructureStatementSyntax
+            Return SyntaxFactory.StructureStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.StructureKeyword), identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -7834,7 +7858,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function StructureStatement(identifier As SyntaxToken) As StructureStatementSyntax
-            Return SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), identifier, Nothing)
+            Return SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), identifier, Nothing, Nothing)
         End Function
 
 
@@ -7846,7 +7870,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function StructureStatement(identifier As String) As StructureStatementSyntax
-            Return SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), SyntaxFactory.Identifier(identifier), Nothing)
+            Return SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing)
         End Function
 
 
@@ -7872,7 +7896,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function InterfaceStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, interfaceKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function InterfaceStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, interfaceKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As InterfaceStatementSyntax
             Select Case interfaceKeyword.Kind()
                 Case SyntaxKind.InterfaceKeyword
                 Case Else
@@ -7883,7 +7911,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New InterfaceStatementSyntax(SyntaxKind.InterfaceStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(interfaceKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList)
+            Return New InterfaceStatementSyntax(SyntaxKind.InterfaceStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(interfaceKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList)
         End Function
 
 
@@ -7906,8 +7934,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function InterfaceStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
-            Return SyntaxFactory.InterfaceStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function InterfaceStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As InterfaceStatementSyntax
+            Return SyntaxFactory.InterfaceStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -7919,7 +7951,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function InterfaceStatement(identifier As SyntaxToken) As InterfaceStatementSyntax
-            Return SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), identifier, Nothing)
+            Return SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), identifier, Nothing, Nothing)
         End Function
 
 
@@ -7931,7 +7963,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function InterfaceStatement(identifier As String) As InterfaceStatementSyntax
-            Return SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), SyntaxFactory.Identifier(identifier), Nothing)
+            Return SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing)
         End Function
 
 
@@ -7957,7 +7989,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function ClassStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, classKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function ClassStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, classKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ClassStatementSyntax
             Select Case classKeyword.Kind()
                 Case SyntaxKind.ClassKeyword
                 Case Else
@@ -7968,7 +8004,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New ClassStatementSyntax(SyntaxKind.ClassStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(classKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList)
+            Return New ClassStatementSyntax(SyntaxKind.ClassStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(classKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList)
         End Function
 
 
@@ -7991,8 +8027,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, a type parameter list with generic parameters for this type. If no
         ''' generic parameters were present, Nothing is returned.
         ''' </param>
-        Public Shared Function ClassStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
-            Return SyntaxFactory.ClassStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.ClassKeyword), identifier, typeParameterList)
+        ''' <param name="parameterList">
+        ''' If present, the primary constructor parameter list. If no primary constructor
+        ''' was specified, Nothing is returned.
+        ''' </param>
+        Public Shared Function ClassStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax) As ClassStatementSyntax
+            Return SyntaxFactory.ClassStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.ClassKeyword), identifier, typeParameterList, parameterList)
         End Function
 
 
@@ -8004,7 +8044,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function ClassStatement(identifier As SyntaxToken) As ClassStatementSyntax
-            Return SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), identifier, Nothing)
+            Return SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), identifier, Nothing, Nothing)
         End Function
 
 
@@ -8016,7 +8056,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the type being declared.
         ''' </param>
         Public Shared Function ClassStatement(identifier As String) As ClassStatementSyntax
-            Return SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), SyntaxFactory.Identifier(identifier), Nothing)
+            Return SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing)
         End Function
 
 

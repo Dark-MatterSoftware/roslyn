@@ -121,6 +121,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                         If scriptInitializerOpt IsNot Nothing Then
                             parentBinder = New TopLevelCodeBinder(scriptInitializerOpt, parentBinder)
+                        ElseIf initializers.Equals(symbol.InstanceInitializers) AndAlso symbol.PrimaryConstructor IsNot Nothing Then
+                            parentBinder = New PrimaryConstructorParameterBinder(parentBinder, symbol.PrimaryConstructor.Parameters)
                         End If
                     Else
                         Debug.Assert(parentBinder.SyntaxTree Is syntaxTree, "sibling initializer array contains initializers from two different syntax trees.")

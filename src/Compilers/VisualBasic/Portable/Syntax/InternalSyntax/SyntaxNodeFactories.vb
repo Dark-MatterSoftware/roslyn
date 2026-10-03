@@ -545,23 +545,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End Select
         End Function
 
-        Public Shared Function TypeStatement(ByVal statementKind As SyntaxKind, ByVal attributes As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), ByVal modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), ByVal keyword As KeywordSyntax, ByVal identifier As IdentifierTokenSyntax, ByVal typeParameterList As TypeParameterListSyntax) As TypeStatementSyntax
+        Public Shared Function TypeStatement(ByVal statementKind As SyntaxKind, ByVal attributes As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), ByVal modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), ByVal keyword As KeywordSyntax, ByVal identifier As IdentifierTokenSyntax, ByVal typeParameterList As TypeParameterListSyntax, ByVal parameterList As ParameterListSyntax) As TypeStatementSyntax
             Select Case statementKind
                 Case SyntaxKind.ModuleStatement
-                    Return SyntaxFactory.ModuleStatement(attributes, modifiers, keyword, identifier, typeParameterList)
+                    Return SyntaxFactory.ModuleStatement(attributes, modifiers, keyword, identifier, typeParameterList, parameterList)
 
                 Case SyntaxKind.ClassStatement
-                    Return SyntaxFactory.ClassStatement(attributes, modifiers, keyword, identifier, typeParameterList)
+                    Return SyntaxFactory.ClassStatement(attributes, modifiers, keyword, identifier, typeParameterList, parameterList)
 
                 Case SyntaxKind.StructureStatement
-                    Return SyntaxFactory.StructureStatement(attributes, modifiers, keyword, identifier, typeParameterList)
+                    Return SyntaxFactory.StructureStatement(attributes, modifiers, keyword, identifier, typeParameterList, parameterList)
 
                 Case SyntaxKind.InterfaceStatement
-                    Return SyntaxFactory.InterfaceStatement(attributes, modifiers, keyword, identifier, typeParameterList)
+                    Return SyntaxFactory.InterfaceStatement(attributes, modifiers, keyword, identifier, typeParameterList, parameterList)
 
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(statementKind)
             End Select
+        End Function
+
+        Friend Shared Function ModuleStatement(attributeLists As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), moduleKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As ModuleStatementSyntax
+            Return ModuleStatement(attributeLists, modifiers, moduleKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Friend Shared Function ClassStatement(attributeLists As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), classKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As ClassStatementSyntax
+            Return ClassStatement(attributeLists, modifiers, classKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Friend Shared Function StructureStatement(attributeLists As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), structureKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As StructureStatementSyntax
+            Return StructureStatement(attributeLists, modifiers, structureKeyword, identifier, typeParameterList, Nothing)
+        End Function
+
+        Friend Shared Function InterfaceStatement(attributeLists As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), interfaceKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
+            Return InterfaceStatement(attributeLists, modifiers, interfaceKeyword, identifier, typeParameterList, Nothing)
         End Function
     End Class
 End Namespace
