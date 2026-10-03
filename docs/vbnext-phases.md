@@ -144,7 +144,7 @@ Depends on phase 3 (init-only, required) and slice 5d (deconstruction). Position
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 9a | VB-038 | An interface method may have a body. A class inherits that body when it does not supply one. |
+| 9a | VB-038 | Done. On `vbnext`, an interface method may have a body. A class that implements the interface and does not supply the method uses that body. The class may still supply its own with `Implements`. A method without a body still must be implemented. Visual Basic 17.13 still rejects a body inside an interface. |
 | 9b | VB-038 | The most specific default body is chosen when two interfaces contribute one. |
 | 9c | VB-039 | An extension block may add a property. |
 | 9d | VB-039 | An extension block may add an indexer. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 8d, a record structure, is implemented. The next slice is 9a, an interface method with a body.
+Slice 9a, an interface method with a body, is implemented. The next slice is 9b, the most specific default body when two interfaces contribute one.

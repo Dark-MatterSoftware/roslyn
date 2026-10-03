@@ -57,11 +57,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(_state = SyntaxKind.InterfaceStatement)
 
             Select Case kind
+                Case SyntaxKind.SubStatement, SyntaxKind.FunctionStatement
+                    ' On vbnext a body is a default implementation. An abstract member stays a statement
+                    ' when the next member is another declaration, so existing interfaces keep their shape.
+                    If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       Not DirectCast(node, MethodBaseSyntax).Modifiers.Any(SyntaxKind.MustOverrideKeyword) Then
+                        Dim methodBlockKind = If(kind = SyntaxKind.SubStatement, SyntaxKind.SubBlock, SyntaxKind.FunctionBlock)
+                        Return New InterfaceMethodBlockContext(methodBlockKind, DirectCast(node, StatementSyntax), Me)
+                    End If
+
+                    Add(node)
+
                 Case _
                     SyntaxKind.DelegateSubStatement,
                     SyntaxKind.DelegateFunctionStatement,
-                    SyntaxKind.SubStatement,
-                    SyntaxKind.FunctionStatement,
                     SyntaxKind.EmptyStatement
                     Add(node)
 
@@ -109,7 +118,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case SyntaxKind.EnumBlock,
                     SyntaxKind.ClassBlock,
                     SyntaxKind.StructureBlock,
-                    SyntaxKind.InterfaceBlock
+                    SyntaxKind.InterfaceBlock,
+                    SyntaxKind.SubBlock,
+                    SyntaxKind.FunctionBlock
                     ' Handle any block that can be created by this context
                     Add(node)
 
@@ -181,6 +192,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.StructureBlock,
                     SyntaxKind.InterfaceBlock
                     Return UseSyntax(node, newContext, DirectCast(node, TypeBlockSyntax).EndBlockStatement.IsMissing)
+
+                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock
+                    Return UseSyntax(node, newContext, DirectCast(node, MethodBlockBaseSyntax).End.IsMissing)
 
                 Case SyntaxKind.EnumBlock
                     Return UseSyntax(node, newContext, DirectCast(node, EnumBlockSyntax).EndEnumStatement.IsMissing)

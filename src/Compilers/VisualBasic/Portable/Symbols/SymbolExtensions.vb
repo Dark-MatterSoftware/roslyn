@@ -207,6 +207,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Friend Function RequiresImplementation(sym As Symbol) As Boolean
             Select Case sym.Kind
                 Case SymbolKind.Method, SymbolKind.Property, SymbolKind.Event
+                    ' A source default implementation supplies the body, so a class does not have to.
+                    ' Metadata default implementations still require an implementation in VB (see issue 35820).
+                    If IsSourceDefaultInterfaceImplementation(sym) Then
+                        Return False
+                    End If
+
                     ' Note that in metadata, you can encounter methods that are static (shared) or non-virtual 
                     ' (for example TLBIMP VtblGap members), even though you can't define those in source.
                     Return sym.ContainingType.IsInterfaceType() AndAlso
@@ -215,6 +221,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Case Else
                     Return False
             End Select
+        End Function
+
+        Friend Function IsSourceDefaultInterfaceImplementation(sym As Symbol) As Boolean
+            Dim method = TryCast(sym.OriginalDefinition, SourceMethodSymbol)
+            Return method IsNot Nothing AndAlso method.BlockSyntax IsNot Nothing AndAlso method.ContainingType.IsInterface
         End Function
 
         <Extension()>

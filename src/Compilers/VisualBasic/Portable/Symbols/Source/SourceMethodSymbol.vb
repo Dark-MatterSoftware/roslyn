@@ -85,6 +85,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 flags = flags Or SourceMemberFlags.MethodIsSub
             End If
 
+            ' A body on an interface method is a default implementation: virtual, not abstract.
+            If container.IsInterface AndAlso
+               syntax.Parent IsNot Nothing AndAlso
+               (syntax.Parent.Kind = SyntaxKind.SubBlock OrElse syntax.Parent.Kind = SyntaxKind.FunctionBlock) Then
+                flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable
+            End If
+
             If syntax.HandlesClause IsNot Nothing Then
                 flags = flags Or SourceMemberFlags.MethodHandlesEvents
             End If

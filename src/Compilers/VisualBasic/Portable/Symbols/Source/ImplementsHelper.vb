@@ -460,9 +460,10 @@ DoneWithErrorReporting:
                                                                         implementedMethodName As String,
                                                                         ByRef errorReported As Boolean) As TSymbol
 
-            If Not implementedSym.RequiresImplementation() Then
+            If Not implementedSym.RequiresImplementation() AndAlso Not IsSourceDefaultInterfaceImplementation(implementedSym) Then
                 ' TODO: Perhaps give ERR_CantImplementNonVirtual3 like Dev10. But, this message seems more
                 ' TODO: confusing than useful, so for now, just treat it like a method that doesn't exist.
+                ' A source default interface method does not require an implementation, and a class may still supply one.
                 Return Nothing
             End If
 
