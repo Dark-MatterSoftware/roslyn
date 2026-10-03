@@ -48,6 +48,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             [Partial] = 1 << 11
             [ReadOnly] = 1 << 12
             RefLike = 1 << 13
+            Record = 1 << 14
         End Enum
 
         ' Flags about the type
@@ -152,6 +153,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Select Case declaration.Kind
                 Case DeclarationKind.Class
                     flags = SourceTypeFlags.Class
+                    If (modifiers And DeclarationModifiers.Record) <> 0 AndAlso
+                       m_containingModule.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext Then
+                        flags = flags Or SourceTypeFlags.Record
+                    End If
+
                     If (modifiers And DeclarationModifiers.NotInheritable) <> 0 Then
                         flags = flags Or SourceTypeFlags.NotInheritable
                     ElseIf (modifiers And DeclarationModifiers.MustInherit) <> 0 Then
@@ -1275,6 +1281,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property IsRefLikeType As Boolean
             Get
                 Return (_flags And SourceTypeFlags.RefLike) <> 0
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsRecord As Boolean
+            Get
+                Return (_flags And SourceTypeFlags.Record) <> 0
             End Get
         End Property
 
@@ -3052,11 +3064,81 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Select
         End Function
 
+        Private Sub AddRecordMembersIfNeeded(members As MembersAndInitializersBuilder, diagnostics As BindingDiagnosticBag)
+            If Not IsRecord OrElse SyntaxReferences.IsEmpty Then
+                Return
+            End If
+
+            Dim syntaxRef = SyntaxReferences.First()
+            Dim syntax = DirectCast(syntaxRef.GetSyntax(), VisualBasicSyntaxNode)
+            Dim binder = BinderBuilder.CreateBinderForType(m_containingModule, syntaxRef.SyntaxTree, Me)
+            Dim booleanType = DeclaringCompilation.GetSpecialType(SpecialType.System_Boolean)
+            Dim integerType = DeclaringCompilation.GetSpecialType(SpecialType.System_Int32)
+            Dim stringType = DeclaringCompilation.GetSpecialType(SpecialType.System_String)
+            Dim objectEquals = TryCast(DeclaringCompilation.GetSpecialTypeMember(SpecialMember.System_Object__Equals), MethodSymbol)
+            Dim objectHash = TryCast(DeclaringCompilation.GetSpecialTypeMember(SpecialMember.System_Object__GetHashCode), MethodSymbol)
+            Dim objectPrint = TryCast(DeclaringCompilation.GetSpecialTypeMember(SpecialMember.System_Object__ToString), MethodSymbol)
+
+            If objectEquals IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectEquals, 1, DeclaringCompilation.GetSpecialType(SpecialType.System_Object)) Then
+                AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectEquals, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.ObjectEquals, objectEquals,
+                                Function(method) ImmutableArray.Create(Of ParameterSymbol)(New SynthesizedParameterSimpleSymbol(method, DeclaringCompilation.GetSpecialType(SpecialType.System_Object), 0, "obj")))
+            End If
+
+            If Not HasRecordMethod(members, WellKnownMemberNames.ObjectEquals, 1, Me) Then
+                AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectEquals, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.TypedEquals, Nothing,
+                                Function(method) ImmutableArray.Create(Of ParameterSymbol)(New SynthesizedParameterSimpleSymbol(method, Me, 0, "other")))
+            End If
+
+            If objectHash IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectGetHashCode, 0, Nothing) Then
+                AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectGetHashCode, integerType, SynthesizedRecordMethodSymbol.RecordMethodKind.GetHashCode, objectHash,
+                                Function(method) ImmutableArray(Of ParameterSymbol).Empty)
+            End If
+
+            If objectPrint IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectToString, 0, Nothing) Then
+                AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectToString, stringType, SynthesizedRecordMethodSymbol.RecordMethodKind.Print, objectPrint,
+                                Function(method) ImmutableArray(Of ParameterSymbol).Empty)
+            End If
+        End Sub
+
+        Private Sub AddRecordMethod(members As MembersAndInitializersBuilder,
+                                    binder As Binder,
+                                    syntax As VisualBasicSyntaxNode,
+                                    name As String,
+                                    returnType As TypeSymbol,
+                                    kind As SynthesizedRecordMethodSymbol.RecordMethodKind,
+                                    overriddenMethod As MethodSymbol,
+                                    parameters As Func(Of MethodSymbol, ImmutableArray(Of ParameterSymbol)))
+            Dim method As New SynthesizedRecordMethodSymbol(syntax, Me, name, returnType, kind, overriddenMethod)
+            method.SetParameters(parameters(method))
+            AddMember(method, binder, members, omitDiagnostics:=False)
+        End Sub
+
+        Private Shared Function HasRecordMethod(members As MembersAndInitializersBuilder, name As String, parameterCount As Integer, parameterType As TypeSymbol) As Boolean
+            Dim existing As ArrayBuilder(Of Symbol) = Nothing
+            If Not members.Members.TryGetValue(name, existing) Then
+                Return False
+            End If
+
+            For Each candidate In existing
+                Dim method = TryCast(candidate, MethodSymbol)
+                If method Is Nothing OrElse method.ParameterCount <> parameterCount Then
+                    Continue For
+                End If
+
+                If parameterCount = 0 OrElse (parameterType IsNot Nothing AndAlso method.Parameters(0).Type.Equals(parameterType)) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
         ' Declare all the non-type members and put them in a list.
         Private Function BuildNonTypeMembers(diagnostics As BindingDiagnosticBag) As MembersAndInitializers
             Dim membersBuilder As New MembersAndInitializersBuilder()
 
             AddDeclaredNonTypeMembers(membersBuilder, diagnostics)
+            AddRecordMembersIfNeeded(membersBuilder, diagnostics)
 
             ' Add the default constructor, if needed.
             AddDefaultConstructorIfNeeded(membersBuilder, False, membersBuilder.InstanceInitializers, diagnostics)

@@ -851,6 +851,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Case SyntaxKind.InitOnlyKeyword : bit = DeclarationModifiers.InitOnly
                     Case SyntaxKind.RequiredKeyword : bit = DeclarationModifiers.Required
                     Case SyntaxKind.ByRefKeyword : bit = DeclarationModifiers.ByRef
+                    Case SyntaxKind.RecordKeyword : bit = DeclarationModifiers.Record
 
                     Case Else
                         ' It is possible to run into other tokens here, but only in error conditions.

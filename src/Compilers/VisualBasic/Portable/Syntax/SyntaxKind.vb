@@ -3276,5 +3276,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         CollectionExpression = 807                   ' CollectionExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents the contextual <c>Record</c> modifier.
+        ''' </summary>
+        RecordKeyword = 808                          ' KeywordSyntax : SyntaxToken
+
     End Enum
 End Namespace

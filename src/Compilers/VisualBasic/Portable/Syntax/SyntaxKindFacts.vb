@@ -23,6 +23,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return kind = SyntaxKind.ReferenceKeyword OrElse
                 kind = SyntaxKind.InitOnlyKeyword OrElse
                 kind = SyntaxKind.RequiredKeyword OrElse
+                kind = SyntaxKind.RecordKeyword OrElse
                 (SyntaxKind.AggregateKeyword <= kind AndAlso kind <= SyntaxKind.YieldKeyword)
         End Function
 
@@ -292,7 +293,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             SyntaxKind.IteratorKeyword,
             SyntaxKind.YieldKeyword,
             SyntaxKind.InitOnlyKeyword,
-            SyntaxKind.RequiredKeyword
+            SyntaxKind.RequiredKeyword,
+            SyntaxKind.RecordKeyword
             }
         ''' <summary>
         ''' Get contextual keywords
@@ -823,7 +825,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    {"iterator", SyntaxKind.IteratorKeyword},
                    {"yield", SyntaxKind.YieldKeyword},
                    {"initonly", SyntaxKind.InitOnlyKeyword},
-                   {"required", SyntaxKind.RequiredKeyword}
+                   {"required", SyntaxKind.RequiredKeyword},
+                   {"record", SyntaxKind.RecordKeyword}
             }
 
         Public Shared Function GetContextualKeywordKind(text As String) As SyntaxKind

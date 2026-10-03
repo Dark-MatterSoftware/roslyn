@@ -790,7 +790,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ElseIf contextualKind = SyntaxKind.TypeKeyword Then
                             ' "Type" is now "Structure"
                             Return ReportUnrecognizedStatementError(ERRID.ERR_ObsoleteStructureNotType)
-                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword Then
+                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword OrElse
+                               (contextualKind = SyntaxKind.RecordKeyword AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext) Then
                             Return ParseSpecifierDeclaration()
                         End If
                     End If
@@ -1117,7 +1118,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ElseIf contextualKind = SyntaxKind.CustomKeyword AndAlso PeekToken(1).Kind = SyntaxKind.EventKeyword Then ' BeginsEvent
                             Return ParseSpecifierDeclaration()
 
-                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword Then
+                        ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword OrElse
+                               (contextualKind = SyntaxKind.RecordKeyword AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext) Then
 
                             Dim nextToken = PeekToken(1)
 
@@ -1944,6 +1946,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                                 SyntaxKind.IteratorKeyword,
                                 SyntaxKind.InitOnlyKeyword,
                                 SyntaxKind.RequiredKeyword
+                                ' recognized below
+
+                            Case SyntaxKind.RecordKeyword
+                                If _scanner.Options.LanguageVersion < LanguageVersion.VbNext Then
+                                    Return False
+                                End If
 
                             Case Else
                                 Return False
@@ -2085,14 +2093,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                             ElseIf possibleKeyword.Kind = SyntaxKind.AsyncKeyword OrElse
                                    possibleKeyword.Kind = SyntaxKind.IteratorKeyword OrElse
                                    possibleKeyword.Kind = SyntaxKind.InitOnlyKeyword OrElse
-                                   possibleKeyword.Kind = SyntaxKind.RequiredKeyword Then
+                                   possibleKeyword.Kind = SyntaxKind.RequiredKeyword OrElse
+                                   (possibleKeyword.Kind = SyntaxKind.RecordKeyword AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext) Then
 
                                 Dim nextToken As SyntaxToken = PeekToken(1)
                                 If SyntaxFacts.IsSpecifier(nextToken.Kind) OrElse
                                    SyntaxFacts.CanStartSpecifierDeclaration(nextToken.Kind) Then
 
                                     t = possibleKeyword
-                                    t = CheckFeatureAvailability(SpecifierFeature(possibleKeyword.Kind), t)
+                                    If possibleKeyword.Kind <> SyntaxKind.RecordKeyword Then
+                                        t = CheckFeatureAvailability(SpecifierFeature(possibleKeyword.Kind), t)
+                                    End If
                                     Exit Select
                                 End If
 

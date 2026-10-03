@@ -1,0 +1,300 @@
+' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
+
+Imports System.Collections.Generic
+Imports System.Collections.Immutable
+Imports System.Linq
+Imports Microsoft.CodeAnalysis.PooledObjects
+Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
+
+Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
+
+    Friend NotInheritable Class SynthesizedRecordMethodSymbol
+        Inherits SynthesizedRegularMethodBase
+
+        Friend Enum RecordMethodKind
+            ObjectEquals
+            TypedEquals
+            GetHashCode
+            Print
+        End Enum
+
+        Private ReadOnly _kind As RecordMethodKind
+        Private ReadOnly _returnType As TypeSymbol
+        Private ReadOnly _overriddenMethod As MethodSymbol
+        Private _parameters As ImmutableArray(Of ParameterSymbol)
+
+        Public Sub New(syntax As VisualBasicSyntaxNode,
+                       container As NamedTypeSymbol,
+                       name As String,
+                       returnType As TypeSymbol,
+                       kind As RecordMethodKind,
+                       Optional overriddenMethod As MethodSymbol = Nothing)
+            MyBase.New(syntax, container, name)
+            _kind = kind
+            _returnType = returnType
+            _overriddenMethod = overriddenMethod
+        End Sub
+
+        Friend Sub SetParameters(parameters As ImmutableArray(Of ParameterSymbol))
+            _parameters = parameters
+        End Sub
+
+        Public Overrides ReadOnly Property IsOverloads As Boolean
+            Get
+                Return True
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsOverrides As Boolean
+            Get
+                Return _overriddenMethod IsNot Nothing
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsOverridable As Boolean
+            Get
+                Return _overriddenMethod IsNot Nothing
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property OverriddenMethod As MethodSymbol
+            Get
+                Return _overriddenMethod
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property DeclaredAccessibility As Accessibility
+            Get
+                Return Accessibility.Public
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsSub As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property ReturnType As TypeSymbol
+            Get
+                Return _returnType
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property ParameterCount As Integer
+            Get
+                Return _parameters.Length
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property Parameters As ImmutableArray(Of ParameterSymbol)
+            Get
+                Return _parameters
+            End Get
+        End Property
+
+        Friend Overrides Function GetLexicalSortKey() As LexicalSortKey
+            If _kind = RecordMethodKind.TypedEquals Then
+                Return New LexicalSortKey(m_SyntaxNode.SyntaxTree, m_SyntaxNode.SpanStart + 1, DirectCast(DeclaringCompilation, VisualBasicCompilation))
+            End If
+
+            Return MyBase.GetLexicalSortKey()
+        End Function
+
+        Friend Overrides ReadOnly Property GenerateDebugInfoImpl As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        Friend Overrides Function CalculateLocalSyntaxOffset(localPosition As Integer, localTree As SyntaxTree) As Integer
+            Throw ExceptionUtilities.Unreachable
+        End Function
+
+        Friend Overrides Function GetBoundMethodBody(compilationState As TypeCompilationState, diagnostics As BindingDiagnosticBag, Optional ByRef methodBodyBinder As Binder = Nothing) As BoundBlock
+            methodBodyBinder = Nothing
+            Dim factory As New SyntheticBoundNodeFactory(Me, Me, m_SyntaxNode, compilationState, diagnostics)
+            Select Case _kind
+                Case RecordMethodKind.ObjectEquals
+                    Return ObjectEqualsBody(factory)
+                Case RecordMethodKind.TypedEquals
+                    Return TypedEqualsBody(factory)
+                Case RecordMethodKind.GetHashCode
+                    Return HashCodeBody(factory)
+                Case Else
+                    Return PrintBody(factory)
+            End Select
+        End Function
+
+        Private Function ObjectEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
+            Dim other = factory.SynthesizedLocal(ContainingType)
+            Dim cast = factory.TryCast(factory.Parameter(_parameters(0), isLValue:=False), ContainingType)
+            Dim isNothing = factory.Binary(BinaryOperatorKind.Is, boolType, factory.Local(other, isLValue:=False), NothingLiteral(factory, ContainingType))
+            Dim typedEquals = TypedEqualsMethod()
+            Dim callEquals As BoundExpression
+            If typedEquals Is Nothing Then
+                callEquals = factory.Literal(True)
+            Else
+                callEquals = factory.Call(factory.Me(), typedEquals, factory.Local(other, isLValue:=False))
+            End If
+            Return factory.Block(
+                ImmutableArray.Create(other),
+                factory.Assignment(factory.Local(other, isLValue:=True), cast),
+                factory.If(isNothing, factory.Return(factory.Literal(False)), factory.Return(callEquals)))
+        End Function
+
+        Private Function TypedEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
+            Dim other = factory.Parameter(_parameters(0), isLValue:=False)
+            Dim isNothing = factory.Binary(BinaryOperatorKind.Is, boolType, other, NothingLiteral(factory, ContainingType))
+            Dim comparison As BoundExpression = factory.Literal(True)
+            For Each member In EqualityMembers()
+                Dim equals = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__Equals, ReadMember(factory, factory.Me(), member), ReadMember(factory, other, member))
+                If equals Is Nothing Then
+                    Continue For
+                End If
+
+                comparison = factory.Binary(BinaryOperatorKind.AndAlso, boolType, comparison, equals)
+            Next
+
+            Return factory.Block(factory.If(isNothing, factory.Return(factory.Literal(False)), factory.Return(comparison)))
+        End Function
+
+        Private Function HashCodeBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim intType = factory.SpecialType(SpecialType.System_Int32)
+            Dim hash As BoundExpression = factory.Literal(0)
+            For Each member In EqualityMembers()
+                Dim memberHash = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__GetHashCode, ReadMember(factory, factory.Me(), member))
+                If memberHash Is Nothing Then
+                    Continue For
+                End If
+
+                hash = factory.Binary(
+                    BinaryOperatorKind.Add,
+                    intType,
+                    factory.Binary(BinaryOperatorKind.Multiply, intType, hash, factory.Literal(-1521134295)),
+                    memberHash)
+            Next
+
+            Return factory.Block(factory.Return(hash))
+        End Function
+
+        Private Function PrintBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim stringType = factory.SpecialType(SpecialType.System_String)
+            Dim text As BoundExpression = factory.Literal(ContainingType.Name & " { ")
+            Dim first = True
+            For Each member In EqualityMembers()
+                If Not first Then
+                    text = Concat(factory, stringType, text, factory.Literal(", "))
+                End If
+
+                text = Concat(factory, stringType, text, factory.Literal(member.Name & " = "))
+                text = Concat(factory, stringType, text, PrintValue(factory, ReadMember(factory, factory.Me(), member)))
+                first = False
+            Next
+
+            text = Concat(factory, stringType, text, factory.Literal(" }"))
+            Return factory.Block(factory.Return(text))
+        End Function
+
+        Private Function PrintValue(factory As SyntheticBoundNodeFactory, value As BoundExpression) As BoundExpression
+            Dim method = FindToString(value.Type)
+            If method Is Nothing Then
+                Return factory.Literal("")
+            End If
+
+            If method.ContainingType.SpecialType = SpecialType.System_Object AndAlso value.Type.IsValueType Then
+                Dim objectType = factory.SpecialType(SpecialType.System_Object)
+                value = New BoundConversion(value.Syntax, value, ConversionKind.WideningValue, False, False, Nothing, objectType, Nothing).MakeCompilerGenerated()
+            End If
+
+            Return factory.Call(value, method)
+        End Function
+
+        Private Shared Function FindToString(type As TypeSymbol) As MethodSymbol
+            Dim current = type
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                Dim found = current.GetMembers("ToString").OfType(Of MethodSymbol)().FirstOrDefault(
+                    Function(candidate) candidate.ParameterCount = 0 AndAlso Not candidate.IsShared AndAlso candidate.DeclaredAccessibility = Accessibility.Public)
+                If found IsNot Nothing Then
+                    Return found
+                End If
+
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            Return Nothing
+        End Function
+
+        Private Function ComparerCall(factory As SyntheticBoundNodeFactory, elementType As TypeSymbol, member As WellKnownMember, ParamArray arguments As BoundExpression()) As BoundExpression
+            Dim comparer = factory.Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_EqualityComparer_T)
+            If comparer.TypeKind = TypeKind.Error Then
+                Return Nothing
+            End If
+
+            Dim constructed = comparer.Construct(elementType)
+            Dim definition = TryCast(factory.Compilation.GetWellKnownTypeMember(member), MethodSymbol)
+            Dim defaultDefinition = TryCast(factory.Compilation.GetWellKnownTypeMember(WellKnownMember.System_Collections_Generic_EqualityComparer_T__get_Default), MethodSymbol)
+            If definition Is Nothing OrElse defaultDefinition Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim defaultValue = factory.Call(Nothing, defaultDefinition.AsMember(constructed))
+            Return factory.Call(defaultValue, definition.AsMember(constructed), arguments)
+        End Function
+
+        Private Function TypedEqualsMethod() As MethodSymbol
+            Return ContainingType.GetMembers("Equals").OfType(Of MethodSymbol)().FirstOrDefault(
+                Function(candidate) candidate.ParameterCount = 1 AndAlso TypeSymbol.Equals(candidate.Parameters(0).Type, ContainingType, TypeCompareKind.ConsiderEverything))
+        End Function
+
+        Private Function EqualityMembers() As IEnumerable(Of Symbol)
+            Return ContainingType.GetMembers().Where(Function(member) IsEqualityMember(member))
+        End Function
+
+        Private Shared Function IsEqualityMember(member As Symbol) As Boolean
+            Dim field = TryCast(member, FieldSymbol)
+            If field IsNot Nothing Then
+                Return Not field.IsShared AndAlso Not field.IsConst AndAlso field.DeclaredAccessibility = Accessibility.Public AndAlso Not field.IsImplicitlyDeclared
+            End If
+
+            Dim [property] = TryCast(member, PropertySymbol)
+            Return [property] IsNot Nothing AndAlso
+                Not [property].IsShared AndAlso
+                [property].DeclaredAccessibility = Accessibility.Public AndAlso
+                [property].Parameters.Length = 0 AndAlso
+                [property].GetMethod IsNot Nothing
+        End Function
+
+        Private Shared Function MemberType(member As Symbol) As TypeSymbol
+            Dim field = TryCast(member, FieldSymbol)
+            If field IsNot Nothing Then
+                Return field.Type
+            End If
+
+            Return DirectCast(member, PropertySymbol).Type
+        End Function
+
+        Private Shared Function ReadMember(factory As SyntheticBoundNodeFactory, receiver As BoundExpression, member As Symbol) As BoundExpression
+            Dim field = TryCast(member, FieldSymbol)
+            If field IsNot Nothing Then
+                Return factory.Field(receiver, field, isLValue:=False)
+            End If
+
+            Return factory.Call(receiver, DirectCast(member, PropertySymbol).GetMethod)
+        End Function
+
+        Private Shared Function Concat(factory As SyntheticBoundNodeFactory, stringType As TypeSymbol, left As BoundExpression, right As BoundExpression) As BoundExpression
+            Return factory.Binary(BinaryOperatorKind.Concatenate, stringType, left, right)
+        End Function
+
+        Private Function NothingLiteral(factory As SyntheticBoundNodeFactory, type As TypeSymbol) As BoundLiteral
+            Return New BoundLiteral(m_SyntaxNode, ConstantValue.Nothing, type).MakeCompilerGenerated()
+        End Function
+    End Class
+
+End Namespace

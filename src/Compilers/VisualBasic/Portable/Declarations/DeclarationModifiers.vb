@@ -53,6 +53,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         InitOnly = 1 << 25
         Required = 1 << 26
         [ByRef] = 1 << 27
+        Record = 1 << 28
 
         InvalidInNotInheritableClass = [Overridable] Or [NotOverridable] Or [MustOverride] Or [Default]
         InvalidInModule = [Protected] Or [Shared] Or [Default] Or [MustOverride] Or [Overridable] Or [Shadows] Or [Overrides]

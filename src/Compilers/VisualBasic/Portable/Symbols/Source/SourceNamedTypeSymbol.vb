@@ -429,6 +429,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 binder.ReportModifierError(modifiers, badFlag, diagBag, SyntaxKind.ByRefKeyword)
             End If
 
+            If modifiers.Any(SyntaxKind.RecordKeyword) AndAlso node.Kind <> SyntaxKind.ClassBlock Then
+                Dim badFlag As ERRID
+                Select Case node.Kind
+                    Case SyntaxKind.StructureBlock
+                        badFlag = ERRID.ERR_BadRecordFlags1
+                    Case SyntaxKind.ModuleBlock
+                        badFlag = ERRID.ERR_BadModuleFlags1
+                    Case SyntaxKind.InterfaceBlock
+                        badFlag = ERRID.ERR_BadInterfaceFlags1
+                    Case SyntaxKind.EnumBlock
+                        badFlag = ERRID.ERR_BadEnumFlags1
+                    Case Else
+                        badFlag = ERRID.ERR_BadClassFlags1
+                End Select
+
+                binder.ReportModifierError(modifiers, badFlag, diagBag, SyntaxKind.RecordKeyword)
+            End If
+
             Return foundModifiers
         End Function
 

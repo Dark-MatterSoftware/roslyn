@@ -137,6 +137,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Public NotOverridable Overrides ReadOnly Property IsRecord As Boolean
+            Get
+                Return OriginalDefinition.IsRecord
+            End Get
+        End Property
+
         Public NotOverridable Overrides ReadOnly Property IsImplicitlyDeclared As Boolean
             Get
                 Return OriginalDefinition.IsImplicitlyDeclared

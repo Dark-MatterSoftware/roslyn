@@ -135,7 +135,7 @@ Depends on phase 3 (init-only, required) and slice 5d (deconstruction). Position
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 8a | VB-031 | A record class emits value equality, `GetHashCode`, and a printed form. |
+| 8a | VB-031 | Done. On `vbnext`, `Record Class Point` with public properties emits value equality, `GetHashCode`, and `ToString` of the form `Point { X = 1, Y = 2 }`. Visual Basic 17.13 still rejects `Record` before `Class`. |
 | 8b | VB-031 | A non-destructive `With` copy compiles and uses the init-only properties from 3a. |
 | 8c | VB-031 | A positional record uses a primary constructor and a `Deconstruct` method. |
 | 8d | VB-031 | A record structure follows 8a and 8b. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7m, a type parameter constrained to allow a ref-like type, is implemented. The next slice is 8a, a record class that emits value equality, `GetHashCode`, and a printed form.
+Slice 8a, a record class, is implemented. The next slice is 8b, a non-destructive `With` copy.

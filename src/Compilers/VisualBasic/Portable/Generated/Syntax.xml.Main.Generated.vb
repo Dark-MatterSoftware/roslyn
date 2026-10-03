@@ -47423,7 +47423,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.IteratorKeyword,
                 SyntaxKind.YieldKeyword,
                 SyntaxKind.InitOnlyKeyword,
-                SyntaxKind.RequiredKeyword
+                SyntaxKind.RequiredKeyword,
+                SyntaxKind.RecordKeyword
                     Return True
             End Select
             Return False
@@ -47990,6 +47991,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "InitOnly"
                 Case SyntaxKind.RequiredKeyword
                     Return "Required"
+                Case SyntaxKind.RecordKeyword
+                    Return "Record"
                 Case SyntaxKind.ExclamationToken
                     Return "!"
                 Case SyntaxKind.AtToken

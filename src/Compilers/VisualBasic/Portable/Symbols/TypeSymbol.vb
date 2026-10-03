@@ -625,7 +625,12 @@ Done:
 
         Private ReadOnly Property ITypeSymbol_IsRecord As Boolean Implements ITypeSymbol.IsRecord
             Get
-                ' VB does not have records
+                Return IsRecord
+            End Get
+        End Property
+
+        Public Overridable ReadOnly Property IsRecord As Boolean
+            Get
                 Return False
             End Get
         End Property
