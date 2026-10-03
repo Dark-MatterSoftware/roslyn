@@ -636,38 +636,51 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overridable ReadOnly Property PartialDefinitionPart As PropertySymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property PartialImplementationPart As PropertySymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property IsPartialDefinition As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
         Private ReadOnly Property IPropertySymbol_PartialDefinitionPart As IPropertySymbol Implements IPropertySymbol.PartialDefinitionPart
             Get
-                ' Feature not supported in VB
-                Return Nothing
+                Return PartialDefinitionPart
             End Get
         End Property
 
         Private ReadOnly Property IPropertySymbol_PartialImplementationPart As IPropertySymbol Implements IPropertySymbol.PartialImplementationPart
             Get
-                ' Feature not supported in VB
-                Return Nothing
+                Return PartialImplementationPart
             End Get
         End Property
 
         Private ReadOnly Property IPropertySymbol_IsPartialDefinition As Boolean Implements IPropertySymbol.IsPartialDefinition
             Get
-                ' Feature not supported in VB
-                Return False
+                Return IsPartialDefinition
             End Get
         End Property
 
         Public ReadOnly Property IPropertySymbolInternal_PartialImplementationPart As IPropertySymbolInternal Implements IPropertySymbolInternal.PartialImplementationPart
             Get
-                ' Feature not supported in VB
-                Return Nothing
+                Return PartialImplementationPart
             End Get
         End Property
 
         Public ReadOnly Property IPropertySymbolInternal_PartialDefinitionPart As IPropertySymbolInternal Implements IPropertySymbolInternal.PartialDefinitionPart
             Get
-                ' Feature not supported in VB
-                Return Nothing
+                Return PartialDefinitionPart
             End Get
         End Property
 

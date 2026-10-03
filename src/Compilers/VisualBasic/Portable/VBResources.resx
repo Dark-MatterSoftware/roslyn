@@ -5793,8 +5793,20 @@
   <data name="FEATURE_SelectCaseTypePattern" xml:space="preserve">
     <value>type patterns in Select Case</value>
   </data>
+  <data name="FEATURE_PartialProperty" xml:space="preserve">
+    <value>partial properties</value>
+  </data>
   <data name="ERR_DeconstructionRequiresTuple" xml:space="preserve">
     <value>Deconstruction requires a tuple with {0} elements.</value>
+  </data>
+  <data name="ERR_PartialPropertyTypeMismatch" xml:space="preserve">
+    <value>Partial property '{0}' must have the same type in both declarations.</value>
+  </data>
+  <data name="ERR_PartialPropertyModifierMismatch" xml:space="preserve">
+    <value>Partial property '{0}' must have the same modifiers in both declarations.</value>
+  </data>
+  <data name="ERR_PartialPropertyDeclarationMismatch" xml:space="preserve">
+    <value>Partial property '{0}' must have one defining declaration and one implementing declaration.</value>
   </data>
   <data name="ERR_TooManyQuotesForRawString" xml:space="preserve">
     <value>A raw string ends with the same number of quotes it starts with.</value>

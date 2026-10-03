@@ -1732,6 +1732,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 ' Find/process partial methods
                 ProcessPartialMethodsIfAny(membersAndInitializers.Members, diagBag)
 
+                ' Find/process partial properties
+                ProcessPartialPropertiesIfAny(membersAndInitializers.Members, diagBag)
+
                 ' Merge types with non-types
                 For Each typeSymbols In typeMembers.Values
                     Dim nontypeSymbols As ImmutableArray(Of Symbol) = Nothing
@@ -1975,6 +1978,189 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' <summary>
         ''' Compares two methods to check if the 'candidate' can be an implementation of the 'partialDeclaration'.
         ''' </summary>
+        Private Sub ProcessPartialPropertiesIfAny(members As Dictionary(Of String, ImmutableArray(Of Symbol)), diagnostics As BindingDiagnosticBag)
+            Dim partialProperties = ArrayBuilder(Of SourcePropertySymbol).GetInstance()
+            For Each memberGroup In members.Values
+                For Each member In memberGroup
+                    Dim prop = TryCast(member, SourcePropertySymbol)
+                    If prop IsNot Nothing AndAlso prop.IsPartial Then
+                        partialProperties.Add(prop)
+                    End If
+                Next
+            Next
+
+            If partialProperties.Count = 0 Then
+                partialProperties.Free()
+                Return
+            End If
+
+            Dim index = 0
+            While index < partialProperties.Count
+                Dim current = partialProperties(index)
+                If current Is Nothing Then
+                    index += 1
+                    Continue While
+                End If
+
+                Dim sameSignature = ArrayBuilder(Of SourcePropertySymbol).GetInstance()
+                sameSignature.Add(current)
+                partialProperties(index) = Nothing
+
+                Dim other = index + 1
+                While other < partialProperties.Count
+                    Dim candidate = partialProperties(other)
+                    If candidate IsNot Nothing AndAlso
+                       IdentifierComparison.Equals(current.Name, candidate.Name) AndAlso
+                       PartialPropertyParameterTypesMatch(current, candidate) Then
+                        sameSignature.Add(candidate)
+                        partialProperties(other) = Nothing
+                    End If
+
+                    other += 1
+                End While
+
+                MatchPartialPropertySignature(sameSignature, members, diagnostics)
+                sameSignature.Free()
+                index += 1
+            End While
+
+            partialProperties.Free()
+        End Sub
+
+        Private Sub MatchPartialPropertySignature(candidates As ArrayBuilder(Of SourcePropertySymbol),
+                                                  members As Dictionary(Of String, ImmutableArray(Of Symbol)),
+                                                  diagnostics As BindingDiagnosticBag)
+            Dim definition As SourcePropertySymbol = Nothing
+            Dim implementation As SourcePropertySymbol = Nothing
+
+            For Each candidate In candidates
+                If candidate.IsPartialDefinition Then
+                    If definition Is Nothing OrElse IsEarlierDeclaration(candidate, definition) Then
+                        If definition IsNot Nothing Then
+                            RemovePartialProperty(definition, members)
+                        End If
+
+                        definition = candidate
+                    Else
+                        RemovePartialProperty(candidate, members)
+                    End If
+                ElseIf implementation Is Nothing OrElse IsEarlierDeclaration(candidate, implementation) Then
+                    If implementation IsNot Nothing Then
+                        RemovePartialProperty(implementation, members)
+                    End If
+
+                    implementation = candidate
+                Else
+                    RemovePartialProperty(candidate, members)
+                End If
+            Next
+
+            If candidates.Count <> 2 OrElse definition Is Nothing OrElse implementation Is Nothing Then
+                Dim blame = If(implementation, definition)
+                If candidates.Count > 1 Then
+                    blame = candidates(0)
+                    For Each candidate In candidates
+                        If IsEarlierDeclaration(blame, candidate) Then
+                            blame = candidate
+                        End If
+                    Next
+                End If
+
+                diagnostics.Add(ERRID.ERR_PartialPropertyDeclarationMismatch, blame.GetFirstLocation(), blame.Name)
+            End If
+
+            If definition Is Nothing OrElse implementation Is Nothing Then
+                Return
+            End If
+
+            If Not TypeSymbol.Equals(definition.Type, implementation.Type, TypeCompareKind.ConsiderEverything) Then
+                diagnostics.Add(ERRID.ERR_PartialPropertyTypeMismatch, implementation.GetFirstLocation(), implementation.Name)
+            End If
+
+            If Not PartialPropertyModifiersMatch(definition, implementation) Then
+                diagnostics.Add(ERRID.ERR_PartialPropertyModifierMismatch, implementation.GetFirstLocation(), implementation.Name)
+            End If
+
+            definition.SetPartialPropertyPart(implementation)
+            implementation.SetPartialPropertyPart(definition)
+            RemovePartialProperty(definition, members)
+        End Sub
+
+        Private Function IsEarlierDeclaration(left As SourcePropertySymbol, right As SourcePropertySymbol) As Boolean
+            Return Me.DeclaringCompilation.CompareSourceLocations(left.GetFirstLocation(), right.GetFirstLocation()) < 0
+        End Function
+
+        Private Shared Function PartialPropertyParameterTypesMatch(left As SourcePropertySymbol, right As SourcePropertySymbol) As Boolean
+            If left.ParameterCount <> right.ParameterCount Then
+                Return False
+            End If
+
+            For parameterIndex = 0 To left.ParameterCount - 1
+                If Not TypeSymbol.Equals(left.Parameters(parameterIndex).Type, right.Parameters(parameterIndex).Type, TypeCompareKind.ConsiderEverything) Then
+                    Return False
+                End If
+            Next
+
+            Return True
+        End Function
+
+        Private Shared Function PartialPropertyModifiersMatch(left As SourcePropertySymbol, right As SourcePropertySymbol) As Boolean
+            If left.IsReadOnly <> right.IsReadOnly OrElse
+               left.IsWriteOnly <> right.IsWriteOnly OrElse
+               left.IsShared <> right.IsShared OrElse
+               left.DeclaredAccessibility <> right.DeclaredAccessibility OrElse
+               left.ParameterCount <> right.ParameterCount Then
+                Return False
+            End If
+
+            For parameterIndex = 0 To left.ParameterCount - 1
+                Dim leftParameter = left.Parameters(parameterIndex)
+                Dim rightParameter = right.Parameters(parameterIndex)
+                If leftParameter.IsOptional <> rightParameter.IsOptional OrElse
+                   leftParameter.IsParamArray <> rightParameter.IsParamArray Then
+                    Return False
+                End If
+            Next
+
+            Return True
+        End Function
+
+        Private Shared Sub RemovePartialProperty(prop As SourcePropertySymbol, members As Dictionary(Of String, ImmutableArray(Of Symbol)))
+            RemoveMemberSymbol(prop, members)
+            If prop.GetMethod IsNot Nothing Then
+                RemoveMemberSymbol(prop.GetMethod, members)
+            End If
+
+            If prop.SetMethod IsNot Nothing Then
+                RemoveMemberSymbol(prop.SetMethod, members)
+            End If
+
+            If prop.AssociatedField IsNot Nothing Then
+                RemoveMemberSymbol(prop.AssociatedField, members)
+            End If
+        End Sub
+
+        Private Shared Sub RemoveMemberSymbol(symbol As Symbol, members As Dictionary(Of String, ImmutableArray(Of Symbol)))
+            Dim group As ImmutableArray(Of Symbol) = Nothing
+            If Not members.TryGetValue(symbol.Name, group) Then
+                Return
+            End If
+
+            Dim remaining = ArrayBuilder(Of Symbol).GetInstance()
+            For Each member In group
+                If member IsNot symbol Then
+                    remaining.Add(member)
+                End If
+            Next
+
+            If remaining.Count = 0 Then
+                members.Remove(symbol.Name)
+                remaining.Free()
+            Else
+                members(symbol.Name) = remaining.ToImmutableAndFree()
+            End If
+        End Sub
+
         Private Function ComparePartialMethodSignatures(partialDeclaration As SourceMethodSymbol, candidate As SourceMethodSymbol) As Boolean
             ' Don't check values of optional parameters yet, this might cause an infinite cycle.
             ' Don't check ParamArray mismatch either, might cause us to bind attributes too early.

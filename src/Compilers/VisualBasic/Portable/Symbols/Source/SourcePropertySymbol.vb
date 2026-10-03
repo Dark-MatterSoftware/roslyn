@@ -53,6 +53,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private _lazyOverriddenProperties As OverriddenMembersResult(Of PropertySymbol)
 
         Private _lazyState As Integer
+        Private _otherPartOfPartial As SourcePropertySymbol
 
         <Flags>
         Private Enum StateFlags As Integer
@@ -94,6 +95,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                             containingType,
                                             bodyBinder,
                                             diagnostics)
+            Dim isPartialDefinition = (modifiers.AllFlags And SourceMemberFlags.Partial) <> 0 AndAlso blockSyntaxOpt Is Nothing
             Dim identifier = syntax.Identifier
             Dim name = identifier.ValueText
 
@@ -148,7 +150,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 isRequired = False
             End If
 
-            If containingType.IsReadOnly AndAlso blockSyntaxOpt Is Nothing AndAlso Not prop.IsShared AndAlso Not isReadOnly AndAlso Not isInitOnly Then
+            If containingType.IsReadOnly AndAlso blockSyntaxOpt Is Nothing AndAlso Not isPartialDefinition AndAlso Not prop.IsShared AndAlso Not isReadOnly AndAlso Not isInitOnly Then
                 diagnostics.Add(ERRID.ERR_AutoPropertyInReadOnlyStructure, identifier.GetLocation())
             End If
 
@@ -200,7 +202,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
             End If
 
-            If blockSyntaxOpt Is Nothing Then
+            If blockSyntaxOpt Is Nothing AndAlso Not isPartialDefinition Then
                 ' Generate backing field for auto property.
                 If Not prop.IsMustOverride Then
                     If isWriteOnly Then
@@ -729,6 +731,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend ReadOnly Property IsPartial As Boolean
+            Get
+                Return (_flags And SourceMemberFlags.Partial) <> 0
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property IsPartialDefinition As Boolean
+            Get
+                Return IsPartial AndAlso _blockRef Is Nothing
+            End Get
+        End Property
+
+        Friend ReadOnly Property IsPartialImplementation As Boolean
+            Get
+                Return IsPartial AndAlso _blockRef IsNot Nothing
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property PartialDefinitionPart As PropertySymbol
+            Get
+                Return If(IsPartialImplementation, _otherPartOfPartial, Nothing)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property PartialImplementationPart As PropertySymbol
+            Get
+                Return If(IsPartialDefinition, _otherPartOfPartial, Nothing)
+            End Get
+        End Property
+
+        Friend Sub SetPartialPropertyPart(other As SourcePropertySymbol)
+            _otherPartOfPartial = other
+        End Sub
+
         Public Overrides ReadOnly Property GetMethod As MethodSymbol
             Get
                 Return _getMethod
@@ -1251,7 +1287,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                 binder As Binder,
                                                 diagBag As DiagnosticBag) As MemberModifiers
             ' Decode the flags.
-            Dim propertyModifiers = binder.DecodeModifiers(modifiers,
+            Dim allowableModifiers =
                 SourceMemberFlags.AllAccessibilityModifiers Or
                 SourceMemberFlags.Default Or
                 SourceMemberFlags.Overloads Or
@@ -1263,7 +1299,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 SourceMemberFlags.MustOverride Or
                 SourceMemberFlags.ReadOnly Or
                 SourceMemberFlags.Iterator Or
-                SourceMemberFlags.WriteOnly,
+                SourceMemberFlags.WriteOnly
+
+            If modifiers.Any(SyntaxKind.PartialKeyword) Then
+                Dim languageVersion = DirectCast(modifiers.First().SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.PartialProperty) Then
+                    allowableModifiers = allowableModifiers Or SourceMemberFlags.Partial
+                End If
+            End If
+
+            Dim propertyModifiers = binder.DecodeModifiers(modifiers,
+                allowableModifiers,
                 ERRID.ERR_BadPropertyFlags1,
                 Accessibility.Public,
                 diagBag)

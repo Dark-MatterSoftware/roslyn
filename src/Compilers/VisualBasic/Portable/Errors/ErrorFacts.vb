@@ -1575,7 +1575,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_TooManyQuotesForRawString,
                      ERRID.ERR_RawStringDelimiterOnOwnLine,
                      ERRID.ERR_RawStringLineIndent,
-                     ERRID.ERR_DeconstructionRequiresTuple
+                     ERRID.ERR_DeconstructionRequiresTuple,
+                     ERRID.ERR_PartialPropertyTypeMismatch,
+                     ERRID.ERR_PartialPropertyModifierMismatch,
+                     ERRID.ERR_PartialPropertyDeclarationMismatch
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

@@ -1821,8 +1821,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_RawStringDelimiterOnOwnLine = 37361
         ERR_RawStringLineIndent = 37362
         ERR_DeconstructionRequiresTuple = 37363
+        ERR_PartialPropertyTypeMismatch = 37364
+        ERR_PartialPropertyModifierMismatch = 37365
+        ERR_PartialPropertyDeclarationMismatch = 37366
 
-        ERR_NextAvailable = 37364
+        ERR_NextAvailable = 37367
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2149,5 +2152,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_Utf8StringLiteral
         FEATURE_TupleDeconstruction
         FEATURE_SelectCaseTypePattern
+        FEATURE_PartialProperty
     End Enum
 End Namespace

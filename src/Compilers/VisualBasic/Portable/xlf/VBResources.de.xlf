@@ -152,6 +152,21 @@
         <target state="new">Module initializer '{0}' must not be generic and must not be contained in a generic type.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_PartialPropertyDeclarationMismatch">
+        <source>Partial property '{0}' must have one defining declaration and one implementing declaration.</source>
+        <target state="new">Partial property '{0}' must have one defining declaration and one implementing declaration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_PartialPropertyModifierMismatch">
+        <source>Partial property '{0}' must have the same modifiers in both declarations.</source>
+        <target state="new">Partial property '{0}' must have the same modifiers in both declarations.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_PartialPropertyTypeMismatch">
+        <source>Partial property '{0}' must have the same type in both declarations.</source>
+        <target state="new">Partial property '{0}' must have the same type in both declarations.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RangeRequiresArray">
         <source>A range can only be used to slice a one-dimensional array.</source>
         <target state="new">A range can only be used to slice a one-dimensional array.</target>
@@ -390,6 +405,11 @@
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">Priorität der Überladungsauflösung</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_PartialProperty">
+        <source>partial properties</source>
+        <target state="new">partial properties</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_RawStringLiteral">
