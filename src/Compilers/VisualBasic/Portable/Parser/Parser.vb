@@ -1222,6 +1222,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     ' Just delegate to ParseDeclarationStatement and let the context add the error
                     Return ParseDeclarationStatementInternal()
 
+                Case SyntaxKind.OpenParenToken
+                    If CheckFeatureAvailability(Feature.TupleDeconstruction) Then
+                        Dim emptyAttributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax) = Nothing
+                        Dim emptyModifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax) = Nothing
+                        Return ParseTupleDeconstructionStatement(emptyAttributes, emptyModifiers)
+                    End If
+
                 Case SyntaxKind.QuestionToken
 
                     If CanStartConsequenceExpression(Me.PeekToken(1).Kind, qualified:=False) Then

@@ -82,7 +82,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return BindLocalDeclaration(DirectCast(node, LocalDeclarationStatementSyntax), diagnostics)
 
                 Case SyntaxKind.TupleDeconstructionStatement
-                    Return BindTupleDeconstruction(DirectCast(node, TupleDeconstructionStatementSyntax), diagnostics)
+                    Dim deconstruction = DirectCast(node, TupleDeconstructionStatementSyntax)
+                    If deconstruction.Modifiers.Any(SyntaxKind.DimKeyword) Then
+                        Return BindTupleDeconstruction(deconstruction, diagnostics)
+                    End If
+
+                    Return BindTupleDeconstructionAssignment(deconstruction, diagnostics)
 
                 Case SyntaxKind.SimpleDoLoopBlock,
                      SyntaxKind.DoWhileLoopBlock,
@@ -1068,6 +1073,92 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             statements.Add(New BoundDimStatement(node, declarations.ToImmutableAndFree(), Nothing))
             Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+        End Function
+
+        Private Function BindTupleDeconstructionAssignment(node As TupleDeconstructionStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
+            Dim value = BindValue(node.Initializer.Value, diagnostics).MakeRValue()
+            Dim names = node.Names
+            Dim elements = GetDeconstructionElements(value, names.Count)
+            Dim matches = Not elements.IsDefault
+
+            If Not matches AndAlso Not value.HasErrors Then
+                ReportDiagnostic(diagnostics, node.Initializer, ERRID.ERR_DeconstructionRequiresTuple, names.Count)
+            End If
+
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim blockLocals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim temp As LocalSymbol = Nothing
+
+            If matches Then
+                temp = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
+                blockLocals.Add(temp)
+                Dim stored = New BoundExpressionStatement(
+                    node,
+                    New BoundAssignmentOperator(
+                        node,
+                        New BoundLocal(node, temp, value.Type),
+                        value,
+                        suppressObjectClone:=True,
+                        type:=value.Type))
+                stored.SetWasCompilerGenerated()
+                statements.Add(stored)
+            End If
+
+            For i = 0 To names.Count - 1
+                Dim name = names(i)
+                Dim target = BindDeconstructionTarget(name, diagnostics)
+                Dim storedValue As BoundExpression
+                If matches Then
+                    Dim element = New BoundFieldAccess(
+                        name,
+                        New BoundLocal(name, temp, value.Type).MakeRValue(),
+                        elements(i),
+                        isLValue:=False,
+                        type:=elements(i).Type)
+                    storedValue = If(target.HasErrors, element, ApplyImplicitConversion(name, target.Type, element, diagnostics))
+                Else
+                    storedValue = BadExpression(name, value, target.Type).MakeCompilerGenerated()
+                End If
+
+                Dim assignment = New BoundExpressionStatement(
+                    name,
+                    New BoundAssignmentOperator(
+                        name,
+                        target,
+                        storedValue,
+                        suppressObjectClone:=True,
+                        hasErrors:=Not matches OrElse target.HasErrors OrElse storedValue.HasErrors))
+                assignment.SetWasCompilerGenerated()
+                statements.Add(assignment)
+            Next
+
+            If blockLocals.Count = 0 Then
+                blockLocals.Free()
+                Return New BoundBlock(node, Nothing, ImmutableArray(Of LocalSymbol).Empty, statements.ToImmutableAndFree(), hasErrors:=True)
+            End If
+
+            Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+        End Function
+
+        Private Function BindDeconstructionTarget(name As ModifiedIdentifierSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim identifier = name.Identifier.ValueText
+            If String.IsNullOrEmpty(identifier) Then
+                Return BadExpression(name, ErrorTypeSymbol.UnknownResultType)
+            End If
+
+            Dim result = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Lookup(result, identifier, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(name, useSiteInfo)
+
+            If Not result.HasSymbol Then
+                result.Free()
+                Return ReportDiagnosticAndProduceBadExpression(diagnostics, name, ERRID.ERR_NameNotDeclared1, identifier)
+            End If
+
+            Dim boundName = BindSimpleName(result, name, LookupOptions.AllMethodsOfAnyArity, Nothing, diagnostics)
+            result.Free()
+            Return BindAssignmentTarget(name, boundName, diagnostics)
         End Function
 
         Friend Function GetDeconstructionElementType(local As LocalSymbol) As TypeSymbol

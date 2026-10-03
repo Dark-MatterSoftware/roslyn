@@ -43,6 +43,68 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub TupleDeconstruction_AssignsExistingLocals()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared n As Integer
+    Shared Function NextPoint() As (Integer, Integer)
+        n += 1
+        Return (n, n + 10)
+    End Function
+    Shared Sub Main()
+        Dim x = 0
+        Dim y = 0
+        Dim a = 0
+        Dim b = 0
+        Dim c = 0
+        (x, y) = NextPoint()
+        (a, b, c) = (1, 2, 3)
+        System.Console.Write(x)
+        System.Console.Write(y)
+        System.Console.Write(a)
+        System.Console.Write(b)
+        System.Console.Write(c)
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1111231").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_RequiresATuple()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim x = 0
+        Dim y = 0
+        (x, y) = 1
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DeconstructionRequiresTuple, "= 1").WithArguments("2").WithLocation(6, 16))
+        End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim x = 0
+        Dim y = 0
+        (x, y) = (10, 20)
+    End Sub
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_Syntax, "(").WithLocation(6, 9))
+        End Sub
+
+        <Fact>
         Public Sub TupleDeconstruction_RequiresATuple()
             Dim compilation = CreateCompilation("
 Class Program
