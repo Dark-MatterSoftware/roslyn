@@ -106,7 +106,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 6a | VB-015 | Done. On `vbnext`, `Partial Property Label As String` is the defining declaration, and a second `Partial Property Label As String` with `Get` and `Set` is the implementing declaration. The declarations must have the same type and modifiers, and the implementing declaration supplies the accessors. Visual Basic 17.13 still reports that a property cannot be declared `Partial`. |
 | 6b | VB-015 | Done. On `vbnext`, the `Get` and `Set` of a partial property may be declared on different parts. The parts must have the same type and modifiers. A read-write property still needs both accessors once the parts are combined. |
 | 6c | VB-016 | Done. On `vbnext`, `Partial Event Click As Action` is the defining declaration, and `Partial Custom Event Click As Action` with `AddHandler`, `RemoveHandler`, and `RaiseEvent` is the implementing declaration. The declarations must have the same type and modifiers. Visual Basic 17.13 still reports that an event cannot be declared `Partial`. |
-| 6d | VB-016 | Partial constructors use the same match. |
+| 6d | VB-016 | Done. On `vbnext`, `Partial Sub New()` is the defining declaration and must be empty. A second `Sub New` with the same parameters supplies the body. The declarations must have the same modifiers. Visual Basic 17.13 still reports that a constructor cannot be declared `Partial`. |
 | 6e | VB-032 | Primary constructor parameters are in scope in instance initializers. |
 | 6f | VB-032 | A primary constructor can chain to `MyBase` or `Me`. |
 | 6g | VB-032 | The same form works on a `Structure`. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 6c, partial events that use the same match, is implemented. The next slice is 6d, partial constructors that use the same match.
+Slice 6d, partial constructors that use the same match, is implemented. The next slice is 6e, primary constructor parameters in scope in instance initializers.

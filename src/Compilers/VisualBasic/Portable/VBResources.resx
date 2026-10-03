@@ -5799,6 +5799,9 @@
   <data name="FEATURE_PartialEvent" xml:space="preserve">
     <value>partial events</value>
   </data>
+  <data name="FEATURE_PartialConstructor" xml:space="preserve">
+    <value>partial constructors</value>
+  </data>
   <data name="ERR_DeconstructionRequiresTuple" xml:space="preserve">
     <value>Deconstruction requires a tuple with {0} elements.</value>
   </data>
@@ -5819,6 +5822,12 @@
   </data>
   <data name="ERR_PartialEventDeclarationMismatch" xml:space="preserve">
     <value>Partial event '{0}' must have one defining declaration and one implementing declaration.</value>
+  </data>
+  <data name="ERR_PartialConstructorModifierMismatch" xml:space="preserve">
+    <value>Partial constructor must have the same modifiers in both declarations.</value>
+  </data>
+  <data name="ERR_PartialConstructorDeclarationMismatch" xml:space="preserve">
+    <value>Partial constructor must have one defining declaration and one implementing declaration.</value>
   </data>
   <data name="ERR_TooManyQuotesForRawString" xml:space="preserve">
     <value>A raw string ends with the same number of quotes it starts with.</value>

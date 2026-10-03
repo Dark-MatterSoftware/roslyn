@@ -511,8 +511,11 @@ lReportErrorOnTwoTokens:
             End If
 
             If (flags And SourceMemberFlags.Partial) <> 0 Then
-                binder.ReportModifierError(modifiers, ERRID.ERR_ConstructorCannotBeDeclaredPartial, diagBag, SyntaxKind.PartialKeyword)
-                flags = flags And Not SourceMemberFlags.Partial
+                Dim languageVersion = DirectCast(modifiers.First(SyntaxKind.PartialKeyword).SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                If Not InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.PartialConstructor) Then
+                    binder.ReportModifierError(modifiers, ERRID.ERR_ConstructorCannotBeDeclaredPartial, diagBag, SyntaxKind.PartialKeyword)
+                    flags = flags And Not SourceMemberFlags.Partial
+                End If
             End If
 
             If (flags And SourceMemberFlags.Overloads) <> 0 Then

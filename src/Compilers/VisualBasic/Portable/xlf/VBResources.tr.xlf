@@ -152,6 +152,16 @@
         <target state="new">Module initializer '{0}' must not be generic and must not be contained in a generic type.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_PartialConstructorDeclarationMismatch">
+        <source>Partial constructor must have one defining declaration and one implementing declaration.</source>
+        <target state="new">Partial constructor must have one defining declaration and one implementing declaration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_PartialConstructorModifierMismatch">
+        <source>Partial constructor must have the same modifiers in both declarations.</source>
+        <target state="new">Partial constructor must have the same modifiers in both declarations.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_PartialEventDeclarationMismatch">
         <source>Partial event '{0}' must have one defining declaration and one implementing declaration.</source>
         <target state="new">Partial event '{0}' must have one defining declaration and one implementing declaration.</target>
@@ -420,6 +430,11 @@
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">aşırı yükleme çözümlemesi önceliği</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_PartialConstructor">
+        <source>partial constructors</source>
+        <target state="new">partial constructors</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_PartialEvent">

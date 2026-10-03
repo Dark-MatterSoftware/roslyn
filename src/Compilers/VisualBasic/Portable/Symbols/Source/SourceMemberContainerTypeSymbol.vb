@@ -1738,6 +1738,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 ' Find/process partial events
                 ProcessPartialEventsIfAny(membersAndInitializers.Members, diagBag)
 
+                ' Find/process partial constructors
+                ProcessPartialConstructorsIfAny(membersAndInitializers.Members, diagBag)
+
                 ' Merge types with non-types
                 For Each typeSymbols In typeMembers.Values
                     Dim nontypeSymbols As ImmutableArray(Of Symbol) = Nothing
@@ -1981,6 +1984,136 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' <summary>
         ''' Compares two methods to check if the 'candidate' can be an implementation of the 'partialDeclaration'.
         ''' </summary>
+        Private Sub ProcessPartialConstructorsIfAny(members As Dictionary(Of String, ImmutableArray(Of Symbol)), diagnostics As BindingDiagnosticBag)
+            Dim partialConstructors = ArrayBuilder(Of SourceMemberMethodSymbol).GetInstance()
+            For Each memberGroup In members.Values
+                For Each member In memberGroup
+                    Dim method = TryCast(member, SourceMemberMethodSymbol)
+                    If method IsNot Nothing AndAlso method.IsPartial AndAlso
+                       (method.MethodKind = MethodKind.Constructor OrElse method.MethodKind = MethodKind.SharedConstructor) Then
+                        partialConstructors.Add(method)
+                    End If
+                Next
+            Next
+
+            If partialConstructors.Count = 0 Then
+                partialConstructors.Free()
+                Return
+            End If
+
+            Dim index = 0
+            While index < partialConstructors.Count
+                Dim current = partialConstructors(index)
+                index += 1
+                If current Is Nothing Then
+                    Continue While
+                End If
+
+                Dim sameSignature = ArrayBuilder(Of SourceMemberMethodSymbol).GetInstance()
+                Dim group As ImmutableArray(Of Symbol) = Nothing
+                If members.TryGetValue(current.Name, group) Then
+                    For Each member In group
+                        Dim candidate = TryCast(member, SourceMemberMethodSymbol)
+                        If candidate IsNot Nothing AndAlso
+                           (candidate.MethodKind = MethodKind.Constructor OrElse candidate.MethodKind = MethodKind.SharedConstructor) AndAlso
+                           PartialConstructorSignaturesMatch(current, candidate) Then
+                            sameSignature.Add(candidate)
+                        End If
+                    Next
+                End If
+
+                For Each candidate In sameSignature
+                    For mark = 0 To partialConstructors.Count - 1
+                        If partialConstructors(mark) Is candidate Then
+                            partialConstructors(mark) = Nothing
+                        End If
+                    Next
+                Next
+
+                MatchPartialConstructor(sameSignature, members, diagnostics)
+                sameSignature.Free()
+            End While
+
+            partialConstructors.Free()
+        End Sub
+
+        Private Sub MatchPartialConstructor(candidates As ArrayBuilder(Of SourceMemberMethodSymbol),
+                                            members As Dictionary(Of String, ImmutableArray(Of Symbol)),
+                                            diagnostics As BindingDiagnosticBag)
+            Dim definition As SourceMemberMethodSymbol = Nothing
+            Dim implementation As SourceMemberMethodSymbol = Nothing
+
+            For Each candidate In candidates
+                If candidate.IsPartialDefinition Then
+                    If definition Is Nothing OrElse IsEarlierMethod(candidate, definition) Then
+                        If definition IsNot Nothing Then
+                            RemoveMemberSymbol(definition, members)
+                        End If
+
+                        definition = candidate
+                    Else
+                        RemoveMemberSymbol(candidate, members)
+                    End If
+                ElseIf implementation Is Nothing OrElse IsEarlierMethod(candidate, implementation) Then
+                    If implementation IsNot Nothing Then
+                        RemoveMemberSymbol(implementation, members)
+                    End If
+
+                    implementation = candidate
+                Else
+                    RemoveMemberSymbol(candidate, members)
+                End If
+            Next
+
+            If candidates.Count <> 2 OrElse definition Is Nothing OrElse implementation Is Nothing Then
+                Dim blame = If(implementation, definition)
+                If candidates.Count > 1 Then
+                    blame = candidates(0)
+                    For Each candidate In candidates
+                        If IsEarlierMethod(blame, candidate) Then
+                            blame = candidate
+                        End If
+                    Next
+                End If
+
+                diagnostics.Add(ERRID.ERR_PartialConstructorDeclarationMismatch, blame.GetFirstLocation())
+            End If
+
+            If definition Is Nothing OrElse implementation Is Nothing Then
+                Return
+            End If
+
+            If definition.DeclaredAccessibility <> implementation.DeclaredAccessibility OrElse
+               definition.IsShared <> implementation.IsShared Then
+                diagnostics.Add(ERRID.ERR_PartialConstructorModifierMismatch, implementation.GetFirstLocation())
+            End If
+
+            If definition.BlockSyntax IsNot Nothing AndAlso definition.BlockSyntax.Statements.Count > 0 Then
+                diagnostics.Add(ERRID.ERR_PartialMethodMustBeEmpty, definition.GetFirstLocation())
+            End If
+
+            SourceMemberMethodSymbol.InitializePartialMethodParts(definition, implementation)
+            RemoveMemberSymbol(implementation, members)
+        End Sub
+
+        Private Function IsEarlierMethod(left As SourceMemberMethodSymbol, right As SourceMemberMethodSymbol) As Boolean
+            Return Me.DeclaringCompilation.CompareSourceLocations(left.GetFirstLocation(), right.GetFirstLocation()) < 0
+        End Function
+
+        Private Shared Function PartialConstructorSignaturesMatch(left As SourceMemberMethodSymbol, right As SourceMemberMethodSymbol) As Boolean
+            If left.MethodKind <> right.MethodKind OrElse left.ParameterCount <> right.ParameterCount Then
+                Return False
+            End If
+
+            For parameterIndex = 0 To left.ParameterCount - 1
+                If Not TypeSymbol.Equals(left.Parameters(parameterIndex).Type, right.Parameters(parameterIndex).Type, TypeCompareKind.ConsiderEverything) Then
+                    Return False
+                End If
+            Next
+
+            Return True
+        End Function
+
         Private Sub ProcessPartialEventsIfAny(members As Dictionary(Of String, ImmutableArray(Of Symbol)), diagnostics As BindingDiagnosticBag)
             Dim partialEvents = ArrayBuilder(Of SourceEventSymbol).GetInstance()
             For Each memberGroup In members.Values
