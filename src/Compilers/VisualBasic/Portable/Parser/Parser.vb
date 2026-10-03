@@ -2094,6 +2094,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     isFieldDeclaration = True
             End Select
 
+            If Not isFieldDeclaration AndAlso
+               modifiers.Any(SyntaxKind.DimKeyword) AndAlso
+               Not modifiers.Any(SyntaxKind.ConstKeyword) AndAlso
+               Not modifiers.Any(SyntaxKind.StaticKeyword) AndAlso
+               CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso
+               CheckFeatureAvailability(Feature.TupleDeconstruction) Then
+
+                Return ParseTupleDeconstructionStatement(attributes, modifiers)
+            End If
+
             Dim Declarations = ParseVariableDeclaration(Not isFieldDeclaration)
 
             Dim result As StatementSyntax
@@ -2129,6 +2139,58 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Return result
 
+        End Function
+
+        Private Function ParseTupleDeconstructionStatement(
+            attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
+            modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
+        ) As StatementSyntax
+
+            Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim names = _pool.AllocateSeparated(Of ModifiedIdentifierSyntax)()
+            If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
+                Do
+                    names.Add(ParseModifiedIdentifier(False, False))
+
+                    Dim comma As PunctuationSyntax = Nothing
+                    If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                        Exit Do
+                    End If
+
+                    names.AddSeparator(comma)
+                Loop
+            End If
+
+            If names.Count = 0 Then
+                Dim missingName = SyntaxFactory.ModifiedIdentifier(
+                    ReportSyntaxError(InternalSyntaxFactory.MissingIdentifier(), ERRID.ERR_ExpectedIdentifier),
+                    Nothing, Nothing, Nothing)
+                names.Add(missingName)
+            End If
+
+            Dim closeParen As PunctuationSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
+
+            Dim equalsToken As PunctuationSyntax = Nothing
+            Dim value As ExpressionSyntax
+            If TryGetTokenAndEatNewLine(SyntaxKind.EqualsToken, equalsToken) Then
+                value = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+            Else
+                equalsToken = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingToken(SyntaxKind.EqualsToken), ERRID.ERR_ExpectedEQ), PunctuationSyntax)
+                value = InternalSyntaxFactory.MissingExpression()
+            End If
+
+            Dim initializer = SyntaxFactory.EqualsValue(equalsToken, value)
+            Dim result As StatementSyntax = SyntaxFactory.TupleDeconstructionStatement(modifiers, openParen, names.ToList, closeParen, initializer)
+            _pool.Free(names)
+
+            If attributes.Any Then
+                result = result.AddLeadingSyntax(attributes.Node, ERRID.ERR_LocalsCannotHaveAttributes)
+            End If
+
+            Return result
         End Function
 
         Private Function ParseVariableDeclaration(allowAsNewWith As Boolean) As CoreInternalSyntax.SeparatedSyntaxList(Of VariableDeclaratorSyntax)

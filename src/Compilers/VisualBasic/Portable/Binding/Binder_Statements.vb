@@ -81,6 +81,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.LocalDeclarationStatement
                     Return BindLocalDeclaration(DirectCast(node, LocalDeclarationStatementSyntax), diagnostics)
 
+                Case SyntaxKind.TupleDeconstructionStatement
+                    Return BindTupleDeconstruction(DirectCast(node, TupleDeconstructionStatementSyntax), diagnostics)
+
                 Case SyntaxKind.SimpleDoLoopBlock,
                      SyntaxKind.DoWhileLoopBlock,
                      SyntaxKind.DoUntilLoopBlock,
@@ -1010,6 +1013,88 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
         End Sub
+
+        Private Function BindTupleDeconstruction(node As TupleDeconstructionStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
+            Dim value = BindValue(node.Initializer.Value, diagnostics).MakeRValue()
+            Dim names = node.Names
+            Dim elements = GetDeconstructionElements(value, names.Count)
+            Dim matches = Not elements.IsDefault
+
+            If Not matches AndAlso Not value.HasErrors Then
+                ReportDiagnostic(diagnostics, node.Initializer, ERRID.ERR_DeconstructionRequiresTuple, names.Count)
+            End If
+
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim blockLocals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim receiver As BoundExpression = Nothing
+
+            If matches Then
+                Dim temp As LocalSymbol = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
+                blockLocals.Add(temp)
+                Dim assignment = New BoundExpressionStatement(
+                    node,
+                    New BoundAssignmentOperator(
+                        node,
+                        New BoundLocal(node, temp, value.Type),
+                        value,
+                        suppressObjectClone:=True,
+                        type:=value.Type))
+                assignment.SetWasCompilerGenerated()
+                statements.Add(assignment)
+                receiver = New BoundLocal(node, temp, value.Type).MakeRValue()
+            End If
+
+            Dim declarations = ArrayBuilder(Of BoundLocalDeclarationBase).GetInstance(names.Count)
+            For i = 0 To names.Count - 1
+                Dim name = names(i)
+                Dim local = GetLocalForDeclaration(name.Identifier)
+                Dim elementType As TypeSymbol = If(matches, elements(i).Type, ErrorTypeSymbol.UnknownResultType)
+                VerifyLocalSymbolNameAndSetType(local, elementType, name, name.Identifier, diagnostics)
+
+                Dim initializer As BoundExpression
+                If matches Then
+                    initializer = New BoundFieldAccess(name, receiver, elements(i), isLValue:=False, type:=elementType)
+                Else
+                    initializer = BadExpression(name, value, elementType).MakeCompilerGenerated()
+                End If
+
+                Dim declaration = New BoundLocalDeclaration(name, local, initializer, Nothing, initializedByAsNew:=False)
+                If i > 0 Then
+                    declaration.SetWasCompilerGenerated()
+                End If
+                declarations.Add(declaration)
+                blockLocals.Add(local)
+            Next
+
+            statements.Add(New BoundDimStatement(node, declarations.ToImmutableAndFree(), Nothing))
+            Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+        End Function
+
+        Friend Function GetDeconstructionElementType(local As LocalSymbol) As TypeSymbol
+            Dim name = TryCast(local.IdentifierToken.Parent, ModifiedIdentifierSyntax)
+            Dim statement = TryCast(name?.Parent, TupleDeconstructionStatementSyntax)
+            If statement Is Nothing Then
+                Return ErrorTypeSymbol.UnknownResultType
+            End If
+
+            Dim index = statement.Names.IndexOf(name)
+            Dim value = BindValue(statement.Initializer.Value, BindingDiagnosticBag.Discarded)
+            Dim elements = GetDeconstructionElements(value, statement.Names.Count)
+            If elements.IsDefault OrElse index < 0 OrElse index >= elements.Length Then
+                Return ErrorTypeSymbol.UnknownResultType
+            End If
+
+            Return elements(index).Type
+        End Function
+
+        Private Shared Function GetDeconstructionElements(value As BoundExpression, nameCount As Integer) As ImmutableArray(Of FieldSymbol)
+            Dim valueType = value.Type
+            If valueType Is Nothing OrElse Not valueType.IsTupleType OrElse valueType.TupleElements.Length <> nameCount Then
+                Return Nothing
+            End If
+
+            Return valueType.TupleElements
+        End Function
 
         Private Function BindLocalDeclaration(node As LocalDeclarationStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
 

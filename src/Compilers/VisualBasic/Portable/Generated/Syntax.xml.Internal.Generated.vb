@@ -9219,6 +9219,165 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents a declaration that takes a tuple apart into locals, Dim (x, y) =
+    ''' point.
+    ''' </summary>
+    Friend NotInheritable Class TupleDeconstructionStatementSyntax
+        Inherits ExecutableStatementSyntax
+
+        Friend ReadOnly _modifiers as GreenNode
+        Friend ReadOnly _openParenToken as PunctuationSyntax
+        Friend ReadOnly _names as GreenNode
+        Friend ReadOnly _closeParenToken as PunctuationSyntax
+        Friend ReadOnly _initializer as EqualsValueSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, modifiers As GreenNode, openParenToken As InternalSyntax.PunctuationSyntax, names As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, initializer As EqualsValueSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 5
+
+            If modifiers IsNot Nothing Then
+                AdjustFlagsAndWidth(modifiers)
+                Me._modifiers = modifiers
+            End If
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If names IsNot Nothing Then
+                AdjustFlagsAndWidth(names)
+                Me._names = names
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, modifiers As GreenNode, openParenToken As InternalSyntax.PunctuationSyntax, names As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, initializer As EqualsValueSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 5
+            Me.SetFactoryContext(context)
+
+            If modifiers IsNot Nothing Then
+                AdjustFlagsAndWidth(modifiers)
+                Me._modifiers = modifiers
+            End If
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If names IsNot Nothing Then
+                AdjustFlagsAndWidth(names)
+                Me._names = names
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), modifiers As GreenNode, openParenToken As InternalSyntax.PunctuationSyntax, names As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, initializer As EqualsValueSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 5
+
+            If modifiers IsNot Nothing Then
+                AdjustFlagsAndWidth(modifiers)
+                Me._modifiers = modifiers
+            End If
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If names IsNot Nothing Then
+                AdjustFlagsAndWidth(names)
+                Me._names = names
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.TupleDeconstructionStatementSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Dim keyword that introduces the declaration.
+        ''' </summary>
+        Friend ReadOnly Property Modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of KeywordSyntax)
+            Get
+                Return New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)(Me._modifiers)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property OpenParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openParenToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The locals declared from the tuple, in order.
+        ''' </summary>
+        Friend ReadOnly Property Names As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ModifiedIdentifierSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of ModifiedIdentifierSyntax)(Me._names))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property CloseParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeParenToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The tuple expression assigned into the locals.
+        ''' </summary>
+        Friend ReadOnly Property Initializer As InternalSyntax.EqualsValueSyntax
+            Get
+                Return Me._initializer
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._modifiers
+                Case 1
+                    Return Me._openParenToken
+                Case 2
+                    Return Me._names
+                Case 3
+                    Return Me._closeParenToken
+                Case 4
+                    Return Me._initializer
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new TupleDeconstructionStatementSyntax(Me.Kind, newErrors, GetAnnotations, _modifiers, _openParenToken, _names, _closeParenToken, _initializer)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new TupleDeconstructionStatementSyntax(Me.Kind, GetDiagnostics, annotations, _modifiers, _openParenToken, _names, _closeParenToken, _initializer)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitTupleDeconstructionStatement(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a label statement.
     ''' </summary>
     Friend NotInheritable Class LabelStatementSyntax
@@ -29169,6 +29328,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExecutableStatement(node)
         End Function
+        Public Overridable Function VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExecutableStatement(node)
+        End Function
         Public Overridable Function VisitLabelStatement(ByVal node As LabelStatementSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExecutableStatement(node)
@@ -31261,6 +31424,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New LocalDeclarationStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newModifiers.Node, newDeclarators.Node)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newModifiers = VisitList(node.Modifiers)
+            If node._modifiers IsNot newModifiers.Node Then anyChanges = True
+            Dim newOpenParenToken = DirectCast(Visit(node.OpenParenToken), PunctuationSyntax)
+            If node._openParenToken IsNot newOpenParenToken Then anyChanges = True
+            Dim newNames = VisitList(node.Names)
+            If node._names IsNot newNames.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(Visit(node.CloseParenToken), PunctuationSyntax)
+            If node._closeParenToken IsNot newCloseParenToken Then anyChanges = True
+            Dim newInitializer = DirectCast(Visit(node._initializer), EqualsValueSyntax)
+            If node._initializer IsNot newInitializer Then anyChanges = True
+
+            If anyChanges Then
+                Return New TupleDeconstructionStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newModifiers.Node, newOpenParenToken, newNames.Node, newCloseParenToken, newInitializer)
             Else
                 Return node
             End If
@@ -37931,6 +38115,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a tuple apart into locals, Dim (x, y) =
+        ''' point.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The Dim keyword that introduces the declaration.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="names">
+        ''' The locals declared from the tuple, in order.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The tuple expression assigned into the locals.
+        ''' </param>
+        Friend Shared Function TupleDeconstructionStatement(modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), openParenToken As PunctuationSyntax, names As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax, initializer As EqualsValueSyntax) As TupleDeconstructionStatementSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+            Debug.Assert(initializer IsNot Nothing)
+            Return New TupleDeconstructionStatementSyntax(SyntaxKind.TupleDeconstructionStatement, modifiers.Node, openParenToken, names.Node, closeParenToken, initializer)
         End Function
 
 
@@ -50089,6 +50300,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a tuple apart into locals, Dim (x, y) =
+        ''' point.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The Dim keyword that introduces the declaration.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="names">
+        ''' The locals declared from the tuple, in order.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The tuple expression assigned into the locals.
+        ''' </param>
+        Friend Function TupleDeconstructionStatement(modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), openParenToken As PunctuationSyntax, names As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax, initializer As EqualsValueSyntax) As TupleDeconstructionStatementSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+            Debug.Assert(initializer IsNot Nothing)
+            Return New TupleDeconstructionStatementSyntax(SyntaxKind.TupleDeconstructionStatement, modifiers.Node, openParenToken, names.Node, closeParenToken, initializer, _factoryContext)
         End Function
 
 

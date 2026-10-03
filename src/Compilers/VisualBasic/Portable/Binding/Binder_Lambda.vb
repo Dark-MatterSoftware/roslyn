@@ -475,7 +475,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim singleLineLambdaSyntax = DirectCast(lambdaSyntax, SingleLineLambdaExpressionSyntax)
                     Dim statement = DirectCast(singleLineLambdaSyntax.Body, StatementSyntax)
 
-                    If statement.Kind = SyntaxKind.LocalDeclarationStatement Then
+                    If statement.Kind = SyntaxKind.LocalDeclarationStatement OrElse
+                       statement.Kind = SyntaxKind.TupleDeconstructionStatement Then
                         ' A local declaration is not allowed in a single line lambda as the top level statement.  Report the error here because it is legal
                         ' to have a single line if which contains a local declaration.  If the error reporting is done in BindStatement then all local 
                         ' declarations are prohibited.

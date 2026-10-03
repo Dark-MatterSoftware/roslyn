@@ -845,7 +845,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Sub
 
             ' Compute the type of this variable.
+            Private _deconstructionTypeGuard As Integer
+
             Friend Overrides Function ComputeTypeInternal(localBinder As Binder) As TypeSymbol
+                If _modifiedIdentifierOpt IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent.Kind = SyntaxKind.TupleDeconstructionStatement Then
+
+                    If _deconstructionTypeGuard <> 0 Then
+                        Return ErrorTypeSymbol.UnknownResultType
+                    End If
+
+                    _deconstructionTypeGuard = 1
+                    Try
+                        Return localBinder.GetDeconstructionElementType(Me)
+                    Finally
+                        _deconstructionTypeGuard = 0
+                    End Try
+                End If
 
                 Dim declType As TypeSymbol = Nothing
                 Dim type As TypeSymbol = Nothing

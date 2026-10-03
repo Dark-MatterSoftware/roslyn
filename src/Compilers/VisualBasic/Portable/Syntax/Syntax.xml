@@ -2877,6 +2877,50 @@ Unify Enum declarations with other block type declarations.
       </child>
     </node-structure>
 
+    <!--********************
+      -  TupleDeconstruction
+      **********************-->
+    <node-structure name="TupleDeconstructionStatementSyntax" parent="ExecutableStatementSyntax">
+      <description>Represents a declaration that takes a tuple apart into locals, <c>Dim (x, y) = point</c>.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="TupleDeconstructionStatement">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="Modifiers" list="true" kind="DimKeyword" min-count="1">
+        <description>The Dim keyword that introduces the declaration.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="OpenParenToken" kind="OpenParenToken">
+        <description>The opening parenthesis.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Names" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="ModifiedIdentifier" min-count="1">
+        <description>The locals declared from the tuple, in order.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CloseParenToken" kind="CloseParenToken">
+        <description>The closing parenthesis.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Initializer" kind="EqualsValue">
+        <description>The tuple expression assigned into the locals.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
     <!--****************
       -  Label
       ******************-->

@@ -88,7 +88,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 5a | VB-005 | `Dim (x, y) = point` declares locals from a tuple. |
+| 5a | VB-005 | Done. On `vbnext`, `Dim (x, y) = point` declares locals from a tuple. The tuple is evaluated once, and each name takes the element in that position. A value that is not a tuple of the same length is an error. Visual Basic 17.13 still treats the parentheses as array bounds. |
 | 5b | VB-005 | Deconstruction assigns into existing variables. |
 | 5c | VB-005 | A discard skips one element. |
 | 5d | VB-005 | A method named `Deconstruct` is used when the type is not a tuple. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 4f, a `u8` suffix on a string literal, is implemented. The next slice is phase 5a, `Dim (x, y) = point`, which declares locals from a tuple.
+Slice 5a, `Dim (x, y) = point`, is implemented. The next slice is 5b, deconstruction that assigns into existing variables.

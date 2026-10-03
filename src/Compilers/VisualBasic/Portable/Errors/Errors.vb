@@ -1820,8 +1820,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_TooManyQuotesForRawString = 37360
         ERR_RawStringDelimiterOnOwnLine = 37361
         ERR_RawStringLineIndent = 37362
+        ERR_DeconstructionRequiresTuple = 37363
 
-        ERR_NextAvailable = 37363
+        ERR_NextAvailable = 37364
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2146,5 +2147,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_CovariantReturns
         FEATURE_RawStringLiteral
         FEATURE_Utf8StringLiteral
+        FEATURE_TupleDeconstruction
     End Enum
 End Namespace

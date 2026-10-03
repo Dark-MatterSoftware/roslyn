@@ -233,6 +233,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitLocalDeclarationStatement(ByVal node As LocalDeclarationStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitLabelStatement(ByVal node As LabelStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -969,6 +972,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitLocalDeclarationStatement(ByVal node As LocalDeclarationStatementSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitLabelStatement(ByVal node As LabelStatementSyntax)
@@ -2808,6 +2814,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New LocalDeclarationStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newModifiers.Node, newDeclarators.Node)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newModifiers = VisitList(node.Modifiers)
+            If node.Modifiers.Node IsNot newModifiers.Node Then anyChanges = True
+            Dim newOpenParenToken = DirectCast(VisitToken(node.OpenParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OpenParenToken.Node IsNot newOpenParenToken Then anyChanges = True
+            Dim newNames = VisitList(node.Names)
+            If node._names IsNot newNames.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(VisitToken(node.CloseParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.CloseParenToken.Node IsNot newCloseParenToken Then anyChanges = True
+            Dim newInitializer = DirectCast(Visit(node.Initializer), EqualsValueSyntax)
+            If node.Initializer IsNot newInitializer Then anyChanges = True
+
+            If anyChanges Then
+                Return New TupleDeconstructionStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newModifiers.Node, newOpenParenToken, newNames.Node, newCloseParenToken, newInitializer)
             Else
                 Return node
             End If
@@ -13071,6 +13098,63 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function LocalDeclarationStatement(modifiers As SyntaxTokenList, declarators As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As LocalDeclarationStatementSyntax
             Return New LocalDeclarationStatementSyntax(SyntaxKind.LocalDeclarationStatement, Nothing, Nothing, modifiers.Node, declarators.Node)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a tuple apart into locals, Dim (x, y) =
+        ''' point.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The Dim keyword that introduces the declaration.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="names">
+        ''' The locals declared from the tuple, in order.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The tuple expression assigned into the locals.
+        ''' </param>
+        Public Shared Function TupleDeconstructionStatement(modifiers As SyntaxTokenList, openParenToken As SyntaxToken, names As SeparatedSyntaxList(Of ModifiedIdentifierSyntax), closeParenToken As SyntaxToken, initializer As EqualsValueSyntax) As TupleDeconstructionStatementSyntax
+            Select Case openParenToken.Kind()
+                Case SyntaxKind.OpenParenToken
+                Case Else
+                    Throw new ArgumentException("openParenToken")
+            End Select
+            Select Case closeParenToken.Kind()
+                Case SyntaxKind.CloseParenToken
+                Case Else
+                    Throw new ArgumentException("closeParenToken")
+            End Select
+            if initializer Is Nothing Then
+                Throw New ArgumentNullException(NameOf(initializer))
+            End If
+            Select Case initializer.Kind()
+                Case SyntaxKind.EqualsValue
+                Case Else
+                    Throw new ArgumentException("initializer")
+            End Select
+            Return New TupleDeconstructionStatementSyntax(SyntaxKind.TupleDeconstructionStatement, Nothing, Nothing, modifiers.Node, DirectCast(openParenToken.Node, InternalSyntax.PunctuationSyntax), names.Node, DirectCast(closeParenToken.Node, InternalSyntax.PunctuationSyntax), initializer)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a tuple apart into locals, Dim (x, y) =
+        ''' point.
+        ''' </summary>
+        ''' <param name="names">
+        ''' The locals declared from the tuple, in order.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The tuple expression assigned into the locals.
+        ''' </param>
+        Public Shared Function TupleDeconstructionStatement(names As SeparatedSyntaxList(Of ModifiedIdentifierSyntax), initializer As EqualsValueSyntax) As TupleDeconstructionStatementSyntax
+            Return SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.OpenParenToken), names, SyntaxFactory.Token(SyntaxKind.CloseParenToken), initializer)
         End Function
 
 
@@ -36615,6 +36699,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.SyncLockBlock,
                      SyntaxKind.WithBlock,
                      SyntaxKind.LocalDeclarationStatement,
+                     SyntaxKind.TupleDeconstructionStatement,
                      SyntaxKind.LabelStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.StopStatement,
@@ -36912,6 +36997,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.SyncLockBlock,
                      SyntaxKind.WithBlock,
                      SyntaxKind.LocalDeclarationStatement,
+                     SyntaxKind.TupleDeconstructionStatement,
                      SyntaxKind.LabelStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.StopStatement,
@@ -37217,6 +37303,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.SyncLockBlock,
                      SyntaxKind.WithBlock,
                      SyntaxKind.LocalDeclarationStatement,
+                     SyntaxKind.TupleDeconstructionStatement,
                      SyntaxKind.LabelStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.StopStatement,

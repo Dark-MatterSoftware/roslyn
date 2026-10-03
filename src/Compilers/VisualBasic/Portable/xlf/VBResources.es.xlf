@@ -67,6 +67,11 @@
         <target state="translated">Use la versión de lenguaje {0} o superior para usar los comentarios después del carácter de continuación de línea.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_DeconstructionRequiresTuple">
+        <source>Deconstruction requires a tuple with {0} elements.</source>
+        <target state="new">Deconstruction requires a tuple with {0} elements.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_DefaultInterfaceImplementationInNoPIAType">
         <source>Type '{0}' cannot be embedded because it has a non-abstract member. Consider setting the 'Embed Interop Types' property to false.</source>
         <target state="translated">El tipo "{0}" no se puede incrustar porque tiene un miembro no abstracto. Puede establecer la propiedad "Incrustar tipos de interoperabilidad" en false.</target>
@@ -420,6 +425,11 @@
       <trans-unit id="FEATURE_TargetTypedNew">
         <source>target-typed New</source>
         <target state="new">target-typed New</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_TupleDeconstruction">
+        <source>tuple deconstruction</source>
+        <target state="new">tuple deconstruction</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">

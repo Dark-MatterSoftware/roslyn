@@ -376,7 +376,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function InstrumentLocalInitialization(original As BoundLocalDeclaration, rewritten As BoundStatement) As BoundStatement
             Debug.Assert(Not original.WasCompilerGenerated)
             Debug.Assert(original.Syntax.Kind = SyntaxKind.ModifiedIdentifier)
-            Debug.Assert(original.Syntax.Parent.Kind = SyntaxKind.VariableDeclarator)
+            Debug.Assert(original.Syntax.Parent.Kind = SyntaxKind.VariableDeclarator OrElse
+                         original.Syntax.Parent.Kind = SyntaxKind.TupleDeconstructionStatement)
             Return rewritten
         End Function
 

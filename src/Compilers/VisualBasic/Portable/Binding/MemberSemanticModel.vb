@@ -279,6 +279,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.UsingBlock,
                      SyntaxKind.SyncLockBlock,
                      SyntaxKind.LocalDeclarationStatement,
+                     SyntaxKind.TupleDeconstructionStatement,
                      SyntaxKind.SimpleDoLoopBlock,
                      SyntaxKind.DoWhileLoopBlock,
                      SyntaxKind.DoUntilLoopBlock,

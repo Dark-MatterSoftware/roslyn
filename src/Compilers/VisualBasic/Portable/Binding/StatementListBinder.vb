@@ -42,6 +42,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim locals As ArrayBuilder(Of LocalSymbol) = Nothing
 
             For Each statement In _statementList
+                If statement.Kind = SyntaxKind.TupleDeconstructionStatement Then
+                    If locals Is Nothing Then
+                        locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+                    End If
+
+                    For Each modifiedIdentifier In DirectCast(statement, TupleDeconstructionStatementSyntax).Names
+                        locals.Add(LocalSymbol.Create(
+                            Me.ContainingMember, Me,
+                            modifiedIdentifier.Identifier, modifiedIdentifier,
+                            Nothing, Nothing,
+                            LocalDeclarationKind.Variable))
+                    Next
+                End If
+
                 If statement.Kind = SyntaxKind.LocalDeclarationStatement Then
                     If locals Is Nothing Then
                         locals = ArrayBuilder(Of LocalSymbol).GetInstance()

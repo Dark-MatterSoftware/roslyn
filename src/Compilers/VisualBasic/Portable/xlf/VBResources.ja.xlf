@@ -67,6 +67,11 @@
         <target state="translated">行連結文字の後のコメントを使用するには、言語バージョン {0} 以上をご使用ください。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_DeconstructionRequiresTuple">
+        <source>Deconstruction requires a tuple with {0} elements.</source>
+        <target state="new">Deconstruction requires a tuple with {0} elements.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_DefaultInterfaceImplementationInNoPIAType">
         <source>Type '{0}' cannot be embedded because it has a non-abstract member. Consider setting the 'Embed Interop Types' property to false.</source>
         <target state="translated">型 '{0}' には非抽象メンバーがあるため、この型を埋め込むことはできません。'相互運用型の埋め込み' プロパティを false に設定することをご検討ください。</target>
@@ -420,6 +425,11 @@
       <trans-unit id="FEATURE_TargetTypedNew">
         <source>target-typed New</source>
         <target state="new">target-typed New</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_TupleDeconstruction">
+        <source>tuple deconstruction</source>
+        <target state="new">tuple deconstruction</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_UnconstrainedTypeParameterInConditional">

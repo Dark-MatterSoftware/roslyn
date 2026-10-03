@@ -13433,6 +13433,201 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents a declaration that takes a tuple apart into locals, Dim (x, y) =
+    ''' point.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.TupleDeconstructionStatement"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class TupleDeconstructionStatementSyntax
+        Inherits ExecutableStatementSyntax
+
+        Friend _names as SyntaxNode
+        Friend _initializer as EqualsValueSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), modifiers As GreenNode, openParenToken As InternalSyntax.PunctuationSyntax, names As SyntaxNode, closeParenToken As InternalSyntax.PunctuationSyntax, initializer As EqualsValueSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TupleDeconstructionStatementSyntax(kind, errors, annotations, modifiers, openParenToken, if(names IsNot Nothing, names.Green, Nothing), closeParenToken, DirectCast(initializer.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.EqualsValueSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Dim keyword that introduces the declaration.
+        ''' </summary>
+        Public ReadOnly Property Modifiers As SyntaxTokenList
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TupleDeconstructionStatementSyntax)._modifiers
+                If slot IsNot Nothing
+                    return new SyntaxTokenList(Me, slot, Me.Position, 0)
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Modifiers property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As TupleDeconstructionStatementSyntax
+            return Update(modifiers, Me.OpenParenToken, Me.Names, Me.CloseParenToken, Me.Initializer)
+        End Function
+
+        Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As TupleDeconstructionStatementSyntax
+            Return Me.WithModifiers(Me.Modifiers.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Public ReadOnly Property OpenParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TupleDeconstructionStatementSyntax)._openParenToken, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenParenToken(openParenToken as SyntaxToken) As TupleDeconstructionStatementSyntax
+            return Update(Me.Modifiers, openParenToken, Me.Names, Me.CloseParenToken, Me.Initializer)
+        End Function
+
+        ''' <summary>
+        ''' The locals declared from the tuple, in order.
+        ''' </summary>
+        Public ReadOnly Property Names As SeparatedSyntaxList(Of ModifiedIdentifierSyntax)
+            Get
+                Dim listNode = GetRed(_names, 2)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(listNode, Me.GetChildIndex(2))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Names property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithNames(names as SeparatedSyntaxList(Of ModifiedIdentifierSyntax)) As TupleDeconstructionStatementSyntax
+            return Update(Me.Modifiers, Me.OpenParenToken, names, Me.CloseParenToken, Me.Initializer)
+        End Function
+
+        Public Shadows Function AddNames(ParamArray items As ModifiedIdentifierSyntax()) As TupleDeconstructionStatementSyntax
+            Return Me.WithNames(Me.Names.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Public ReadOnly Property CloseParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TupleDeconstructionStatementSyntax)._closeParenToken, Me.GetChildPosition(3), Me.GetChildIndex(3))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseParenToken(closeParenToken as SyntaxToken) As TupleDeconstructionStatementSyntax
+            return Update(Me.Modifiers, Me.OpenParenToken, Me.Names, closeParenToken, Me.Initializer)
+        End Function
+
+        ''' <summary>
+        ''' The tuple expression assigned into the locals.
+        ''' </summary>
+        Public ReadOnly Property Initializer As EqualsValueSyntax
+            Get
+                Return GetRed(_initializer, 4)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Initializer property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithInitializer(initializer as EqualsValueSyntax) As TupleDeconstructionStatementSyntax
+            return Update(Me.Modifiers, Me.OpenParenToken, Me.Names, Me.CloseParenToken, initializer)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me._names
+                Case 4
+                    Return Me._initializer
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return GetRed(_names, 2)
+                Case 4
+                    Return Me.Initializer
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitTupleDeconstructionStatement(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitTupleDeconstructionStatement(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The value for the Modifiers property.
+        ''' </param>
+        ''' <param name="openParenToken">
+        ''' The value for the OpenParenToken property.
+        ''' </param>
+        ''' <param name="names">
+        ''' The value for the Names property.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The value for the CloseParenToken property.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value for the Initializer property.
+        ''' </param>
+        Public Function Update(modifiers As SyntaxTokenList, openParenToken As SyntaxToken, names As SeparatedSyntaxList(Of ModifiedIdentifierSyntax), closeParenToken As SyntaxToken, initializer As EqualsValueSyntax) As TupleDeconstructionStatementSyntax
+            If modifiers <> Me.Modifiers OrElse openParenToken <> Me.OpenParenToken OrElse names <> Me.Names OrElse closeParenToken <> Me.CloseParenToken OrElse initializer IsNot Me.Initializer Then
+                Dim newNode = SyntaxFactory.TupleDeconstructionStatement(modifiers, openParenToken, names, closeParenToken, initializer)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a label statement.
     ''' </summary>
     ''' <remarks>

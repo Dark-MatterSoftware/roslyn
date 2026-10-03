@@ -151,6 +151,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Shared Function MarkInitializerSequencePoint(rewrittenStatement As BoundStatement, syntax As SyntaxNode) As BoundStatement
             Debug.Assert(syntax.IsKind(SyntaxKind.ModifiedIdentifier))
+            If syntax.Parent.Kind = SyntaxKind.TupleDeconstructionStatement Then
+                Return New BoundSequencePoint(syntax.Parent, rewrittenStatement)
+            End If
+
             Debug.Assert(syntax.Parent.Kind = SyntaxKind.VariableDeclarator)
 
             Dim modifiedIdentifier = DirectCast(syntax, ModifiedIdentifierSyntax)

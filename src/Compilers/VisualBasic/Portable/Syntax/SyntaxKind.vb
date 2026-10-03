@@ -3236,5 +3236,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         RangeExpression = 799                        ' RangeExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents a declaration that takes a tuple apart into locals, <c>Dim (x, y) = point</c>.
+        ''' </summary>
+        TupleDeconstructionStatement = 800           ' TupleDeconstructionStatementSyntax : ExecutableStatementSyntax : StatementSyntax
+
     End Enum
 End Namespace
