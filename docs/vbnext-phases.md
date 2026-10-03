@@ -97,7 +97,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 5g | VB-004 | Done. On `vbnext`, `Case Is (1, 2)` compares tuple elements, and `Case Is TypeOf Point(1, 2)` compares the `ByRef` results of `Deconstruct`. The Select expression is evaluated once. |
 | 5h | VB-004 | Done. On `vbnext`, `Dim label = Select Case order` followed by `Case` arms and `End Select` produces the matching arm. The Select expression is evaluated once. `Case Else` supplies the value when nothing earlier matches. Visual Basic 17.13 still reports an expected expression, and the following `Case` and `End Select` lines stay outside a Select statement. List patterns wait until phase 7. |
 
-5e through 5h use the spelling locked in `docs/vbnext-vb004-syntax.md`.
+5e through 5h use the spelling locked in `docs/vbnext-vb004-syntax.md`. 6e through 6g use the spelling locked in `docs/vbnext-vb032-syntax.md`.
 
 ## Phase 6 — Type shape
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 6d, partial constructors that use the same match, is implemented. The next slice is 6e, primary constructor parameters in scope in instance initializers.
+Slice 6d, partial constructors that use the same match, is implemented. The primary constructor spelling for 6e through 6g is locked in `docs/vbnext-vb032-syntax.md`. The next slice is 6e, primary constructor parameters in scope in instance initializers.
