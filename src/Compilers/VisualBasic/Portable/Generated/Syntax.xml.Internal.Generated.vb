@@ -18875,6 +18875,99 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents a non-destructive record copy. The initializer assigns members of
+    ''' the copy.
+    ''' </summary>
+    Friend NotInheritable Class WithExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _expression as ExpressionSyntax
+        Friend ReadOnly _initializer as ObjectMemberInitializerSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.WithExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The record being copied.
+        ''' </summary>
+        Friend ReadOnly Property Expression As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._expression
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The member assignments applied to the copy.
+        ''' </summary>
+        Friend ReadOnly Property Initializer As InternalSyntax.ObjectMemberInitializerSyntax
+            Get
+                Return Me._initializer
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._expression
+                Case 1
+                    Return Me._initializer
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new WithExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _expression, _initializer)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new WithExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _expression, _initializer)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitWithExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a CType, DirectCast or TryCast conversion expression. The Kind
     ''' property determines which kind of cast it is.
     ''' </summary>
@@ -30744,6 +30837,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
         End Function
+        Public Overridable Function VisitWithExpression(ByVal node As WithExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
         Public Overridable Function VisitCastExpression(ByVal node As CastExpressionSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
@@ -33908,6 +34005,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New CollectionExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOpenParenToken, newElements.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitWithExpression(ByVal node As WithExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newExpression = DirectCast(Visit(node._expression), ExpressionSyntax)
+            If node._expression IsNot newExpression Then anyChanges = True
+            Dim newInitializer = DirectCast(Visit(node._initializer), ObjectMemberInitializerSyntax)
+            If node._initializer IsNot newInitializer Then anyChanges = True
+
+            If anyChanges Then
+                Return New WithExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newExpression, newInitializer)
             Else
                 Return node
             End If
@@ -44058,6 +44170,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a non-destructive record copy. The initializer assigns members of
+        ''' the copy.
+        ''' </summary>
+        ''' <param name="expression">
+        ''' The record being copied.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The member assignments applied to the copy.
+        ''' </param>
+        Friend Shared Function WithExpression(expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax) As WithExpressionSyntax
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(initializer IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.WithExpression, expression, initializer, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, WithExpressionSyntax)
+            End If
+
+            Dim result = New WithExpressionSyntax(SyntaxKind.WithExpression, expression, initializer)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
@@ -56463,6 +56604,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a non-destructive record copy. The initializer assigns members of
+        ''' the copy.
+        ''' </summary>
+        ''' <param name="expression">
+        ''' The record being copied.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The member assignments applied to the copy.
+        ''' </param>
+        Friend Function WithExpression(expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax) As WithExpressionSyntax
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(initializer IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.WithExpression, expression, initializer, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, WithExpressionSyntax)
+            End If
+
+            Dim result = New WithExpressionSyntax(SyntaxKind.WithExpression, expression, initializer, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If

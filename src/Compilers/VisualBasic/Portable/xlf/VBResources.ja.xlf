@@ -377,6 +377,11 @@
         <target state="translated">参照によって返されるメソッドまたはプロパティの呼び出しは、非同期メソッドまたは反復子メソッドで 'With' ステートメント式として、またはラムダで暗黙的に参照される場合は使用できません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>

@@ -93,6 +93,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.CollectionExpression
                     Return BindCollectionExpression(DirectCast(node, CollectionExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.WithExpression
+                    Return BindWithExpression(DirectCast(node, WithExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.AnonymousObjectCreationExpression
                     Return BindAnonymousObjectCreationExpression(DirectCast(node, AnonymousObjectCreationExpressionSyntax), diagnostics)
 

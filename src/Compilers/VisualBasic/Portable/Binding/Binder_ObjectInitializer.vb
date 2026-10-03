@@ -2,6 +2,7 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -1041,6 +1042,157 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                               ErrorTypeSymbol.UnknownResultType,
                                               hasErrors:=True).MakeCompilerGenerated()
             End If
+        End Function
+
+        Private Function BindWithExpression(node As WithExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim receiver = MakeRValue(BindValue(node.Expression, diagnostics), diagnostics)
+            If receiver.HasErrors OrElse receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() Then
+                Return BadExpression(node, receiver, ErrorTypeSymbol.UnknownResultType)
+            End If
+
+            Dim recordType = TryCast(receiver.Type, NamedTypeSymbol)
+            If recordType Is Nothing OrElse Not recordType.IsRecord Then
+                ReportDiagnostic(diagnostics, node.Initializer, ErrorFactory.ErrorInfo(ERRID.ERR_WithCopyNotRecord, receiver.Type))
+                Return BadExpression(node, receiver, If(recordType, ErrorTypeSymbol.UnknownResultType))
+            End If
+
+            Dim constructor As MethodSymbol = Nothing
+            For Each candidate In recordType.InstanceConstructors
+                If candidate.ParameterCount <> 0 Then
+                    Continue For
+                End If
+
+                Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+                If IsAccessible(candidate, useSiteInfo, recordType) Then
+                    constructor = candidate
+                End If
+
+                diagnostics.Add(node, useSiteInfo)
+                Exit For
+            Next
+
+            If constructor Is Nothing Then
+                ReportDiagnostic(diagnostics, node, ErrorFactory.ErrorInfo(ERRID.ERR_NoViableOverloadCandidates1, "New"))
+                Return BadExpression(node, receiver, recordType)
+            End If
+
+            Dim capture As LocalSymbol = New SynthesizedLocal(ContainingMember, recordType, SynthesizedLocalKind.LoweringTemp)
+            Dim capturedReceiver = New BoundLocal(node, capture, recordType).MakeRValue().MakeCompilerGenerated()
+            Dim placeholder = New BoundWithLValueExpressionPlaceholder(node, recordType)
+            placeholder.SetWasCompilerGenerated()
+            Dim initializerBinder = New ObjectInitializerBinder(Me, placeholder)
+            Dim mentioned = New HashSet(Of String)(CaseInsensitiveComparison.Comparer)
+            Dim assignments = ArrayBuilder(Of BoundExpression).GetInstance()
+
+            For Each initializer In node.Initializer.Initializers
+                Dim named = TryCast(initializer, NamedFieldInitializerSyntax)
+                If named Is Nothing Then
+                    Continue For
+                End If
+
+                Dim target = BindRecordInitializerTarget(named.Name, placeholder, diagnostics)
+                If target.Kind = BoundKind.FieldAccess OrElse target.Kind = BoundKind.PropertyAccess Then
+                    Dim identifierName = named.Name.Identifier.ValueText
+                    If Not mentioned.Add(identifierName) Then
+                        ReportDiagnostic(diagnostics, named.Name, ErrorFactory.ErrorInfo(ERRID.ERR_DuplicateAggrMemberInit1, identifierName))
+                    End If
+                End If
+
+                Dim value = initializerBinder.BindValue(named.Expression, diagnostics)
+                assignments.Add(BindAssignment(named, target, value, diagnostics))
+            Next
+
+            For Each member In recordType.GetMembers()
+                If Not IsRecordCopyMember(member) OrElse mentioned.Contains(member.Name) Then
+                    Continue For
+                End If
+
+                Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+                If Not IsRecordCopyAccessible(member, recordType, useSiteInfo) Then
+                    Continue For
+                End If
+
+                diagnostics.Add(node, useSiteInfo)
+                Dim name = SyntaxFactory.IdentifierName(member.Name)
+                Dim target = BindRecordInitializerTarget(name, placeholder, diagnostics)
+                Dim source = MakeRValue(BindMemberAccess(name, capturedReceiver, name, False, diagnostics), diagnostics)
+                Dim copy = BindAssignment(node, target, source, diagnostics)
+                copy.SetWasCompilerGenerated()
+                assignments.Add(copy)
+            Next
+
+            Dim initializerExpression = New BoundObjectInitializerExpression(
+                node.Initializer,
+                createTemporaryLocalForInitialization:=True,
+                placeholder,
+                assignments.ToImmutableAndFree(),
+                recordType)
+
+            CheckRequiredMembersInObjectInitializer(constructor, recordType, initializerExpression.Initializers, node, diagnostics)
+
+            Dim creation = New BoundObjectCreationExpression(
+                node,
+                constructor,
+                New BoundMethodGroup(node, Nothing, ImmutableArray.Create(constructor), LookupResultKind.Good, Nothing, QualificationKind.QualifiedViaTypeName),
+                ImmutableArray(Of BoundExpression).Empty,
+                BitVector.Null,
+                initializerExpression,
+                recordType)
+
+            Dim store = New BoundAssignmentOperator(
+                node,
+                New BoundLocal(node, capture, recordType),
+                receiver,
+                suppressObjectClone:=True,
+                type:=recordType).MakeCompilerGenerated()
+
+            Return New BoundSequence(
+                node,
+                ImmutableArray.Create(capture),
+                ImmutableArray.Create(Of BoundExpression)(store),
+                creation,
+                recordType)
+        End Function
+
+        Private Function BindRecordInitializerTarget(name As SimpleNameSyntax, placeholder As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim target = BindMemberAccess(name, placeholder, name, False, diagnostics)
+            If target.Kind <> BoundKind.FieldAccess AndAlso target.Kind <> BoundKind.PropertyGroup AndAlso target.Kind <> BoundKind.PropertyAccess Then
+                If Not target.HasErrors Then
+                    ReportDiagnostic(diagnostics, name, ErrorFactory.ErrorInfo(ERRID.ERR_NonFieldPropertyAggrMemberInit1, name.Identifier.ValueText))
+                End If
+
+                Return BadExpression(name, target, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
+            End If
+
+            target = BindAssignmentTarget(name, target, diagnostics)
+            Dim propertyAccess = TryCast(target, BoundPropertyAccess)
+            If propertyAccess IsNot Nothing AndAlso propertyAccess.AccessKind <> PropertyAccessKind.Get AndAlso Not propertyAccess.IsWriteable AndAlso
+               propertyAccess.PropertySymbol.IsWritable(propertyAccess.ReceiverOpt, Me, isKnownTargetOfObjectMemberInitializer:=True) Then
+                target = propertyAccess.Update(propertyAccess.PropertySymbol, propertyAccess.PropertyGroupOpt, propertyAccess.AccessKind, isWriteable:=True,
+                                               propertyAccess.IsLValue, propertyAccess.ReceiverOpt, propertyAccess.Arguments, propertyAccess.DefaultArguments,
+                                               propertyAccess.Type)
+            End If
+
+            Return target
+        End Function
+
+        Private Shared Function IsRecordCopyMember(member As Symbol) As Boolean
+            Dim field = TryCast(member, FieldSymbol)
+            If field IsNot Nothing Then
+                Return Not field.IsShared AndAlso Not field.IsConst AndAlso Not field.IsReadOnly AndAlso Not field.IsImplicitlyDeclared
+            End If
+
+            Dim [property] = TryCast(member, PropertySymbol)
+            Return [property] IsNot Nothing AndAlso
+                Not [property].IsShared AndAlso
+                [property].Parameters.Length = 0 AndAlso
+                [property].SetMethod IsNot Nothing
+        End Function
+
+        Private Function IsRecordCopyAccessible(member As Symbol, recordType As NamedTypeSymbol, ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+            Dim [property] = TryCast(member, PropertySymbol)
+            Dim symbol As Symbol = If([property] Is Nothing, member, [property].SetMethod)
+            Return symbol IsNot Nothing AndAlso IsAccessible(symbol, useSiteInfo, recordType)
         End Function
 
     End Class

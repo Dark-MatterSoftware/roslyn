@@ -25742,6 +25742,128 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents a non-destructive record copy. The initializer assigns members of
+    ''' the copy.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.WithExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class WithExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _expression as ExpressionSyntax
+        Friend _initializer as ObjectMemberInitializerSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.WithExpressionSyntax(kind, errors, annotations, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), DirectCast(initializer.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ObjectMemberInitializerSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The record being copied.
+        ''' </summary>
+        Public ReadOnly Property Expression As ExpressionSyntax
+            Get
+                Return GetRedAtZero(_expression)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Expression property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithExpression(expression as ExpressionSyntax) As WithExpressionSyntax
+            return Update(expression, Me.Initializer)
+        End Function
+
+        ''' <summary>
+        ''' The member assignments applied to the copy.
+        ''' </summary>
+        Public ReadOnly Property Initializer As ObjectMemberInitializerSyntax
+            Get
+                Return GetRed(_initializer, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Initializer property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithInitializer(initializer as ObjectMemberInitializerSyntax) As WithExpressionSyntax
+            return Update(Me.Expression, initializer)
+        End Function
+
+        Public Shadows Function AddInitializerInitializers(ParamArray items As FieldInitializerSyntax()) As WithExpressionSyntax
+            Dim _child = If(Me.Initializer IsNot Nothing, Me.Initializer, SyntaxFactory.ObjectMemberInitializer())
+            Return Me.WithInitializer(_child.AddInitializers(items))
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._expression
+                Case 1
+                    Return Me._initializer
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.Expression
+                Case 1
+                    Return Me.Initializer
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitWithExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitWithExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="expression">
+        ''' The value for the Expression property.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value for the Initializer property.
+        ''' </param>
+        Public Function Update(expression As ExpressionSyntax, initializer As ObjectMemberInitializerSyntax) As WithExpressionSyntax
+            If expression IsNot Me.Expression OrElse initializer IsNot Me.Initializer Then
+                Dim newNode = SyntaxFactory.WithExpression(expression, initializer)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a CType, DirectCast or TryCast conversion expression. The Kind
     ''' property determines which kind of cast it is.
     ''' </summary>

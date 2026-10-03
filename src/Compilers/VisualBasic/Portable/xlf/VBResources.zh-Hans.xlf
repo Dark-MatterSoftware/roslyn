@@ -377,6 +377,11 @@
         <target state="translated">对通过引用返回的方法或属性的调用不能用作异步或迭代器方法中的 "With" 语句表达式，或者在 lambda 中隐式引用。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>

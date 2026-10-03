@@ -3281,5 +3281,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         RecordKeyword = 808                          ' KeywordSyntax : SyntaxToken
 
+        ''' <summary>
+        ''' Represents a non-destructive record copy, <c>point With { .X = 1 }</c>.
+        ''' </summary>
+        WithExpression = 809                         ' WithExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

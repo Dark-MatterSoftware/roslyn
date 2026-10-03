@@ -377,6 +377,11 @@
         <target state="translated">Uma chamada a um método ou propriedade retornada por referência não pode ser usada como expressão de instrução 'With' em um método assíncrono ou iterador, ou se referenciada implicitamente em um lambda.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>

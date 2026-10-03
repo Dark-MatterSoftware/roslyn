@@ -1834,8 +1834,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_CollectionExpressionRequiresTarget = 37374
         ERR_ByRefStructField2 = 37375
         ERR_ByRefTypeArgument2 = 37376
+        ERR_WithCopyNotRecord = 37377
 
-        ERR_NextAvailable = 37377
+        ERR_NextAvailable = 37378
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

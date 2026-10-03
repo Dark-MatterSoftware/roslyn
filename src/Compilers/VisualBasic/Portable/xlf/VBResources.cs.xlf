@@ -377,6 +377,11 @@
         <target state="translated">Volání metody nebo vlastnosti, které vrací odkaz, nelze použít jako výraz příkazu With v asynchronní nebo iterační metodě, nebo v případě, že je odkazováno implicitně ve výrazu lambda.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>

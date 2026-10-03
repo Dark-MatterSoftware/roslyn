@@ -5947,6 +5947,34 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  WithExpressionSyntax
+      ******************-->
+    <node-structure name="WithExpressionSyntax" parent="ExpressionSyntax">
+      <description>
+        Represents a non-destructive record copy. The initializer assigns members of the copy.
+      </description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="WithExpression">
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </node-kind>
+
+      <child name="Expression" kind="@ExpressionSyntax">
+        <description>The record being copied.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Initializer" kind="ObjectMemberInitializer">
+        <description>The member assignments applied to the copy.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  Cast
       ******************-->
     <node-structure name="CastExpressionSyntax" parent="ExpressionSyntax" abstract="true">

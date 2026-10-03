@@ -570,6 +570,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     End If
 
                     term = SyntaxFactory.ConditionalAccessExpression(term, qToken, ParsePostFixExpression(RedimOrNewParent, term:=Nothing))
+                ElseIf [Next].Kind = SyntaxKind.WithKeyword AndAlso
+                       _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       LooksLikeWithCopy() Then
+                    term = ParseWithExpression(term)
                 Else
                     ' We're done with the term.
                     Exit Do
@@ -581,6 +585,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Private Function CanStartConsequenceExpression(kind As SyntaxKind, qualified As Boolean) As Boolean
             Return kind = SyntaxKind.DotToken OrElse kind = SyntaxKind.ExclamationToken OrElse (qualified AndAlso kind = SyntaxKind.OpenParenToken)
+        End Function
+
+        Private Function LooksLikeWithCopy() As Boolean
+            Dim nextKind = PeekToken(1).Kind
+            If nextKind = SyntaxKind.OpenBraceToken Then
+                Return True
+            End If
+
+            Return nextKind = SyntaxKind.StatementTerminatorToken AndAlso PeekToken(2).Kind = SyntaxKind.OpenBraceToken
+        End Function
+
+        Private Function ParseWithExpression(term As ExpressionSyntax) As WithExpressionSyntax
+            Dim initializer = ParseObjectInitializerList()
+            Return SyntaxFactory.WithExpression(term, initializer)
         End Function
 
         Private Shared Function TokenContainsFullWidthChars(tk As SyntaxToken) As Boolean

@@ -377,6 +377,11 @@
         <target state="translated">針對會藉傳址傳回的方法或屬性所進行的呼叫，不可在 Async 或 Iterator 方法中作為 'With' 陳述式運算式使用，也不可在 Lambda 中隱含參考。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>

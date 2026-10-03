@@ -63,6 +63,97 @@ End Structure
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_BadRecordFlags1, "Record").WithArguments("Record").WithLocation(2, 1))
         End Sub
+
+        <Fact>
+        Public Sub RecordWith_CopiesAndAssignsInitOnly()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Point
+    Public Property X As Integer
+    Public InitOnly Property Y As Integer
+End Class
+
+Module Program
+    Sub Main()
+        Dim a As New Point With {.X = 1, .Y = 2}
+        Dim b = a With {.Y = 3}
+        System.Console.Write(a.X)
+        System.Console.Write(a.Y)
+        System.Console.Write(b.X)
+        System.Console.Write(b.Y)
+        System.Console.Write(a.Equals(b))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1213False").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RecordWith_InitOnlyStaysReadOnly()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Point
+    Public InitOnly Property Y As Integer
+End Class
+
+Module Program
+    Sub Main()
+        Dim a As New Point With {.Y = 2}
+        a.Y = 9
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_AssignmentInitOnly, "a.Y = 9").WithArguments("Y").WithLocation(14, 9))
+        End Sub
+
+        <Fact>
+        Public Sub RecordWith_RejectsNonRecord()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public Property X As Integer
+End Class
+
+Module Program
+    Sub Main()
+        Dim a As New Point With {.X = 1}
+        Dim b = a With {.X = 2}
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_WithCopyNotRecord, "With {.X = 2}").WithArguments("Point").WithLocation(9, 19))
+        End Sub
+
+        <Fact>
+        Public Sub RecordWith_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public Property X As Integer
+End Class
+
+Module Program
+    Sub Main()
+        Dim a As New Point With {.X = 1}
+        Dim b = a With {.X = 2}
+    End Sub
+End Module
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedEOS, "With").WithLocation(9, 19))
+        End Sub
     End Class
 
 End Namespace

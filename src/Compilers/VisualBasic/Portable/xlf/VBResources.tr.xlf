@@ -377,6 +377,11 @@
         <target state="translated">Başvuruya göre dönen bir yönteme veya özelliğe yapılan çağrı, bir zaman uyumsuz veya yineleyici yöntemde veya bir lambda'da dolaylı olarak başvuruluyorsa 'With' deyimi olarak kullanılamaz.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>

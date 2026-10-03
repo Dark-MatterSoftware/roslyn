@@ -377,6 +377,11 @@
         <target state="translated">Ein Aufruf einer Methode oder Eigenschaft, die als Verweis zurückgegeben wird, kann nicht als With-Anweisungsausdruck in einer Async- oder Iteratormethode verwendet werden oder wenn implizit in einem Lambda-Ausdruck darauf verwiesen wird.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_WithCopyNotRecord">
+        <source>'{0}' is not a record, so it cannot be copied with 'With'.</source>
+        <target state="new">'{0}' is not a record, so it cannot be copied with 'With'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_ArrayRange">
         <source>array ranges</source>
         <target state="new">array ranges</target>
