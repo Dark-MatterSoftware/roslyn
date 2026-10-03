@@ -586,7 +586,12 @@ Done:
 
         Private ReadOnly Property ITypeSymbol_IsRefLikeType As Boolean Implements ITypeSymbol.IsRefLikeType
             Get
-                ' VB has no concept of ref-like types
+                Return IsRefLikeType
+            End Get
+        End Property
+
+        Public Overridable ReadOnly Property IsRefLikeType As Boolean
+            Get
                 Return False
             End Get
         End Property

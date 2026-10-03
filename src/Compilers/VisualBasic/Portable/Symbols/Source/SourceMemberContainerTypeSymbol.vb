@@ -47,6 +47,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             [Shadows] = 1 << 10
             [Partial] = 1 << 11
             [ReadOnly] = 1 << 12
+            RefLike = 1 << 13
         End Enum
 
         ' Flags about the type
@@ -168,6 +169,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     If (modifiers And DeclarationModifiers.ReadOnly) <> 0 AndAlso
                        InternalSyntax.Parser.CheckFeatureAvailability(m_containingModule.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion, InternalSyntax.Feature.ReadOnlyStructures) Then
                         flags = flags Or SourceTypeFlags.ReadOnly
+                    End If
+
+                    If (modifiers And DeclarationModifiers.ByRef) <> 0 AndAlso
+                       m_containingModule.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext Then
+                        flags = flags Or SourceTypeFlags.RefLike
                     End If
 
                 Case DeclarationKind.Interface
@@ -1263,6 +1269,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property IsReadOnly As Boolean
             Get
                 Return (_flags And SourceTypeFlags.ReadOnly) <> 0
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsRefLikeType As Boolean
+            Get
+                Return (_flags And SourceTypeFlags.RefLike) <> 0
             End Get
         End Property
 
@@ -4691,6 +4703,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             If IsReadOnly Then
                 AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
+            End If
+
+            If IsRefLikeType Then
+                AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsByRefLikeAttribute__ctor, isOptionalUse:=True))
             End If
         End Sub
 #End Region

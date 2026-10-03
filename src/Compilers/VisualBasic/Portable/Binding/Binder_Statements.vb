@@ -1571,7 +1571,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ReportDiagnostic(diagnostics, name, ERRID.ERR_BadStaticInitializerInResumable)
                 End If
             ElseIf IsInAsyncContext() OrElse IsInIteratorContext() Then
-                If type.IsRestrictedType() Then
+                If type.IsRestrictedType() OrElse type.IsRefLikeType Then
                     If Not isInitializedByAsNew OrElse Not skipAsNewInitializer Then
                         ReportDiagnostic(diagnostics, errSyntax, ERRID.ERR_CannotLiftRestrictedTypeResumable1, type)
                     End If

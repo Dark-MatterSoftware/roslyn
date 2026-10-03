@@ -5917,4 +5917,7 @@
   <data name="ERR_RuntimeDoesNotSupportExtendedLayoutTypes" xml:space="preserve">
     <value>The target runtime does not support extended layout types.</value>
   </data>
+  <data name="ERR_ByRefStructField2" xml:space="preserve">
+    <value>'{0}' is a ByRef structure and cannot be a field of '{1}'.</value>
+  </data>
 </root>

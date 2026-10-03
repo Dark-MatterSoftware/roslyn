@@ -3394,8 +3394,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If IsValueType(source) Then
 
-                ' Disallow boxing of restricted types
-                If Not source.IsRestrictedType() Then
+                ' Disallow boxing of restricted types and ByRef structures
+                If Not source.IsRestrictedType() AndAlso Not source.IsRefLikeType Then
 
                     If destination.SpecialType = SpecialType.System_Object Then
                         'From a value type to a base type.
@@ -3428,7 +3428,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
                 End If
 
-            ElseIf IsValueType(destination) Then
+            ElseIf IsValueType(destination) AndAlso Not destination.IsRefLikeType Then
 
                 If source.SpecialType = SpecialType.System_Object Then
                     'From a reference type to a more derived value type.

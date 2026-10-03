@@ -1586,7 +1586,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_PartialConstructorDeclarationMismatch,
                      ERRID.ERR_DuplicatePrimaryConstructor,
                      ERRID.ERR_BaseConstructorArgumentsRequirePrimaryConstructor,
-                     ERRID.ERR_CollectionExpressionRequiresTarget
+                     ERRID.ERR_CollectionExpressionRequiresTarget,
+                     ERRID.ERR_ByRefStructField2
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

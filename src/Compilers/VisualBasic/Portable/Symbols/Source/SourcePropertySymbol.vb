@@ -412,6 +412,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         Dim restrictedType As TypeSymbol = Nothing
                         If type.IsRestrictedTypeOrArrayType(restrictedType) Then
                             Binder.ReportDiagnostic(diagnostics, errorLocation, ERRID.ERR_RestrictedType1, restrictedType)
+                        ElseIf type.IsRefLikeType AndAlso IsAutoProperty AndAlso (Me.IsShared OrElse Not Me.ContainingType.IsRefLikeType) Then
+                            Binder.ReportDiagnostic(diagnostics, errorLocation, ERRID.ERR_ByRefStructField2, type, Me.ContainingType)
                         End If
 
                         Dim getMethod = Me.GetMethod

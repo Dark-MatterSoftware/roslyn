@@ -1832,8 +1832,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_DuplicatePrimaryConstructor = 37372
         ERR_BaseConstructorArgumentsRequirePrimaryConstructor = 37373
         ERR_CollectionExpressionRequiresTarget = 37374
+        ERR_ByRefStructField2 = 37375
 
-        ERR_NextAvailable = 37375
+        ERR_NextAvailable = 37376
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
