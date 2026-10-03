@@ -1510,6 +1510,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(IsIdentifierStartCharacter(Peek))
             Debug.Assert(PeekStartComment(0) = 0) ' comment should be handled by caller
 
+            If IsRawStringStart() Then
+                Return ScanRawStringLiteral(precedingTrivia)
+            End If
+
             Dim ch = Peek()
             If CanGet(1) Then
                 Dim ch1 = Peek(1)

@@ -152,6 +152,16 @@
         <target state="new">A range can only be used to slice a one-dimensional array.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_RawStringDelimiterOnOwnLine">
+        <source>A raw string delimiter must be on its own line.</source>
+        <target state="new">A raw string delimiter must be on its own line.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_RawStringLineIndent">
+        <source>A line in a raw string does not start with the closing delimiter's whitespace.</source>
+        <target state="new">A line in a raw string does not start with the closing delimiter's whitespace.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RuntimeDoesNotSupportExtendedLayoutTypes">
         <source>The target runtime does not support extended layout types.</source>
         <target state="translated">Целевая среда выполнения не поддерживает расширенные типы структуры.</target>
@@ -240,6 +250,11 @@
       <trans-unit id="ERR_TargetTypedNewRequiresTargetType">
         <source>Target-typed New requires a target type.</source>
         <target state="new">Target-typed New requires a target type.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_TooManyQuotesForRawString">
+        <source>A raw string ends with the same number of quotes it starts with.</source>
+        <target state="new">A raw string ends with the same number of quotes it starts with.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_TooManyUserStrings_RestartRequired">
@@ -370,6 +385,11 @@
       <trans-unit id="FEATURE_OverloadResolutionPriority">
         <source>overload resolution priority</source>
         <target state="translated">приоритет разрешения перегрузки</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_RawStringLiteral">
+        <source>raw strings</source>
+        <target state="new">raw strings</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_ReadOnlyStructures">

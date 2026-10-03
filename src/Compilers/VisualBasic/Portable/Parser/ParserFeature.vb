@@ -63,6 +63,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         IndexFromEnd
         ArrayRange
         CovariantReturns
+        RawStringLiteral
     End Enum
 
     Friend Module FeatureExtensions
@@ -151,7 +152,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.NativeIntegers,
                      Feature.IndexFromEnd,
                      Feature.ArrayRange,
-                     Feature.CovariantReturns
+                     Feature.CovariantReturns,
+                     Feature.RawStringLiteral
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -271,6 +273,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_ArrayRange
                 Case Feature.CovariantReturns
                     Return ERRID.FEATURE_CovariantReturns
+                Case Feature.RawStringLiteral
+                    Return ERRID.FEATURE_RawStringLiteral
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

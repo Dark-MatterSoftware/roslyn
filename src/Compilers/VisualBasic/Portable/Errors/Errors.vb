@@ -1817,8 +1817,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_EventInReadOnlyStructure = 37357
         ERR_IndexFromEndRequiresArray = 37358
         ERR_RangeRequiresArray = 37359
+        ERR_TooManyQuotesForRawString = 37360
+        ERR_RawStringDelimiterOnOwnLine = 37361
+        ERR_RawStringLineIndent = 37362
 
-        ERR_NextAvailable = 37360
+        ERR_NextAvailable = 37363
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2141,5 +2144,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_IndexFromEnd
         FEATURE_ArrayRange
         FEATURE_CovariantReturns
+        FEATURE_RawStringLiteral
     End Enum
 End Namespace

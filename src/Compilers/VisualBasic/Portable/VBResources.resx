@@ -5781,6 +5781,18 @@
   <data name="FEATURE_CovariantReturns" xml:space="preserve">
     <value>covariant returns</value>
   </data>
+  <data name="FEATURE_RawStringLiteral" xml:space="preserve">
+    <value>raw strings</value>
+  </data>
+  <data name="ERR_TooManyQuotesForRawString" xml:space="preserve">
+    <value>A raw string ends with the same number of quotes it starts with.</value>
+  </data>
+  <data name="ERR_RawStringDelimiterOnOwnLine" xml:space="preserve">
+    <value>A raw string delimiter must be on its own line.</value>
+  </data>
+  <data name="ERR_RawStringLineIndent" xml:space="preserve">
+    <value>A line in a raw string does not start with the closing delimiter's whitespace.</value>
+  </data>
   <data name="ERR_RangeRequiresArray" xml:space="preserve">
     <value>A range can only be used to slice a one-dimensional array.</value>
   </data>

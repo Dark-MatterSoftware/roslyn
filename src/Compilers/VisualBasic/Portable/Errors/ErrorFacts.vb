@@ -1571,7 +1571,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_AutoPropertyInReadOnlyStructure,
                      ERRID.ERR_EventInReadOnlyStructure,
                      ERRID.ERR_IndexFromEndRequiresArray,
-                     ERRID.ERR_RangeRequiresArray
+                     ERRID.ERR_RangeRequiresArray,
+                     ERRID.ERR_TooManyQuotesForRawString,
+                     ERRID.ERR_RawStringDelimiterOnOwnLine,
+                     ERRID.ERR_RawStringLineIndent
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

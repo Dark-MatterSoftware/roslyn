@@ -78,7 +78,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | 4a | VB-006 | Done. On `vbnext`, `items(^1)` is the last element of an array and `items(^2)` is the second to last. A receiver with side effects is evaluated once. `^` between two operands is still exponentiation. Visual Basic 17.13 reports an expected-expression error. Using `^n` other than as an array index is an error. |
 | 4b | VB-006 | Done. On `vbnext`, `items(1..4)` is a slice of a one-dimensional array. The start is inclusive and the end is exclusive. Either side may be omitted, and either side may be an index from the end. A receiver with side effects is evaluated once. Visual Basic 17.13 still reports an expected-identifier error. Using a range other than to slice a one-dimensional array is an error. `Span` slicing stays in phase 7. |
 | 4c | VB-017 | Done. On `vbnext`, an override may narrow a class return type when the return converts by a widening reference conversion and the runtime supports covariant returns. The emitted method keeps the narrower return, a new slot, a method implementation of the base method, and `PreserveBaseOverridesAttribute`. Visual Basic 17.13 still reports that the methods differ by their return types. A runtime without that support does the same. |
-| 4d | VB-033 | A raw string with no holes scans and binds as a string. |
+| 4d | VB-033 | Done. On `vbnext`, `r"""text"""` is a string. Quotes inside it are characters, and a multi-line raw string drops the whitespace that precedes the closing quotes. `{name}` stays text. `"""hello"""` is still a normal string whose value contains a quote. Visual Basic 17.13 still treats `r` as a name. |
 | 4e | VB-033 | A raw string may contain interpolation holes. |
 | 4f | VB-034 | A `u8` suffix on a string literal emits a UTF-8 byte span. This slice may emit a byte array if ref structs are not available yet. The span form is finished in phase 7. |
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 4c, an override that narrows a class return type, is implemented. The next slice is 4d, a raw string with no holes.
+Slice 4d, a raw string with no holes, is implemented. The next slice is 4e, a raw string that may contain interpolation holes.
