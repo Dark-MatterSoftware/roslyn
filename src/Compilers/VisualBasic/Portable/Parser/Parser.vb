@@ -712,6 +712,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.DefaultKeyword
                     Return ParseSpecifierDeclaration()
 
+                Case SyntaxKind.ByRefKeyword
+                    If _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                        Return ParseSpecifierDeclaration()
+                    End If
+
+                    Return ParseStatementInMethodBodyInternal()
+
                 Case SyntaxKind.EnumKeyword
                     Return ParseEnumStatement()
 
@@ -2049,6 +2056,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ' Conversion category
                     Case SyntaxKind.WideningKeyword,
                          SyntaxKind.NarrowingKeyword
+
+                    Case SyntaxKind.ByRefKeyword
+                        If _scanner.Options.LanguageVersion < LanguageVersion.VbNext Then
+                            Exit Do
+                        End If
 
                     Case SyntaxKind.IdentifierToken
                         ' This enables better error reporting for invalid uses of CUSTOM as a specifier.

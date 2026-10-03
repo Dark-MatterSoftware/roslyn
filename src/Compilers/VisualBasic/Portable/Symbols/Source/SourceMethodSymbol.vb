@@ -1262,8 +1262,9 @@ lReportErrorOnTwoTokens:
 
         Public NotOverridable Overrides ReadOnly Property ReturnsByRef As Boolean
             Get
-                ' It is not possible to define ref-returning methods in source.
-                Return False
+                Dim declaration = Me.DeclarationSyntax
+                Return declaration IsNot Nothing AndAlso declaration.Kind = SyntaxKind.FunctionStatement AndAlso
+                    declaration.Modifiers.Any(SyntaxKind.ByRefKeyword)
             End Get
         End Property
 

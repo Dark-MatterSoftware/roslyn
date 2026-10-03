@@ -305,7 +305,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim methodSymbol = DirectCast(ContainingMember, MethodSymbol)
             Dim localForFunctionValue As LocalSymbol
 
-            If methodSymbol.IsIterator OrElse (methodSymbol.IsAsync AndAlso methodSymbol.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task))) Then
+            If methodSymbol.IsIterator OrElse methodSymbol.ReturnsByRef OrElse (methodSymbol.IsAsync AndAlso methodSymbol.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task))) Then
                 ' We are actually not using FunctionValue of such method in Return statements and referencing it explicitly is an error. 
                 localForFunctionValue = Nothing
             Else
@@ -405,7 +405,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ' add indirect return sequence
             ' and maybe an indirect result local (if this is a function)
-            If localForFunctionValue IsNot Nothing Then
+            If methodSymbol.ReturnsByRef Then
+                Dim objectType = GetSpecialType(SpecialType.System_Object, methodBlock.EndBlockStatement, diagnostics)
+                Dim thrown = New BoundLiteral(methodBlock.EndBlockStatement, ConstantValue.Nothing, objectType).MakeCompilerGenerated()
+                statements.Add(New BoundThrowStatement(methodBlock.EndBlockStatement, thrown).MakeCompilerGenerated())
+            ElseIf localForFunctionValue IsNot Nothing Then
                 If locals.IsEmpty Then
                     locals = ImmutableArray.Create(localForFunctionValue)
                 Else
@@ -5526,6 +5530,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If BindingTopLevelScriptCode Then
                 ReportDiagnostic(diagnostics, originalSyntax, ERRID.ERR_KeywordNotAllowedInScript, SyntaxFacts.GetText(SyntaxKind.ReturnKeyword))
                 Return New BoundReturnStatement(originalSyntax, Nothing, Nothing, returnLabel, hasErrors:=True)
+            End If
+
+            Dim currentMethod = TryCast(Me.ContainingMember, MethodSymbol)
+            If currentMethod IsNot Nothing AndAlso currentMethod.ReturnsByRef Then
+                If expressionSyntax Is Nothing Then
+                    ReportDiagnostic(diagnostics, originalSyntax, ERRID.ERR_ReturnWithoutValue)
+                    Return New BoundReturnStatement(originalSyntax, Nothing, Nothing, Nothing, hasErrors:=True)
+                End If
+
+                Dim target = BindAssignmentTarget(expressionSyntax, diagnostics)
+                If Not target.HasErrors AndAlso target.Type IsNot Nothing AndAlso Not target.Type.IsErrorType() AndAlso
+                   Not TypeSymbol.Equals(target.Type, retType, TypeCompareKind.IgnoreCustomModifiersAndArraySizesAndLowerBounds) Then
+                    ReportDiagnostic(diagnostics, target.Syntax, ERRID.ERR_TypeMismatch2, target.Type, retType)
+                    target = BadExpression(target.Syntax, target, retType)
+                End If
+
+                Return New BoundReturnStatement(originalSyntax, target, Nothing, Nothing, hasErrors:=target.HasErrors)
             End If
 
             If retType.SpecialType = SpecialType.System_Void Then

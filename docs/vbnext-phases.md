@@ -119,7 +119,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 7b | VB-035 | Done. On `vbnext`, `(1, 2, 3)` creates a type that already accepts a collection initializer and adds each element. `()` creates an empty instance. A parenthesized value that already converts to that type stays that value. Visual Basic 17.13 still treats the parentheses as a tuple. |
 | 7c | VB-035 | Done. On `vbnext`, `.. items` inside the parentheses copies an array or a list through `AddRange`. An array target is that list converted with `ToArray`. A parenthesized range stays a range. Visual Basic 17.13 still rejects the range. |
 | 7d | VB-026 | Done. On `vbnext`, `ParamArray values As List(Of T)` and `ParamArray values As IEnumerable(Of T)` accept an expanded argument list. One argument that already converts to the parameter type is passed as that value. Visual Basic 17.13 still requires an array. |
-| 7e | VB-019 | A `Function` may return `ByRef`. |
+| 7e | VB-019 | Done. On `vbnext`, `ByRef Function First(items As Integer()) As Integer` returns an assignable value. `Return items(0)` returns that element, and `First(items) = 9` writes through the returned address. Visual Basic 17.13 still rejects `ByRef` before `Function`. |
 | 7f | VB-019 | A property may return `ByRef`. |
 | 7g | VB-037 | A structure can be declared `ref`-like: no boxing, no field of a class, no async or iterator lift. |
 | 7h | VB-037 | `Span(Of T)` is legal in the synchronous positions 7g allows. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7d, `ParamArray` of a list or `IEnumerable`, is implemented. The next slice is 7e, a function that returns `ByRef`.
+Slice 7e, a function that returns `ByRef`, is implemented. The next slice is 7f, a property that returns `ByRef`.

@@ -897,6 +897,12 @@ OtherExpressions:
         End Class
 
         Private Sub EmitReturnStatement(boundReturnStatement As BoundReturnStatement)
+            If _method.ReturnsByRef AndAlso boundReturnStatement.ExpressionOpt IsNot Nothing Then
+                EmitAddress(boundReturnStatement.ExpressionOpt, AddressKind.Writeable)
+                _builder.EmitRet(False)
+                Return
+            End If
+
             Me.EmitExpression(boundReturnStatement.ExpressionOpt, True)
             _builder.EmitRet(boundReturnStatement.ExpressionOpt Is Nothing)
         End Sub

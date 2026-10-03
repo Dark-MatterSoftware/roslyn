@@ -109,6 +109,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.NotInheritableKeyword : Return SourceMemberFlags.NotInheritable
                 Case SyntaxKind.AsyncKeyword : Return SourceMemberFlags.Async
                 Case SyntaxKind.IteratorKeyword : Return SourceMemberFlags.Iterator
+                Case SyntaxKind.ByRefKeyword : Return SourceMemberFlags.None
 
                 Case Else
 #If DEBUG Then

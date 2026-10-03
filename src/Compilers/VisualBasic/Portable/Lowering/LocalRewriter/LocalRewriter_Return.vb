@@ -37,6 +37,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function RewriteReturnStatement(node As BoundReturnStatement) As BoundStatement
             node = DirectCast(MyBase.VisitReturnStatement(node), BoundReturnStatement)
 
+            If _currentMethodOrLambda.ReturnsByRef Then
+                Return node.Update(node.ExpressionOpt, Nothing, Nothing)
+            End If
+
             If _inExpressionLambda Then
                 ' In expression tree lambdas, we just want to translate a direct return, not a jump.
                 ' Remove function local system and label to indicate a direct return.

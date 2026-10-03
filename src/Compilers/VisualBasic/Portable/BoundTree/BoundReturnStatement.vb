@@ -16,7 +16,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
 #If DEBUG Then
         Private Sub Validate()
-            If ExpressionOpt IsNot Nothing AndAlso Not HasErrors Then
+            If ExpressionOpt IsNot Nothing AndAlso Not HasErrors AndAlso Not ExpressionOpt.IsLValue Then
                 If FunctionLocalOpt Is Nothing OrElse FunctionLocalOpt.Type IsNot LambdaSymbol.ReturnTypeIsBeingInferred Then
                     ExpressionOpt.AssertRValue()
                 End If
