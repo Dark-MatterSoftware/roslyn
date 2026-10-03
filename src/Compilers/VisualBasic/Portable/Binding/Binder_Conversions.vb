@@ -347,6 +347,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BindArrayCreationFromElements(argument, arrayType, elements, diagnostics)
             End If
 
+            Dim span = TryBindSpanFromElements(argument, targetType, elements, diagnostics)
+            If span IsNot Nothing Then
+                Return span
+            End If
+
             Dim collection = TryBindCollectionInitializerFromElements(argument, targetType, elements, diagnostics)
             If collection IsNot Nothing Then
                 Return collection
@@ -384,6 +389,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return False
+        End Function
+
+        Private Function TryBindSpanFromElements(argument As BoundExpression, targetType As TypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim named = TryCast(targetType, NamedTypeSymbol)
+            If named Is Nothing OrElse named.Arity <> 1 Then
+                Return Nothing
+            End If
+
+            Dim definition = named.OriginalDefinition
+            Dim constructorMember As WellKnownMember
+            If TypeSymbol.Equals(definition, Compilation.GetWellKnownType(WellKnownType.System_Span_T), TypeCompareKind.ConsiderEverything) Then
+                constructorMember = WellKnownMember.System_Span_T__ctor_Array
+            ElseIf TypeSymbol.Equals(definition, Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.ConsiderEverything) Then
+                constructorMember = WellKnownMember.System_ReadOnlySpan_T__ctor_Array
+            Else
+                Return Nothing
+            End If
+
+            Dim elementType = named.TypeArgumentsNoUseSiteDiagnostics(0)
+            Dim arrayType = ArrayTypeSymbol.CreateVBArray(elementType, Nothing, 1, Compilation)
+            Dim array As BoundExpression
+            If HasSpreadElement(elements) Then
+                array = BindArrayFromSpreadElements(argument, arrayType, elements, diagnostics)
+            Else
+                array = BindArrayCreationFromElements(argument, arrayType, elements, diagnostics)
+            End If
+
+            Dim constructor = TryCast(GetWellKnownTypeMember(constructorMember, argument.Syntax, diagnostics), MethodSymbol)
+            If constructor Is Nothing Then
+                Return array
+            End If
+
+            constructor = constructor.AsMember(named)
+            Dim creation = New BoundObjectCreationExpression(argument.Syntax, constructor, ImmutableArray.Create(array), Nothing, named)
+            creation.SetWasCompilerGenerated()
+            Return creation
         End Function
 
         Private Function BindArrayCreationFromElements(argument As BoundExpression, arrayType As ArrayTypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression

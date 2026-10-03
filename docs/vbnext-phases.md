@@ -125,7 +125,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 7h | VB-037 | Done. On `vbnext`, `Span(Of T)` is a ref-like type. A local of that type is legal and can be emitted. It cannot be boxed or stored as a field of a class. Visual Basic 17.13 still reports that the type is obsolete. |
 | 7i | VB-006 | Done. On `vbnext`, `values(^1)` and `values(1..4)` index and slice a `Span(Of T)` or `ReadOnlySpan(Of T)`. The start is inclusive and the end is exclusive. `values(^1) = 9` writes through the span indexer. |
 | 7j | VB-034 | Done. On `vbnext`, `"hi"u8` has type `ReadOnlySpan(Of Byte)` when that type is available. The value is the UTF-8 bytes, with no byte-order mark. When that type is not available, the literal stays a `Byte()`. |
-| 7k | VB-035 | Spread and a collection expression may target a span. |
+| 7k | VB-035 | Done. On `vbnext`, `(1, 2, 3)` creates a `Span(Of Integer)` when that is the target, and `(1, ..items)` copies the spread into a `ReadOnlySpan(Of Integer)`. The elements are stored in an array and passed to the span constructor. |
 | 7l | VB-026 | `ParamArray` of `Span(Of T)` is legal. |
 | 7m | VB-037 | A type parameter may be constrained to allow a ref-like type. |
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7j, a UTF-8 literal whose type is `ReadOnlySpan(Of Byte)`, is implemented. The next slice is 7k, a collection expression that targets a span.
+Slice 7k, a collection expression that targets a span, is implemented. The next slice is 7l, a `ParamArray` of `Span(Of T)`.

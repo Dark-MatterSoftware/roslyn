@@ -178,5 +178,24 @@ End Module
             compilation.VerifyDiagnostics()
             compilation.VerifyEmitDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub Span_CollectionExpressionCompiles()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Function Values() As Span(Of Integer)
+        Return (1, 2, 3)
+    End Function
+
+    Function WithSpread(items As Integer()) As ReadOnlySpan(Of Integer)
+        Return (1, ..items)
+    End Function
+End Module
+", parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
     End Class
 End Namespace
