@@ -37,6 +37,11 @@
         <target state="translated">Błąd składni wiersza polecenia: „{0}” nie jest prawidłową wartością dla opcji „{1}”. Wartość musi mieć postać „{2}”.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BaseConstructorArgumentsRequirePrimaryConstructor">
+        <source>A base constructor argument list requires a primary constructor.</source>
+        <target state="new">A base constructor argument list requires a primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CannotApplyOverloadResolutionPriorityToMember">
         <source>Cannot use 'OverloadResolutionPriorityAttribute' on this member.</source>
         <target state="translated">Nie można użyć atrybutu "OverloadResolutionPriorityAttribute" w tej składowej.</target>

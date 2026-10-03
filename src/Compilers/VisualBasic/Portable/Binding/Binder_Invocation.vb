@@ -84,6 +84,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return False
         End Function
 
+        Friend Function BindPrimaryBaseConstructorCall(syntax As SyntaxNode, argumentList As ArgumentListSyntax, baseType As NamedTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Dim constructors = GetAccessibleConstructors(baseType, useSiteInfo)
+            diagnostics.Add(syntax, useSiteInfo)
+
+            Dim resultKind = LookupResultKind.Good
+            If constructors.Length = 0 Then
+                constructors = baseType.InstanceConstructors
+                resultKind = LookupResultKind.Inaccessible
+            End If
+
+            Dim receiver As New BoundMyBaseReference(syntax, baseType)
+            receiver.SetWasCompilerGenerated()
+
+            Dim group As New BoundMethodGroup(syntax, Nothing, constructors, resultKind, receiver, QualificationKind.QualifiedViaValue)
+            group.SetWasCompilerGenerated()
+
+            Dim boundArguments As ImmutableArray(Of BoundExpression) = Nothing
+            Dim argumentNames As ImmutableArray(Of String) = Nothing
+            Dim argumentNamesLocations As ImmutableArray(Of Location) = Nothing
+            Dim argumentsBinder As Binder = New ConstructorCallArgumentsBinder(Me)
+            argumentsBinder.BindArgumentsAndNames(argumentList, boundArguments, argumentNames, argumentNamesLocations, diagnostics)
+
+            Return BindInvocationExpression(syntax, syntax, TypeCharacter.None, group, boundArguments, argumentNames, diagnostics, allowConstructorCall:=True, callerInfoOpt:=syntax)
+        End Function
+
         Friend Class ConstructorCallArgumentsBinder
             Inherits Binder
 

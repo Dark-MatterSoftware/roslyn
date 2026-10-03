@@ -2787,6 +2787,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         Inherits InheritsOrImplementsStatementSyntax
 
         Friend _types as SyntaxNode
+        Friend _argumentList as ArgumentListSyntax
 
         Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
             MyBase.New(green, parent, startLocation)
@@ -2794,8 +2795,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), inheritsKeyword As InternalSyntax.KeywordSyntax, types As SyntaxNode)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.InheritsStatementSyntax(kind, errors, annotations, inheritsKeyword, if(types IsNot Nothing, types.Green, Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), inheritsKeyword As InternalSyntax.KeywordSyntax, types As SyntaxNode, argumentList As ArgumentListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.InheritsStatementSyntax(kind, errors, annotations, inheritsKeyword, if(types IsNot Nothing, types.Green, Nothing), if(argumentList IsNot Nothing, DirectCast(argumentList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ArgumentListSyntax), Nothing)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -2813,7 +2814,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithInheritsKeyword(inheritsKeyword as SyntaxToken) As InheritsStatementSyntax
-            return Update(inheritsKeyword, Me.Types)
+            return Update(inheritsKeyword, Me.Types, Me.ArgumentList)
         End Function
 
         ''' <summary>
@@ -2834,17 +2835,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' Returns this instance if the specified value is the same as the current value.
         ''' </summary>
         Public Shadows Function WithTypes(types as SeparatedSyntaxList(Of TypeSyntax)) As InheritsStatementSyntax
-            return Update(Me.InheritsKeyword, types)
+            return Update(Me.InheritsKeyword, types, Me.ArgumentList)
         End Function
 
         Public Shadows Function AddTypes(ParamArray items As TypeSyntax()) As InheritsStatementSyntax
             Return Me.WithTypes(Me.Types.AddRange(items))
         End Function
 
+        ''' <summary>
+        ''' If present, arguments passed to the base constructor from a primary
+        ''' constructor.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property ArgumentList As ArgumentListSyntax
+            Get
+                Return GetRed(_argumentList, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the ArgumentList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithArgumentList(argumentList as ArgumentListSyntax) As InheritsStatementSyntax
+            return Update(Me.InheritsKeyword, Me.Types, argumentList)
+        End Function
+
+        Public Shadows Function AddArgumentListArguments(ParamArray items As ArgumentSyntax()) As InheritsStatementSyntax
+            Dim _child = If(Me.ArgumentList IsNot Nothing, Me.ArgumentList, SyntaxFactory.ArgumentList())
+            Return Me.WithArgumentList(_child.AddArguments(items))
+        End Function
+
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 1
                     Return Me._types
+                Case 2
+                    Return Me._argumentList
                 Case Else
                     Return Nothing
             End Select
@@ -2854,6 +2884,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Select case i
                 Case 1
                     Return GetRed(_types, 1)
+                Case 2
+                    Return Me.ArgumentList
                 Case Else
                     Return Nothing
             End Select
@@ -2878,9 +2910,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="types">
         ''' The value for the Types property.
         ''' </param>
-        Public Function Update(inheritsKeyword As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax)) As InheritsStatementSyntax
-            If inheritsKeyword <> Me.InheritsKeyword OrElse types <> Me.Types Then
-                Dim newNode = SyntaxFactory.InheritsStatement(inheritsKeyword, types)
+        ''' <param name="argumentList">
+        ''' The value for the ArgumentList property.
+        ''' </param>
+        Public Function Update(inheritsKeyword As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax), argumentList As ArgumentListSyntax) As InheritsStatementSyntax
+            If inheritsKeyword <> Me.InheritsKeyword OrElse types <> Me.Types OrElse argumentList IsNot Me.ArgumentList Then
+                Dim newNode = SyntaxFactory.InheritsStatement(inheritsKeyword, types, argumentList)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

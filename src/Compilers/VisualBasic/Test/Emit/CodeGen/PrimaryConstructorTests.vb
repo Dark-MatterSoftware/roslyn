@@ -100,6 +100,111 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub PrimaryConstructor_InheritsPassesParameter()
+            Dim compilation = CreateCompilation("
+Class Base
+    Public ReadOnly Property Name As String
+    Public Sub New(name As String)
+        Me.Name = name
+    End Sub
+End Class
+Class Derived(name As String)
+    Inherits Base(name)
+End Class
+Module Program
+    Sub Main()
+        Dim derived = New Derived(NextName())
+        System.Console.Write(derived.Name)
+    End Sub
+    Function NextName() As String
+        System.Console.Write(""1"")
+        Return ""ok""
+    End Function
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1ok").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_InheritsWithoutArgumentsStaysParameterless()
+            Dim compilation = CreateCompilation("
+Class Base
+    Public Sub New()
+        System.Console.Write(""base"")
+    End Sub
+End Class
+Class Derived(name As String)
+    Inherits Base
+    Public ReadOnly Property Label As String = name
+End Class
+Module Program
+    Sub Main()
+        Dim derived = New Derived(""ok"")
+        System.Console.Write(derived.Label)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="baseok").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_MeNewChainsToPrimary()
+            Dim compilation = CreateCompilation("
+Class Customer(name As String)
+    Public ReadOnly Property Label As String = name
+    Public Sub New()
+        Me.New(""ok"")
+    End Sub
+End Class
+Module Program
+    Sub Main()
+        Dim customer = New Customer()
+        System.Console.Write(customer.Label)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="ok").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_BaseArgumentsRequirePrimaryConstructor()
+            Dim compilation = CreateCompilation("
+Class Base
+    Public Sub New(name As String)
+    End Sub
+End Class
+Class Derived
+    Inherits Base(""ok"")
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NoConstructorOnBase2, "Derived").WithArguments("Derived", "Base").WithLocation(6, 7),
+                Diagnostic(ERRID.ERR_BaseConstructorArgumentsRequirePrimaryConstructor, "(""ok"")").WithLocation(7, 18))
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_InheritsArgumentsRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Base
+    Public Sub New(name As String)
+    End Sub
+End Class
+Class Derived
+    Inherits Base(name)
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_TypeOrMemberNotGeneric1, "Base(name)").WithArguments("Base").WithLocation(7, 14),
+                Diagnostic(ERRID.ERR_OfExpected, "").WithLocation(7, 19),
+                Diagnostic(ERRID.ERR_UndefinedType1, "name").WithArguments("name").WithLocation(7, 19))
+        End Sub
+
+        <Fact>
         Public Sub PrimaryConstructor_RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Class Customer(name As String)

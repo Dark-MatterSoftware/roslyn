@@ -579,6 +579,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend Shared Function InterfaceStatement(attributeLists As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), modifiers As CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode), interfaceKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax) As InterfaceStatementSyntax
             Return InterfaceStatement(attributeLists, modifiers, interfaceKeyword, identifier, typeParameterList, Nothing)
         End Function
+
+        Friend Shared Function InheritsStatement(inheritsKeyword As KeywordSyntax, types As CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of GreenNode)) As InheritsStatementSyntax
+            Return InheritsStatement(inheritsKeyword, types, Nothing)
+        End Function
     End Class
 End Namespace
 

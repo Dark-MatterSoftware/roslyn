@@ -1853,10 +1853,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend ReadOnly _inheritsKeyword as KeywordSyntax
         Friend ReadOnly _types as GreenNode
+        Friend ReadOnly _argumentList as ArgumentListSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, inheritsKeyword As InternalSyntax.KeywordSyntax, types As GreenNode)
+        Friend Sub New(ByVal kind As SyntaxKind, inheritsKeyword As InternalSyntax.KeywordSyntax, types As GreenNode, argumentList As ArgumentListSyntax)
             MyBase.New(kind)
-            Me.SlotCount = 2
+            Me.SlotCount = 3
 
             AdjustFlagsAndWidth(inheritsKeyword)
             Me._inheritsKeyword = inheritsKeyword
@@ -1864,12 +1865,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(types)
                 Me._types = types
             End If
+            If argumentList IsNot Nothing Then
+                AdjustFlagsAndWidth(argumentList)
+                Me._argumentList = argumentList
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, inheritsKeyword As InternalSyntax.KeywordSyntax, types As GreenNode, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, inheritsKeyword As InternalSyntax.KeywordSyntax, types As GreenNode, argumentList As ArgumentListSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind)
-            Me.SlotCount = 2
+            Me.SlotCount = 3
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(inheritsKeyword)
@@ -1878,18 +1883,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(types)
                 Me._types = types
             End If
+            If argumentList IsNot Nothing Then
+                AdjustFlagsAndWidth(argumentList)
+                Me._argumentList = argumentList
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), inheritsKeyword As InternalSyntax.KeywordSyntax, types As GreenNode)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), inheritsKeyword As InternalSyntax.KeywordSyntax, types As GreenNode, argumentList As ArgumentListSyntax)
             MyBase.New(kind, errors, annotations)
-            Me.SlotCount = 2
+            Me.SlotCount = 3
 
             AdjustFlagsAndWidth(inheritsKeyword)
             Me._inheritsKeyword = inheritsKeyword
             If types IsNot Nothing Then
                 AdjustFlagsAndWidth(types)
                 Me._types = types
+            End If
+            If argumentList IsNot Nothing Then
+                AdjustFlagsAndWidth(argumentList)
+                Me._argumentList = argumentList
             End If
 
         End Sub
@@ -1916,12 +1929,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End Get
         End Property
 
+        ''' <summary>
+        ''' If present, arguments passed to the base constructor from a primary
+        ''' constructor.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property ArgumentList As InternalSyntax.ArgumentListSyntax
+            Get
+                Return Me._argumentList
+            End Get
+        End Property
+
         Friend Overrides Function GetSlot(i as Integer) as GreenNode
             Select case i
                 Case 0
                     Return Me._inheritsKeyword
                 Case 1
                     Return Me._types
+                Case 2
+                    Return Me._argumentList
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -1930,11 +1958,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new InheritsStatementSyntax(Me.Kind, newErrors, GetAnnotations, _inheritsKeyword, _types)
+            Return new InheritsStatementSyntax(Me.Kind, newErrors, GetAnnotations, _inheritsKeyword, _types, _argumentList)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new InheritsStatementSyntax(Me.Kind, GetDiagnostics, annotations, _inheritsKeyword, _types)
+            Return new InheritsStatementSyntax(Me.Kind, GetDiagnostics, annotations, _inheritsKeyword, _types, _argumentList)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -31302,9 +31330,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._inheritsKeyword IsNot newInheritsKeyword Then anyChanges = True
             Dim newTypes = VisitList(node.Types)
             If node._types IsNot newTypes.Node Then anyChanges = True
+            Dim newArgumentList = DirectCast(Visit(node._argumentList), ArgumentListSyntax)
+            If node._argumentList IsNot newArgumentList Then anyChanges = True
 
             If anyChanges Then
-                Return New InheritsStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newInheritsKeyword, newTypes.Node)
+                Return New InheritsStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newInheritsKeyword, newTypes.Node, newArgumentList)
             Else
                 Return node
             End If
@@ -36553,16 +36583,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="types">
         ''' A list of the types being inherited.
         ''' </param>
-        Friend Shared Function InheritsStatement(inheritsKeyword As KeywordSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)) As InheritsStatementSyntax
+        ''' <param name="argumentList">
+        ''' If present, arguments passed to the base constructor from a primary
+        ''' constructor.
+        ''' </param>
+        Friend Shared Function InheritsStatement(inheritsKeyword As KeywordSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), argumentList As ArgumentListSyntax) As InheritsStatementSyntax
             Debug.Assert(inheritsKeyword IsNot Nothing AndAlso inheritsKeyword.Kind = SyntaxKind.InheritsKeyword)
 
             Dim hash As Integer
-            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, hash)
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, argumentList, hash)
             If cached IsNot Nothing Then
                 Return DirectCast(cached, InheritsStatementSyntax)
             End If
 
-            Dim result = New InheritsStatementSyntax(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node)
+            Dim result = New InheritsStatementSyntax(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, argumentList)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
@@ -48923,16 +48957,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="types">
         ''' A list of the types being inherited.
         ''' </param>
-        Friend Function InheritsStatement(inheritsKeyword As KeywordSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)) As InheritsStatementSyntax
+        ''' <param name="argumentList">
+        ''' If present, arguments passed to the base constructor from a primary
+        ''' constructor.
+        ''' </param>
+        Friend Function InheritsStatement(inheritsKeyword As KeywordSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), argumentList As ArgumentListSyntax) As InheritsStatementSyntax
             Debug.Assert(inheritsKeyword IsNot Nothing AndAlso inheritsKeyword.Kind = SyntaxKind.InheritsKeyword)
 
             Dim hash As Integer
-            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, _factoryContext, hash)
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, argumentList, _factoryContext, hash)
             If cached IsNot Nothing Then
                 Return DirectCast(cached, InheritsStatementSyntax)
             End If
 
-            Dim result = New InheritsStatementSyntax(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, _factoryContext)
+            Dim result = New InheritsStatementSyntax(SyntaxKind.InheritsStatement, inheritsKeyword, types.Node, argumentList, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If

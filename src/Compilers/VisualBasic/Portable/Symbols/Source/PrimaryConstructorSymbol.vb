@@ -42,7 +42,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             methodBodyBinder = Nothing
             Dim returnStmt = New BoundReturnStatement(Me.Syntax, Nothing, Nothing, Nothing)
             returnStmt.SetWasCompilerGenerated()
-            Return New BoundBlock(Me.Syntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(Of BoundStatement)(returnStmt))
+
+            Dim argumentList = GetBaseConstructorArguments()
+            If argumentList Is Nothing Then
+                Return New BoundBlock(Me.Syntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(Of BoundStatement)(returnStmt))
+            End If
+
+            Dim binder = BinderBuilder.CreateBinderForType(DirectCast(ContainingModule, SourceModuleSymbol), argumentList.SyntaxTree, DirectCast(ContainingType, SourceMemberContainerTypeSymbol))
+            binder = New PrimaryConstructorParameterBinder(binder, Parameters)
+            Dim baseType = ContainingType.BaseTypeNoUseSiteDiagnostics
+            Dim callExpression = binder.BindPrimaryBaseConstructorCall(argumentList, argumentList, baseType, diagnostics)
+            Dim callStatement = New BoundExpressionStatement(argumentList, callExpression)
+            Return New BoundBlock(Me.Syntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(callStatement, DirectCast(returnStmt, BoundStatement)))
+        End Function
+
+        Private Function GetBaseConstructorArguments() As ArgumentListSyntax
+            Dim container = DirectCast(ContainingType, SourceMemberContainerTypeSymbol)
+            For Each reference In container.SyntaxReferences
+                Dim typeBlock = TryCast(reference.GetSyntax(), TypeBlockSyntax)
+                If typeBlock Is Nothing Then
+                    Continue For
+                End If
+
+                For Each inheritsStatement In typeBlock.[Inherits]
+                    If inheritsStatement.ArgumentList IsNot Nothing Then
+                        Return inheritsStatement.ArgumentList
+                    End If
+                Next
+            Next
+
+            Return Nothing
         End Function
 
         Friend Overrides ReadOnly Property GenerateDebugInfoImpl As Boolean

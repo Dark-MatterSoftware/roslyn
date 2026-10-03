@@ -486,6 +486,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return InterfaceStatement(attributeLists, modifiers, identifier, typeParameterList, Nothing)
         End Function
 
+        Public Shared Function InheritsStatement(inheritsKeyword As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax)) As InheritsStatementSyntax
+            Return InheritsStatement(inheritsKeyword, types, Nothing)
+        End Function
+
         ''' <summary>
         ''' Creates an xml documentation comment that abstracts xml syntax creation.
         ''' </summary>

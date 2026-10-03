@@ -1624,6 +1624,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return statement
         End Function
 
+        Private Function FollowsOfKeyword() As Boolean
+            Dim offset = 1
+            If PeekToken(offset).Kind = SyntaxKind.StatementTerminatorToken Then
+                offset += 1
+            End If
+
+            Return PeekToken(offset).Kind = SyntaxKind.OfKeyword
+        End Function
+
+        Private Function ParseParenthesizedArgumentList() As ArgumentListSyntax
+            Dim openParen As PunctuationSyntax = Nothing
+            Dim closeParen As PunctuationSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.OpenParenToken, openParen)
+
+            Dim arguments As CoreInternalSyntax.SeparatedSyntaxList(Of ArgumentSyntax) = Nothing
+            If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
+                arguments = ParseArgumentList()
+            End If
+
+            TryEatNewLineAndGetToken(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
+            Return SyntaxFactory.ArgumentList(openParen, arguments, closeParen)
+        End Function
+
         Private Function BeginsPrimaryConstructor(kind As SyntaxKind) As Boolean
             If kind <> SyntaxKind.ClassStatement OrElse Not CheckFeatureAvailability(Feature.PrimaryConstructor) Then
                 Return False
@@ -4983,17 +5006,24 @@ checkNullable:
 
             Dim keyword As KeywordSyntax = ReportModifiersOnStatementError(Attributes, Specifiers, DirectCast(CurrentToken, KeywordSyntax))
             Dim typeNames = Me._pool.AllocateSeparated(Of TypeSyntax)()
+            Dim allowPrimaryArguments = keyword.Kind = SyntaxKind.InheritsKeyword AndAlso CheckFeatureAvailability(Feature.PrimaryConstructor)
+            Dim argumentList As ArgumentListSyntax = Nothing
 
             GetNextToken()
 
             Do
-                Dim typeName As TypeSyntax = ParseTypeName(nonArrayName:=True)
+                ' A "(" that is not "(Of" is a base constructor argument list, not a generic type.
+                Dim typeName As TypeSyntax = ParseTypeName(nonArrayName:=Not allowPrimaryArguments)
 
                 If typeName.ContainsDiagnostics Then
                     typeName = ResyncAt(typeName, SyntaxKind.CommaToken)
                 End If
 
                 typeNames.Add(typeName)
+
+                If allowPrimaryArguments AndAlso argumentList Is Nothing AndAlso CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso Not FollowsOfKeyword() Then
+                    argumentList = ParseParenthesizedArgumentList()
+                End If
 
                 'Eat a new line after "," but not "INHERITS" or "IMPLEMENTS"
                 Dim comma As PunctuationSyntax = Nothing
@@ -5010,7 +5040,7 @@ checkNullable:
             Dim result As InheritsOrImplementsStatementSyntax = Nothing
             Select Case (keyword.Kind)
                 Case SyntaxKind.InheritsKeyword
-                    result = SyntaxFactory.InheritsStatement(keyword, separatedTypeNames)
+                    result = SyntaxFactory.InheritsStatement(keyword, separatedTypeNames, argumentList)
 
                 Case SyntaxKind.ImplementsKeyword
                     result = SyntaxFactory.ImplementsStatement(keyword, separatedTypeNames)

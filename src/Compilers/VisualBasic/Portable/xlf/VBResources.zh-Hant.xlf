@@ -37,6 +37,11 @@
         <target state="translated">命令列語法錯誤: '{0}' 對 '{1}' 選項而言不是有效的值。此值的格式必須是 '{2}'。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BaseConstructorArgumentsRequirePrimaryConstructor">
+        <source>A base constructor argument list requires a primary constructor.</source>
+        <target state="new">A base constructor argument list requires a primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CannotApplyOverloadResolutionPriorityToMember">
         <source>Cannot use 'OverloadResolutionPriorityAttribute' on this member.</source>
         <target state="translated">無法在此成員上使用 'OverloadResolutionPriorityAttribute'。</target>

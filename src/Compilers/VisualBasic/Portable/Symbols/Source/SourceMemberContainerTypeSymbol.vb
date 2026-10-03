@@ -3054,6 +3054,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             ' to not add this to the member list in this case.
             AddDefaultConstructorIfNeeded(membersBuilder, True, membersBuilder.StaticInitializers, diagnostics)
 
+            ReportBaseConstructorArgumentsWithoutPrimaryConstructor(diagnostics)
+
             ' If there are any "Handles" methods, optimistically create methods/ctors that would be hosting
             ' hookup code.
             AddWithEventsHookupConstructorsIfNeeded(membersBuilder, diagnostics)
@@ -3838,6 +3840,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _primaryConstructor = constructor
             Return True
         End Function
+
+        Private Sub ReportBaseConstructorArgumentsWithoutPrimaryConstructor(diagBag As BindingDiagnosticBag)
+            If TypeKind <> TypeKind.Class OrElse _primaryConstructor IsNot Nothing Then
+                Return
+            End If
+
+            For Each reference In SyntaxReferences
+                Dim typeBlock = TryCast(reference.GetSyntax(), TypeBlockSyntax)
+                If typeBlock Is Nothing Then
+                    Continue For
+                End If
+
+                For Each inheritsStatement In typeBlock.[Inherits]
+                    If inheritsStatement.ArgumentList IsNot Nothing Then
+                        diagBag.Add(ERRID.ERR_BaseConstructorArgumentsRequirePrimaryConstructor, inheritsStatement.ArgumentList.GetLocation())
+                    End If
+                Next
+            Next
+        End Sub
 
         Friend Function CalculateSyntaxOffsetInSynthesizedConstructor(position As Integer, tree As SyntaxTree, isShared As Boolean) As Integer
             If IsScriptClass AndAlso Not isShared Then

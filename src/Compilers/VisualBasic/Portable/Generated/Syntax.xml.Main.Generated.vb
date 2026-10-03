@@ -1799,9 +1799,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.InheritsKeyword.Node IsNot newInheritsKeyword Then anyChanges = True
             Dim newTypes = VisitList(node.Types)
             If node._types IsNot newTypes.Node Then anyChanges = True
+            Dim newArgumentList = DirectCast(Visit(node.ArgumentList), ArgumentListSyntax)
+            If node.ArgumentList IsNot newArgumentList Then anyChanges = True
 
             If anyChanges Then
-                Return New InheritsStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newInheritsKeyword, newTypes.Node)
+                Return New InheritsStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newInheritsKeyword, newTypes.Node, newArgumentList)
             Else
                 Return node
             End If
@@ -7615,13 +7617,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="types">
         ''' A list of the types being inherited.
         ''' </param>
-        Public Shared Function InheritsStatement(inheritsKeyword As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax)) As InheritsStatementSyntax
+        ''' <param name="argumentList">
+        ''' If present, arguments passed to the base constructor from a primary
+        ''' constructor.
+        ''' </param>
+        Public Shared Function InheritsStatement(inheritsKeyword As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax), argumentList As ArgumentListSyntax) As InheritsStatementSyntax
             Select Case inheritsKeyword.Kind()
                 Case SyntaxKind.InheritsKeyword
                 Case Else
                     Throw new ArgumentException("inheritsKeyword")
             End Select
-            Return New InheritsStatementSyntax(SyntaxKind.InheritsStatement, Nothing, Nothing, DirectCast(inheritsKeyword.Node, InternalSyntax.KeywordSyntax), types.Node)
+            Return New InheritsStatementSyntax(SyntaxKind.InheritsStatement, Nothing, Nothing, DirectCast(inheritsKeyword.Node, InternalSyntax.KeywordSyntax), types.Node, argumentList)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an Inherits statement in a Class, Structure or Interface.
+        ''' </summary>
+        ''' <param name="types">
+        ''' A list of the types being inherited.
+        ''' </param>
+        ''' <param name="argumentList">
+        ''' If present, arguments passed to the base constructor from a primary
+        ''' constructor.
+        ''' </param>
+        Public Shared Function InheritsStatement(types As SeparatedSyntaxList(Of TypeSyntax), argumentList As ArgumentListSyntax) As InheritsStatementSyntax
+            Return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), types, argumentList)
         End Function
 
 
@@ -7632,7 +7653,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' A list of the types being inherited.
         ''' </param>
         Public Shared Function InheritsStatement(types As SeparatedSyntaxList(Of TypeSyntax)) As InheritsStatementSyntax
-            Return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), types)
+            Return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), types, Nothing)
         End Function
 
 
@@ -7643,7 +7664,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' A list of the types being inherited.
         ''' </param>
         Public Shared Function InheritsStatement(ParamArray types As TypeSyntax()) As InheritsStatementSyntax
-            Return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), SyntaxFactory.SeparatedList(Of TypeSyntax)().AddRange(types))
+            Return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), SyntaxFactory.SeparatedList(Of TypeSyntax)().AddRange(types), Nothing)
         End Function
 
 

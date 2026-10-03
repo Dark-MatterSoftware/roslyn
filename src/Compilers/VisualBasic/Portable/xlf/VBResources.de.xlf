@@ -37,6 +37,11 @@
         <target state="translated">Fehler in der Befehlszeilensyntax: "{0}" ist kein gültiger Wert für die Option "{1}". Der Wert muss im Format "{2}" vorliegen.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BaseConstructorArgumentsRequirePrimaryConstructor">
+        <source>A base constructor argument list requires a primary constructor.</source>
+        <target state="new">A base constructor argument list requires a primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CannotApplyOverloadResolutionPriorityToMember">
         <source>Cannot use 'OverloadResolutionPriorityAttribute' on this member.</source>
         <target state="translated">„OverloadResolutionPriorityAttribute“ kann für dieses Element nicht verwendet werden.</target>

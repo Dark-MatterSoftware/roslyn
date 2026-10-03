@@ -37,6 +37,11 @@
         <target state="translated">Komut satırı söz dizimi hatası: '{0}', '{1}' seçeneği için geçerli bir değer değil. Değer '{2}' biçiminde olmalıdır.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BaseConstructorArgumentsRequirePrimaryConstructor">
+        <source>A base constructor argument list requires a primary constructor.</source>
+        <target state="new">A base constructor argument list requires a primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CannotApplyOverloadResolutionPriorityToMember">
         <source>Cannot use 'OverloadResolutionPriorityAttribute' on this member.</source>
         <target state="translated">Bu üyede 'OverloadResolutionPriorityAttribute' kullanılamaz.</target>

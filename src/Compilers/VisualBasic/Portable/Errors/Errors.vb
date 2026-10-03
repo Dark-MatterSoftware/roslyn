@@ -1830,8 +1830,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_PartialConstructorModifierMismatch = 37370
         ERR_PartialConstructorDeclarationMismatch = 37371
         ERR_DuplicatePrimaryConstructor = 37372
+        ERR_BaseConstructorArgumentsRequirePrimaryConstructor = 37373
 
-        ERR_NextAvailable = 37373
+        ERR_NextAvailable = 37374
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

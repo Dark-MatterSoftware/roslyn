@@ -5808,6 +5808,9 @@
   <data name="ERR_DuplicatePrimaryConstructor" xml:space="preserve">
     <value>A class can have only one primary constructor.</value>
   </data>
+  <data name="ERR_BaseConstructorArgumentsRequirePrimaryConstructor" xml:space="preserve">
+    <value>A base constructor argument list requires a primary constructor.</value>
+  </data>
   <data name="ERR_DeconstructionRequiresTuple" xml:space="preserve">
     <value>Deconstruction requires a tuple with {0} elements.</value>
   </data>

@@ -37,6 +37,11 @@
         <target state="translated">Erro de sintaxe de linha de comando: '{0}' não é um valor válido para a opção '{1}'. O valor precisa estar no formato '{2}'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BaseConstructorArgumentsRequirePrimaryConstructor">
+        <source>A base constructor argument list requires a primary constructor.</source>
+        <target state="new">A base constructor argument list requires a primary constructor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CannotApplyOverloadResolutionPriorityToMember">
         <source>Cannot use 'OverloadResolutionPriorityAttribute' on this member.</source>
         <target state="translated">Não é possível usar 'OverloadResolutionPriorityAttribute' neste membro.</target>
