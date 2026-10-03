@@ -23,6 +23,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ' r"""text""" is a raw string. The r prefix keeps """text""" meaning a normal string
         ' whose value contains a quote. Quotes inside the raw string are characters, and a
         ' multi-line form drops the whitespace that precedes the closing quotes.
+        Private Sub TryIncludeUtf8Suffix(ByRef length As Integer)
+            If Not CheckFeatureAvailability(Feature.Utf8StringLiteral) OrElse Not CanGet(length + 1) Then
+                Return
+            End If
+
+            Dim marker = Peek(length)
+            If marker <> "u"c AndAlso marker <> "U"c OrElse Peek(length + 1) <> "8"c Then
+                Return
+            End If
+
+            If CanGet(length + 2) AndAlso IsIdentifierPartCharacter(Peek(length + 2)) Then
+                Return
+            End If
+
+            length += 2
+        End Sub
+
         Private Function IsRawStringStart() As Boolean
             If _isScanningDirective OrElse Not CheckFeatureAvailability(Feature.RawStringLiteral) Then
                 Return False
@@ -55,6 +72,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 ScanSingleLineRawString(quoteCount, openQuoteEnd, length, value, errorId)
             End If
 
+            TryIncludeUtf8Suffix(length)
             Dim spelling = GetTextNotInterned(length)
             Dim followingTrivia = ScanSingleLineTrivia()
             Dim token As SyntaxToken = SyntaxFactory.StringLiteralToken(spelling, value, precedingTrivia.Node, followingTrivia.Node)

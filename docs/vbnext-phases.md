@@ -80,7 +80,7 @@ Each row is already one slice. Land them in order. Each one is the pattern the n
 | 4c | VB-017 | Done. On `vbnext`, an override may narrow a class return type when the return converts by a widening reference conversion and the runtime supports covariant returns. The emitted method keeps the narrower return, a new slot, a method implementation of the base method, and `PreserveBaseOverridesAttribute`. Visual Basic 17.13 still reports that the methods differ by their return types. A runtime without that support does the same. |
 | 4d | VB-033 | Done. On `vbnext`, `r"""text"""` is a string. Quotes inside it are characters, and a multi-line raw string drops the whitespace that precedes the closing quotes. `{name}` stays text. `"""hello"""` is still a normal string whose value contains a quote. Visual Basic 17.13 still treats `r` as a name. |
 | 4e | VB-033 | Done. On `vbnext`, `$r"""Hello {name}"""` is an interpolated raw string. A single `{` starts a hole, `{{` is a literal brace, and quotes inside the text are characters. A multi-line form drops the whitespace that precedes the closing quotes. Visual Basic 17.13 still reports an illegal `$`. |
-| 4f | VB-034 | A `u8` suffix on a string literal emits a UTF-8 byte span. This slice may emit a byte array if ref structs are not available yet. The span form is finished in phase 7. |
+| 4f | VB-034 | Done. On `vbnext`, `"hi"u8` is a `Byte()` of the UTF-8 bytes, with no byte-order mark. A raw string takes the same suffix. Visual Basic 17.13 still reports an expected end of statement on `u8`. The `ReadOnlySpan(Of Byte)` form waits for phase 7. |
 
 ## Phase 5 — Matching
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 4e, a raw string with interpolation holes, is implemented. The next slice is 4f, a `u8` suffix on a string literal.
+Slice 4f, a `u8` suffix on a string literal, is implemented. The next slice is phase 5a, `Dim (x, y) = point`, which declares locals from a tuple.

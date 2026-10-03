@@ -442,6 +442,11 @@
         <target state="new">Using declaration</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_Utf8StringLiteral">
+        <source>utf-8 string literals</source>
+        <target state="new">utf-8 string literals</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ICoalesceOperationIsNotVisualBasicCoalesceOperation">
         <source>{0} is not a valid Visual Basic coalesce operation</source>
         <target state="translated">{0} geçerli bir Visual Basic birleştirme işlemi değil</target>

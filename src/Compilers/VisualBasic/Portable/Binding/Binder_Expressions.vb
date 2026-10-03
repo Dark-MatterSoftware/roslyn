@@ -99,8 +99,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.ObjectCreationExpression
                     Return BindObjectCreationExpression(DirectCast(node, ObjectCreationExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.StringLiteralExpression
+                    Return BindStringLiteral(DirectCast(node, LiteralExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.NumericLiteralExpression,
-                     SyntaxKind.StringLiteralExpression,
                      SyntaxKind.CharacterLiteralExpression,
                      SyntaxKind.TrueLiteralExpression,
                      SyntaxKind.FalseLiteralExpression,
@@ -4737,6 +4739,44 @@ lElseClause:
             Next
 
             Return boundArgumentsBuilder.ToImmutableAndFree
+        End Function
+
+        Private Function BindStringLiteral(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If IsUtf8StringLiteral(node.Token) Then
+                Return BindUtf8StringLiteral(node, diagnostics)
+            End If
+
+            Return BindLiteralConstant(node, diagnostics)
+        End Function
+
+        Private Shared Function IsUtf8StringLiteral(token As SyntaxToken) As Boolean
+            Dim text = token.Text
+            Return text.Length >= 4 AndAlso
+                   text(text.Length - 3) = """"c AndAlso
+                   (text(text.Length - 2) = "u"c OrElse text(text.Length - 2) = "U"c) AndAlso
+                   text(text.Length - 1) = "8"c
+        End Function
+
+        Private Function BindUtf8StringLiteral(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim text = TryCast(node.Token.Value, String)
+            Dim encoded = If(text Is Nothing, Array.Empty(Of Byte)(), System.Text.Encoding.UTF8.GetBytes(text))
+            Dim byteType = GetSpecialType(SpecialType.System_Byte, node, diagnostics)
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+            Dim arrayType = ArrayTypeSymbol.CreateVBArray(byteType, Nothing, 1, Compilation)
+
+            Dim initializers = ArrayBuilder(Of BoundExpression).GetInstance(encoded.Length)
+            For Each value In encoded
+                Dim literal = New BoundLiteral(node, ConstantValue.Create(value, SpecialType.System_Byte), byteType)
+                literal.SetWasCompilerGenerated()
+                initializers.Add(literal)
+            Next
+
+            Dim initialization = New BoundArrayInitialization(node, initializers.ToImmutableAndFree(), arrayType)
+            initialization.SetWasCompilerGenerated()
+
+            Dim lengthLiteral = New BoundLiteral(node, ConstantValue.Create(encoded.Length), int32Type)
+            lengthLiteral.SetWasCompilerGenerated()
+            Return New BoundArrayCreation(node, ImmutableArray.Create(Of BoundExpression)(lengthLiteral), initialization, arrayType)
         End Function
 
         Private Function BindLiteralConstant(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundLiteral

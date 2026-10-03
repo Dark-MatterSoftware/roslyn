@@ -2588,6 +2588,7 @@ baddate:
 
                     ' the double quote was a valid string terminator.
                     length += 1
+                    TryIncludeUtf8Suffix(length)
                     Dim spelling = GetTextNotInterned(length)
                     followingTrivia = ScanSingleLineTrivia()
 

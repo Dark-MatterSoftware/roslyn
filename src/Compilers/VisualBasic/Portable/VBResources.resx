@@ -5784,6 +5784,9 @@
   <data name="FEATURE_RawStringLiteral" xml:space="preserve">
     <value>raw strings</value>
   </data>
+  <data name="FEATURE_Utf8StringLiteral" xml:space="preserve">
+    <value>utf-8 string literals</value>
+  </data>
   <data name="ERR_TooManyQuotesForRawString" xml:space="preserve">
     <value>A raw string ends with the same number of quotes it starts with.</value>
   </data>

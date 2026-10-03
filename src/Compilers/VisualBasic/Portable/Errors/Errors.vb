@@ -2145,5 +2145,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_ArrayRange
         FEATURE_CovariantReturns
         FEATURE_RawStringLiteral
+        FEATURE_Utf8StringLiteral
     End Enum
 End Namespace
