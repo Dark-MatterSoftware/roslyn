@@ -51,6 +51,34 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub PartialProperty_AccessorsSplitAcrossParts()
+            Dim compilation = CreateCompilation("
+Partial Class Program
+    Private _label As String
+    Partial Property Label As String
+        Get
+            Return _label
+        End Get
+    End Property
+End Class
+Partial Class Program
+    Partial Property Label As String
+        Set(value As String)
+            _label = value
+        End Set
+    End Property
+    Shared Sub Main()
+        Dim p As New Program()
+        p.Label = ""ok""
+        System.Console.Write(p.Label)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="ok").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub PartialProperty_TypeMismatch()
             Dim compilation = CreateCompilation("
 Partial Class Program

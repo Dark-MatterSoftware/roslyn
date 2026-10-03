@@ -197,7 +197,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     (Not isWriteOnly) AndAlso
                     ((getMethod Is Nothing) OrElse (setMethod Is Nothing)) AndAlso
                     (blockSyntaxOpt IsNot Nothing) AndAlso
-                    (Not prop.IsMustOverride) Then
+                    (Not prop.IsMustOverride) AndAlso
+                    Not prop.IsPartial Then
                     diagnostics.Add(ERRID.ERR_PropMustHaveGetSet, location)
                 End If
             End If
@@ -763,6 +764,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Sub SetPartialPropertyPart(other As SourcePropertySymbol)
             _otherPartOfPartial = other
+        End Sub
+
+        Friend Sub AdoptAccessor(accessor As SourcePropertyAccessorSymbol)
+            accessor.SetAssociatedProperty(Me)
+            If accessor.MethodKind = MethodKind.PropertyGet Then
+                _getMethod = accessor
+            Else
+                _setMethod = accessor
+            End If
         End Sub
 
         Public Overrides ReadOnly Property GetMethod As MethodSymbol

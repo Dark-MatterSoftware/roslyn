@@ -2030,32 +2030,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private Sub MatchPartialPropertySignature(candidates As ArrayBuilder(Of SourcePropertySymbol),
                                                   members As Dictionary(Of String, ImmutableArray(Of Symbol)),
                                                   diagnostics As BindingDiagnosticBag)
-            Dim definition As SourcePropertySymbol = Nothing
-            Dim implementation As SourcePropertySymbol = Nothing
-
+            Dim definitions = ArrayBuilder(Of SourcePropertySymbol).GetInstance()
+            Dim implementations = ArrayBuilder(Of SourcePropertySymbol).GetInstance()
             For Each candidate In candidates
                 If candidate.IsPartialDefinition Then
-                    If definition Is Nothing OrElse IsEarlierDeclaration(candidate, definition) Then
-                        If definition IsNot Nothing Then
-                            RemovePartialProperty(definition, members)
-                        End If
-
-                        definition = candidate
-                    Else
-                        RemovePartialProperty(candidate, members)
-                    End If
-                ElseIf implementation Is Nothing OrElse IsEarlierDeclaration(candidate, implementation) Then
-                    If implementation IsNot Nothing Then
-                        RemovePartialProperty(implementation, members)
-                    End If
-
-                    implementation = candidate
+                    definitions.Add(candidate)
                 Else
-                    RemovePartialProperty(candidate, members)
+                    implementations.Add(candidate)
                 End If
             Next
 
-            If candidates.Count <> 2 OrElse definition Is Nothing OrElse implementation Is Nothing Then
+            If definitions.Count = 1 AndAlso implementations.Count = 1 Then
+                LinkPartialProperty(definitions(0), implementations(0), members, diagnostics)
+            ElseIf definitions.Count = 0 AndAlso implementations.Count = 2 Then
+                MergeSplitPartialProperty(implementations(0), implementations(1), members, diagnostics)
+            Else
+                Dim definition = EarliestPartialProperty(definitions)
+                Dim implementation = EarliestPartialProperty(implementations)
+                For Each candidate In candidates
+                    If candidate IsNot definition AndAlso candidate IsNot implementation Then
+                        RemovePartialProperty(candidate, members)
+                    End If
+                Next
+
                 Dim blame = If(implementation, definition)
                 If candidates.Count > 1 Then
                     blame = candidates(0)
@@ -2067,24 +2064,104 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
 
                 diagnostics.Add(ERRID.ERR_PartialPropertyDeclarationMismatch, blame.GetFirstLocation(), blame.Name)
+                If definition IsNot Nothing AndAlso implementation IsNot Nothing Then
+                    LinkPartialProperty(definition, implementation, members, diagnostics)
+                ElseIf implementation IsNot Nothing Then
+                    ReportMissingPartialAccessors(implementation, diagnostics)
+                End If
             End If
 
-            If definition Is Nothing OrElse implementation Is Nothing Then
-                Return
-            End If
+            definitions.Free()
+            implementations.Free()
+        End Sub
 
-            If Not TypeSymbol.Equals(definition.Type, implementation.Type, TypeCompareKind.ConsiderEverything) Then
-                diagnostics.Add(ERRID.ERR_PartialPropertyTypeMismatch, implementation.GetFirstLocation(), implementation.Name)
-            End If
-
-            If Not PartialPropertyModifiersMatch(definition, implementation) Then
-                diagnostics.Add(ERRID.ERR_PartialPropertyModifierMismatch, implementation.GetFirstLocation(), implementation.Name)
-            End If
-
+        Private Sub LinkPartialProperty(definition As SourcePropertySymbol,
+                                        implementation As SourcePropertySymbol,
+                                        members As Dictionary(Of String, ImmutableArray(Of Symbol)),
+                                        diagnostics As BindingDiagnosticBag)
+            ReportPartialPropertyDifferences(definition, implementation, diagnostics)
             definition.SetPartialPropertyPart(implementation)
             implementation.SetPartialPropertyPart(definition)
             RemovePartialProperty(definition, members)
+            ReportMissingPartialAccessors(implementation, diagnostics)
         End Sub
+
+        Private Sub MergeSplitPartialProperty(first As SourcePropertySymbol,
+                                              second As SourcePropertySymbol,
+                                              members As Dictionary(Of String, ImmutableArray(Of Symbol)),
+                                              diagnostics As BindingDiagnosticBag)
+            Dim kept = first
+            Dim other = second
+            If IsEarlierDeclaration(second, first) Then
+                kept = second
+                other = first
+            End If
+
+            ReportPartialPropertyDifferences(kept, other, diagnostics)
+            kept.SetPartialPropertyPart(other)
+            other.SetPartialPropertyPart(kept)
+            MergePartialAccessor(kept, other, isGet:=True, members, diagnostics)
+            MergePartialAccessor(kept, other, isGet:=False, members, diagnostics)
+            RemoveMemberSymbol(other, members)
+            ReportMissingPartialAccessors(kept, diagnostics)
+        End Sub
+
+        Private Shared Sub MergePartialAccessor(kept As SourcePropertySymbol,
+                                                other As SourcePropertySymbol,
+                                                isGet As Boolean,
+                                                members As Dictionary(Of String, ImmutableArray(Of Symbol)),
+                                                diagnostics As BindingDiagnosticBag)
+            Dim otherAccessor = If(isGet, other.GetMethod, other.SetMethod)
+            If otherAccessor Is Nothing Then
+                Return
+            End If
+
+            Dim keptAccessor = If(isGet, kept.GetMethod, kept.SetMethod)
+            If keptAccessor IsNot Nothing Then
+                diagnostics.Add(If(isGet, ERRID.ERR_DuplicatePropertyGet, ERRID.ERR_DuplicatePropertySet), otherAccessor.GetFirstLocation())
+                RemoveMemberSymbol(otherAccessor, members)
+                Return
+            End If
+
+            kept.AdoptAccessor(DirectCast(otherAccessor, SourcePropertyAccessorSymbol))
+        End Sub
+
+        Private Shared Sub ReportPartialPropertyDifferences(left As SourcePropertySymbol,
+                                                            right As SourcePropertySymbol,
+                                                            diagnostics As BindingDiagnosticBag)
+            If Not TypeSymbol.Equals(left.Type, right.Type, TypeCompareKind.ConsiderEverything) Then
+                diagnostics.Add(ERRID.ERR_PartialPropertyTypeMismatch, right.GetFirstLocation(), right.Name)
+            End If
+
+            If Not PartialPropertyModifiersMatch(left, right) Then
+                diagnostics.Add(ERRID.ERR_PartialPropertyModifierMismatch, right.GetFirstLocation(), right.Name)
+            End If
+        End Sub
+
+        Private Shared Sub ReportMissingPartialAccessors(prop As SourcePropertySymbol, diagnostics As BindingDiagnosticBag)
+            If prop.IsReadOnly OrElse prop.IsWriteOnly OrElse prop.IsMustOverride Then
+                Return
+            End If
+
+            If prop.GetMethod Is Nothing OrElse prop.SetMethod Is Nothing Then
+                diagnostics.Add(ERRID.ERR_PropMustHaveGetSet, prop.GetFirstLocation())
+            End If
+        End Sub
+
+        Private Function EarliestPartialProperty(candidates As ArrayBuilder(Of SourcePropertySymbol)) As SourcePropertySymbol
+            If candidates.Count = 0 Then
+                Return Nothing
+            End If
+
+            Dim best = candidates(0)
+            For index = 1 To candidates.Count - 1
+                If IsEarlierDeclaration(candidates(index), best) Then
+                    best = candidates(index)
+                End If
+            Next
+
+            Return best
+        End Function
 
         Private Function IsEarlierDeclaration(left As SourcePropertySymbol, right As SourcePropertySymbol) As Boolean
             Return Me.DeclaringCompilation.CompareSourceLocations(left.GetFirstLocation(), right.GetFirstLocation()) < 0

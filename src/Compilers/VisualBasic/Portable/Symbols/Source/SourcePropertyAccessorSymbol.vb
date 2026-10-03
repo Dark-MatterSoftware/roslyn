@@ -14,7 +14,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     Friend NotInheritable Class SourcePropertyAccessorSymbol
         Inherits SourceMethodSymbol
 
-        Protected ReadOnly m_property As SourcePropertySymbol
+        Protected m_property As SourcePropertySymbol
         Private ReadOnly _name As String
         Private ReadOnly _isInitOnly As Boolean
         Private _lazyMetadataName As String
@@ -43,6 +43,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             m_property = propertySymbol
             _name = name
             _isInitOnly = isInitOnly
+        End Sub
+
+        Friend Sub SetAssociatedProperty(propertySymbol As SourcePropertySymbol)
+            m_property = propertySymbol
         End Sub
 
         Public Overrides ReadOnly Property IsInitOnly As Boolean
