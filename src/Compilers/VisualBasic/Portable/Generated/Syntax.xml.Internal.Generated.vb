@@ -13404,6 +13404,277 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' A Select Case expression that produces a value.
+    ''' </summary>
+    Friend NotInheritable Class SelectCaseExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _selectKeyword as KeywordSyntax
+        Friend ReadOnly _caseKeyword as KeywordSyntax
+        Friend ReadOnly _expression as ExpressionSyntax
+        Friend ReadOnly _arms as GreenNode
+        Friend ReadOnly _endKeyword as KeywordSyntax
+        Friend ReadOnly _endSelectKeyword as KeywordSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, selectKeyword As InternalSyntax.KeywordSyntax, caseKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, arms As GreenNode, endKeyword As InternalSyntax.KeywordSyntax, endSelectKeyword As InternalSyntax.KeywordSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 6
+
+            AdjustFlagsAndWidth(selectKeyword)
+            Me._selectKeyword = selectKeyword
+            If caseKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(caseKeyword)
+                Me._caseKeyword = caseKeyword
+            End If
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            If arms IsNot Nothing Then
+                AdjustFlagsAndWidth(arms)
+                Me._arms = arms
+            End If
+            AdjustFlagsAndWidth(endKeyword)
+            Me._endKeyword = endKeyword
+            AdjustFlagsAndWidth(endSelectKeyword)
+            Me._endSelectKeyword = endSelectKeyword
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, selectKeyword As InternalSyntax.KeywordSyntax, caseKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, arms As GreenNode, endKeyword As InternalSyntax.KeywordSyntax, endSelectKeyword As InternalSyntax.KeywordSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 6
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(selectKeyword)
+            Me._selectKeyword = selectKeyword
+            If caseKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(caseKeyword)
+                Me._caseKeyword = caseKeyword
+            End If
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            If arms IsNot Nothing Then
+                AdjustFlagsAndWidth(arms)
+                Me._arms = arms
+            End If
+            AdjustFlagsAndWidth(endKeyword)
+            Me._endKeyword = endKeyword
+            AdjustFlagsAndWidth(endSelectKeyword)
+            Me._endSelectKeyword = endSelectKeyword
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), selectKeyword As InternalSyntax.KeywordSyntax, caseKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, arms As GreenNode, endKeyword As InternalSyntax.KeywordSyntax, endSelectKeyword As InternalSyntax.KeywordSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 6
+
+            AdjustFlagsAndWidth(selectKeyword)
+            Me._selectKeyword = selectKeyword
+            If caseKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(caseKeyword)
+                Me._caseKeyword = caseKeyword
+            End If
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            If arms IsNot Nothing Then
+                AdjustFlagsAndWidth(arms)
+                Me._arms = arms
+            End If
+            AdjustFlagsAndWidth(endKeyword)
+            Me._endKeyword = endKeyword
+            AdjustFlagsAndWidth(endSelectKeyword)
+            Me._endSelectKeyword = endSelectKeyword
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.SelectCaseExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Select keyword.
+        ''' </summary>
+        Friend ReadOnly Property SelectKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._selectKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The optional Case keyword.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property CaseKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._caseKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The expression being tested.
+        ''' </summary>
+        Friend ReadOnly Property Expression As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._expression
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The case arms.
+        ''' </summary>
+        Friend ReadOnly Property Arms As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of SelectCaseArmSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of SelectCaseArmSyntax)(Me._arms)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The End keyword.
+        ''' </summary>
+        Friend ReadOnly Property EndKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._endKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The Select keyword of End Select.
+        ''' </summary>
+        Friend ReadOnly Property EndSelectKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._endSelectKeyword
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._selectKeyword
+                Case 1
+                    Return Me._caseKeyword
+                Case 2
+                    Return Me._expression
+                Case 3
+                    Return Me._arms
+                Case 4
+                    Return Me._endKeyword
+                Case 5
+                    Return Me._endSelectKeyword
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new SelectCaseExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _selectKeyword, _caseKeyword, _expression, _arms, _endKeyword, _endSelectKeyword)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new SelectCaseExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _selectKeyword, _caseKeyword, _expression, _arms, _endKeyword, _endSelectKeyword)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitSelectCaseExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' One arm of a Select Case expression.
+    ''' </summary>
+    Friend NotInheritable Class SelectCaseArmSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend ReadOnly _caseStatement as CaseStatementSyntax
+        Friend ReadOnly _value as ExpressionSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, caseStatement As CaseStatementSyntax, value As ExpressionSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(caseStatement)
+            Me._caseStatement = caseStatement
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, caseStatement As CaseStatementSyntax, value As ExpressionSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(caseStatement)
+            Me._caseStatement = caseStatement
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), caseStatement As CaseStatementSyntax, value As ExpressionSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(caseStatement)
+            Me._caseStatement = caseStatement
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.SelectCaseArmSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Case or Case Else header.
+        ''' </summary>
+        Friend ReadOnly Property CaseStatement As InternalSyntax.CaseStatementSyntax
+            Get
+                Return Me._caseStatement
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The value produced when this arm matches.
+        ''' </summary>
+        Friend ReadOnly Property Value As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._value
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._caseStatement
+                Case 1
+                    Return Me._value
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new SelectCaseArmSyntax(Me.Kind, newErrors, GetAnnotations, _caseStatement, _value)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new SelectCaseArmSyntax(Me.Kind, GetDiagnostics, annotations, _caseStatement, _value)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitSelectCaseArm(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' One AndAlso test in a type case.
     ''' </summary>
     Friend NotInheritable Class CaseFilterSyntax
@@ -30080,6 +30351,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
         End Function
+        Public Overridable Function VisitSelectCaseExpression(ByVal node As SelectCaseExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
+        Public Overridable Function VisitSelectCaseArm(ByVal node As SelectCaseArmSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitVisualBasicSyntaxNode(node)
+        End Function
         Public Overridable Function VisitCaseFilter(ByVal node As CaseFilterSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitVisualBasicSyntaxNode(node)
@@ -32645,6 +32924,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New PositionalCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newOpenParenToken, newArguments.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitSelectCaseExpression(ByVal node As SelectCaseExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newSelectKeyword = DirectCast(Visit(node.SelectKeyword), KeywordSyntax)
+            If node._selectKeyword IsNot newSelectKeyword Then anyChanges = True
+            Dim newCaseKeyword = DirectCast(Visit(node.CaseKeyword), KeywordSyntax)
+            If node._caseKeyword IsNot newCaseKeyword Then anyChanges = True
+            Dim newExpression = DirectCast(Visit(node._expression), ExpressionSyntax)
+            If node._expression IsNot newExpression Then anyChanges = True
+            Dim newArms = VisitList(node.Arms)
+            If node._arms IsNot newArms.Node Then anyChanges = True
+            Dim newEndKeyword = DirectCast(Visit(node.EndKeyword), KeywordSyntax)
+            If node._endKeyword IsNot newEndKeyword Then anyChanges = True
+            Dim newEndSelectKeyword = DirectCast(Visit(node.EndSelectKeyword), KeywordSyntax)
+            If node._endSelectKeyword IsNot newEndSelectKeyword Then anyChanges = True
+
+            If anyChanges Then
+                Return New SelectCaseExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newSelectKeyword, newCaseKeyword, newExpression, newArms.Node, newEndKeyword, newEndSelectKeyword)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitSelectCaseArm(ByVal node As SelectCaseArmSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newCaseStatement = DirectCast(Visit(node._caseStatement), CaseStatementSyntax)
+            If node._caseStatement IsNot newCaseStatement Then anyChanges = True
+            Dim newValue = DirectCast(Visit(node._value), ExpressionSyntax)
+            If node._value IsNot newValue Then anyChanges = True
+
+            If anyChanges Then
+                Return New SelectCaseArmSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newCaseStatement, newValue)
             Else
                 Return node
             End If
@@ -40745,6 +41062,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken)
+        End Function
+
+
+        ''' <summary>
+        ''' A Select Case expression that produces a value.
+        ''' </summary>
+        ''' <param name="selectKeyword">
+        ''' The Select keyword.
+        ''' </param>
+        ''' <param name="caseKeyword">
+        ''' The optional Case keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="arms">
+        ''' The case arms.
+        ''' </param>
+        ''' <param name="endKeyword">
+        ''' The End keyword.
+        ''' </param>
+        ''' <param name="endSelectKeyword">
+        ''' The Select keyword of End Select.
+        ''' </param>
+        Friend Shared Function SelectCaseExpression(selectKeyword As KeywordSyntax, caseKeyword As KeywordSyntax, expression As ExpressionSyntax, arms As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), endKeyword As KeywordSyntax, endSelectKeyword As KeywordSyntax) As SelectCaseExpressionSyntax
+            Debug.Assert(selectKeyword IsNot Nothing AndAlso selectKeyword.Kind = SyntaxKind.SelectKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(endKeyword IsNot Nothing AndAlso endKeyword.Kind = SyntaxKind.EndKeyword)
+            Debug.Assert(endSelectKeyword IsNot Nothing AndAlso endSelectKeyword.Kind = SyntaxKind.SelectKeyword)
+            Return New SelectCaseExpressionSyntax(SyntaxKind.SelectCaseExpression, selectKeyword, caseKeyword, expression, arms.Node, endKeyword, endSelectKeyword)
+        End Function
+
+
+        ''' <summary>
+        ''' One arm of a Select Case expression.
+        ''' </summary>
+        ''' <param name="caseStatement">
+        ''' The Case or Case Else header.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value produced when this arm matches.
+        ''' </param>
+        Friend Shared Function SelectCaseArm(caseStatement As CaseStatementSyntax, value As ExpressionSyntax) As SelectCaseArmSyntax
+            Debug.Assert(caseStatement IsNot Nothing)
+            Debug.Assert(value IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.SelectCaseArm, caseStatement, value, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, SelectCaseArmSyntax)
+            End If
+
+            Dim result = New SelectCaseArmSyntax(SyntaxKind.SelectCaseArm, caseStatement, value)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 
@@ -53041,6 +53416,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' A Select Case expression that produces a value.
+        ''' </summary>
+        ''' <param name="selectKeyword">
+        ''' The Select keyword.
+        ''' </param>
+        ''' <param name="caseKeyword">
+        ''' The optional Case keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="arms">
+        ''' The case arms.
+        ''' </param>
+        ''' <param name="endKeyword">
+        ''' The End keyword.
+        ''' </param>
+        ''' <param name="endSelectKeyword">
+        ''' The Select keyword of End Select.
+        ''' </param>
+        Friend Function SelectCaseExpression(selectKeyword As KeywordSyntax, caseKeyword As KeywordSyntax, expression As ExpressionSyntax, arms As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), endKeyword As KeywordSyntax, endSelectKeyword As KeywordSyntax) As SelectCaseExpressionSyntax
+            Debug.Assert(selectKeyword IsNot Nothing AndAlso selectKeyword.Kind = SyntaxKind.SelectKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(endKeyword IsNot Nothing AndAlso endKeyword.Kind = SyntaxKind.EndKeyword)
+            Debug.Assert(endSelectKeyword IsNot Nothing AndAlso endSelectKeyword.Kind = SyntaxKind.SelectKeyword)
+            Return New SelectCaseExpressionSyntax(SyntaxKind.SelectCaseExpression, selectKeyword, caseKeyword, expression, arms.Node, endKeyword, endSelectKeyword, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' One arm of a Select Case expression.
+        ''' </summary>
+        ''' <param name="caseStatement">
+        ''' The Case or Case Else header.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value produced when this arm matches.
+        ''' </param>
+        Friend Function SelectCaseArm(caseStatement As CaseStatementSyntax, value As ExpressionSyntax) As SelectCaseArmSyntax
+            Debug.Assert(caseStatement IsNot Nothing)
+            Debug.Assert(value IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.SelectCaseArm, caseStatement, value, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, SelectCaseArmSyntax)
+            End If
+
+            Dim result = New SelectCaseArmSyntax(SyntaxKind.SelectCaseArm, caseStatement, value, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 

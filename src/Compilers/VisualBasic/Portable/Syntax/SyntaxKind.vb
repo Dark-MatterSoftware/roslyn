@@ -3261,5 +3261,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         PositionalCaseClause = 804                   ' PositionalCaseClauseSyntax : CaseClauseSyntax
 
+        ''' <summary>
+        ''' Represents one arm of a <c>Select Case</c> expression.
+        ''' </summary>
+        SelectCaseArm = 805                          ' SelectCaseArmSyntax : VisualBasicSyntaxNode
+
+        ''' <summary>
+        ''' Represents a <c>Select Case</c> expression that produces a value.
+        ''' </summary>
+        SelectCaseExpression = 806                   ' SelectCaseExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

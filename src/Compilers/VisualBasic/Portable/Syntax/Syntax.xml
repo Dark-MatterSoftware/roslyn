@@ -4184,6 +4184,79 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  SelectCaseExpression
+      ******************-->
+    <node-structure name="SelectCaseExpressionSyntax" parent="ExpressionSyntax">
+      <description>A Select Case expression that produces a value.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="SelectCaseExpression">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="SelectKeyword" kind="SelectKeyword">
+        <description>The Select keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CaseKeyword" kind="CaseKeyword" optional="true">
+        <description>The optional Case keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Expression" kind="@ExpressionSyntax">
+        <description>The expression being tested.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Arms" list="true" kind="@SelectCaseArmSyntax">
+        <description>The case arms.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="EndKeyword" kind="EndKeyword">
+        <description>The End keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="EndSelectKeyword" kind="SelectKeyword">
+        <description>The Select keyword of End Select.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <node-structure name="SelectCaseArmSyntax" parent="VisualBasicSyntaxNode">
+      <description>One arm of a Select Case expression.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="SelectCaseArm">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="CaseStatement" kind="@CaseStatementSyntax">
+        <description>The Case or Case Else header.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Value" kind="@ExpressionSyntax">
+        <description>The value produced when this arm matches.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  CaseFilter
       ******************-->
     <node-structure name="CaseFilterSyntax" parent="VisualBasicSyntaxNode">

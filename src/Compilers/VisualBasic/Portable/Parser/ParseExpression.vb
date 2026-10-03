@@ -470,6 +470,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     term = ParseInterpolatedStringExpression()
 
+                Case SyntaxKind.SelectKeyword
+                    If CheckFeatureAvailability(Feature.SelectCaseTypePattern) AndAlso
+                       (PeekToken(1).Kind = SyntaxKind.CaseKeyword OrElse PeekToken(1).Kind = SyntaxKind.IdentifierToken) Then
+                        term = ParseSelectCaseExpression()
+                    ElseIf BailIfFirstTokenRejected Then
+                        Return Nothing
+                    Else
+                        term = ReportSyntaxError(InternalSyntaxFactory.MissingExpression(), ERRID.ERR_ExpectedExpression)
+                    End If
+
                 Case Else
 
                     If start.Kind = SyntaxKind.QuestionToken AndAlso CanStartConsequenceExpression(Me.PeekToken(1).Kind, qualified:=False) Then

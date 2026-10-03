@@ -204,6 +204,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.TernaryConditionalExpression
                     Return BindTernaryConditionalExpression(DirectCast(node, TernaryConditionalExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.SelectCaseExpression
+                    Return BindSelectCaseExpression(DirectCast(node, SelectCaseExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.SingleLineFunctionLambdaExpression,
                      SyntaxKind.SingleLineSubLambdaExpression,
                      SyntaxKind.MultiLineFunctionLambdaExpression,

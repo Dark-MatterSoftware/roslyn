@@ -144,5 +144,54 @@ End Class
 
             CompileAndVerify(compilation, expectedOutput:="pointpair2").VerifyDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub SelectCase_ExpressionProducesAValue()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared n As Integer
+    Shared Function NextOrder() As Integer
+        n += 1
+        Return 1
+    End Function
+    Shared Sub Main()
+        Dim label = Select Case NextOrder()
+                        Case Is > 0
+                            ""positive""
+                        Case Else
+                            ""other""
+                    End Select
+        System.Console.Write(label)
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="positive1").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SelectCase_ExpressionRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim label = Select Case 1
+                        Case Is > 0
+                            ""positive""
+                        Case Else
+                            ""other""
+                    End Select
+    End Sub
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedExpression, "").WithLocation(4, 21),
+                Diagnostic(ERRID.ERR_CaseNoSelect, "Case Is > 0").WithLocation(5, 25),
+                Diagnostic(ERRID.ERR_Syntax, """positive""").WithLocation(6, 29),
+                Diagnostic(ERRID.ERR_CaseElseNoSelect, "Case Else").WithLocation(7, 25),
+                Diagnostic(ERRID.ERR_Syntax, """other""").WithLocation(8, 29),
+                Diagnostic(ERRID.ERR_EndSelectNoSelect, "End Select").WithLocation(9, 21))
+        End Sub
     End Class
 End Namespace

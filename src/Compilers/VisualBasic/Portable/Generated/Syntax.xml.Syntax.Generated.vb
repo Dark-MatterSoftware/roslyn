@@ -18443,6 +18443,337 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' A Select Case expression that produces a value.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.SelectCaseExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class SelectCaseExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _expression as ExpressionSyntax
+        Friend _arms as SyntaxNode
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), selectKeyword As InternalSyntax.KeywordSyntax, caseKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, arms As SyntaxNode, endKeyword As InternalSyntax.KeywordSyntax, endSelectKeyword As InternalSyntax.KeywordSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SelectCaseExpressionSyntax(kind, errors, annotations, selectKeyword, caseKeyword, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), if(arms IsNot Nothing, arms.Green, Nothing), endKeyword, endSelectKeyword), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Select keyword.
+        ''' </summary>
+        Public ReadOnly Property SelectKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SelectCaseExpressionSyntax)._selectKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the SelectKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithSelectKeyword(selectKeyword as SyntaxToken) As SelectCaseExpressionSyntax
+            return Update(selectKeyword, Me.CaseKeyword, Me.Expression, Me.Arms, Me.EndKeyword, Me.EndSelectKeyword)
+        End Function
+
+        ''' <summary>
+        ''' The optional Case keyword.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property CaseKeyword As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SelectCaseExpressionSyntax)._caseKeyword
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(1), Me.GetChildIndex(1))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CaseKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithCaseKeyword(caseKeyword as SyntaxToken) As SelectCaseExpressionSyntax
+            return Update(Me.SelectKeyword, caseKeyword, Me.Expression, Me.Arms, Me.EndKeyword, Me.EndSelectKeyword)
+        End Function
+
+        ''' <summary>
+        ''' The expression being tested.
+        ''' </summary>
+        Public ReadOnly Property Expression As ExpressionSyntax
+            Get
+                Return GetRed(_expression, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Expression property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithExpression(expression as ExpressionSyntax) As SelectCaseExpressionSyntax
+            return Update(Me.SelectKeyword, Me.CaseKeyword, expression, Me.Arms, Me.EndKeyword, Me.EndSelectKeyword)
+        End Function
+
+        ''' <summary>
+        ''' The case arms.
+        ''' </summary>
+        Public ReadOnly Property Arms As SyntaxList(Of SelectCaseArmSyntax)
+            Get
+                Dim listNode = GetRed(_arms, 3)
+                Return new SyntaxList(Of SelectCaseArmSyntax)(listNode)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Arms property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithArms(arms as SyntaxList(Of SelectCaseArmSyntax)) As SelectCaseExpressionSyntax
+            return Update(Me.SelectKeyword, Me.CaseKeyword, Me.Expression, arms, Me.EndKeyword, Me.EndSelectKeyword)
+        End Function
+
+        Public Shadows Function AddArms(ParamArray items As SelectCaseArmSyntax()) As SelectCaseExpressionSyntax
+            Return Me.WithArms(Me.Arms.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The End keyword.
+        ''' </summary>
+        Public ReadOnly Property EndKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SelectCaseExpressionSyntax)._endKeyword, Me.GetChildPosition(4), Me.GetChildIndex(4))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the EndKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithEndKeyword(endKeyword as SyntaxToken) As SelectCaseExpressionSyntax
+            return Update(Me.SelectKeyword, Me.CaseKeyword, Me.Expression, Me.Arms, endKeyword, Me.EndSelectKeyword)
+        End Function
+
+        ''' <summary>
+        ''' The Select keyword of End Select.
+        ''' </summary>
+        Public ReadOnly Property EndSelectKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SelectCaseExpressionSyntax)._endSelectKeyword, Me.GetChildPosition(5), Me.GetChildIndex(5))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the EndSelectKeyword property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithEndSelectKeyword(endSelectKeyword as SyntaxToken) As SelectCaseExpressionSyntax
+            return Update(Me.SelectKeyword, Me.CaseKeyword, Me.Expression, Me.Arms, Me.EndKeyword, endSelectKeyword)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me._expression
+                Case 3
+                    Return Me._arms
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me.Expression
+                Case 3
+                    Return GetRed(_arms, 3)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitSelectCaseExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitSelectCaseExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="selectKeyword">
+        ''' The value for the SelectKeyword property.
+        ''' </param>
+        ''' <param name="caseKeyword">
+        ''' The value for the CaseKeyword property.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The value for the Expression property.
+        ''' </param>
+        ''' <param name="arms">
+        ''' The value for the Arms property.
+        ''' </param>
+        ''' <param name="endKeyword">
+        ''' The value for the EndKeyword property.
+        ''' </param>
+        ''' <param name="endSelectKeyword">
+        ''' The value for the EndSelectKeyword property.
+        ''' </param>
+        Public Function Update(selectKeyword As SyntaxToken, caseKeyword As SyntaxToken, expression As ExpressionSyntax, arms As SyntaxList(of SelectCaseArmSyntax), endKeyword As SyntaxToken, endSelectKeyword As SyntaxToken) As SelectCaseExpressionSyntax
+            If selectKeyword <> Me.SelectKeyword OrElse caseKeyword <> Me.CaseKeyword OrElse expression IsNot Me.Expression OrElse arms <> Me.Arms OrElse endKeyword <> Me.EndKeyword OrElse endSelectKeyword <> Me.EndSelectKeyword Then
+                Dim newNode = SyntaxFactory.SelectCaseExpression(selectKeyword, caseKeyword, expression, arms, endKeyword, endSelectKeyword)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' One arm of a Select Case expression.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.SelectCaseArm"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class SelectCaseArmSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend _caseStatement as CaseStatementSyntax
+        Friend _value as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), caseStatement As CaseStatementSyntax, value As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SelectCaseArmSyntax(kind, errors, annotations, DirectCast(caseStatement.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CaseStatementSyntax), DirectCast(value.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Case or Case Else header.
+        ''' </summary>
+        Public ReadOnly Property CaseStatement As CaseStatementSyntax
+            Get
+                Return GetRedAtZero(_caseStatement)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CaseStatement property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithCaseStatement(caseStatement as CaseStatementSyntax) As SelectCaseArmSyntax
+            return Update(caseStatement, Me.Value)
+        End Function
+
+        Public Shadows Function AddCaseStatementCases(ParamArray items As CaseClauseSyntax()) As SelectCaseArmSyntax
+            Dim _child = If(Me.CaseStatement IsNot Nothing, Me.CaseStatement, SyntaxFactory.CaseStatement())
+            Return Me.WithCaseStatement(_child.AddCases(items))
+        End Function
+
+        ''' <summary>
+        ''' The value produced when this arm matches.
+        ''' </summary>
+        Public ReadOnly Property Value As ExpressionSyntax
+            Get
+                Return GetRed(_value, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Value property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithValue(value as ExpressionSyntax) As SelectCaseArmSyntax
+            return Update(Me.CaseStatement, value)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._caseStatement
+                Case 1
+                    Return Me._value
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.CaseStatement
+                Case 1
+                    Return Me.Value
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitSelectCaseArm(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitSelectCaseArm(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="caseStatement">
+        ''' The value for the CaseStatement property.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value for the Value property.
+        ''' </param>
+        Public Function Update(caseStatement As CaseStatementSyntax, value As ExpressionSyntax) As SelectCaseArmSyntax
+            If caseStatement IsNot Me.CaseStatement OrElse value IsNot Me.Value Then
+                Dim newNode = SyntaxFactory.SelectCaseArm(caseStatement, value)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' One AndAlso test in a type case.
     ''' </summary>
     ''' <remarks>

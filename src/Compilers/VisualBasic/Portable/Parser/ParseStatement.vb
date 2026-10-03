@@ -414,6 +414,54 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return result
         End Function
 
+        Private Function ParseSelectCaseExpression() As SelectCaseExpressionSyntax
+            Dim selectKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Dim caseKeyword As KeywordSyntax = Nothing
+            TryGetToken(SyntaxKind.CaseKeyword, caseKeyword)
+
+            Dim expression = ParseExpressionCore()
+            Dim arms = _pool.Allocate(Of SelectCaseArmSyntax)()
+            EatStatementTerminators()
+
+            Do
+                If CurrentToken.Kind = SyntaxKind.EndKeyword AndAlso PeekToken(1).Kind = SyntaxKind.SelectKeyword Then
+                    Exit Do
+                End If
+
+                If CurrentToken.Kind <> SyntaxKind.CaseKeyword Then
+                    Exit Do
+                End If
+
+                Dim caseStatement = ParseCaseStatement()
+                EatStatementTerminators()
+                Dim value = ParseExpressionCore()
+                arms.Add(SyntaxFactory.SelectCaseArm(caseStatement, value))
+                EatStatementTerminators()
+            Loop
+
+            Dim endKeyword As KeywordSyntax = Nothing
+            If Not TryGetToken(SyntaxKind.EndKeyword, endKeyword) Then
+                endKeyword = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingKeyword(SyntaxKind.EndKeyword), ERRID.ERR_ExpectedEndSelect), KeywordSyntax)
+            End If
+
+            Dim endSelectKeyword As KeywordSyntax = Nothing
+            If Not TryGetToken(SyntaxKind.SelectKeyword, endSelectKeyword) Then
+                endSelectKeyword = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingKeyword(SyntaxKind.SelectKeyword), ERRID.ERR_ExpectedEndSelect), KeywordSyntax)
+            End If
+
+            Dim result = SyntaxFactory.SelectCaseExpression(selectKeyword, caseKeyword, expression, arms.ToList(), endKeyword, endSelectKeyword)
+            _pool.Free(arms)
+            Return result
+        End Function
+
+        Private Sub EatStatementTerminators()
+            While CurrentToken.Kind = SyntaxKind.StatementTerminatorToken
+                GetNextToken()
+            End While
+        End Sub
+
         Private Function ParsePositionalCaseClause() As PositionalCaseClauseSyntax
             Dim isKeyword = DirectCast(CurrentToken, KeywordSyntax)
             GetNextToken()

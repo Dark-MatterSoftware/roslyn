@@ -17,6 +17,92 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
 #Region "Bind select case statement"
 
+    Private NotInheritable Class PlaceholderReplacer
+        Inherits BoundTreeRewriterWithStackGuard
+
+            Private ReadOnly _replacement As BoundExpression
+
+            Public Sub New(replacement As BoundExpression)
+                _replacement = replacement
+            End Sub
+
+            Public Overrides Function VisitRValuePlaceholder(node As BoundRValuePlaceholder) As BoundNode
+                Return _replacement
+            End Function
+        End Class
+
+        Private Function BindSelectCaseExpression(node As SelectCaseExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim expression = BindValue(node.Expression, diagnostics)
+            Dim placeholder = New BoundRValuePlaceholder(node.Expression, If(expression.Type, ErrorTypeSymbol.UnknownResultType))
+            placeholder.SetWasCompilerGenerated()
+
+            Dim conditions = ArrayBuilder(Of BoundExpression).GetInstance()
+            Dim values = ArrayBuilder(Of BoundExpression).GetInstance()
+            Dim elseValue As BoundExpression = Nothing
+            Dim convertElements = expression.Type IsNot Nothing AndAlso expression.Type.IsIntrinsicOrEnumType()
+
+            For Each arm In node.Arms
+                Dim armValue = BindValue(arm.Value, diagnostics)
+                If arm.CaseStatement.Kind = SyntaxKind.CaseElseStatement Then
+                    elseValue = armValue
+                    Continue For
+                End If
+
+                Dim boundCase = BindCaseStatement(arm.CaseStatement, placeholder, convertElements, diagnostics)
+                Dim condition As BoundExpression = Nothing
+                For Each clause In boundCase.CaseClauses
+                    Dim clauseCondition As BoundExpression = Nothing
+                    ComputeCaseClauseCondition(clause, clauseCondition, placeholder, diagnostics)
+                    If condition Is Nothing Then
+                        condition = clauseCondition
+                    Else
+                        condition = BindBinaryOperator(
+                            node:=arm,
+                            left:=condition,
+                            right:=clauseCondition,
+                            operatorTokenKind:=SyntaxKind.OrElseKeyword,
+                            preliminaryOperatorKind:=BinaryOperatorKind.OrElse,
+                            isOperandOfConditionalBranch:=False,
+                            diagnostics:=diagnostics,
+                            isSelectCase:=True).MakeCompilerGenerated()
+                    End If
+                Next
+
+                If condition IsNot Nothing Then
+                    conditions.Add(condition)
+                    values.Add(armValue)
+                End If
+            Next
+
+            If elseValue Is Nothing Then
+                ReportDiagnostic(diagnostics, node, ERRID.ERR_ExpectedEndSelect)
+                elseValue = BadExpression(node, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
+            End If
+
+            Dim resultType = If(values.Count > 0 AndAlso values(0).Type IsNot Nothing, values(0).Type, If(elseValue.Type, ErrorTypeSymbol.UnknownResultType))
+            elseValue = ApplyImplicitConversion(elseValue.Syntax, resultType, elseValue, diagnostics)
+            Dim result As BoundExpression = elseValue
+
+            For i = values.Count - 1 To 0 Step -1
+                Dim armValue = ApplyImplicitConversion(values(i).Syntax, resultType, values(i), diagnostics)
+                result = New BoundTernaryConditionalExpression(node, conditions(i), armValue, result, Nothing, resultType)
+            Next
+
+            conditions.Free()
+            values.Free()
+
+            Dim temp As LocalSymbol = New SynthesizedLocal(ContainingMember, expression.Type, SynthesizedLocalKind.LoweringTemp)
+            Dim stored = New BoundAssignmentOperator(
+                node,
+                New BoundLocal(node, temp, expression.Type),
+                expression,
+                suppressObjectClone:=True,
+                type:=expression.Type)
+            Dim replacement = New BoundLocal(node, temp, expression.Type).MakeRValue()
+            result = DirectCast(New PlaceholderReplacer(replacement).Visit(result), BoundExpression)
+            Return New BoundSequence(node, ImmutableArray.Create(temp), ImmutableArray.Create(Of BoundExpression)(stored), result, resultType)
+        End Function
+
         Private Function BindSelectBlock(node As SelectBlockSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
             Debug.Assert(node IsNot Nothing)
 
