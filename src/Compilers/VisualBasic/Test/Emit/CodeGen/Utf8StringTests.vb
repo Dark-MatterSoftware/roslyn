@@ -49,5 +49,20 @@ End Class
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_ExpectedEOS, "u8").WithLocation(4, 25))
         End Sub
+
+        <Fact>
+        Public Sub Utf8String_IsReadOnlySpanWhenAvailable()
+            Dim compilation = CreateCompilation("
+Imports System
+Class Program
+    Shared Function Bytes() As ReadOnlySpan(Of Byte)
+        Return ""hi""u8
+    End Function
+End Class
+", parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
     End Class
 End Namespace

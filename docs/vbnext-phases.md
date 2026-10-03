@@ -124,7 +124,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 7g | VB-037 | Done. On `vbnext`, `ByRef Structure Buffer` is a ref-like structure. It can be a local and a field of another ByRef structure. It cannot be boxed, stored as a field of a class, or lifted into an iterator, an async method, or a lambda. Visual Basic 17.13 still rejects `ByRef` before `Structure`. |
 | 7h | VB-037 | Done. On `vbnext`, `Span(Of T)` is a ref-like type. A local of that type is legal and can be emitted. It cannot be boxed or stored as a field of a class. Visual Basic 17.13 still reports that the type is obsolete. |
 | 7i | VB-006 | Done. On `vbnext`, `values(^1)` and `values(1..4)` index and slice a `Span(Of T)` or `ReadOnlySpan(Of T)`. The start is inclusive and the end is exclusive. `values(^1) = 9` writes through the span indexer. |
-| 7j | VB-034 | The UTF-8 literal from 4f has type `ReadOnlySpan(Of Byte)` when 7h is in. |
+| 7j | VB-034 | Done. On `vbnext`, `"hi"u8` has type `ReadOnlySpan(Of Byte)` when that type is available. The value is the UTF-8 bytes, with no byte-order mark. When that type is not available, the literal stays a `Byte()`. |
 | 7k | VB-035 | Spread and a collection expression may target a span. |
 | 7l | VB-026 | `ParamArray` of `Span(Of T)` is legal. |
 | 7m | VB-037 | A type parameter may be constrained to allow a ref-like type. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7i, range and index syntax on `Span(Of T)`, is implemented. The next slice is 7j, a UTF-8 literal whose type is `ReadOnlySpan(Of Byte)`.
+Slice 7j, a UTF-8 literal whose type is `ReadOnlySpan(Of Byte)`, is implemented. The next slice is 7k, a collection expression that targets a span.

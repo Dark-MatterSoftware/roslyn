@@ -4954,7 +4954,23 @@ lElseClause:
 
             Dim lengthLiteral = New BoundLiteral(node, ConstantValue.Create(encoded.Length), int32Type)
             lengthLiteral.SetWasCompilerGenerated()
-            Return New BoundArrayCreation(node, ImmutableArray.Create(Of BoundExpression)(lengthLiteral), initialization, arrayType)
+            Dim bytes = New BoundArrayCreation(node, ImmutableArray.Create(Of BoundExpression)(lengthLiteral), initialization, arrayType)
+
+            Dim spanDefinition = Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T)
+            If spanDefinition.TypeKind = TypeKind.Error Then
+                Return bytes
+            End If
+
+            Dim spanType = spanDefinition.Construct(byteType)
+            Dim constructor = TryCast(GetWellKnownTypeMember(WellKnownMember.System_ReadOnlySpan_T__ctor_Array, node, diagnostics), MethodSymbol)
+            If constructor Is Nothing Then
+                Return bytes
+            End If
+
+            constructor = constructor.AsMember(spanType)
+            Dim creation = New BoundObjectCreationExpression(node, constructor, ImmutableArray.Create(Of BoundExpression)(bytes), Nothing, spanType)
+            creation.SetWasCompilerGenerated()
+            Return creation
         End Function
 
         Private Function BindLiteralConstant(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundLiteral
