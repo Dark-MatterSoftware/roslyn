@@ -695,9 +695,13 @@ Done:
                 Throw New ArgumentNullException(NameOf(interfaceMember))
             End If
 
-            If Not interfaceMember.RequiresImplementation() OrElse
-               Me.IsInterfaceType() OrElse ' In VB interfaces do not implement anything
+            If Me.IsInterfaceType() OrElse ' In VB interfaces do not implement anything
                Not Me.ImplementsInterface(interfaceMember.ContainingType, comparer:=EqualsIgnoringComparer.InstanceCLRSignatureCompare, useSiteInfo:=CompoundUseSiteInfo(Of AssemblySymbol).Discarded) Then
+                Return Nothing
+            End If
+
+            ' A source default body is an implementation. A more specific one, when it exists, is the one that is chosen.
+            If Not interfaceMember.RequiresImplementation() AndAlso Not IsSourceDefaultInterfaceImplementation(interfaceMember) Then
                 Return Nothing
             End If
 

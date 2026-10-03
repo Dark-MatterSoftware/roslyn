@@ -4233,7 +4233,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                     Dim useSiteInfo = ifaceMember.GetUseSiteInfo()
 
                                     If ShouldReportImplementationError(ifaceMember) Then
-                                        If implementingSet.Count = 0 Then
+                                        If implementingSet.Count = 0 AndAlso
+                                           ImplementsHelper.FindMostSpecificSourceDefaultImplementation(ifaceMember, Me) Is Nothing Then
                                             'member was not implemented.
                                             Dim diag = If(useSiteInfo.DiagnosticInfo, ErrorFactory.ErrorInfo(If(ifaceMember.IsShared, ERRID.ERR_UnimplementedSharedMember, ERRID.ERR_UnimplementedMember3),
                                                                             If(Me.IsStructureType(), "Structure", "Class"),

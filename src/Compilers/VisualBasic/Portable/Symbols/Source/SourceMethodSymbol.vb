@@ -89,7 +89,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If container.IsInterface AndAlso
                syntax.Parent IsNot Nothing AndAlso
                (syntax.Parent.Kind = SyntaxKind.SubBlock OrElse syntax.Parent.Kind = SyntaxKind.FunctionBlock) Then
-                flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable
+                flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable Or SourceMemberFlags.Overloads
             End If
 
             If syntax.HandlesClause IsNot Nothing Then

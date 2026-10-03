@@ -114,6 +114,97 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub MostSpecificInterfaceMethodBody_IsChosen()
+            Dim compilation = CreateCompilation("
+Interface IA
+    Function M() As Integer
+        Return 1
+    End Function
+End Interface
+
+Interface IB
+    Inherits IA
+    Function M() As Integer
+        Return 2
+    End Function
+End Interface
+
+Class C
+    Implements IB
+End Class
+
+Module Program
+    Sub Main()
+        Dim value As IA = New C()
+        System.Console.Write(value.M())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+
+            Dim classType = compilation.GetMember(Of NamedTypeSymbol)("C")
+            Dim baseMethod = compilation.GetMember(Of MethodSymbol)("IA.M")
+            Dim derivedMethod = compilation.GetMember(Of MethodSymbol)("IB.M")
+            Assert.Equal(derivedMethod, classType.FindImplementationForInterfaceMember(baseMethod))
+            Assert.Equal(derivedMethod, classType.FindImplementationForInterfaceMember(derivedMethod))
+        End Sub
+
+        <Fact>
+        Public Sub DerivedInterfaceMethodBody_CoversAbstractBase()
+            Dim compilation = CreateCompilation("
+Interface IA
+    Function M() As Integer
+End Interface
+
+Interface IB
+    Inherits IA
+    Function M() As Integer
+        Return 2
+    End Function
+End Interface
+
+Class C
+    Implements IB
+End Class
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim classType = compilation.GetMember(Of NamedTypeSymbol)("C")
+            Assert.Equal(compilation.GetMember(Of MethodSymbol)("IB.M"), classType.FindImplementationForInterfaceMember(compilation.GetMember(Of MethodSymbol)("IA.M")))
+        End Sub
+
+        <Fact>
+        Public Sub EquallySpecificInterfaceMethodBodies_StillRequireImplementation()
+            Dim compilation = CreateCompilation("
+Interface IA
+    Function M() As Integer
+End Interface
+
+Interface IB
+    Inherits IA
+    Function M() As Integer
+        Return 1
+    End Function
+End Interface
+
+Interface IC
+    Inherits IA
+    Function M() As Integer
+        Return 2
+    End Function
+End Interface
+
+Class C
+    Implements IB, IC
+End Class
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_UnimplementedMember3, "IB").WithArguments("Class", "C", "Function M() As Integer", "IA").WithLocation(21, 16))
+        End Sub
+
+        <Fact>
         Public Sub InterfaceMethodBody_RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Interface I

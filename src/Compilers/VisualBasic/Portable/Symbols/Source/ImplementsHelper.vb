@@ -625,7 +625,95 @@ DoneWithErrorReporting:
                 currType = currType.BaseTypeNoUseSiteDiagnostics
             End While
 
-            Return Nothing
+            Return FindMostSpecificSourceDefaultImplementation(interfaceMember, implementingType, comparer)
+        End Function
+
+        Friend Function FindMostSpecificSourceDefaultImplementation(interfaceMember As Symbol, implementingType As TypeSymbol) As Symbol
+            Select Case interfaceMember.Kind
+                Case SymbolKind.Method
+                    Return FindMostSpecificSourceDefaultImplementation(DirectCast(interfaceMember, MethodSymbol), implementingType, MethodSignatureComparer.RuntimeMethodSignatureComparer)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Private Function FindMostSpecificSourceDefaultImplementation(Of TSymbol As Symbol)(interfaceMember As TSymbol,
+                                                                                          implementingType As TypeSymbol,
+                                                                                          comparer As IEqualityComparer(Of TSymbol)) As TSymbol
+            Dim namedType = TryCast(implementingType, NamedTypeSymbol)
+            If namedType Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim candidates As ArrayBuilder(Of TSymbol) = Nothing
+            For Each ifaceSet In namedType.InterfacesAndTheirBaseInterfacesNoUseSiteDiagnostics.Values
+                For Each iface In ifaceSet
+                    If Not (TypeSymbol.Equals(iface, interfaceMember.ContainingType, TypeCompareKind.ConsiderEverything) OrElse
+                            iface.ImplementsInterface(interfaceMember.ContainingType, comparer:=Nothing, useSiteInfo:=CompoundUseSiteInfo(Of AssemblySymbol).Discarded)) Then
+                        Continue For
+                    End If
+
+                    For Each member In iface.GetMembers(interfaceMember.Name)
+                        Dim candidate = TryCast(member, TSymbol)
+                        If candidate IsNot Nothing AndAlso
+                           IsSourceDefaultInterfaceImplementation(candidate) AndAlso
+                           comparer.Equals(interfaceMember, candidate) Then
+                            If candidates Is Nothing Then
+                                candidates = ArrayBuilder(Of TSymbol).GetInstance()
+                            End If
+                            candidates.Add(candidate)
+                        End If
+                    Next
+                Next
+            Next
+
+            If candidates Is Nothing Then
+                Return Nothing
+            End If
+
+            For i = 0 To candidates.Count - 1
+                Dim first = candidates(i)
+                If first Is Nothing Then
+                    Continue For
+                End If
+
+                For j = i + 1 To candidates.Count - 1
+                    Dim second = candidates(j)
+                    If second Is Nothing Then
+                        Continue For
+                    End If
+
+                    If IsMoreSpecificInterfaceMember(first, second) Then
+                        candidates(j) = Nothing
+                    ElseIf IsMoreSpecificInterfaceMember(second, first) Then
+                        candidates(i) = Nothing
+                        Exit For
+                    End If
+                Next
+            Next
+
+            Dim found As TSymbol = Nothing
+            For i = 0 To candidates.Count - 1
+                Dim candidate = candidates(i)
+                If candidate Is Nothing Then
+                    Continue For
+                End If
+
+                If found IsNot Nothing Then
+                    candidates.Free()
+                    Return Nothing
+                End If
+
+                found = candidate
+            Next
+
+            candidates.Free()
+            Return found
+        End Function
+
+        Private Function IsMoreSpecificInterfaceMember(specific As Symbol, general As Symbol) As Boolean
+            Return Not TypeSymbol.Equals(specific.ContainingType, general.ContainingType, TypeCompareKind.ConsiderEverything) AndAlso
+                   specific.ContainingType.ImplementsInterface(general.ContainingType, comparer:=Nothing, useSiteInfo:=CompoundUseSiteInfo(Of AssemblySymbol).Discarded)
         End Function
 
         ''' <summary>
