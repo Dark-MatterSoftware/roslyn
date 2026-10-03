@@ -1049,9 +1049,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 receiver = New BoundLocal(node, temp, value.Type).MakeRValue()
             End If
 
-            Dim declarations = ArrayBuilder(Of BoundLocalDeclarationBase).GetInstance(names.Count)
+            Dim declarations = ArrayBuilder(Of BoundLocalDeclarationBase).GetInstance()
+            Dim sawDeclaration = False
             For i = 0 To names.Count - 1
                 Dim name = names(i)
+                If name.Identifier.IsMissing Then
+                    Continue For
+                End If
+
                 Dim local = GetLocalForDeclaration(name.Identifier)
                 Dim elementType As TypeSymbol = If(matches, elements(i).Type, ErrorTypeSymbol.UnknownResultType)
                 VerifyLocalSymbolNameAndSetType(local, elementType, name, name.Identifier, diagnostics)
@@ -1064,9 +1069,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Dim declaration = New BoundLocalDeclaration(name, local, initializer, Nothing, initializedByAsNew:=False)
-                If i > 0 Then
+                If sawDeclaration Then
                     declaration.SetWasCompilerGenerated()
                 End If
+                sawDeclaration = True
                 declarations.Add(declaration)
                 blockLocals.Add(local)
             Next
@@ -1106,6 +1112,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             For i = 0 To names.Count - 1
                 Dim name = names(i)
+                If name.Identifier.IsMissing Then
+                    Continue For
+                End If
+
                 Dim target = BindDeconstructionTarget(name, diagnostics)
                 Dim storedValue As BoundExpression
                 If matches Then

@@ -2159,7 +2159,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim names = _pool.AllocateSeparated(Of ModifiedIdentifierSyntax)()
             If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
                 Do
-                    names.Add(ParseModifiedIdentifier(False, False))
+                    ' An empty slot is a discard, the same shape as an omitted argument.
+                    If CurrentToken.Kind = SyntaxKind.CommaToken OrElse CurrentToken.Kind = SyntaxKind.CloseParenToken Then
+                        names.Add(SyntaxFactory.ModifiedIdentifier(InternalSyntaxFactory.MissingIdentifier(), Nothing, Nothing, Nothing))
+                    Else
+                        names.Add(ParseModifiedIdentifier(False, False))
+                    End If
 
                     Dim comma As PunctuationSyntax = Nothing
                     If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then

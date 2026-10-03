@@ -49,6 +49,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                     For Each modifiedIdentifier In DirectCast(statement, TupleDeconstructionStatementSyntax).Names
+                        If modifiedIdentifier.Identifier.IsMissing Then
+                            Continue For
+                        End If
+
                         locals.Add(LocalSymbol.Create(
                             Me.ContainingMember, Me,
                             modifiedIdentifier.Identifier, modifiedIdentifier,

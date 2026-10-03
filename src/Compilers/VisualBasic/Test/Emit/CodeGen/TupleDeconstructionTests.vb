@@ -137,5 +137,31 @@ End Class
                 Diagnostic(ERRID.ERR_NameNotDeclared1, "y").WithArguments("y").WithLocation(5, 17),
                 Diagnostic(ERRID.ERR_TypeMismatch2, "point").WithArguments("(Integer, Integer)", "Object(*,*)").WithLocation(5, 22))
         End Sub
+
+        <Fact>
+        Public Sub TupleDeconstruction_DiscardSkipsAnElement()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared n As Integer
+    Shared Function NextTriple() As (Integer, Integer, Integer)
+        n += 1
+        Return (n, n + 1, n + 2)
+    End Function
+    Shared Sub Main()
+        Dim (x, , z) = NextTriple()
+        Dim a = 0
+        Dim c = 0
+        (a, , c) = (4, 5, 6)
+        System.Console.Write(x)
+        System.Console.Write(z)
+        System.Console.Write(a)
+        System.Console.Write(c)
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="13461").VerifyDiagnostics()
+        End Sub
     End Class
 End Namespace

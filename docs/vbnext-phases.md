@@ -90,7 +90,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | --- | --- | --- |
 | 5a | VB-005 | Done. On `vbnext`, `Dim (x, y) = point` declares locals from a tuple. The tuple is evaluated once, and each name takes the element in that position. A value that is not a tuple of the same length is an error. Visual Basic 17.13 still treats the parentheses as array bounds. |
 | 5b | VB-005 | Done. On `vbnext`, `(x, y) = point` assigns each element into an existing variable. The tuple is evaluated once. A value that is not a tuple of the same length is an error. Visual Basic 17.13 still reports a syntax error on `(`. |
-| 5c | VB-005 | A discard skips one element. |
+| 5c | VB-005 | Done. On `vbnext`, `Dim (x, , z) = point` and `(x, , z) = point` skip the empty slot. The empty slot still counts toward the tuple length, and the tuple is evaluated once. Visual Basic 17.13 still treats the parentheses as array bounds or a syntax error. |
 | 5d | VB-005 | A method named `Deconstruct` is used when the type is not a tuple. |
 | 5e | VB-004 | `Case` accepts a logical combination of type and relational tests that already exist separately. |
 | 5f | VB-004 | Property patterns. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 5b, deconstruction that assigns into existing variables, is implemented. The next slice is 5c, a discard that skips one element.
+Slice 5c, a discard that skips one element of a deconstruction, is implemented. The next slice is 5d, a method named Deconstruct when the type is not a tuple.
