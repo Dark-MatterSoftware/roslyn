@@ -15,6 +15,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ReferenceType = 1
         ValueType = 2
         Constructor = 4
+        AllowByRefLike = 8
     End Enum
 
 End Namespace

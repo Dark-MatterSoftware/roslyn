@@ -141,7 +141,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Dim restrictedType As TypeSymbol = Nothing
                     If varType.IsRestrictedTypeOrArrayType(restrictedType) Then
                         binder.ReportDiagnostic(diagBag, declarator.AsClause.Type, ERRID.ERR_RestrictedType1, restrictedType)
-                    ElseIf varType.IsRefLikeType AndAlso (Me.IsShared OrElse Not Me.ContainingType.IsRefLikeType) Then
+                    ElseIf varType.IsRefLikeOrAllowsRefLikeType() AndAlso (Me.IsShared OrElse Not Me.ContainingType.IsRefLikeType) Then
                         Dim location As SyntaxNode = If(declarator.AsClause Is Nothing, DirectCast(modifiedIdentifier, SyntaxNode), DirectCast(declarator.AsClause.Type, SyntaxNode))
                         binder.ReportDiagnostic(diagBag, location, ERRID.ERR_ByRefStructField2, varType, Me.ContainingType)
                     End If

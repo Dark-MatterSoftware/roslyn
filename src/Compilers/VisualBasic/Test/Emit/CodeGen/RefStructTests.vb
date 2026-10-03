@@ -216,5 +216,158 @@ End Module
             compilation.VerifyDiagnostics()
             compilation.VerifyEmitDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_PassesRefLikeType()
+            Dim compilation = CreateCompilation("
+ByRef Structure Buffer
+    Public Value As Integer
+End Structure
+
+Module Program
+    Function Id(Of T As ByRef)(value As T) As T
+        Return value
+    End Function
+
+    Sub Main()
+        Dim item As Buffer
+        item.Value = 4
+        System.Console.Write(Id(item).Value)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+            Dim program = DirectCast(compilation.GlobalNamespace.GetMembers("Program").Single(), INamedTypeSymbol)
+            Dim id = program.GetMembers("Id").OfType(Of IMethodSymbol)().Single()
+            Assert.True(id.TypeParameters(0).AllowsRefLikeType)
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_AllowsOrdinaryType()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Use(Of T As ByRef)(value As T)
+    End Sub
+
+    Sub Main()
+        Use(""hi"")
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_RejectsRefLikeTypeArgument()
+            Dim compilation = CreateCompilation("
+ByRef Structure Buffer
+    Public Value As Integer
+End Structure
+
+Module Program
+    Sub Use(Of T)(value As T)
+    End Sub
+
+    Sub Main()
+        Dim item As Buffer
+        Use(item)
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ByRefTypeArgument2, "Use").WithArguments("Buffer", "T").WithLocation(12, 9))
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_RejectsPassingAllowsParameter()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Outer(Of T As ByRef)(value As T)
+        Inner(value)
+    End Sub
+
+    Sub Inner(Of U)(value As U)
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ByRefTypeArgument2, "Inner").WithArguments("T", "U").WithLocation(4, 9))
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_RejectsFieldOfClass()
+            Dim compilation = CreateCompilation("
+Class Holder(Of T As ByRef)
+    Public Item As T
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ByRefStructField2, "T").WithArguments("T", "Holder(Of T)").WithLocation(3, 20))
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_AllowsFieldOfByRefStructure()
+            Dim compilation = CreateCompilation("
+ByRef Structure Holder(Of T As ByRef)
+    Public Item As T
+End Structure
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_RejectsBoxing()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Use(Of T As ByRef)(value As T)
+        Dim boxed As Object = value
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_TypeMismatch2, "value").WithArguments("T", "Object").WithLocation(4, 31))
+        End Sub
+
+        <Fact>
+        Public Sub ByRefConstraint_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Use(Of T As ByRef)(value As T)
+    End Sub
+End Module
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_UnrecognizedTypeKeyword, "").WithLocation(3, 21),
+                Diagnostic(ERRID.ERR_BadConstraintSyntax, "").WithLocation(3, 21))
+        End Sub
+
+        <Fact>
+        Public Sub Span_ByRefConstraintCompiles()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Function Id(Of T As ByRef)(value As T) As T
+        Return value
+    End Function
+
+    Function Pass(values As Span(Of Integer)) As Span(Of Integer)
+        Return Id(values)
+    End Function
+End Module
+", parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
     End Class
 End Namespace

@@ -82,6 +82,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case SyntaxKind.TypeConstraint
                     Dim typeSyntax = DirectCast(syntax, TypeConstraintSyntax).Type
+                    If IsByRefAllowsConstraint(typeSyntax) Then
+                        Dim languageVersion = DirectCast(syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+                        If languageVersion >= LanguageVersion.VbNext Then
+                            If (constraints And TypeParameterConstraintKind.AllowByRefLike) = 0 Then
+                                constraints = constraints Or TypeParameterConstraintKind.AllowByRefLike
+                                constraintsBuilder.Add(New TypeParameterConstraint(TypeParameterConstraintKind.AllowByRefLike, syntax.GetLocation()))
+                            End If
+
+                            Return
+                        End If
+                    End If
+
                     If IsEnumConstraintKeyword(typeSyntax) Then
                         Dim languageVersion = DirectCast(syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
                         If Not InternalSyntax.Parser.CheckFeatureAvailability(diagnostics, syntax.GetLocation(), languageVersion, InternalSyntax.Feature.EnumConstraint) Then
@@ -114,6 +126,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Shared Function IsEnumConstraintKeyword(typeSyntax As TypeSyntax) As Boolean
             Dim name = TryCast(typeSyntax, IdentifierNameSyntax)
             Return name IsNot Nothing AndAlso name.Identifier.RawContextualKind = CInt(SyntaxKind.EnumKeyword)
+        End Function
+
+        Private Shared Function IsByRefAllowsConstraint(typeSyntax As TypeSyntax) As Boolean
+            Dim name = TryCast(typeSyntax, IdentifierNameSyntax)
+            Return name IsNot Nothing AndAlso name.Identifier.RawContextualKind = CInt(SyntaxKind.ByRefKeyword)
         End Function
     End Class
 

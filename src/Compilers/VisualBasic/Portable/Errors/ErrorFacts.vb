@@ -1587,7 +1587,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_DuplicatePrimaryConstructor,
                      ERRID.ERR_BaseConstructorArgumentsRequirePrimaryConstructor,
                      ERRID.ERR_CollectionExpressionRequiresTarget,
-                     ERRID.ERR_ByRefStructField2
+                     ERRID.ERR_ByRefStructField2,
+                     ERRID.ERR_ByRefTypeArgument2
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

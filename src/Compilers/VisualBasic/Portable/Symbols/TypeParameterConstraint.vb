@@ -16,7 +16,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Me.New(kind, Nothing, loc)
             Debug.Assert((kind = TypeParameterConstraintKind.Constructor) OrElse
                          (kind = TypeParameterConstraintKind.ReferenceType) OrElse
-                         (kind = TypeParameterConstraintKind.ValueType))
+                         (kind = TypeParameterConstraintKind.ValueType) OrElse
+                         (kind = TypeParameterConstraintKind.AllowByRefLike))
         End Sub
 
         Public Sub New(type As TypeSymbol, loc As Location)
@@ -78,6 +79,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return SyntaxKind.ClassKeyword
                 Case TypeParameterConstraintKind.ValueType
                     Return SyntaxKind.StructureKeyword
+                Case TypeParameterConstraintKind.AllowByRefLike
+                    Return SyntaxKind.ByRefKeyword
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(kind)
             End Select

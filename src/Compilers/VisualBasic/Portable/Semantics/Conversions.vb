@@ -3681,7 +3681,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim conv As ConversionKind
 
             If source.Kind = SymbolKind.TypeParameter Then
-                conv = ClassifyConversionFromTypeParameter(DirectCast(source, TypeParameterSymbol), destination, varianceCompatibilityClassificationDepth, useSiteInfo)
+                Dim sourceTypeParameter = DirectCast(source, TypeParameterSymbol)
+                If sourceTypeParameter.AllowsRefLikeType AndAlso
+                   (destination.SpecialType = SpecialType.System_Object OrElse destination.SpecialType = SpecialType.System_ValueType) Then
+                    Return Nothing
+                End If
+
+                conv = ClassifyConversionFromTypeParameter(sourceTypeParameter, destination, varianceCompatibilityClassificationDepth, useSiteInfo)
 
                 If ConversionExists(conv) Then
                     Return conv

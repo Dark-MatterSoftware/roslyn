@@ -95,7 +95,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' In debug build hoist all parameters that can be hoisted:
             If symbol.Kind = SymbolKind.Parameter Then
                 Dim parameter = TryCast(symbol, ParameterSymbol)
-                Return Not parameter.Type.IsRestrictedType() AndAlso Not parameter.Type.IsRefLikeType
+                Return Not parameter.Type.IsRestrictedType() AndAlso Not parameter.Type.IsRefLikeOrAllowsRefLikeType()
             End If
 
             If symbol.Kind = SymbolKind.Local Then
@@ -110,7 +110,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' hoist all user-defined locals that can be hoisted
                 If local.SynthesizedKind = SynthesizedLocalKind.UserDefined Then
-                    Return Not local.Type.IsRestrictedType() AndAlso Not local.Type.IsRefLikeType
+                    Return Not local.Type.IsRestrictedType() AndAlso Not local.Type.IsRefLikeOrAllowsRefLikeType()
                 End If
 
                 ' hoist all synthesized variables that have to survive state machine suspension
@@ -130,7 +130,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Sub CaptureVariable(variable As Symbol, syntax As SyntaxNode)
             Dim type As TypeSymbol = If(variable.Kind = SymbolKind.Local, TryCast(variable, LocalSymbol).Type, TryCast(variable, ParameterSymbol).Type)
-            If type.IsRestrictedType() OrElse type.IsRefLikeType Then
+            If type.IsRestrictedType() OrElse type.IsRefLikeOrAllowsRefLikeType() Then
                 ' Error has already been reported:
                 If TypeOf variable Is SynthesizedLocal Then
                     Return

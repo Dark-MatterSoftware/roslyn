@@ -79,6 +79,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property AllowsRefLikeType As Boolean
             Get
+                EnsureAllConstraintsAreResolved()
+                For Each constraint In _lazyConstraints
+                    If constraint.Kind = TypeParameterConstraintKind.AllowByRefLike Then
+                        Return True
+                    End If
+                Next
+
                 Return False
             End Get
         End Property

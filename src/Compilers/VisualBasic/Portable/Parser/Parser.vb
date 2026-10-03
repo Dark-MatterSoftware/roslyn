@@ -4589,6 +4589,13 @@ checkNullable:
                 constraint = SyntaxFactory.StructureConstraint(keyword)
                 GetNextToken()
 
+            ElseIf CurrentToken.Kind = SyntaxKind.ByRefKeyword AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                ' Allows a ref-like type argument. Keep the keyword kind on the identifier
+                ' so the binder can recognize it without a new syntax node.
+                keyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+                constraint = SyntaxFactory.TypeConstraint(SyntaxFactory.IdentifierName(_scanner.MakeIdentifier(keyword)))
+
             ElseIf CurrentToken.Kind = SyntaxKind.EnumKeyword Then
                 ' Enum constraint. Keep the keyword kind on the identifier so the binder
                 ' can gate it and bind it to System.Enum without regenerating syntax.

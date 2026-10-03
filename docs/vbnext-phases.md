@@ -127,7 +127,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 7j | VB-034 | Done. On `vbnext`, `"hi"u8` has type `ReadOnlySpan(Of Byte)` when that type is available. The value is the UTF-8 bytes, with no byte-order mark. When that type is not available, the literal stays a `Byte()`. |
 | 7k | VB-035 | Done. On `vbnext`, `(1, 2, 3)` creates a `Span(Of Integer)` when that is the target, and `(1, ..items)` copies the spread into a `ReadOnlySpan(Of Integer)`. The elements are stored in an array and passed to the span constructor. |
 | 7l | VB-026 | Done. On `vbnext`, `ParamArray values As Span(Of Integer)` accepts an expanded argument list. The arguments are stored in an array and passed to the span constructor. |
-| 7m | VB-037 | A type parameter may be constrained to allow a ref-like type. |
+| 7m | VB-037 | Done. On `vbnext`, `Sub Use(Of T As ByRef)(value As T)` allows a ByRef structure or `Span(Of T)` as the type argument. Without `ByRef`, that type argument is rejected. A type parameter with this constraint cannot be boxed or stored as a field of a class. Visual Basic 17.13 still rejects `ByRef` in the constraint. |
 
 ## Phase 8 — Records
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 7l, a `ParamArray` of `Span(Of T)`, is implemented. The next slice is 7m, a type parameter constrained to allow a ref-like type.
+Slice 7m, a type parameter constrained to allow a ref-like type, is implemented. The next slice is 8a, a record class that emits value equality, `GetHashCode`, and a printed form.

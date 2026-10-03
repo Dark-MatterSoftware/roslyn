@@ -681,6 +681,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 succeeded = False
             End If
 
+            If languageVersion >= LanguageVersion.VbNext AndAlso typeArgument.IsRefLikeOrAllowsRefLikeType() AndAlso Not typeParameter.AllowsRefLikeType Then
+                If diagnosticsBuilder IsNot Nothing Then
+                    diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter, ErrorFactory.ErrorInfo(ERRID.ERR_ByRefTypeArgument2, typeArgument, typeParameter)))
+                End If
+                succeeded = False
+            End If
+
             If typeParameter.HasConstructorConstraint AndAlso Not SatisfiesConstructorConstraint(typeParameter, typeArgument, diagnosticsBuilder) Then
                 succeeded = False
             End If

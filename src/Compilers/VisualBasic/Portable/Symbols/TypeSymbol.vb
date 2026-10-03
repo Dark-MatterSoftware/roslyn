@@ -596,6 +596,15 @@ Done:
             End Get
         End Property
 
+        Friend Function IsRefLikeOrAllowsRefLikeType() As Boolean
+            If IsRefLikeType Then
+                Return True
+            End If
+
+            Dim typeParameter = TryCast(Me, TypeParameterSymbol)
+            Return typeParameter IsNot Nothing AndAlso typeParameter.AllowsRefLikeType
+        End Function
+
         Private ReadOnly Property ITypeSymbol_IsUnmanagedType As Boolean Implements ITypeSymbol.IsUnmanagedType
             Get
                 Return GetManagedKind(CompoundUseSiteInfo(Of AssemblySymbol).Discarded) <> ManagedKind.Managed

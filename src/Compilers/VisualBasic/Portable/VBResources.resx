@@ -5920,4 +5920,7 @@
   <data name="ERR_ByRefStructField2" xml:space="preserve">
     <value>'{0}' is a ByRef structure and cannot be a field of '{1}'.</value>
   </data>
+  <data name="ERR_ByRefTypeArgument2" xml:space="preserve">
+    <value>Type argument '{0}' may be a ByRef structure, and type parameter '{1}' does not allow one.</value>
+  </data>
 </root>
