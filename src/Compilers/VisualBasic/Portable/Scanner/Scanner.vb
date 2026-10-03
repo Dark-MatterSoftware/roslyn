@@ -1311,11 +1311,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case "["c
                     Return ScanBracketedIdentifier(precedingTrivia)
 
-                Case "]"c
-                    If Not fullWidth AndAlso CheckFeatureAvailability(Feature.CollectionExpression) Then
-                        Return MakePunctuationToken(precedingTrivia, 1, SyntaxKind.CloseBracketToken)
-                    End If
-
                 Case "?"c
                     ' Nullable "?" must stay a separate token from a following "=".
                     If CanGet(1) AndAlso Not IsWhitespace(Peek(1)) AndAlso TrySkipFollowingEquals(lengthWithMaybeEquals) Then
@@ -1637,11 +1632,6 @@ FullWidthRepeat:
         Private Function ScanBracketedIdentifier(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode)) As SyntaxToken
             Debug.Assert(CanGet)  ' [
             Debug.Assert(Peek() = "["c OrElse Peek() = FULLWIDTH_LEFT_SQUARE_BRACKET)
-
-            ' [Name] stays an escaped identifier. Every other "[" is a collection expression.
-            If Peek() = "["c AndAlso CheckFeatureAvailability(Feature.CollectionExpression) AndAlso Not IsEscapedIdentifier() Then
-                Return MakePunctuationToken(precedingTrivia, 1, SyntaxKind.OpenBracketToken)
-            End If
 
             Dim idStart As Integer = 1
             Dim here As Integer = idStart
@@ -2700,36 +2690,6 @@ baddate:
             If TryTokenAsKeyword(t, kind) Then
                 Return Array.IndexOf(kinds, kind) >= 0
             End If
-            Return False
-        End Function
-
-        Private Function IsEscapedIdentifier() As Boolean
-            Dim here = 1
-            If Not CanGet(here) Then
-                Return False
-            End If
-
-            Dim ch = Peek(here)
-            If Not IsIdentifierStartCharacter(ch) OrElse
-                (IsConnectorPunctuation(ch) AndAlso
-                    Not (CanGet(here + 1) AndAlso IsIdentifierPartCharacter(Peek(here + 1)))) Then
-                Return False
-            End If
-
-            here += 1
-            While CanGet(here)
-                ch = Peek(here)
-                If ch = "]"c OrElse ch = FULLWIDTH_RIGHT_SQUARE_BRACKET Then
-                    Return True
-                End If
-
-                If Not IsIdentifierPartCharacter(ch) Then
-                    Return False
-                End If
-
-                here += 1
-            End While
-
             Return False
         End Function
 

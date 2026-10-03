@@ -5927,20 +5927,20 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name=""></native-equiv>
       </node-kind>
 
-      <child name="OpenBracketToken" kind="OpenBracketToken">
-        <description>The "[" token.</description>
+      <child name="OpenParenToken" kind="OpenParenToken">
+        <description>The "(" token.</description>
         <lm-equiv name=""></lm-equiv>
         <native-equiv name=""></native-equiv>
       </child>
 
       <child name="Elements" optional="true" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="@ExpressionSyntax">
-        <description>The elements between the brackets.</description>
+        <description>The elements between the parentheses. Empty when the collection is empty.</description>
         <lm-equiv name=""></lm-equiv>
         <native-equiv name=""></native-equiv>
       </child>
 
-      <child name="CloseBracketToken" kind="CloseBracketToken">
-        <description>The "]" token.</description>
+      <child name="CloseParenToken" kind="CloseParenToken">
+        <description>The ")" token.</description>
         <lm-equiv name=""></lm-equiv>
         <native-equiv name=""></native-equiv>
       </child>
@@ -9020,14 +9020,6 @@ Unify Enum declarations with other block type declarations.
       </node-kind>
       <node-kind name="CloseBraceToken" token-text="}">
         <lm-equiv name="RightBraceToken" />
-        <native-equiv name="" />
-      </node-kind>
-      <node-kind name="OpenBracketToken" token-text="[">
-        <lm-equiv name="" />
-        <native-equiv name="" />
-      </node-kind>
-      <node-kind name="CloseBracketToken" token-text="]">
-        <lm-equiv name="" />
         <native-equiv name="" />
       </node-kind>
       <node-kind name="SemicolonToken" token-text=";">

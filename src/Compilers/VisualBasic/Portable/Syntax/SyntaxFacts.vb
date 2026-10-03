@@ -847,8 +847,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' After an open curly brace ({) or before a closing curly brace (})
                 ' However, a line-continuation character is required following the open curly brace of a string interpolation.
-                Case SyntaxKind.OpenBraceToken,
-                     SyntaxKind.OpenBracketToken
+                Case SyntaxKind.OpenBraceToken
 
                     If parentKind = SyntaxKind.Interpolation Then
                         Return False
@@ -1064,8 +1063,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' After an open curly brace ({) or before a closing curly brace (})
                 ' However, a line-continuation character is required before the closing curly brace of a string interpolation.
-                Case SyntaxKind.CloseBraceToken,
-                     SyntaxKind.CloseBracketToken
+                Case SyntaxKind.CloseBraceToken
 
                     If parentKind = SyntaxKind.Interpolation Then
                         Return False

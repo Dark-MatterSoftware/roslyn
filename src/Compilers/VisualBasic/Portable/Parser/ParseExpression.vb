@@ -462,9 +462,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     ' is no longer part of the object model.
                     term = ParseCollectionInitializer()
 
-                Case SyntaxKind.OpenBracketToken
-                    term = ParseCollectionExpression()
-
                 Case SyntaxKind.SubKeyword,
                      SyntaxKind.FunctionKeyword
                     term = ParseLambda(parseModifiers:=False)
@@ -1343,7 +1340,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             ' "(" expr, ....            'parse a tuple
 
             Dim openParen As PunctuationSyntax = Nothing
+            Dim closeParen As PunctuationSyntax = Nothing
             TryGetTokenAndEatNewLine(SyntaxKind.OpenParenToken, openParen)
+
+            ' () is an empty collection. (expr) and (expr, expr) stay parenthesized expressions and tuple literals.
+            If CheckFeatureAvailability(Feature.CollectionExpression) AndAlso CurrentToken.Kind = SyntaxKind.CloseParenToken Then
+                TryEatNewLineAndGetToken(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
+                Return SyntaxFactory.CollectionExpression(openParen, Nothing, closeParen)
+            End If
 
             If (CurrentToken.Kind = SyntaxKind.IdentifierToken AndAlso
                 PeekToken(1).Kind = SyntaxKind.ColonEqualsToken) Then
@@ -1366,7 +1370,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Return ParseTheRestOfTupleLiteral(openParen, firstArgument)
             End If
 
-            Dim closeParen As PunctuationSyntax = Nothing
             TryEatNewLineAndGetToken(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
 
             Return SyntaxFactory.ParenthesizedExpression(openParen, operand, closeParen)

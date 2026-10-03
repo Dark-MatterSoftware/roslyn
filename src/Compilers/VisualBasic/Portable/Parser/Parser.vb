@@ -2541,43 +2541,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return SyntaxFactory.CollectionInitializer(openBrace, initializers, closeBrace)
         End Function
 
-        Private Function ParseCollectionExpression() As CollectionExpressionSyntax
-            Dim openBracket As PunctuationSyntax = Nothing
-            TryGetTokenAndEatNewLine(SyntaxKind.OpenBracketToken, openBracket, createIfMissing:=True)
-
-            Dim elements As CoreInternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax) = Nothing
-            If CurrentToken.Kind <> SyntaxKind.CloseBracketToken Then
-                Dim expressions = _pool.AllocateSeparated(Of ExpressionSyntax)()
-
-                Do
-                    If CurrentToken.Kind = SyntaxKind.CloseBracketToken Then
-                        Exit Do
-                    End If
-
-                    Dim element As ExpressionSyntax = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
-                    If element.ContainsDiagnostics Then
-                        element = ResyncAt(element, SyntaxKind.CommaToken, SyntaxKind.CloseBracketToken)
-                    End If
-
-                    expressions.Add(element)
-
-                    Dim comma As PunctuationSyntax = Nothing
-                    If TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
-                        expressions.AddSeparator(comma)
-                    Else
-                        Exit Do
-                    End If
-                Loop
-
-                elements = expressions.ToList
-                _pool.Free(expressions)
-            End If
-
-            Dim closeBracket As PunctuationSyntax = Nothing
-            TryEatNewLineAndGetToken(SyntaxKind.CloseBracketToken, closeBracket, createIfMissing:=True)
-            Return SyntaxFactory.CollectionExpression(openBracket, elements, closeBracket)
-        End Function
-
         Private Function GetClosingRightBrace() As PunctuationSyntax
             Dim closeBrace As PunctuationSyntax = Nothing
             Dim skipped As CoreInternalSyntax.SyntaxList(Of SyntaxToken) = Nothing

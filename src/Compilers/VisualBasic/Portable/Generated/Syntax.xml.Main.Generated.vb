@@ -4251,15 +4251,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitCollectionExpression(ByVal node As CollectionExpressionSyntax) As SyntaxNode
             Dim anyChanges As Boolean = False
 
-            Dim newOpenBracketToken = DirectCast(VisitToken(node.OpenBracketToken).Node, InternalSyntax.PunctuationSyntax)
-            If node.OpenBracketToken.Node IsNot newOpenBracketToken Then anyChanges = True
+            Dim newOpenParenToken = DirectCast(VisitToken(node.OpenParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OpenParenToken.Node IsNot newOpenParenToken Then anyChanges = True
             Dim newElements = VisitList(node.Elements)
             If node._elements IsNot newElements.Node Then anyChanges = True
-            Dim newCloseBracketToken = DirectCast(VisitToken(node.CloseBracketToken).Node, InternalSyntax.PunctuationSyntax)
-            If node.CloseBracketToken.Node IsNot newCloseBracketToken Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(VisitToken(node.CloseParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.CloseParenToken.Node IsNot newCloseParenToken Then anyChanges = True
 
             If anyChanges Then
-                Return New CollectionExpressionSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newOpenBracketToken, newElements.Node, newCloseBracketToken)
+                Return New CollectionExpressionSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newOpenParenToken, newElements.Node, newCloseParenToken)
             Else
                 Return node
             End If
@@ -28499,27 +28499,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' Represents a collection expression. The target type decides what is built.
         ''' </summary>
-        ''' <param name="openBracketToken">
-        ''' The "[" token.
+        ''' <param name="openParenToken">
+        ''' The "(" token.
         ''' </param>
         ''' <param name="elements">
-        ''' The elements between the brackets.
+        ''' The elements between the parentheses. Empty when the collection is empty.
         ''' </param>
-        ''' <param name="closeBracketToken">
-        ''' The "]" token.
+        ''' <param name="closeParenToken">
+        ''' The ")" token.
         ''' </param>
-        Public Shared Function CollectionExpression(openBracketToken As SyntaxToken, elements As SeparatedSyntaxList(Of ExpressionSyntax), closeBracketToken As SyntaxToken) As CollectionExpressionSyntax
-            Select Case openBracketToken.Kind()
-                Case SyntaxKind.OpenBracketToken
+        Public Shared Function CollectionExpression(openParenToken As SyntaxToken, elements As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken) As CollectionExpressionSyntax
+            Select Case openParenToken.Kind()
+                Case SyntaxKind.OpenParenToken
                 Case Else
-                    Throw new ArgumentException("openBracketToken")
+                    Throw new ArgumentException("openParenToken")
             End Select
-            Select Case closeBracketToken.Kind()
-                Case SyntaxKind.CloseBracketToken
+            Select Case closeParenToken.Kind()
+                Case SyntaxKind.CloseParenToken
                 Case Else
-                    Throw new ArgumentException("closeBracketToken")
+                    Throw new ArgumentException("closeParenToken")
             End Select
-            Return New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, Nothing, Nothing, DirectCast(openBracketToken.Node, InternalSyntax.PunctuationSyntax), elements.Node, DirectCast(closeBracketToken.Node, InternalSyntax.PunctuationSyntax))
+            Return New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, Nothing, Nothing, DirectCast(openParenToken.Node, InternalSyntax.PunctuationSyntax), elements.Node, DirectCast(closeParenToken.Node, InternalSyntax.PunctuationSyntax))
         End Function
 
 
@@ -28527,10 +28527,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Represents a collection expression. The target type decides what is built.
         ''' </summary>
         ''' <param name="elements">
-        ''' The elements between the brackets.
+        ''' The elements between the parentheses. Empty when the collection is empty.
         ''' </param>
         Public Shared Function CollectionExpression(elements As SeparatedSyntaxList(Of ExpressionSyntax)) As CollectionExpressionSyntax
-            Return SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.OpenBracketToken), elements, SyntaxFactory.Token(SyntaxKind.CloseBracketToken))
+            Return SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.OpenParenToken), elements, SyntaxFactory.Token(SyntaxKind.CloseParenToken))
         End Function
 
 
@@ -28538,7 +28538,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Represents a collection expression. The target type decides what is built.
         ''' </summary>
         Public Shared Function CollectionExpression() As CollectionExpressionSyntax
-            Return SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.OpenBracketToken), Nothing, SyntaxFactory.Token(SyntaxKind.CloseBracketToken))
+            Return SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.OpenParenToken), Nothing, SyntaxFactory.Token(SyntaxKind.CloseParenToken))
         End Function
 
 
@@ -47442,8 +47442,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.CloseParenToken,
                 SyntaxKind.OpenBraceToken,
                 SyntaxKind.CloseBraceToken,
-                SyntaxKind.OpenBracketToken,
-                SyntaxKind.CloseBracketToken,
                 SyntaxKind.SemicolonToken,
                 SyntaxKind.AsteriskToken,
                 SyntaxKind.PlusToken,
@@ -48012,10 +48010,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "{"
                 Case SyntaxKind.CloseBraceToken
                     Return "}"
-                Case SyntaxKind.OpenBracketToken
-                    Return "["
-                Case SyntaxKind.CloseBracketToken
-                    Return "]"
                 Case SyntaxKind.SemicolonToken
                     Return ";"
                 Case SyntaxKind.AsteriskToken

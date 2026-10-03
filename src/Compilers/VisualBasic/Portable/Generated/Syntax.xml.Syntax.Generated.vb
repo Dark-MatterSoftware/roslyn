@@ -25618,30 +25618,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openBracketToken As InternalSyntax.PunctuationSyntax, elements As SyntaxNode, closeBracketToken As InternalSyntax.PunctuationSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CollectionExpressionSyntax(kind, errors, annotations, openBracketToken, if(elements IsNot Nothing, elements.Green, Nothing), closeBracketToken), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openParenToken As InternalSyntax.PunctuationSyntax, elements As SyntaxNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CollectionExpressionSyntax(kind, errors, annotations, openParenToken, if(elements IsNot Nothing, elements.Green, Nothing), closeParenToken), Nothing, 0)
         End Sub
 
         ''' <summary>
-        ''' The "[" token.
+        ''' The "(" token.
         ''' </summary>
-        Public ReadOnly Property OpenBracketToken As SyntaxToken
+        Public ReadOnly Property OpenParenToken As SyntaxToken
             Get
-                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CollectionExpressionSyntax)._openBracketToken, Me.Position, 0)
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CollectionExpressionSyntax)._openParenToken, Me.Position, 0)
             End Get
         End Property
 
         ''' <summary>
-        ''' Returns a copy of this with the OpenBracketToken property changed to the
+        ''' Returns a copy of this with the OpenParenToken property changed to the
         ''' specified value. Returns this instance if the specified value is the same as
         ''' the current value.
         ''' </summary>
-        Public Shadows Function WithOpenBracketToken(openBracketToken as SyntaxToken) As CollectionExpressionSyntax
-            return Update(openBracketToken, Me.Elements, Me.CloseBracketToken)
+        Public Shadows Function WithOpenParenToken(openParenToken as SyntaxToken) As CollectionExpressionSyntax
+            return Update(openParenToken, Me.Elements, Me.CloseParenToken)
         End Function
 
         ''' <summary>
-        ''' The elements between the brackets.
+        ''' The elements between the parentheses. Empty when the collection is empty.
         ''' </summary>
         ''' <remarks>
         ''' If nothing is present, an empty list is returned.
@@ -25662,7 +25662,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithElements(elements as SeparatedSyntaxList(Of ExpressionSyntax)) As CollectionExpressionSyntax
-            return Update(Me.OpenBracketToken, elements, Me.CloseBracketToken)
+            return Update(Me.OpenParenToken, elements, Me.CloseParenToken)
         End Function
 
         Public Shadows Function AddElements(ParamArray items As ExpressionSyntax()) As CollectionExpressionSyntax
@@ -25670,21 +25670,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         ''' <summary>
-        ''' The "]" token.
+        ''' The ")" token.
         ''' </summary>
-        Public ReadOnly Property CloseBracketToken As SyntaxToken
+        Public ReadOnly Property CloseParenToken As SyntaxToken
             Get
-                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CollectionExpressionSyntax)._closeBracketToken, Me.GetChildPosition(2), Me.GetChildIndex(2))
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.CollectionExpressionSyntax)._closeParenToken, Me.GetChildPosition(2), Me.GetChildIndex(2))
             End Get
         End Property
 
         ''' <summary>
-        ''' Returns a copy of this with the CloseBracketToken property changed to the
+        ''' Returns a copy of this with the CloseParenToken property changed to the
         ''' specified value. Returns this instance if the specified value is the same as
         ''' the current value.
         ''' </summary>
-        Public Shadows Function WithCloseBracketToken(closeBracketToken as SyntaxToken) As CollectionExpressionSyntax
-            return Update(Me.OpenBracketToken, Me.Elements, closeBracketToken)
+        Public Shadows Function WithCloseParenToken(closeParenToken as SyntaxToken) As CollectionExpressionSyntax
+            return Update(Me.OpenParenToken, Me.Elements, closeParenToken)
         End Function
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
@@ -25718,18 +25718,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' Returns a copy of this with the specified changes. Returns this instance if
         ''' there are no actual changes.
         ''' </summary>
-        ''' <param name="openBracketToken">
-        ''' The value for the OpenBracketToken property.
+        ''' <param name="openParenToken">
+        ''' The value for the OpenParenToken property.
         ''' </param>
         ''' <param name="elements">
         ''' The value for the Elements property.
         ''' </param>
-        ''' <param name="closeBracketToken">
-        ''' The value for the CloseBracketToken property.
+        ''' <param name="closeParenToken">
+        ''' The value for the CloseParenToken property.
         ''' </param>
-        Public Function Update(openBracketToken As SyntaxToken, elements As SeparatedSyntaxList(Of ExpressionSyntax), closeBracketToken As SyntaxToken) As CollectionExpressionSyntax
-            If openBracketToken <> Me.OpenBracketToken OrElse elements <> Me.Elements OrElse closeBracketToken <> Me.CloseBracketToken Then
-                Dim newNode = SyntaxFactory.CollectionExpression(openBracketToken, elements, closeBracketToken)
+        Public Function Update(openParenToken As SyntaxToken, elements As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken) As CollectionExpressionSyntax
+            If openParenToken <> Me.OpenParenToken OrElse elements <> Me.Elements OrElse closeParenToken <> Me.CloseParenToken Then
+                Dim newNode = SyntaxFactory.CollectionExpression(openParenToken, elements, closeParenToken)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

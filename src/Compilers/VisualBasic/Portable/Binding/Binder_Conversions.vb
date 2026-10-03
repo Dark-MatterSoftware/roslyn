@@ -317,6 +317,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' This function must return a BoundConversion node in case of explicit or non-identity conversion.
         ''' </summary>
+        Private Function TryBindParenthesizedCollection(argument As BoundExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim arrayType = TryCast(targetType, ArrayTypeSymbol)
+            If arrayType Is Nothing OrElse arrayType.Rank <> 1 OrElse argument.Syntax.SyntaxTree Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim version = DirectCast(argument.Syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
+            If version < LanguageVersion.VbNext Then
+                Return Nothing
+            End If
+
+            Dim elements As ImmutableArray(Of BoundExpression)
+            If argument.Kind = BoundKind.TupleLiteral Then
+                elements = DirectCast(argument, BoundTupleLiteral).Arguments
+            ElseIf argument.Kind = BoundKind.ConvertedTupleLiteral Then
+                elements = DirectCast(argument, BoundConvertedTupleLiteral).Arguments
+            ElseIf argument.Kind = BoundKind.Parenthesized Then
+                Dim inner = DirectCast(argument, BoundParenthesized).Expression
+                Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+                Dim existing = Conversions.ClassifyConversion(inner, arrayType, Me, useSiteInfo)
+                If Conversions.ConversionExists(existing.Key) Then
+                    Return Nothing
+                End If
+
+                elements = ImmutableArray.Create(inner)
+            Else
+                Return Nothing
+            End If
+
+            Dim elementType = arrayType.ElementType
+            Dim converted = ArrayBuilder(Of BoundExpression).GetInstance()
+            For Each element In elements
+                converted.Add(ApplyImplicitConversion(element.Syntax, elementType, element, diagnostics))
+            Next
+
+            Dim initializer = New BoundArrayInitialization(argument.Syntax, converted.ToImmutableAndFree(), Nothing)
+            initializer.SetWasCompilerGenerated()
+
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, argument.Syntax, diagnostics)
+            Dim boundCount = New BoundLiteral(argument.Syntax, ConstantValue.Create(elements.Length), int32Type)
+            boundCount.SetWasCompilerGenerated()
+            Return New BoundArrayCreation(argument.Syntax, ImmutableArray.Create(Of BoundExpression)(boundCount), initializer, arrayType)
+        End Function
+
         Private Function ApplyConversion(
             node As SyntaxNode,
             targetType As TypeSymbol,
@@ -352,6 +396,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim targetTypedNew = TryBindTargetTypedNew(argument, targetType, diagnostics)
             If targetTypedNew IsNot Nothing Then
                 argument = targetTypedNew
+            End If
+
+            ' (1, 2, 3) builds an array when the target type is an array.
+            Dim parenthesizedCollection = TryBindParenthesizedCollection(argument, targetType, diagnostics)
+            If parenthesizedCollection IsNot Nothing Then
+                argument = parenthesizedCollection
             End If
 
             ' Deal with erroneous arguments

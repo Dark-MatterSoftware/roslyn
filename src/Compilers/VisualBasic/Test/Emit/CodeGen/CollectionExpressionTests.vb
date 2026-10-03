@@ -19,7 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
             Dim compilation = CreateCompilation("
 Module Program
     Sub Main()
-        Dim values As Integer() = [1, 2, 3]
+        Dim values As Integer() = (1, 2, 3)
         System.Console.Write(values(0))
         System.Console.Write(values(1))
         System.Console.Write(values(2))
@@ -35,7 +35,7 @@ End Module
             Dim compilation = CreateCompilation("
 Module Program
     Sub Main()
-        Dim values As Integer() = []
+        Dim values As Integer() = ()
         System.Console.Write(values.Length)
     End Sub
 End Module
@@ -49,7 +49,7 @@ End Module
             Dim compilation = CreateCompilation("
 Module Program
     Sub Main()
-        Dim values As Integer()() = [[1, 2], [3]]
+        Dim values As Integer()() = ((1, 2), (3))
         System.Console.Write(values(0)(1))
         System.Console.Write(values(1)(0))
     End Sub
@@ -65,13 +65,28 @@ End Module
 Module Program
     Sub Main()
         Dim name = ""ok""
-        Dim values As String() = [(name)]
+        Dim values As String() = (name)
         System.Console.Write(values(0))
     End Sub
 End Module
 ", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
 
             CompileAndVerify(compilation, expectedOutput:="ok").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_TupleWithoutTargetStaysTuple()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim values = (1, 2)
+        System.Console.Write(values.Item1)
+        System.Console.Write(values.Item2)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="12").VerifyDiagnostics()
         End Sub
 
         <Fact>
@@ -89,17 +104,17 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub CollectionExpression_RequiresTargetType()
+        Public Sub CollectionExpression_EmptyRequiresTargetType()
             Dim compilation = CreateCompilation("
 Module Program
     Sub Main()
-        Dim values = [1, 2]
+        Dim values = ()
     End Sub
 End Module
 ", parseOptions:=VbNext)
 
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_CollectionExpressionRequiresTarget, "[1, 2]").WithLocation(4, 22))
+                Diagnostic(ERRID.ERR_CollectionExpressionRequiresTarget, "()").WithLocation(4, 22))
         End Sub
 
         <Fact>
@@ -107,16 +122,13 @@ End Module
             Dim compilation = CreateCompilation("
 Module Program
     Sub Main()
-        Dim values As Integer() = [1, 2]
+        Dim values As Integer() = (1, 2)
     End Sub
 End Module
 ", parseOptions:=Vb17_13)
 
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_ExpectedExpression, "").WithLocation(4, 35),
-                Diagnostic(ERRID.ERR_MissingEndBrack, "[1").WithLocation(4, 35),
-                Diagnostic(ERRID.ERR_ExpectedIdentifier, "").WithLocation(4, 39),
-                Diagnostic(ERRID.ERR_IllegalChar, "]").WithLocation(4, 40))
+                Diagnostic(ERRID.ERR_TypeMismatch2, "(1, 2)").WithArguments("(Integer, Integer)", "Integer()").WithLocation(4, 35))
         End Sub
     End Class
 End Namespace

@@ -18761,53 +18761,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     Friend NotInheritable Class CollectionExpressionSyntax
         Inherits ExpressionSyntax
 
-        Friend ReadOnly _openBracketToken as PunctuationSyntax
+        Friend ReadOnly _openParenToken as PunctuationSyntax
         Friend ReadOnly _elements as GreenNode
-        Friend ReadOnly _closeBracketToken as PunctuationSyntax
+        Friend ReadOnly _closeParenToken as PunctuationSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, openBracketToken As InternalSyntax.PunctuationSyntax, elements As GreenNode, closeBracketToken As InternalSyntax.PunctuationSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, openParenToken As InternalSyntax.PunctuationSyntax, elements As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
             MyBase.New(kind)
             Me.SlotCount = 3
 
-            AdjustFlagsAndWidth(openBracketToken)
-            Me._openBracketToken = openBracketToken
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
             If elements IsNot Nothing Then
                 AdjustFlagsAndWidth(elements)
                 Me._elements = elements
             End If
-            AdjustFlagsAndWidth(closeBracketToken)
-            Me._closeBracketToken = closeBracketToken
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, openBracketToken As InternalSyntax.PunctuationSyntax, elements As GreenNode, closeBracketToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, openParenToken As InternalSyntax.PunctuationSyntax, elements As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind)
             Me.SlotCount = 3
             Me.SetFactoryContext(context)
 
-            AdjustFlagsAndWidth(openBracketToken)
-            Me._openBracketToken = openBracketToken
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
             If elements IsNot Nothing Then
                 AdjustFlagsAndWidth(elements)
                 Me._elements = elements
             End If
-            AdjustFlagsAndWidth(closeBracketToken)
-            Me._closeBracketToken = closeBracketToken
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openBracketToken As InternalSyntax.PunctuationSyntax, elements As GreenNode, closeBracketToken As InternalSyntax.PunctuationSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openParenToken As InternalSyntax.PunctuationSyntax, elements As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
             MyBase.New(kind, errors, annotations)
             Me.SlotCount = 3
 
-            AdjustFlagsAndWidth(openBracketToken)
-            Me._openBracketToken = openBracketToken
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
             If elements IsNot Nothing Then
                 AdjustFlagsAndWidth(elements)
                 Me._elements = elements
             End If
-            AdjustFlagsAndWidth(closeBracketToken)
-            Me._closeBracketToken = closeBracketToken
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
 
         End Sub
 
@@ -18816,16 +18816,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         ''' <summary>
-        ''' The "[" token.
+        ''' The "(" token.
         ''' </summary>
-        Friend ReadOnly Property OpenBracketToken As InternalSyntax.PunctuationSyntax
+        Friend ReadOnly Property OpenParenToken As InternalSyntax.PunctuationSyntax
             Get
-                Return Me._openBracketToken
+                Return Me._openParenToken
             End Get
         End Property
 
         ''' <summary>
-        ''' The elements between the brackets.
+        ''' The elements between the parentheses. Empty when the collection is empty.
         ''' </summary>
         ''' <remarks>
         ''' If nothing is present, an empty list is returned.
@@ -18837,22 +18837,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Property
 
         ''' <summary>
-        ''' The "]" token.
+        ''' The ")" token.
         ''' </summary>
-        Friend ReadOnly Property CloseBracketToken As InternalSyntax.PunctuationSyntax
+        Friend ReadOnly Property CloseParenToken As InternalSyntax.PunctuationSyntax
             Get
-                Return Me._closeBracketToken
+                Return Me._closeParenToken
             End Get
         End Property
 
         Friend Overrides Function GetSlot(i as Integer) as GreenNode
             Select case i
                 Case 0
-                    Return Me._openBracketToken
+                    Return Me._openParenToken
                 Case 1
                     Return Me._elements
                 Case 2
-                    Return Me._closeBracketToken
+                    Return Me._closeParenToken
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -18861,11 +18861,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new CollectionExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _openBracketToken, _elements, _closeBracketToken)
+            Return new CollectionExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _openParenToken, _elements, _closeParenToken)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new CollectionExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _openBracketToken, _elements, _closeBracketToken)
+            Return new CollectionExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _openParenToken, _elements, _closeParenToken)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -33899,15 +33899,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Public Overrides Function VisitCollectionExpression(ByVal node As CollectionExpressionSyntax) As VisualBasicSyntaxNode
             Dim anyChanges As Boolean = False
 
-            Dim newOpenBracketToken = DirectCast(Visit(node.OpenBracketToken), PunctuationSyntax)
-            If node._openBracketToken IsNot newOpenBracketToken Then anyChanges = True
+            Dim newOpenParenToken = DirectCast(Visit(node.OpenParenToken), PunctuationSyntax)
+            If node._openParenToken IsNot newOpenParenToken Then anyChanges = True
             Dim newElements = VisitList(node.Elements)
             If node._elements IsNot newElements.Node Then anyChanges = True
-            Dim newCloseBracketToken = DirectCast(Visit(node.CloseBracketToken), PunctuationSyntax)
-            If node._closeBracketToken IsNot newCloseBracketToken Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(Visit(node.CloseParenToken), PunctuationSyntax)
+            If node._closeParenToken IsNot newCloseParenToken Then anyChanges = True
 
             If anyChanges Then
-                Return New CollectionExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOpenBracketToken, newElements.Node, newCloseBracketToken)
+                Return New CollectionExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOpenParenToken, newElements.Node, newCloseParenToken)
             Else
                 Return node
             End If
@@ -44038,26 +44038,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <summary>
         ''' Represents a collection expression. The target type decides what is built.
         ''' </summary>
-        ''' <param name="openBracketToken">
-        ''' The "[" token.
+        ''' <param name="openParenToken">
+        ''' The "(" token.
         ''' </param>
         ''' <param name="elements">
-        ''' The elements between the brackets.
+        ''' The elements between the parentheses. Empty when the collection is empty.
         ''' </param>
-        ''' <param name="closeBracketToken">
-        ''' The "]" token.
+        ''' <param name="closeParenToken">
+        ''' The ")" token.
         ''' </param>
-        Friend Shared Function CollectionExpression(openBracketToken As PunctuationSyntax, elements As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBracketToken As PunctuationSyntax) As CollectionExpressionSyntax
-            Debug.Assert(openBracketToken IsNot Nothing AndAlso openBracketToken.Kind = SyntaxKind.OpenBracketToken)
-            Debug.Assert(closeBracketToken IsNot Nothing AndAlso closeBracketToken.Kind = SyntaxKind.CloseBracketToken)
+        Friend Shared Function CollectionExpression(openParenToken As PunctuationSyntax, elements As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As CollectionExpressionSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
 
             Dim hash As Integer
-            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.CollectionExpression, openBracketToken, elements.Node, closeBracketToken, hash)
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken, hash)
             If cached IsNot Nothing Then
                 Return DirectCast(cached, CollectionExpressionSyntax)
             End If
 
-            Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openBracketToken, elements.Node, closeBracketToken)
+            Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
@@ -56443,26 +56443,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <summary>
         ''' Represents a collection expression. The target type decides what is built.
         ''' </summary>
-        ''' <param name="openBracketToken">
-        ''' The "[" token.
+        ''' <param name="openParenToken">
+        ''' The "(" token.
         ''' </param>
         ''' <param name="elements">
-        ''' The elements between the brackets.
+        ''' The elements between the parentheses. Empty when the collection is empty.
         ''' </param>
-        ''' <param name="closeBracketToken">
-        ''' The "]" token.
+        ''' <param name="closeParenToken">
+        ''' The ")" token.
         ''' </param>
-        Friend Function CollectionExpression(openBracketToken As PunctuationSyntax, elements As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBracketToken As PunctuationSyntax) As CollectionExpressionSyntax
-            Debug.Assert(openBracketToken IsNot Nothing AndAlso openBracketToken.Kind = SyntaxKind.OpenBracketToken)
-            Debug.Assert(closeBracketToken IsNot Nothing AndAlso closeBracketToken.Kind = SyntaxKind.CloseBracketToken)
+        Friend Function CollectionExpression(openParenToken As PunctuationSyntax, elements As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As CollectionExpressionSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
 
             Dim hash As Integer
-            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.CollectionExpression, openBracketToken, elements.Node, closeBracketToken, _factoryContext, hash)
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken, _factoryContext, hash)
             If cached IsNot Nothing Then
                 Return DirectCast(cached, CollectionExpressionSyntax)
             End If
 
-            Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openBracketToken, elements.Node, closeBracketToken, _factoryContext)
+            Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
