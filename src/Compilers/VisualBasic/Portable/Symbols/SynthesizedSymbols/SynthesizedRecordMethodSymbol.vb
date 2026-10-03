@@ -19,6 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             TypedEquals
             GetHashCode
             Print
+            Deconstruct
         End Enum
 
         Private ReadOnly _kind As RecordMethodKind
@@ -44,7 +45,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsOverloads As Boolean
             Get
-                Return True
+                Return _kind <> RecordMethodKind.Deconstruct
             End Get
         End Property
 
@@ -74,7 +75,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsSub As Boolean
             Get
-                Return False
+                Return _kind = RecordMethodKind.Deconstruct
             End Get
         End Property
 
@@ -124,9 +125,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return TypedEqualsBody(factory)
                 Case RecordMethodKind.GetHashCode
                     Return HashCodeBody(factory)
+                Case RecordMethodKind.Deconstruct
+                    Return DeconstructBody(factory)
                 Case Else
                     Return PrintBody(factory)
             End Select
+        End Function
+
+        Private Function DeconstructBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            For Each parameter In _parameters
+                Dim [property] = ContainingType.GetMembers(parameter.Name).OfType(Of PropertySymbol)().FirstOrDefault(
+                    Function(candidate) candidate.Parameters.Length = 0 AndAlso candidate.GetMethod IsNot Nothing)
+                If [property] Is Nothing Then
+                    Continue For
+                End If
+
+                statements.Add(factory.Assignment(factory.Parameter(parameter, isLValue:=True), factory.Call(factory.Me(), [property].GetMethod)))
+            Next
+
+            statements.Add(factory.Return())
+            Return factory.Block(statements.ToImmutableAndFree())
         End Function
 
         Private Function ObjectEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock

@@ -3,6 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -42,20 +43,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Overrides Function GetBoundMethodBody(compilationState As TypeCompilationState, diagnostics As BindingDiagnosticBag, Optional ByRef methodBodyBinder As Binder = Nothing) As BoundBlock
             methodBodyBinder = Nothing
-            Dim returnStmt = New BoundReturnStatement(Me.Syntax, Nothing, Nothing, Nothing)
-            returnStmt.SetWasCompilerGenerated()
+            Dim syntax = DirectCast(Me.Syntax, VisualBasicSyntaxNode)
+            Dim factory As New SyntheticBoundNodeFactory(Me, Me, syntax, compilationState, diagnostics)
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
 
             Dim argumentList = GetBaseConstructorArguments()
-            If argumentList Is Nothing Then
-                Return New BoundBlock(Me.Syntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(Of BoundStatement)(returnStmt))
+            If argumentList IsNot Nothing Then
+                Dim binder = BinderBuilder.CreateBinderForType(DirectCast(ContainingModule, SourceModuleSymbol), argumentList.SyntaxTree, DirectCast(ContainingType, SourceMemberContainerTypeSymbol))
+                binder = New PrimaryConstructorParameterBinder(binder, Parameters)
+                Dim baseType = ContainingType.BaseTypeNoUseSiteDiagnostics
+                Dim callExpression = binder.BindPrimaryBaseConstructorCall(argumentList, argumentList, baseType, diagnostics)
+                statements.Add(New BoundExpressionStatement(argumentList, callExpression))
             End If
 
-            Dim binder = BinderBuilder.CreateBinderForType(DirectCast(ContainingModule, SourceModuleSymbol), argumentList.SyntaxTree, DirectCast(ContainingType, SourceMemberContainerTypeSymbol))
-            binder = New PrimaryConstructorParameterBinder(binder, Parameters)
-            Dim baseType = ContainingType.BaseTypeNoUseSiteDiagnostics
-            Dim callExpression = binder.BindPrimaryBaseConstructorCall(argumentList, argumentList, baseType, diagnostics)
-            Dim callStatement = New BoundExpressionStatement(argumentList, callExpression)
-            Return New BoundBlock(Me.Syntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(callStatement, DirectCast(returnStmt, BoundStatement)))
+            For Each parameter In Parameters
+                For Each member In ContainingType.GetMembers(parameter.Name)
+                    Dim positional = TryCast(member, SynthesizedRecordPositionalPropertySymbol)
+                    If positional Is Nothing OrElse positional.AssociatedField Is Nothing Then
+                        Continue For
+                    End If
+
+                    statements.Add(factory.Assignment(
+                        factory.Field(factory.Me(), positional.AssociatedField, isLValue:=True),
+                        factory.Parameter(parameter, isLValue:=False)))
+                Next
+            Next
+
+            statements.Add(factory.Return())
+            Return factory.Block(statements.ToImmutableAndFree())
         End Function
 
         Private Function GetBaseConstructorArguments() As ArgumentListSyntax

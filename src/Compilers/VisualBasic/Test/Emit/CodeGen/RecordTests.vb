@@ -65,6 +65,35 @@ End Structure
         End Sub
 
         <Fact>
+        Public Sub PositionalRecord_ConstructsPrintsAndDeconstructs()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Point(X As Integer, Y As Integer)
+End Class
+
+Module Program
+    Sub Main()
+        Dim a As New Point(1, 2)
+        Dim b As New Point(1, 2)
+        Dim (x, y) = a
+        System.Console.Write(a.X)
+        System.Console.Write(a.Y)
+        System.Console.Write(x)
+        System.Console.Write(y)
+        System.Console.Write(a.Equals(b))
+        System.Console.Write(a.ToString())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1212TruePoint { X = 1, Y = 2 }").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub RecordWith_CopiesAndAssignsInitOnly()
             Dim compilation = CreateCompilation("
 Namespace System.Runtime.CompilerServices

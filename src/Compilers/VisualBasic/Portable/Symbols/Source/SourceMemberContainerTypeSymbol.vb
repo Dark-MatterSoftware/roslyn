@@ -3072,6 +3072,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim syntaxRef = SyntaxReferences.First()
             Dim syntax = DirectCast(syntaxRef.GetSyntax(), VisualBasicSyntaxNode)
             Dim binder = BinderBuilder.CreateBinderForType(m_containingModule, syntaxRef.SyntaxTree, Me)
+            AddPositionalRecordMembersIfNeeded(members, binder, syntax, diagnostics)
             Dim booleanType = DeclaringCompilation.GetSpecialType(SpecialType.System_Boolean)
             Dim integerType = DeclaringCompilation.GetSpecialType(SpecialType.System_Int32)
             Dim stringType = DeclaringCompilation.GetSpecialType(SpecialType.System_String)
@@ -3098,6 +3099,62 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectToString, stringType, SynthesizedRecordMethodSymbol.RecordMethodKind.Print, objectPrint,
                                 Function(method) ImmutableArray(Of ParameterSymbol).Empty)
             End If
+        End Sub
+
+        Private Sub AddPositionalRecordMembersIfNeeded(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode, diagnostics As BindingDiagnosticBag)
+            Dim typeBlock = TryCast(syntax, TypeBlockSyntax)
+            Dim parameterList = TryCast(typeBlock?.BlockStatement, TypeStatementSyntax)?.ParameterList
+            If parameterList Is Nothing OrElse parameterList.Parameters.Count = 0 Then
+                Return
+            End If
+
+            Dim slots = ArrayBuilder(Of (Name As String, Type As TypeSymbol)).GetInstance()
+            For Each parameterSyntax In parameterList.Parameters
+                Dim name = parameterSyntax.Identifier.Identifier.ValueText
+                If String.IsNullOrEmpty(name) Then
+                    Continue For
+                End If
+
+                Dim parameterType As TypeSymbol
+                If parameterSyntax.AsClause Is Nothing Then
+                    parameterType = DeclaringCompilation.GetSpecialType(SpecialType.System_Object)
+                Else
+                    parameterType = binder.BindTypeSyntax(parameterSyntax.AsClause.Type, diagnostics)
+                End If
+
+                slots.Add((name, parameterType))
+                Dim existing As ArrayBuilder(Of Symbol) = Nothing
+                If members.Members.TryGetValue(name, existing) Then
+                    Continue For
+                End If
+
+                Dim [property] As New SynthesizedRecordPositionalPropertySymbol(parameterSyntax, Me, name, parameterType)
+                Dim field As New SynthesizedRecordPositionalBackingFieldSymbol([property])
+                [property].SetBackingField(field)
+                Dim getter As New SynthesizedRecordPositionalAccessorSymbol(Me, [property], MethodKind.PropertyGet)
+                Dim setter As New SynthesizedRecordPositionalAccessorSymbol(Me, [property], MethodKind.PropertySet)
+                [property].SetAccessors(getter, setter)
+                AddMember([property], binder, members, omitDiagnostics:=False)
+                AddMember(field, binder, members, omitDiagnostics:=False)
+                AddMember(getter, binder, members, omitDiagnostics:=False)
+                AddMember(setter, binder, members, omitDiagnostics:=False)
+            Next
+
+            If slots.Count = 0 OrElse HasRecordMethod(members, "Deconstruct", slots.Count, slots(0).Type) Then
+                slots.Free()
+                Return
+            End If
+
+            Dim captured = slots.ToImmutable()
+            slots.Free()
+            AddRecordMethod(members, binder, syntax, "Deconstruct", DeclaringCompilation.GetSpecialType(SpecialType.System_Void), SynthesizedRecordMethodSymbol.RecordMethodKind.Deconstruct, Nothing,
+                            Function(method)
+                                Dim parameters = ArrayBuilder(Of ParameterSymbol).GetInstance()
+                                For index = 0 To captured.Length - 1
+                                    parameters.Add(New SynthesizedParameterSymbol(method, captured(index).Type, index, isByRef:=True, captured(index).Name))
+                                Next
+                                Return parameters.ToImmutableAndFree()
+                            End Function)
         End Sub
 
         Private Sub AddRecordMethod(members As MembersAndInitializersBuilder,
