@@ -315,11 +315,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' This function must return a BoundConversion node in case of explicit or non-identity conversion.
+        ''' (1, 2, 3) builds an array when the target is an array. The same parentheses create a type
+        ''' that already accepts a collection initializer and add each element. () is an empty collection.
         ''' </summary>
         Private Function TryBindParenthesizedCollection(argument As BoundExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
-            Dim arrayType = TryCast(targetType, ArrayTypeSymbol)
-            If arrayType Is Nothing OrElse arrayType.Rank <> 1 OrElse argument.Syntax.SyntaxTree Is Nothing Then
+            If targetType.IsErrorType OrElse argument.Syntax Is Nothing OrElse argument.Syntax.SyntaxTree Is Nothing Then
                 Return Nothing
             End If
 
@@ -328,24 +328,56 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
-            Dim elements As ImmutableArray(Of BoundExpression)
-            If argument.Kind = BoundKind.TupleLiteral Then
-                elements = DirectCast(argument, BoundTupleLiteral).Arguments
-            ElseIf argument.Kind = BoundKind.ConvertedTupleLiteral Then
-                elements = DirectCast(argument, BoundConvertedTupleLiteral).Arguments
-            ElseIf argument.Kind = BoundKind.Parenthesized Then
-                Dim inner = DirectCast(argument, BoundParenthesized).Expression
-                Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
-                Dim existing = Conversions.ClassifyConversion(inner, arrayType, Me, useSiteInfo)
-                If Conversions.ConversionExists(existing.Key) Then
-                    Return Nothing
-                End If
-
-                elements = ImmutableArray.Create(inner)
-            Else
+            Dim elements As ImmutableArray(Of BoundExpression) = Nothing
+            If Not TryGetParenthesizedCollectionElements(argument, targetType, elements) Then
                 Return Nothing
             End If
 
+            Dim arrayType = TryCast(targetType, ArrayTypeSymbol)
+            If arrayType IsNot Nothing Then
+                ' An empty () is an array literal. The existing array-literal conversion builds the array.
+                If arrayType.Rank <> 1 OrElse argument.Kind = BoundKind.ArrayLiteral Then
+                    Return Nothing
+                End If
+
+                Return BindArrayCreationFromElements(argument, arrayType, elements, diagnostics)
+            End If
+
+            Return TryBindCollectionInitializerFromElements(argument, targetType, elements, diagnostics)
+        End Function
+
+        Private Function TryGetParenthesizedCollectionElements(argument As BoundExpression, targetType As TypeSymbol, ByRef elements As ImmutableArray(Of BoundExpression)) As Boolean
+            If argument.Kind = BoundKind.TupleLiteral Then
+                elements = DirectCast(argument, BoundTupleLiteral).Arguments
+                Return True
+            End If
+
+            If argument.Kind = BoundKind.ConvertedTupleLiteral Then
+                elements = DirectCast(argument, BoundConvertedTupleLiteral).Arguments
+                Return True
+            End If
+
+            If argument.Kind = BoundKind.Parenthesized Then
+                Dim inner = DirectCast(argument, BoundParenthesized).Expression
+                Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+                Dim existing = Conversions.ClassifyConversion(inner, targetType, Me, useSiteInfo)
+                If Conversions.ConversionExists(existing.Key) Then
+                    Return False
+                End If
+
+                elements = ImmutableArray.Create(inner)
+                Return True
+            End If
+
+            If argument.Kind = BoundKind.ArrayLiteral AndAlso argument.Syntax.Kind = SyntaxKind.CollectionExpression Then
+                elements = ImmutableArray(Of BoundExpression).Empty
+                Return True
+            End If
+
+            Return False
+        End Function
+
+        Private Function BindArrayCreationFromElements(argument As BoundExpression, arrayType As ArrayTypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim elementType = arrayType.ElementType
             Dim converted = ArrayBuilder(Of BoundExpression).GetInstance()
             For Each element In elements
@@ -359,6 +391,174 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim boundCount = New BoundLiteral(argument.Syntax, ConstantValue.Create(elements.Length), int32Type)
             boundCount.SetWasCompilerGenerated()
             Return New BoundArrayCreation(argument.Syntax, ImmutableArray.Create(Of BoundExpression)(boundCount), initializer, arrayType)
+        End Function
+
+        ''' <summary>
+        ''' Creates the target with its parameterless constructor and adds each element.
+        ''' A type that does not already accept a collection initializer is left for the normal conversion.
+        ''' </summary>
+        Private Function TryBindCollectionInitializerFromElements(argument As BoundExpression, targetType As TypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim named = TryCast(targetType, NamedTypeSymbol)
+            If named Is Nothing OrElse (named.TypeKind <> TypeKind.Class AndAlso named.TypeKind <> TypeKind.Structure) Then
+                Return Nothing
+            End If
+
+            Dim probe = BindingDiagnosticBag.GetInstance(diagnostics)
+            If Not IsCollectionInitializerTarget(named, argument.Syntax, probe) Then
+                probe.Free()
+                Return Nothing
+            End If
+
+            Dim result = LookupResult.GetInstance()
+            Dim hasAdd = GetMemberIfMatchesRequirements(WellKnownMemberNames.CollectionInitializerAddMethodName,
+                                                        named,
+                                                        Function(candidate As Symbol) As Boolean
+                                                            Return candidate.Kind = SymbolKind.Method
+                                                        End Function,
+                                                        result,
+                                                        argument.Syntax,
+                                                        probe)
+            Dim constructor = If(hasAdd AndAlso result.IsGood, FindParameterlessConstructor(named, argument.Syntax, probe), Nothing)
+            If constructor Is Nothing Then
+                result.Free()
+                probe.Free()
+                Return Nothing
+            End If
+
+            diagnostics.AddRangeAndFree(probe)
+
+            Dim placeholder = New BoundWithLValueExpressionPlaceholder(argument.Syntax, named)
+            placeholder.SetWasCompilerGenerated()
+
+            Dim addInvocations = ArrayBuilder(Of BoundExpression).GetInstance()
+            For Each element In elements
+                addInvocations.Add(BindCollectionElementAdd(element, placeholder, result, diagnostics))
+            Next
+
+            result.Free()
+
+            Dim initializer = New BoundCollectionInitializerExpression(argument.Syntax, placeholder, addInvocations.ToImmutableAndFree(), named)
+            Return New BoundObjectCreationExpression(argument.Syntax, constructor, ImmutableArray(Of BoundExpression).Empty, initializer, named)
+        End Function
+
+        Private Function IsCollectionInitializerTarget(collectionType As TypeSymbol, syntax As SyntaxNode, diagnostics As BindingDiagnosticBag) As Boolean
+            Dim unusedType As TypeSymbol = Nothing
+            Dim unusedExpression As BoundExpression = Nothing
+            Dim unusedLValuePlaceholder As BoundLValuePlaceholder = Nothing
+            Dim unusedRValuePlaceholder As BoundRValuePlaceholder = Nothing
+            Dim patternDiagnostics = BindingDiagnosticBag.GetInstance(diagnostics)
+            If MatchesForEachCollectionDesignPattern(collectionType,
+                                                     New BoundRValuePlaceholder(syntax, collectionType),
+                                                     unusedType,
+                                                     unusedExpression,
+                                                     unusedLValuePlaceholder,
+                                                     unusedExpression,
+                                                     unusedExpression,
+                                                     unusedRValuePlaceholder,
+                                                     patternDiagnostics) Then
+                diagnostics.AddRangeAndFree(patternDiagnostics)
+                Return True
+            End If
+
+            patternDiagnostics.Free()
+
+            Dim ienumerableDiagnostics = BindingDiagnosticBag.GetInstance(diagnostics)
+            Dim ienumerable = GetSpecialType(SpecialType.System_Collections_IEnumerable, syntax, ienumerableDiagnostics)
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Dim implementsEnumerable = IsOrInheritsFromOrImplementsInterface(collectionType, ienumerable, useSiteInfo)
+            If implementsEnumerable Then
+                diagnostics.AddRange(ienumerableDiagnostics)
+                diagnostics.Add(syntax, useSiteInfo)
+            End If
+
+            ienumerableDiagnostics.Free()
+            Return implementsEnumerable
+        End Function
+
+        Private Function FindParameterlessConstructor(type As NamedTypeSymbol, syntax As SyntaxNode, diagnostics As BindingDiagnosticBag) As MethodSymbol
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Dim constructors = GetAccessibleConstructors(type, useSiteInfo)
+            diagnostics.Add(syntax, useSiteInfo)
+            For Each constructor In constructors
+                If constructor.ParameterCount = 0 Then
+                    Return constructor
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        Private Function BindCollectionElementAdd(element As BoundExpression, placeholder As BoundWithLValueExpressionPlaceholder, result As LookupResult, diagnostics As BindingDiagnosticBag) As BoundExpression
+            element = RebindNestedCollectionElement(element, result, diagnostics)
+
+            Dim methodGroup = CreateBoundMethodGroup(element.Syntax,
+                                                     result,
+                                                     LookupOptions.AllMethodsOfAnyArity,
+                                                     diagnostics.AccumulatesDependencies,
+                                                     placeholder,
+                                                     Nothing,
+                                                     QualificationKind.QualifiedViaValue).MakeCompilerGenerated()
+
+            Dim invocation = BindInvocationExpression(element.Syntax,
+                                                      element.Syntax,
+                                                      TypeCharacter.None,
+                                                      methodGroup,
+                                                      ImmutableArray.Create(element),
+                                                      Nothing,
+                                                      diagnostics,
+                                                      callerInfoOpt:=element.Syntax)
+            invocation.SetWasCompilerGenerated()
+            If invocation.Kind = BoundKind.LateInvocation Then
+                invocation = DirectCast(invocation, BoundLateInvocation).SetLateBoundAccessKind(LateBoundAccessKind.Call)
+            End If
+
+            Return invocation
+        End Function
+
+        ''' <summary>
+        ''' Overload resolution classifies an ordinary conversion, so a nested (1, 2) is rebuilt
+        ''' here when exactly one Add parameter accepts it as a collection expression.
+        ''' </summary>
+        Private Function RebindNestedCollectionElement(element As BoundExpression, result As LookupResult, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim parameterTypes = ArrayBuilder(Of TypeSymbol).GetInstance()
+            For Each symbol In result.Symbols
+                Dim method = TryCast(symbol, MethodSymbol)
+                If method Is Nothing OrElse method.ParameterCount <> 1 Then
+                    Continue For
+                End If
+
+                Dim parameterType = method.Parameters(0).Type
+                Dim seen = False
+                For Each existing In parameterTypes
+                    If existing.IsSameTypeIgnoringAll(parameterType) Then
+                        seen = True
+                        Exit For
+                    End If
+                Next
+
+                If Not seen Then
+                    parameterTypes.Add(parameterType)
+                End If
+            Next
+
+            Dim winner As TypeSymbol = Nothing
+            Dim matches = 0
+            For Each parameterType In parameterTypes
+                Dim probe = BindingDiagnosticBag.GetInstance(diagnostics)
+                Dim candidate = TryBindParenthesizedCollection(element, parameterType, probe)
+                probe.Free()
+                If candidate IsNot Nothing Then
+                    matches += 1
+                    winner = parameterType
+                End If
+            Next
+
+            parameterTypes.Free()
+            If matches <> 1 Then
+                Return element
+            End If
+
+            Return TryBindParenthesizedCollection(element, winner, diagnostics)
         End Function
 
         Private Function ApplyConversion(
@@ -398,7 +598,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 argument = targetTypedNew
             End If
 
-            ' (1, 2, 3) builds an array when the target type is an array.
+            ' (1, 2, 3) builds an array, or a type that already accepts a collection initializer.
             Dim parenthesizedCollection = TryBindParenthesizedCollection(argument, targetType, diagnostics)
             If parenthesizedCollection IsNot Nothing Then
                 argument = parenthesizedCollection

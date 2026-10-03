@@ -130,5 +130,143 @@ End Module
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_TypeMismatch2, "(1, 2)").WithArguments("(Integer, Integer)", "Integer()").WithLocation(4, 35))
         End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_TargetsList()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim values As List(Of Integer) = (1, 2, 3)
+        System.Console.Write(values(0))
+        System.Console.Write(values(1))
+        System.Console.Write(values(2))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="123").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_EmptyList()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim values As List(Of Integer) = ()
+        System.Console.Write(values.Count)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="0").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_NestedList()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim values As List(Of List(Of Integer)) = ((1, 2), (3))
+        System.Console.Write(values(0).Count)
+        System.Console.Write(values(1)(0))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="23").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_ParenthesesAroundValue()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim name = 4
+        Dim values As List(Of Integer) = (name)
+        System.Console.Write(values(0))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="4").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_ExistingListStaysList()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim existing As New List(Of Integer) From {7}
+        Dim values As List(Of Integer) = (existing)
+        System.Console.Write(values.Count)
+        System.Console.Write(values(0))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="17").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_AddOnlyTypeIsNotACollection()
+            Dim compilation = CreateCompilation("
+Class Bucket
+    Public Sub Add(value As Integer)
+    End Sub
+End Class
+Module Program
+    Sub Main()
+        Dim values As Bucket = (1, 2)
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_TypeMismatch2, "(1, 2)").WithArguments("(Integer, Integer)", "Bucket").WithLocation(8, 32))
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_CollectionRequiresParameterlessConstructor()
+            Dim compilation = CreateCompilation("
+Class NeedsArg
+    Implements System.Collections.IEnumerable
+    Public Sub New(capacity As Integer)
+    End Sub
+    Public Sub Add(value As Integer)
+    End Sub
+    Public Function GetEnumerator() As System.Collections.IEnumerator Implements System.Collections.IEnumerable.GetEnumerator
+        Return Nothing
+    End Function
+End Class
+Module Program
+    Sub Main()
+        Dim values As NeedsArg = (1, 2)
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_TypeMismatch2, "(1, 2)").WithArguments("(Integer, Integer)", "NeedsArg").WithLocation(14, 34))
+        End Sub
+
+        <Fact>
+        Public Sub CollectionExpression_ListRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Module Program
+    Sub Main()
+        Dim values As List(Of Integer) = (1, 2)
+    End Sub
+End Module
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_TypeMismatch2, "(1, 2)").WithArguments("(Integer, Integer)", "System.Collections.Generic.List(Of Integer)").WithLocation(5, 42))
+        End Sub
     End Class
 End Namespace
