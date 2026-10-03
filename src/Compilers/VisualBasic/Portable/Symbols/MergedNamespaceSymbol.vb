@@ -392,6 +392,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return False
         End Function
 
+        Friend Overrides Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
+            For Each nsSym As NamespaceSymbol In _namespacesToMerge
+                nsSym.AppendProbableExtensionProperties(name, properties)
+            Next
+        End Sub
+
         ''' <summary>
         ''' For test purposes only.
         ''' </summary>

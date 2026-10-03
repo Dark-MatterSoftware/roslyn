@@ -1589,7 +1589,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_CollectionExpressionRequiresTarget,
                      ERRID.ERR_ByRefStructField2,
                      ERRID.ERR_ByRefTypeArgument2,
-                     ERRID.ERR_WithCopyNotRecord
+                     ERRID.ERR_WithCopyNotRecord,
+                     ERRID.ERR_ExpectedEndExtension
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

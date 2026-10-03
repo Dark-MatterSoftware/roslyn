@@ -218,6 +218,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                 SyntaxKind.InitOnlyKeyword, None,
                 SyntaxKind.RequiredKeyword, None,
                 SyntaxKind.RecordKeyword, None,
+                SyntaxKind.ExtensionKeyword, None,
                 SyntaxKind.EndIfKeyword, None,
                 SyntaxKind.GosubKeyword, None,
                 SyntaxKind.TypeKeyword, None,

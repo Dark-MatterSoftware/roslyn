@@ -468,6 +468,12 @@ Done:
         ''' <summary>
         ''' Gets all extension methods in this namespace given a method's name. 
         ''' </summary>
+        Friend Overridable Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
+            For Each containedType As NamedTypeSymbol In Me.TypesToCheckForExtensionMethods
+                containedType.AppendProbableExtensionProperties(name, properties)
+            Next
+        End Sub
+
         Friend Overridable Sub GetExtensionMethods(methods As ArrayBuilder(Of MethodSymbol), name As String)
             For Each containedType As NamedTypeSymbol In Me.TypesToCheckForExtensionMethods
                 containedType.GetExtensionMethods(methods, appendThrough:=Me, Name:=name)

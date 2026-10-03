@@ -132,6 +132,11 @@
         <target state="new">Field-like instance events are not allowed in a ReadOnly structure.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ExpectedEndExtension">
+        <source>'End Extension' expected.</source>
+        <target state="new">'End Extension' expected.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_FieldInReadOnlyStructure">
         <source>Instance fields in a ReadOnly structure must be ReadOnly.</source>
         <target state="new">Instance fields in a ReadOnly structure must be ReadOnly.</target>

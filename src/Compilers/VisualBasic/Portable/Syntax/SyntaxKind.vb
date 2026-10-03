@@ -3286,5 +3286,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         WithExpression = 809                         ' WithExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents the contextual <c>Extension</c> keyword.
+        ''' </summary>
+        ExtensionKeyword = 810                       ' KeywordSyntax : SyntaxToken
+
+        ''' <summary>
+        ''' Represents the header of an extension block, <c>Extension(s As String)</c>.
+        ''' </summary>
+        ExtensionStatement = 811                     ' ExtensionStatementSyntax : DeclarationStatementSyntax
+
+        ''' <summary>
+        ''' Represents an extension block.
+        ''' </summary>
+        ExtensionBlock = 812                         ' ExtensionBlockSyntax : DeclarationStatementSyntax
+
+        ''' <summary>
+        ''' Represents <c>End Extension</c>.
+        ''' </summary>
+        EndExtensionStatement = 813                  ' EndBlockStatementSyntax : DeclarationStatementSyntax
+
     End Enum
 End Namespace

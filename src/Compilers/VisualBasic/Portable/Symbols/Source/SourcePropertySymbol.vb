@@ -928,6 +928,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
         End Sub
 
+        Friend Overrides ReadOnly Property IsExtensionProperty As Boolean
+            Get
+                Dim decl = TryCast(DeclarationSyntax, PropertyStatementSyntax)
+                Return decl IsNot Nothing AndAlso ExtensionReceiverList(decl) IsNot Nothing
+            End Get
+        End Property
+
+        Private Shared Function ExtensionReceiverList(syntax As PropertyStatementSyntax) As ParameterListSyntax
+            If syntax.ParameterList IsNot Nothing AndAlso syntax.ParameterList.Parameters.Count > 0 Then
+                Return Nothing
+            End If
+
+            Dim parent = syntax.Parent
+            Dim block = TryCast(parent, ExtensionBlockSyntax)
+            If block Is Nothing AndAlso parent IsNot Nothing Then
+                block = TryCast(parent.Parent, ExtensionBlockSyntax)
+            End If
+
+            If block Is Nothing Then
+                Return Nothing
+            End If
+
+            Return block.ExtensionStatement.ParameterList
+        End Function
+
         Public Overrides ReadOnly Property ParameterCount As Integer
             Get
                 If Not Me._lazyParameters.IsDefault Then
@@ -937,7 +962,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Dim decl = Me.DeclarationSyntax
 
                 If decl.Kind = SyntaxKind.PropertyStatement Then
-                    Dim paramList As ParameterListSyntax = DirectCast(decl, PropertyStatementSyntax).ParameterList
+                    Dim propertySyntax = DirectCast(decl, PropertyStatementSyntax)
+                    Dim extensionParameters = ExtensionReceiverList(propertySyntax)
+                    If extensionParameters IsNot Nothing Then
+                        Return extensionParameters.Parameters.Count
+                    End If
+
+                    Dim paramList As ParameterListSyntax = propertySyntax.ParameterList
                     Return If(paramList Is Nothing, 0, paramList.Parameters.Count)
                 End If
 
@@ -954,7 +985,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Dim binder = CreateBinderForTypeDeclaration()
             Dim syntax = DirectCast(_syntaxRef.GetSyntax(), PropertyStatementSyntax)
-            Dim parameters = binder.DecodePropertyParameterList(Me, syntax.ParameterList, diagnostics)
+            Dim parameterList = syntax.ParameterList
+            Dim extensionParameters = ExtensionReceiverList(syntax)
+            If extensionParameters IsNot Nothing Then
+                parameterList = extensionParameters
+            End If
+
+            Dim parameters = binder.DecodePropertyParameterList(Me, parameterList, diagnostics)
 
             If IsDefault Then
                 ' Default properties must have required parameters.

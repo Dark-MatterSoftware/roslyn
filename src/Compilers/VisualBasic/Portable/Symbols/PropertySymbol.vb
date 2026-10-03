@@ -83,6 +83,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         ''' <summary>
+        ''' True when this property was declared in an extension block.
+        ''' The single parameter is the receiver, and lookup reduces the property
+        ''' so a use looks like an instance property of that receiver.
+        ''' </summary>
+        Friend Overridable ReadOnly Property IsExtensionProperty As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        ''' <summary>
         ''' True if the property itself Is excluded from code coverage instrumentation.
         ''' True for source properties marked with <see cref="AttributeDescription.ExcludeFromCodeCoverageAttribute"/>.
         ''' </summary>

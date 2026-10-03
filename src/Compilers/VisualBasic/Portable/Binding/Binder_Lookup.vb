@@ -1158,6 +1158,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 tempResult.Clear()
                 LookupForExtensionMethods(tempResult, container, name, arity, options, binder, useSiteInfo)
+                LookupForExtensionProperties(tempResult, container, name, arity, options, binder, useSiteInfo)
                 MergeInternalXmlHelperValueIfNecessary(tempResult, container, name, arity, options, binder, useSiteInfo)
                 result.MergeOverloadedOrPrioritized(tempResult, checkIfCurrentHasOverloads:=False)
             End Sub
@@ -1241,6 +1242,62 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 methods.Free()
             End Sub
+
+            Private Shared Sub LookupForExtensionProperties(
+                lookupResult As LookupResult,
+                container As TypeSymbol,
+                name As String,
+                arity As Integer,
+                options As LookupOptions,
+                binder As Binder,
+                <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+            )
+                If arity <> 0 OrElse Not ShouldLookupExtensionMethods(options, container) Then
+                    Return
+                End If
+
+                Dim originalBinder = binder
+                Dim currentBinder = binder
+                Dim properties = ArrayBuilder(Of PropertySymbol).GetInstance()
+
+                Do
+                    properties.Clear()
+                    currentBinder.CollectProbableExtensionPropertiesInSingleBinder(name, properties, originalBinder)
+
+                    For Each candidate In properties
+                        If (options And LookupOptions.IgnoreAccessibility) = 0 AndAlso
+                           Not AccessCheck.IsSymbolAccessible(candidate.ContainingType, binder.Compilation.Assembly, useSiteInfo) Then
+                            Continue For
+                        End If
+
+                        Dim reduced = ReduceExtensionProperty(candidate, container, useSiteInfo)
+                        If reduced IsNot Nothing Then
+                            lookupResult.MergePrioritized(binder.CheckViability(reduced, arity, options, reduced.ContainingType, useSiteInfo))
+                        End If
+                    Next
+
+                    currentBinder = currentBinder.m_containingBinder
+                Loop While currentBinder IsNot Nothing
+
+                properties.Free()
+            End Sub
+
+            Private Shared Function ReduceExtensionProperty(
+                candidate As PropertySymbol,
+                instanceType As TypeSymbol,
+                <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+            ) As PropertySymbol
+                If Not candidate.IsExtensionProperty OrElse Not candidate.IsShared OrElse candidate.ParameterCount <> 1 Then
+                    Return Nothing
+                End If
+
+                Dim conversion = Conversions.ClassifyConversion(instanceType, candidate.Parameters(0).Type, useSiteInfo)
+                If Not Conversions.IsWideningConversion(conversion.Key) Then
+                    Return Nothing
+                End If
+
+                Return New ReducedExtensionPropertySymbol(candidate)
+            End Function
 
             ''' <summary>
             ''' Include the InternalXmlHelper.Value extension property in the LookupResult

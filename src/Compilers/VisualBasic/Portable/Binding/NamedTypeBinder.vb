@@ -103,6 +103,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _typeSymbol.AppendProbableExtensionMethods(name, methods)
         End Sub
 
+        Protected Overrides Sub CollectProbableExtensionPropertiesInSingleBinder(name As String,
+                                                                                 properties As ArrayBuilder(Of PropertySymbol),
+                                                                                 originalBinder As Binder)
+            Debug.Assert(properties.Count = 0)
+            _typeSymbol.AppendProbableExtensionProperties(name, properties)
+        End Sub
+
         Protected Overrides Sub AddExtensionMethodLookupSymbolsInfoInSingleBinder(nameSet As LookupSymbolsInfo,
                                                                                    options As LookupOptions,
                                                                                    originalBinder As Binder)

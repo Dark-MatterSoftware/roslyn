@@ -3340,6 +3340,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                     CreateProperty(propertyDecl, Nothing, binder, diagBag.DiagnosticBag, members, staticInitializers, instanceInitializers)
 
+                Case SyntaxKind.ExtensionBlock
+                    Dim extensionBlock = DirectCast(memberSyntax, ExtensionBlockSyntax)
+                    If TypeKind <> TypeKind.Module Then
+                        diagBag.Add(ERRID.ERR_ExtensionMethodNotInModule, extensionBlock.ExtensionStatement.GetLocation())
+                    Else
+                        Dim sourceModule = TryCast(ContainingModule, SourceModuleSymbol)
+                        If sourceModule IsNot Nothing Then
+                            sourceModule.RecordPresenceOfExtensionMethods()
+                        End If
+                    End If
+
+                    For Each extensionMember In extensionBlock.Members
+                        AddMember(extensionMember, binder, diagBag, members, staticInitializers, instanceInitializers, reportAsInvalid)
+                    Next
+
                 Case SyntaxKind.LabelStatement
                     ' TODO (tomat): should be added to the initializers
                     Exit Select

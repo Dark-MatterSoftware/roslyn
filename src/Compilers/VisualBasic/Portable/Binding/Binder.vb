@@ -224,6 +224,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         ''' <summary>
+        ''' Collect extension properties with the given name that are in scope in this binder.
+        ''' </summary>
+        Protected Overridable Sub CollectProbableExtensionPropertiesInSingleBinder(name As String,
+                                                                                   properties As ArrayBuilder(Of PropertySymbol),
+                                                                                   originalBinder As Binder)
+            Debug.Assert(properties.Count = 0)
+        End Sub
+
+        ''' <summary>
         ''' Lookup all names of extension methods that are available from a single binder, without delegating
         ''' to containing binder. The original binder passed in is used for accessibility checking
         ''' and so forth.

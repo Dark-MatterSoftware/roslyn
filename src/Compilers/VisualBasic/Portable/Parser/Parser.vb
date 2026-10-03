@@ -793,6 +793,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword OrElse
                                (contextualKind = SyntaxKind.RecordKeyword AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext) Then
                             Return ParseSpecifierDeclaration()
+                        ElseIf contextualKind = SyntaxKind.ExtensionKeyword AndAlso
+                               _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                               PeekToken(1).Kind = SyntaxKind.OpenParenToken Then
+                            Return ParseSpecifierDeclaration()
                         End If
                     End If
 
@@ -1263,6 +1267,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return ReportUnrecognizedStatementError(ERRID.ERR_Syntax)
         End Function
 
+        Private Function ParseExtensionStatement(
+            attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
+            modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax),
+            keyword As KeywordSyntax
+        ) As ExtensionStatementSyntax
+            Debug.Assert(keyword IsNot Nothing AndAlso keyword.Kind = SyntaxKind.ExtensionKeyword)
+            GetNextToken()
+
+            Dim parameterList = ParseParameterList()
+            Dim statement = SyntaxFactory.ExtensionStatement(keyword, parameterList)
+            If modifiers.Any OrElse attributes.Any Then
+                statement = ReportSyntaxError(statement, ERRID.ERR_ExpectedDeclaration)
+            End If
+
+            Return statement
+        End Function
+
         Private Function ParseEmptyStatement() As EmptyStatementSyntax
             Debug.Assert(CurrentToken.Kind = SyntaxKind.EmptyToken)
             Dim emptyToken = DirectCast(CurrentToken, PunctuationSyntax)
@@ -1318,7 +1339,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Else
                         Dim keyword As KeywordSyntax = Nothing
                         If TryIdentifierAsContextualKeyword(CurrentToken, keyword) Then
-                            If keyword.Kind = SyntaxKind.CustomKeyword Then
+                            If keyword.Kind = SyntaxKind.ExtensionKeyword AndAlso
+                               _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                               PeekToken(1).Kind = SyntaxKind.OpenParenToken Then
+                                Return ParseExtensionStatement(attributes, modifiers, keyword)
+
+                            ElseIf keyword.Kind = SyntaxKind.CustomKeyword Then
                                 Return ParseCustomEventDefinition(attributes, modifiers)
 
                             ElseIf keyword.Kind = SyntaxKind.TypeKeyword Then
@@ -1786,6 +1812,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim statement As StatementSyntax
             Dim endKind = GetEndStatementKindFromKeyword(nextToken.Kind)
 
+            If endKind = SyntaxKind.None AndAlso
+               nextToken.Kind = SyntaxKind.IdentifierToken AndAlso
+               _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                Dim extensionKeyword As KeywordSyntax = Nothing
+                If TryTokenAsContextualKeyword(nextToken, SyntaxKind.ExtensionKeyword, extensionKeyword) Then
+                    endKind = SyntaxKind.EndExtensionStatement
+                    possibleBlockKeyword = extensionKeyword
+                End If
+            End If
+
             If endKind = SyntaxKind.None Then
                 'TODO - Consider moving the error to the Declaration context
                 ' Instead of parsing as an END statement, consider building the correct matching
@@ -1812,7 +1848,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return SyntaxKind.NextStatement
 
                 Case SyntaxKind.EndKeyword
-                    Return GetEndStatementKindFromKeyword(PeekToken(i + 1).Kind)
+                    Dim following = PeekToken(i + 1)
+                    Dim endKind = GetEndStatementKindFromKeyword(following.Kind)
+                    If endKind = SyntaxKind.None AndAlso
+                       following.Kind = SyntaxKind.IdentifierToken AndAlso
+                       _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       DirectCast(following, IdentifierTokenSyntax).PossibleKeywordKind = SyntaxKind.ExtensionKeyword Then
+                        Return SyntaxKind.EndExtensionStatement
+                    End If
+
+                    Return endKind
 
                 ' wend and endif are anachronistic and should not be used, however they can still appear in 
                 ' the lookahead
@@ -1952,6 +1997,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                                 If _scanner.Options.LanguageVersion < LanguageVersion.VbNext Then
                                     Return False
                                 End If
+
+                            Case SyntaxKind.ExtensionKeyword
+                                Return _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                                       PeekToken(i + 1).Kind = SyntaxKind.OpenParenToken
 
                             Case Else
                                 Return False

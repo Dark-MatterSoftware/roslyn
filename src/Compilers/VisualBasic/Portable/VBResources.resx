@@ -5926,4 +5926,7 @@
   <data name="ERR_WithCopyNotRecord" xml:space="preserve">
     <value>'{0}' is not a record, so it cannot be copied with 'With'.</value>
   </data>
+  <data name="ERR_ExpectedEndExtension" xml:space="preserve">
+    <value>'End Extension' expected.</value>
+  </data>
 </root>

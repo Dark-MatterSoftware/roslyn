@@ -271,6 +271,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     ''' <item><description><see cref="SyntaxKind.EndWhileStatement"/></description></item>
     ''' <item><description><see cref="SyntaxKind.EndTryStatement"/></description></item>
     ''' <item><description><see cref="SyntaxKind.EndSyncLockStatement"/></description></item>
+    ''' <item><description><see cref="SyntaxKind.EndExtensionStatement"/></description></item>
     ''' </list>
     ''' </remarks>
     Public NotInheritable Class EndBlockStatementSyntax
@@ -25730,6 +25731,273 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         Public Function Update(openParenToken As SyntaxToken, elements As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken) As CollectionExpressionSyntax
             If openParenToken <> Me.OpenParenToken OrElse elements <> Me.Elements OrElse closeParenToken <> Me.CloseParenToken Then
                 Dim newNode = SyntaxFactory.CollectionExpression(openParenToken, elements, closeParenToken)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents the header of an extension block. The parameter list is the
+    ''' receiver.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.ExtensionStatement"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class ExtensionStatementSyntax
+        Inherits DeclarationStatementSyntax
+
+        Friend _parameterList as ParameterListSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), extensionKeyword As InternalSyntax.KeywordSyntax, parameterList As ParameterListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExtensionStatementSyntax(kind, errors, annotations, extensionKeyword, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Extension keyword.
+        ''' </summary>
+        Public ReadOnly Property ExtensionKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExtensionStatementSyntax)._extensionKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the ExtensionKeyword property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithExtensionKeyword(extensionKeyword as SyntaxToken) As ExtensionStatementSyntax
+            return Update(extensionKeyword, Me.ParameterList)
+        End Function
+
+        ''' <summary>
+        ''' The receiver parameter.
+        ''' </summary>
+        Public ReadOnly Property ParameterList As ParameterListSyntax
+            Get
+                Return GetRed(_parameterList, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the ParameterList property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As ExtensionStatementSyntax
+            return Update(Me.ExtensionKeyword, parameterList)
+        End Function
+
+        Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As ExtensionStatementSyntax
+            Dim _child = If(Me.ParameterList IsNot Nothing, Me.ParameterList, SyntaxFactory.ParameterList())
+            Return Me.WithParameterList(_child.AddParameters(items))
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._parameterList
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me.ParameterList
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitExtensionStatement(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitExtensionStatement(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="extensionKeyword">
+        ''' The value for the ExtensionKeyword property.
+        ''' </param>
+        ''' <param name="parameterList">
+        ''' The value for the ParameterList property.
+        ''' </param>
+        Public Function Update(extensionKeyword As SyntaxToken, parameterList As ParameterListSyntax) As ExtensionStatementSyntax
+            If extensionKeyword <> Me.ExtensionKeyword OrElse parameterList IsNot Me.ParameterList Then
+                Dim newNode = SyntaxFactory.ExtensionStatement(extensionKeyword, parameterList)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents an extension block. Members in the block extend the receiver type.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.ExtensionBlock"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class ExtensionBlockSyntax
+        Inherits DeclarationStatementSyntax
+
+        Friend _extensionStatement as ExtensionStatementSyntax
+        Friend _members as SyntaxNode
+        Friend _endExtensionStatement as EndBlockStatementSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), extensionStatement As ExtensionStatementSyntax, members As SyntaxNode, endExtensionStatement As EndBlockStatementSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExtensionBlockSyntax(kind, errors, annotations, DirectCast(extensionStatement.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExtensionStatementSyntax), if(members IsNot Nothing, members.Green, Nothing), DirectCast(endExtensionStatement.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.EndBlockStatementSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The block header.
+        ''' </summary>
+        Public ReadOnly Property ExtensionStatement As ExtensionStatementSyntax
+            Get
+                Return GetRedAtZero(_extensionStatement)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the ExtensionStatement property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithExtensionStatement(extensionStatement as ExtensionStatementSyntax) As ExtensionBlockSyntax
+            return Update(extensionStatement, Me.Members, Me.EndExtensionStatement)
+        End Function
+
+        ''' <summary>
+        ''' The members declared by the extension.
+        ''' </summary>
+        ''' <remarks>
+        ''' If nothing is present, an empty list is returned.
+        ''' </remarks>
+        Public ReadOnly Property Members As SyntaxList(Of StatementSyntax)
+            Get
+                Dim listNode = GetRed(_members, 1)
+                Return new SyntaxList(Of StatementSyntax)(listNode)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Members property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithMembers(members as SyntaxList(Of StatementSyntax)) As ExtensionBlockSyntax
+            return Update(Me.ExtensionStatement, members, Me.EndExtensionStatement)
+        End Function
+
+        Public Shadows Function AddMembers(ParamArray items As StatementSyntax()) As ExtensionBlockSyntax
+            Return Me.WithMembers(Me.Members.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The End Extension statement.
+        ''' </summary>
+        Public ReadOnly Property EndExtensionStatement As EndBlockStatementSyntax
+            Get
+                Return GetRed(_endExtensionStatement, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the EndExtensionStatement property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithEndExtensionStatement(endExtensionStatement as EndBlockStatementSyntax) As ExtensionBlockSyntax
+            return Update(Me.ExtensionStatement, Me.Members, endExtensionStatement)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._extensionStatement
+                Case 1
+                    Return Me._members
+                Case 2
+                    Return Me._endExtensionStatement
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.ExtensionStatement
+                Case 1
+                    Return GetRed(_members, 1)
+                Case 2
+                    Return Me.EndExtensionStatement
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitExtensionBlock(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitExtensionBlock(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="extensionStatement">
+        ''' The value for the ExtensionStatement property.
+        ''' </param>
+        ''' <param name="members">
+        ''' The value for the Members property.
+        ''' </param>
+        ''' <param name="endExtensionStatement">
+        ''' The value for the EndExtensionStatement property.
+        ''' </param>
+        Public Function Update(extensionStatement As ExtensionStatementSyntax, members As SyntaxList(of StatementSyntax), endExtensionStatement As EndBlockStatementSyntax) As ExtensionBlockSyntax
+            If extensionStatement IsNot Me.ExtensionStatement OrElse members <> Me.Members OrElse endExtensionStatement IsNot Me.EndExtensionStatement Then
+                Dim newNode = SyntaxFactory.ExtensionBlock(extensionStatement, members, endExtensionStatement)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

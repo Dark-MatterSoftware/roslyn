@@ -18875,6 +18875,218 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents the header of an extension block. The parameter list is the
+    ''' receiver.
+    ''' </summary>
+    Friend NotInheritable Class ExtensionStatementSyntax
+        Inherits DeclarationStatementSyntax
+
+        Friend ReadOnly _extensionKeyword as KeywordSyntax
+        Friend ReadOnly _parameterList as ParameterListSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, extensionKeyword As InternalSyntax.KeywordSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(extensionKeyword)
+            Me._extensionKeyword = extensionKeyword
+            AdjustFlagsAndWidth(parameterList)
+            Me._parameterList = parameterList
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, extensionKeyword As InternalSyntax.KeywordSyntax, parameterList As ParameterListSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(extensionKeyword)
+            Me._extensionKeyword = extensionKeyword
+            AdjustFlagsAndWidth(parameterList)
+            Me._parameterList = parameterList
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), extensionKeyword As InternalSyntax.KeywordSyntax, parameterList As ParameterListSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(extensionKeyword)
+            Me._extensionKeyword = extensionKeyword
+            AdjustFlagsAndWidth(parameterList)
+            Me._parameterList = parameterList
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.ExtensionStatementSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Extension keyword.
+        ''' </summary>
+        Friend ReadOnly Property ExtensionKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._extensionKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The receiver parameter.
+        ''' </summary>
+        Friend ReadOnly Property ParameterList As InternalSyntax.ParameterListSyntax
+            Get
+                Return Me._parameterList
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._extensionKeyword
+                Case 1
+                    Return Me._parameterList
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new ExtensionStatementSyntax(Me.Kind, newErrors, GetAnnotations, _extensionKeyword, _parameterList)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new ExtensionStatementSyntax(Me.Kind, GetDiagnostics, annotations, _extensionKeyword, _parameterList)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitExtensionStatement(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents an extension block. Members in the block extend the receiver type.
+    ''' </summary>
+    Friend NotInheritable Class ExtensionBlockSyntax
+        Inherits DeclarationStatementSyntax
+
+        Friend ReadOnly _extensionStatement as ExtensionStatementSyntax
+        Friend ReadOnly _members as GreenNode
+        Friend ReadOnly _endExtensionStatement as EndBlockStatementSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, extensionStatement As ExtensionStatementSyntax, members As GreenNode, endExtensionStatement As EndBlockStatementSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(extensionStatement)
+            Me._extensionStatement = extensionStatement
+            If members IsNot Nothing Then
+                AdjustFlagsAndWidth(members)
+                Me._members = members
+            End If
+            AdjustFlagsAndWidth(endExtensionStatement)
+            Me._endExtensionStatement = endExtensionStatement
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, extensionStatement As ExtensionStatementSyntax, members As GreenNode, endExtensionStatement As EndBlockStatementSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(extensionStatement)
+            Me._extensionStatement = extensionStatement
+            If members IsNot Nothing Then
+                AdjustFlagsAndWidth(members)
+                Me._members = members
+            End If
+            AdjustFlagsAndWidth(endExtensionStatement)
+            Me._endExtensionStatement = endExtensionStatement
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), extensionStatement As ExtensionStatementSyntax, members As GreenNode, endExtensionStatement As EndBlockStatementSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(extensionStatement)
+            Me._extensionStatement = extensionStatement
+            If members IsNot Nothing Then
+                AdjustFlagsAndWidth(members)
+                Me._members = members
+            End If
+            AdjustFlagsAndWidth(endExtensionStatement)
+            Me._endExtensionStatement = endExtensionStatement
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.ExtensionBlockSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The block header.
+        ''' </summary>
+        Friend ReadOnly Property ExtensionStatement As InternalSyntax.ExtensionStatementSyntax
+            Get
+                Return Me._extensionStatement
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The members declared by the extension.
+        ''' </summary>
+        ''' <remarks>
+        ''' If nothing is present, an empty list is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Members As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of StatementSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of StatementSyntax)(Me._members)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The End Extension statement.
+        ''' </summary>
+        Friend ReadOnly Property EndExtensionStatement As InternalSyntax.EndBlockStatementSyntax
+            Get
+                Return Me._endExtensionStatement
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._extensionStatement
+                Case 1
+                    Return Me._members
+                Case 2
+                    Return Me._endExtensionStatement
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new ExtensionBlockSyntax(Me.Kind, newErrors, GetAnnotations, _extensionStatement, _members, _endExtensionStatement)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new ExtensionBlockSyntax(Me.Kind, GetDiagnostics, annotations, _extensionStatement, _members, _endExtensionStatement)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitExtensionBlock(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a non-destructive record copy. The initializer assigns members of
     ''' the copy.
     ''' </summary>
@@ -30837,6 +31049,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
         End Function
+        Public Overridable Function VisitExtensionStatement(ByVal node As ExtensionStatementSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitDeclarationStatement(node)
+        End Function
+        Public Overridable Function VisitExtensionBlock(ByVal node As ExtensionBlockSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitDeclarationStatement(node)
+        End Function
         Public Overridable Function VisitWithExpression(ByVal node As WithExpressionSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
@@ -34010,6 +34230,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
         End Function
 
+        Public Overrides Function VisitExtensionStatement(ByVal node As ExtensionStatementSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newExtensionKeyword = DirectCast(Visit(node.ExtensionKeyword), KeywordSyntax)
+            If node._extensionKeyword IsNot newExtensionKeyword Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node._parameterList), ParameterListSyntax)
+            If node._parameterList IsNot newParameterList Then anyChanges = True
+
+            If anyChanges Then
+                Return New ExtensionStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newExtensionKeyword, newParameterList)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitExtensionBlock(ByVal node As ExtensionBlockSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newExtensionStatement = DirectCast(Visit(node._extensionStatement), ExtensionStatementSyntax)
+            If node._extensionStatement IsNot newExtensionStatement Then anyChanges = True
+            Dim newMembers = VisitList(node.Members)
+            If node._members IsNot newMembers.Node Then anyChanges = True
+            Dim newEndExtensionStatement = DirectCast(Visit(node._endExtensionStatement), EndBlockStatementSyntax)
+            If node._endExtensionStatement IsNot newEndExtensionStatement Then anyChanges = True
+
+            If anyChanges Then
+                Return New ExtensionBlockSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newExtensionStatement, newMembers.Node, newEndExtensionStatement)
+            Else
+                Return node
+            End If
+        End Function
+
         Public Overrides Function VisitWithExpression(ByVal node As WithExpressionSyntax) As VisualBasicSyntaxNode
             Dim anyChanges As Boolean = False
 
@@ -36420,6 +36672,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <summary>
         ''' Represents an "End XXX" statement, where XXX is a single keyword.
         ''' </summary>
+        ''' <param name="endKeyword">
+        ''' The "End" keyword
+        ''' </param>
+        ''' <param name="blockKeyword">
+        ''' The keyword that ends the block. Must be one of: "If", "Using", "With",
+        ''' "Select", "Structure", "Enum", "Interface", "Class", "Module", "Namespace",
+        ''' "Sub", "Function", "Get, "Set", "Property", "Operator", "Event", "AddHandler",
+        ''' "RemoveHandler", "RaiseEvent", "While", "Try" or "SyncLock".
+        ''' </param>
+        Friend Shared Function EndExtensionStatement(endKeyword As KeywordSyntax, blockKeyword As KeywordSyntax) As EndBlockStatementSyntax
+            Debug.Assert(endKeyword IsNot Nothing AndAlso endKeyword.Kind = SyntaxKind.EndKeyword)
+            Debug.Assert(blockKeyword IsNot Nothing AndAlso blockKeyword.Kind = SyntaxKind.ExtensionKeyword)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.EndExtensionStatement, endKeyword, blockKeyword, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, EndBlockStatementSyntax)
+            End If
+
+            Dim result = New EndBlockStatementSyntax(SyntaxKind.EndExtensionStatement, endKeyword, blockKeyword)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an "End XXX" statement, where XXX is a single keyword.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' EndBlockStatementSyntax. One of EndIfStatement, EndUsingStatement,
@@ -36428,7 +36711,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' EndNamespaceStatement, EndSubStatement, EndFunctionStatement, EndGetStatement,
         ''' EndSetStatement, EndPropertyStatement, EndOperatorStatement, EndEventStatement,
         ''' EndAddHandlerStatement, EndRemoveHandlerStatement, EndRaiseEventStatement,
-        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement.
+        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement,
+        ''' EndExtensionStatement.
         ''' </param>
         ''' <param name="endKeyword">
         ''' The "End" keyword
@@ -44179,6 +44463,66 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         ''' <summary>
+        ''' Represents the header of an extension block. The parameter list is the
+        ''' receiver.
+        ''' </summary>
+        ''' <param name="extensionKeyword">
+        ''' The Extension keyword.
+        ''' </param>
+        ''' <param name="parameterList">
+        ''' The receiver parameter.
+        ''' </param>
+        Friend Shared Function ExtensionStatement(extensionKeyword As KeywordSyntax, parameterList As ParameterListSyntax) As ExtensionStatementSyntax
+            Debug.Assert(extensionKeyword IsNot Nothing AndAlso extensionKeyword.Kind = SyntaxKind.ExtensionKeyword)
+            Debug.Assert(parameterList IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.ExtensionStatement, extensionKeyword, parameterList, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ExtensionStatementSyntax)
+            End If
+
+            Dim result = New ExtensionStatementSyntax(SyntaxKind.ExtensionStatement, extensionKeyword, parameterList)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an extension block. Members in the block extend the receiver type.
+        ''' </summary>
+        ''' <param name="extensionStatement">
+        ''' The block header.
+        ''' </param>
+        ''' <param name="members">
+        ''' The members declared by the extension.
+        ''' </param>
+        ''' <param name="endExtensionStatement">
+        ''' The End Extension statement.
+        ''' </param>
+        Friend Shared Function ExtensionBlock(extensionStatement As ExtensionStatementSyntax, members As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), endExtensionStatement As EndBlockStatementSyntax) As ExtensionBlockSyntax
+            Debug.Assert(extensionStatement IsNot Nothing)
+            Debug.Assert(endExtensionStatement IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.ExtensionBlock, extensionStatement, members.Node, endExtensionStatement, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ExtensionBlockSyntax)
+            End If
+
+            Dim result = New ExtensionBlockSyntax(SyntaxKind.ExtensionBlock, extensionStatement, members.Node, endExtensionStatement)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
         ''' Represents a non-destructive record copy. The initializer assigns members of
         ''' the copy.
         ''' </summary>
@@ -48854,6 +49198,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <summary>
         ''' Represents an "End XXX" statement, where XXX is a single keyword.
         ''' </summary>
+        ''' <param name="endKeyword">
+        ''' The "End" keyword
+        ''' </param>
+        ''' <param name="blockKeyword">
+        ''' The keyword that ends the block. Must be one of: "If", "Using", "With",
+        ''' "Select", "Structure", "Enum", "Interface", "Class", "Module", "Namespace",
+        ''' "Sub", "Function", "Get, "Set", "Property", "Operator", "Event", "AddHandler",
+        ''' "RemoveHandler", "RaiseEvent", "While", "Try" or "SyncLock".
+        ''' </param>
+        Friend Function EndExtensionStatement(endKeyword As KeywordSyntax, blockKeyword As KeywordSyntax) As EndBlockStatementSyntax
+            Debug.Assert(endKeyword IsNot Nothing AndAlso endKeyword.Kind = SyntaxKind.EndKeyword)
+            Debug.Assert(blockKeyword IsNot Nothing AndAlso blockKeyword.Kind = SyntaxKind.ExtensionKeyword)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.EndExtensionStatement, endKeyword, blockKeyword, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, EndBlockStatementSyntax)
+            End If
+
+            Dim result = New EndBlockStatementSyntax(SyntaxKind.EndExtensionStatement, endKeyword, blockKeyword, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an "End XXX" statement, where XXX is a single keyword.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' EndBlockStatementSyntax. One of EndIfStatement, EndUsingStatement,
@@ -48862,7 +49237,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' EndNamespaceStatement, EndSubStatement, EndFunctionStatement, EndGetStatement,
         ''' EndSetStatement, EndPropertyStatement, EndOperatorStatement, EndEventStatement,
         ''' EndAddHandlerStatement, EndRemoveHandlerStatement, EndRaiseEventStatement,
-        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement.
+        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement,
+        ''' EndExtensionStatement.
         ''' </param>
         ''' <param name="endKeyword">
         ''' The "End" keyword
@@ -56604,6 +56980,66 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New CollectionExpressionSyntax(SyntaxKind.CollectionExpression, openParenToken, elements.Node, closeParenToken, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents the header of an extension block. The parameter list is the
+        ''' receiver.
+        ''' </summary>
+        ''' <param name="extensionKeyword">
+        ''' The Extension keyword.
+        ''' </param>
+        ''' <param name="parameterList">
+        ''' The receiver parameter.
+        ''' </param>
+        Friend Function ExtensionStatement(extensionKeyword As KeywordSyntax, parameterList As ParameterListSyntax) As ExtensionStatementSyntax
+            Debug.Assert(extensionKeyword IsNot Nothing AndAlso extensionKeyword.Kind = SyntaxKind.ExtensionKeyword)
+            Debug.Assert(parameterList IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.ExtensionStatement, extensionKeyword, parameterList, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ExtensionStatementSyntax)
+            End If
+
+            Dim result = New ExtensionStatementSyntax(SyntaxKind.ExtensionStatement, extensionKeyword, parameterList, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an extension block. Members in the block extend the receiver type.
+        ''' </summary>
+        ''' <param name="extensionStatement">
+        ''' The block header.
+        ''' </param>
+        ''' <param name="members">
+        ''' The members declared by the extension.
+        ''' </param>
+        ''' <param name="endExtensionStatement">
+        ''' The End Extension statement.
+        ''' </param>
+        Friend Function ExtensionBlock(extensionStatement As ExtensionStatementSyntax, members As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), endExtensionStatement As EndBlockStatementSyntax) As ExtensionBlockSyntax
+            Debug.Assert(extensionStatement IsNot Nothing)
+            Debug.Assert(endExtensionStatement IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.ExtensionBlock, extensionStatement, members.Node, endExtensionStatement, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ExtensionBlockSyntax)
+            End If
+
+            Dim result = New ExtensionBlockSyntax(SyntaxKind.ExtensionBlock, extensionStatement, members.Node, endExtensionStatement, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If

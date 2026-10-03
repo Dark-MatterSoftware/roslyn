@@ -720,6 +720,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     endStmt = SyntaxFactory.EndUsingStatement(missingEndKeyword, InternalSyntaxFactory.MissingKeyword(SyntaxKind.UsingKeyword))
                     errorId = ERRID.ERR_ExpectedEndUsing
 
+                Case SyntaxKind.ExtensionBlock
+                    endStmt = SyntaxFactory.EndExtensionStatement(missingEndKeyword, InternalSyntaxFactory.MissingKeyword(SyntaxKind.ExtensionKeyword))
+                    errorId = ERRID.ERR_ExpectedEndExtension
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(kind)
             End Select
@@ -815,6 +819,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 Case SyntaxKind.UsingBlock
                     Return SyntaxKind.EndUsingStatement
+
+                Case SyntaxKind.ExtensionBlock
+                    Return SyntaxKind.EndExtensionStatement
 
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(kind)

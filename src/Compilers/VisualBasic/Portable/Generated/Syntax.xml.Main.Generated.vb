@@ -485,6 +485,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitCollectionExpression(ByVal node As CollectionExpressionSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitExtensionStatement(ByVal node As ExtensionStatementSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
+        Public Overridable Function VisitExtensionBlock(ByVal node As ExtensionBlockSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitWithExpression(ByVal node As WithExpressionSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1248,6 +1254,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitCollectionExpression(ByVal node As CollectionExpressionSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitExtensionStatement(ByVal node As ExtensionStatementSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitExtensionBlock(ByVal node As ExtensionBlockSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitWithExpression(ByVal node As WithExpressionSyntax)
@@ -4271,6 +4283,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
         End Function
 
+        Public Overrides Function VisitExtensionStatement(ByVal node As ExtensionStatementSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newExtensionKeyword = DirectCast(VisitToken(node.ExtensionKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.ExtensionKeyword.Node IsNot newExtensionKeyword Then anyChanges = True
+            Dim newParameterList = DirectCast(Visit(node.ParameterList), ParameterListSyntax)
+            If node.ParameterList IsNot newParameterList Then anyChanges = True
+
+            If anyChanges Then
+                Return New ExtensionStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newExtensionKeyword, newParameterList)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitExtensionBlock(ByVal node As ExtensionBlockSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newExtensionStatement = DirectCast(Visit(node.ExtensionStatement), ExtensionStatementSyntax)
+            If node.ExtensionStatement IsNot newExtensionStatement Then anyChanges = True
+            Dim newMembers = VisitList(node.Members)
+            If node._members IsNot newMembers.Node Then anyChanges = True
+            Dim newEndExtensionStatement = DirectCast(Visit(node.EndExtensionStatement), EndBlockStatementSyntax)
+            If node.EndExtensionStatement IsNot newEndExtensionStatement Then anyChanges = True
+
+            If anyChanges Then
+                Return New ExtensionBlockSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newExtensionStatement, newMembers.Node, newEndExtensionStatement)
+            Else
+                Return node
+            End If
+        End Function
+
         Public Overrides Function VisitWithExpression(ByVal node As WithExpressionSyntax) As SyntaxNode
             Dim anyChanges As Boolean = False
 
@@ -6007,7 +6051,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.RaiseEventKeyword :
                 Case SyntaxKind.WhileKeyword :
                 Case SyntaxKind.TryKeyword :
-                Case SyntaxKind.SyncLockKeyword
+                Case SyntaxKind.SyncLockKeyword :
+                Case SyntaxKind.ExtensionKeyword
                 Case Else
                     Throw new ArgumentException("blockKeyword")
             End Select
@@ -6796,6 +6841,41 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' Represents an "End XXX" statement, where XXX is a single keyword.
         ''' </summary>
+        ''' <param name="endKeyword">
+        ''' The "End" keyword
+        ''' </param>
+        ''' <param name="blockKeyword">
+        ''' The keyword that ends the block. Must be one of: "If", "Using", "With",
+        ''' "Select", "Structure", "Enum", "Interface", "Class", "Module", "Namespace",
+        ''' "Sub", "Function", "Get, "Set", "Property", "Operator", "Event", "AddHandler",
+        ''' "RemoveHandler", "RaiseEvent", "While", "Try" or "SyncLock".
+        ''' </param>
+        Public Shared Function EndExtensionStatement(endKeyword As SyntaxToken, blockKeyword As SyntaxToken) As EndBlockStatementSyntax
+            Select Case endKeyword.Kind()
+                Case SyntaxKind.EndKeyword
+                Case Else
+                    Throw new ArgumentException("endKeyword")
+            End Select
+            Select Case blockKeyword.Kind()
+                Case SyntaxKind.ExtensionKeyword
+                Case Else
+                    Throw new ArgumentException("blockKeyword")
+            End Select
+            Return New EndBlockStatementSyntax(SyntaxKind.EndExtensionStatement, Nothing, Nothing, DirectCast(endKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(blockKeyword.Node, InternalSyntax.KeywordSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an "End XXX" statement, where XXX is a single keyword.
+        ''' </summary>
+        Public Shared Function EndExtensionStatement() As EndBlockStatementSyntax
+            Return SyntaxFactory.EndExtensionStatement(SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.ExtensionKeyword))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an "End XXX" statement, where XXX is a single keyword.
+        ''' </summary>
         ''' <param name="kind">
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' EndBlockStatementSyntax. One of EndIfStatement, EndUsingStatement,
@@ -6804,7 +6884,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' EndNamespaceStatement, EndSubStatement, EndFunctionStatement, EndGetStatement,
         ''' EndSetStatement, EndPropertyStatement, EndOperatorStatement, EndEventStatement,
         ''' EndAddHandlerStatement, EndRemoveHandlerStatement, EndRaiseEventStatement,
-        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement.
+        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement,
+        ''' EndExtensionStatement.
         ''' </param>
         ''' <param name="endKeyword">
         ''' The "End" keyword
@@ -6878,6 +6959,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return SyntaxKind.TryKeyword
                 Case SyntaxKind.EndSyncLockStatement
                     Return SyntaxKind.SyncLockKeyword
+                Case SyntaxKind.EndExtensionStatement
+                    Return SyntaxKind.ExtensionKeyword
                 Case Else
                     Throw New ArgumentException("BlockKeyword")
             End Select
@@ -6894,7 +6977,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' EndNamespaceStatement, EndSubStatement, EndFunctionStatement, EndGetStatement,
         ''' EndSetStatement, EndPropertyStatement, EndOperatorStatement, EndEventStatement,
         ''' EndAddHandlerStatement, EndRemoveHandlerStatement, EndRaiseEventStatement,
-        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement.
+        ''' EndWhileStatement, EndTryStatement, EndSyncLockStatement,
+        ''' EndExtensionStatement.
         ''' </param>
         ''' <param name="blockKeyword">
         ''' The keyword that ends the block. Must be one of: "If", "Using", "With",
@@ -28636,6 +28720,104 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
 
         ''' <summary>
+        ''' Represents the header of an extension block. The parameter list is the
+        ''' receiver.
+        ''' </summary>
+        ''' <param name="extensionKeyword">
+        ''' The Extension keyword.
+        ''' </param>
+        ''' <param name="parameterList">
+        ''' The receiver parameter.
+        ''' </param>
+        Public Shared Function ExtensionStatement(extensionKeyword As SyntaxToken, parameterList As ParameterListSyntax) As ExtensionStatementSyntax
+            Select Case extensionKeyword.Kind()
+                Case SyntaxKind.ExtensionKeyword
+                Case Else
+                    Throw new ArgumentException("extensionKeyword")
+            End Select
+            if parameterList Is Nothing Then
+                Throw New ArgumentNullException(NameOf(parameterList))
+            End If
+            Select Case parameterList.Kind()
+                Case SyntaxKind.ParameterList
+                Case Else
+                    Throw new ArgumentException("parameterList")
+            End Select
+            Return New ExtensionStatementSyntax(SyntaxKind.ExtensionStatement, Nothing, Nothing, DirectCast(extensionKeyword.Node, InternalSyntax.KeywordSyntax), parameterList)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents the header of an extension block. The parameter list is the
+        ''' receiver.
+        ''' </summary>
+        ''' <param name="parameterList">
+        ''' The receiver parameter.
+        ''' </param>
+        Public Shared Function ExtensionStatement(parameterList As ParameterListSyntax) As ExtensionStatementSyntax
+            Return SyntaxFactory.ExtensionStatement(SyntaxFactory.Token(SyntaxKind.ExtensionKeyword), parameterList)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an extension block. Members in the block extend the receiver type.
+        ''' </summary>
+        ''' <param name="extensionStatement">
+        ''' The block header.
+        ''' </param>
+        ''' <param name="members">
+        ''' The members declared by the extension.
+        ''' </param>
+        ''' <param name="endExtensionStatement">
+        ''' The End Extension statement.
+        ''' </param>
+        Public Shared Function ExtensionBlock(extensionStatement As ExtensionStatementSyntax, members As SyntaxList(of StatementSyntax), endExtensionStatement As EndBlockStatementSyntax) As ExtensionBlockSyntax
+            if extensionStatement Is Nothing Then
+                Throw New ArgumentNullException(NameOf(extensionStatement))
+            End If
+            Select Case extensionStatement.Kind()
+                Case SyntaxKind.ExtensionStatement
+                Case Else
+                    Throw new ArgumentException("extensionStatement")
+            End Select
+            if endExtensionStatement Is Nothing Then
+                Throw New ArgumentNullException(NameOf(endExtensionStatement))
+            End If
+            Select Case endExtensionStatement.Kind()
+                Case SyntaxKind.EndExtensionStatement
+                Case Else
+                    Throw new ArgumentException("endExtensionStatement")
+            End Select
+            Return New ExtensionBlockSyntax(SyntaxKind.ExtensionBlock, Nothing, Nothing, extensionStatement, members.Node, endExtensionStatement)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an extension block. Members in the block extend the receiver type.
+        ''' </summary>
+        ''' <param name="extensionStatement">
+        ''' The block header.
+        ''' </param>
+        ''' <param name="members">
+        ''' The members declared by the extension.
+        ''' </param>
+        Public Shared Function ExtensionBlock(extensionStatement As ExtensionStatementSyntax, members As SyntaxList(of StatementSyntax)) As ExtensionBlockSyntax
+            Return SyntaxFactory.ExtensionBlock(extensionStatement, members, SyntaxFactory.EndExtensionStatement())
+        End Function
+
+
+        ''' <summary>
+        ''' Represents an extension block. Members in the block extend the receiver type.
+        ''' </summary>
+        ''' <param name="extensionStatement">
+        ''' The block header.
+        ''' </param>
+        Public Shared Function ExtensionBlock(extensionStatement As ExtensionStatementSyntax) As ExtensionBlockSyntax
+            Return SyntaxFactory.ExtensionBlock(extensionStatement, Nothing, SyntaxFactory.EndExtensionStatement())
+        End Function
+
+
+        ''' <summary>
         ''' Represents a non-destructive record copy. The initializer assigns members of
         ''' the copy.
         ''' </summary>
@@ -38195,6 +38377,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.EndWhileStatement,
                      SyntaxKind.EndTryStatement,
                      SyntaxKind.EndSyncLockStatement,
+                     SyntaxKind.EndExtensionStatement,
                      SyntaxKind.OptionStatement,
                      SyntaxKind.ImportsStatement,
                      SyntaxKind.NamespaceBlock,
@@ -38327,6 +38510,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.ReDimStatement,
                      SyntaxKind.ReDimPreserveStatement,
                      SyntaxKind.EraseStatement,
+                     SyntaxKind.ExtensionStatement,
+                     SyntaxKind.ExtensionBlock,
                      SyntaxKind.SubLambdaHeader,
                      SyntaxKind.FunctionLambdaHeader,
                      SyntaxKind.YieldStatement
@@ -38496,6 +38681,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.EndWhileStatement,
                      SyntaxKind.EndTryStatement,
                      SyntaxKind.EndSyncLockStatement,
+                     SyntaxKind.EndExtensionStatement,
                      SyntaxKind.OptionStatement,
                      SyntaxKind.ImportsStatement,
                      SyntaxKind.NamespaceBlock,
@@ -38628,6 +38814,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.ReDimStatement,
                      SyntaxKind.ReDimPreserveStatement,
                      SyntaxKind.EraseStatement,
+                     SyntaxKind.ExtensionStatement,
+                     SyntaxKind.ExtensionBlock,
                      SyntaxKind.SubLambdaHeader,
                      SyntaxKind.FunctionLambdaHeader,
                      SyntaxKind.YieldStatement
@@ -38805,6 +38993,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.EndWhileStatement,
                      SyntaxKind.EndTryStatement,
                      SyntaxKind.EndSyncLockStatement,
+                     SyntaxKind.EndExtensionStatement,
                      SyntaxKind.OptionStatement,
                      SyntaxKind.ImportsStatement,
                      SyntaxKind.NamespaceBlock,
@@ -38937,6 +39126,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.ReDimStatement,
                      SyntaxKind.ReDimPreserveStatement,
                      SyntaxKind.EraseStatement,
+                     SyntaxKind.ExtensionStatement,
+                     SyntaxKind.ExtensionBlock,
                      SyntaxKind.SubLambdaHeader,
                      SyntaxKind.FunctionLambdaHeader,
                      SyntaxKind.YieldStatement
@@ -46570,7 +46761,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.EndRaiseEventStatement,
                 SyntaxKind.EndWhileStatement,
                 SyntaxKind.EndTryStatement,
-                SyntaxKind.EndSyncLockStatement
+                SyntaxKind.EndSyncLockStatement,
+                SyntaxKind.EndExtensionStatement
                     Return True
             End Select
             Return False
@@ -46601,7 +46793,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.RaiseEventKeyword,
                 SyntaxKind.WhileKeyword,
                 SyntaxKind.TryKeyword,
-                SyntaxKind.SyncLockKeyword
+                SyntaxKind.SyncLockKeyword,
+                SyntaxKind.ExtensionKeyword
                     Return True
             End Select
             Return False
@@ -47752,7 +47945,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.YieldKeyword,
                 SyntaxKind.InitOnlyKeyword,
                 SyntaxKind.RequiredKeyword,
-                SyntaxKind.RecordKeyword
+                SyntaxKind.RecordKeyword,
+                SyntaxKind.ExtensionKeyword
                     Return True
             End Select
             Return False
@@ -48321,6 +48515,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "Required"
                 Case SyntaxKind.RecordKeyword
                     Return "Record"
+                Case SyntaxKind.ExtensionKeyword
+                    Return "Extension"
                 Case SyntaxKind.ExclamationToken
                     Return "!"
                 Case SyntaxKind.AtToken

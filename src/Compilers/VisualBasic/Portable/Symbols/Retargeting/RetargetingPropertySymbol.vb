@@ -164,6 +164,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsExtensionProperty As Boolean
+            Get
+                Return _underlyingProperty.IsExtensionProperty
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property Name As String
             Get
                 Return _underlyingProperty.Name

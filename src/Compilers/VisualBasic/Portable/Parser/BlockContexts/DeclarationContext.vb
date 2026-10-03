@@ -108,6 +108,12 @@ HandleMethodBase:
 
                     Return New MethodBlockContext(SyntaxKind.OperatorBlock, DirectCast(node, StatementSyntax), Me)
 
+                Case SyntaxKind.ExtensionStatement
+                    Return New ExtensionBlockContext(DirectCast(node, StatementSyntax), Me)
+
+                Case SyntaxKind.ExtensionBlock
+                    Add(node)
+
                 Case SyntaxKind.PropertyStatement
                     ' ===== Make an initial attempt at determining if this might be an auto or expanded property
                     ' We can determine which it is in some cases by looking at the specifiers.
@@ -278,7 +284,8 @@ HandleMethodBase:
                     SyntaxKind.OptionStatement,
                     SyntaxKind.ImportsStatement,
                     SyntaxKind.InheritsStatement,
-                    SyntaxKind.ImplementsStatement
+                    SyntaxKind.ImplementsStatement,
+                    SyntaxKind.ExtensionStatement
 
                     Return UseSyntax(node, newContext)
 
@@ -322,6 +329,9 @@ HandleMethodBase:
 
                 Case SyntaxKind.PropertyBlock
                     Return UseSyntax(node, newContext, DirectCast(node, PropertyBlockSyntax).EndPropertyStatement.IsMissing)
+
+                Case SyntaxKind.ExtensionBlock
+                    Return UseSyntax(node, newContext, DirectCast(node, ExtensionBlockSyntax).EndExtensionStatement.IsMissing)
 
                 Case _
                     SyntaxKind.NamespaceBlock,
@@ -440,6 +450,9 @@ HandleMethodBase:
 
                 Case SyntaxKind.EndSyncLockStatement
                     ErrorId = ERRID.ERR_EndSyncLockNoSyncLock
+
+                Case SyntaxKind.EndExtensionStatement
+                    ErrorId = ERRID.ERR_UnrecognizedEnd
 
 #If UNDONE Then
                         'TODO - davidsch - handle regions

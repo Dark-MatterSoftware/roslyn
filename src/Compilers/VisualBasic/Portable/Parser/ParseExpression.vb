@@ -1988,7 +1988,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.DeclareSubStatement,
                     SyntaxKind.DeclareFunctionStatement,
                     SyntaxKind.DelegateFunctionStatement,
-                    SyntaxKind.DelegateSubStatement
+                    SyntaxKind.DelegateSubStatement,
+                    SyntaxKind.ExtensionStatement
                     Return True
                 Case Else
                     Return False
