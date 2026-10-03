@@ -29,6 +29,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim c = Peek(offset)
 
+            If IsRawInterpolatedStart(offset) Then
+                Dim startLength = MeasureRawInterpolatedStart(offset, commit:=True)
+                Dim startTrivia = ScanWhitespace(leadingTriviaLength)
+                Dim startText = GetText(startLength)
+                Return MakePunctuationToken(SyntaxKind.DollarSignDoubleQuoteToken, startText, startTrivia, Nothing)
+            End If
+
+            If IsRawInterpolatedCloser(offset) Then
+                Return ScanRawInterpolatedCloser(leadingTriviaLength)
+            End If
+
             ' This should only ever happen for $" or }
             Debug.Assert(leadingTriviaLength = 0 OrElse c = "$"c OrElse c = FULLWIDTH_DOLLAR_SIGN OrElse IsRightCurlyBracket(c))
 
@@ -99,8 +110,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         Private Function ScanInterpolatedStringContent() As SyntaxToken
-            If IsInterpolatedStringPunctuation() Then
+            If IsInterpolatedStringPunctuation() OrElse IsRawInterpolatedCloser(0) Then
                 Return ScanInterpolatedStringPunctuation()
+            ElseIf _rawInterpolatedQuoteCount >= 3 Then
+                Return ScanRawInterpolatedStringText()
             Else
                 Return ScanInterpolatedStringText(scanTrailingWhitespaceAsTrivia:=False)
             End If
@@ -126,6 +139,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Return Not CanGet(offset + 1) OrElse Not IsRightCurlyBracket(Peek(offset + 1))
 
             ElseIf IsDoubleQuote(c)
+                If _rawInterpolatedQuoteCount >= 3 Then
+                    Return IsRawInterpolatedCloser(offset)
+                End If
+
                 'A subtle difference between this case and the one above.
                 ' In both interpolated and literal strings the two quote characters used in an escape sequence don't have to match.
                 ' It's enough that the next character is *a* quote char. It doesn't have to be the same quote.
@@ -231,6 +248,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         Private Function MakeEndOfInterpolatedStringToken() As SyntaxToken
+            ClearOrRestoreRawInterpolatedState()
             Return SyntaxFactory.Token(Nothing, SyntaxKind.EndOfInterpolatedStringToken, Nothing, String.Empty)
         End Function
 

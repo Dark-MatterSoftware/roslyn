@@ -79,5 +79,53 @@ End Class
                 Diagnostic(ERRID.ERR_NameNotDeclared1, "r").WithArguments("r").WithLocation(4, 17),
                 Diagnostic(ERRID.ERR_ExpectedEOS, """""""hello""""""").WithLocation(4, 18))
         End Sub
+
+        <Fact>
+        Public Sub RawString_InterpolationHole()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim name = ""Ann""
+        System.Console.Write($r""""""Hello {name}"""""")
+        System.Console.Write($r""""""Say ""hi"" {name}"""""")
+        System.Console.Write($r""""""{{ok}}{name}"""""")
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Hello AnnSay ""hi"" Ann{ok}Ann").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RawString_InterpolationHoleStripsClosingIndent()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim name = ""Ann""
+        System.Console.Write($r""""""
+    Hello {name}
+    """""")
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Hello Ann").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RawString_InterpolationRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim name = ""Ann""
+        System.Console.Write($r""""""Hello {name}"""""")
+    End Sub
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedExpression, "").WithLocation(5, 30),
+                Diagnostic(ERRID.ERR_IllegalChar, "$").WithLocation(5, 30))
+        End Sub
     End Class
 End Namespace

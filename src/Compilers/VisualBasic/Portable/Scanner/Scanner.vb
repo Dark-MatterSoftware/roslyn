@@ -1325,7 +1325,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     End If
 
                 Case "$"c, FULLWIDTH_DOLLAR_SIGN
-                    If Not fullWidth AndAlso CanGet(1) AndAlso IsDoubleQuote(Peek(1)) Then
+                    If Not fullWidth AndAlso IsRawInterpolatedStart(0) Then
+                        Return MakePunctuationToken(precedingTrivia, MeasureRawInterpolatedStart(0, commit:=False), SyntaxKind.DollarSignDoubleQuoteToken)
+                    ElseIf Not fullWidth AndAlso CanGet(1) AndAlso IsDoubleQuote(Peek(1)) Then
                         Return MakePunctuationToken(precedingTrivia, 2, SyntaxKind.DollarSignDoubleQuoteToken)
                     End If
 
