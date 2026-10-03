@@ -2332,7 +2332,8 @@ ProduceBoundNode:
 
                     If param.IsParamArray AndAlso paramIndex = candidate.ParameterCount - 1 Then
 
-                        If targetType.Kind <> SymbolKind.ArrayType Then
+                        Dim collectionElementType = If(targetType.Kind = SymbolKind.ArrayType, Nothing, TryGetCollectionParamArrayElementType(targetType))
+                        If targetType.Kind <> SymbolKind.ArrayType AndAlso collectionElementType Is Nothing Then
 
                             If targetType.Kind <> SymbolKind.ErrorType Then
                                 ' ERRID_ParamArrayWrongType
@@ -2406,16 +2407,21 @@ ProduceBoundNode:
                             ReportByValConversionErrors(param, argument, targetType, reportNarrowingConversions, diagnostics)
 
                         ElseIf allowExpandedParamArrayForm Then
-                            Dim arrayType = DirectCast(targetType, ArrayTypeSymbol)
+                            Dim arrayElementType As TypeSymbol
+                            If collectionElementType IsNot Nothing Then
+                                arrayElementType = collectionElementType
+                            Else
+                                Dim arrayType = DirectCast(targetType, ArrayTypeSymbol)
 
-                            If Not arrayType.IsSZArray Then
-                                ' ERRID_ParamArrayWrongType
-                                ReportDiagnostic(diagnostics, diagnosticLocation, ERRID.ERR_ParamArrayWrongType)
-                                someArgumentsBad = True
-                                Continue For
+                                If Not arrayType.IsSZArray Then
+                                    ' ERRID_ParamArrayWrongType
+                                    ReportDiagnostic(diagnostics, diagnosticLocation, ERRID.ERR_ParamArrayWrongType)
+                                    someArgumentsBad = True
+                                    Continue For
+                                End If
+
+                                arrayElementType = arrayType.ElementType
                             End If
-
-                            Dim arrayElementType = arrayType.ElementType
 
                             For i As Integer = 0 To paramArrayItems.Count - 1 Step 1
                                 argument = arguments(paramArrayItems(i))
@@ -2652,6 +2658,29 @@ ProduceBoundNode:
         End Function
 
         ''' <summary>
+        ''' An expanded ParamArray of List(Of T) is created and filled with Add.
+        ''' An expanded ParamArray of IEnumerable(Of T) is an array of T.
+        ''' </summary>
+        Private Function CreateCollectionParamArrayArgument(syntax As SyntaxNode, paramType As TypeSymbol, elementType As TypeSymbol, items As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim named = TryCast(paramType, NamedTypeSymbol)
+            If named IsNot Nothing AndAlso named.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T Then
+                Dim arrayType = ArrayTypeSymbol.CreateSZArray(elementType, ImmutableArray(Of CustomModifier).Empty, Compilation)
+                Dim boundCount = New BoundLiteral(syntax, ConstantValue.Create(items.Length), GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)).MakeCompilerGenerated()
+                Dim initializer = New BoundArrayInitialization(syntax, items, Nothing).MakeCompilerGenerated()
+                Dim arrayCreation = New BoundArrayCreation(syntax, ImmutableArray.Create(Of BoundExpression)(boundCount), initializer, arrayType).MakeCompilerGenerated()
+                Return ApplyImplicitConversion(syntax, paramType, arrayCreation, diagnostics)
+            End If
+
+            Dim created = TryBindCollectionInitializerFromElements(syntax, paramType, items, diagnostics)
+            If created Is Nothing Then
+                Return BadExpression(syntax, items, paramType)
+            End If
+
+            created.SetWasCompilerGenerated()
+            Return created
+        End Function
+
+        ''' <summary>
         ''' Should be kept in sync with OverloadResolution.MatchArguments, which populates 
         ''' data this function operates on.
         ''' </summary>
@@ -2733,7 +2762,8 @@ ProduceBoundNode:
                 Dim conversionBack As KeyValuePair(Of ConversionKind, MethodSymbol) = Conversions.Identity
 
                 If candidate.IsExpandedParamArrayForm AndAlso paramIndex = candidate.Candidate.ParameterCount - 1 Then
-                    Dim arrayElementType = DirectCast(targetType, ArrayTypeSymbol).ElementType
+                    Dim arrayType = TryCast(targetType, ArrayTypeSymbol)
+                    Dim arrayElementType = If(arrayType IsNot Nothing, arrayType.ElementType, TryGetCollectionParamArrayElementType(targetType))
 
                     Dim items = ArrayBuilder(Of BoundExpression).GetInstance(paramArrayItems.Count)
 
@@ -2745,12 +2775,16 @@ ProduceBoundNode:
                                                                arrayElementType, diagnostics))
                     Next
 
-                    ' Create the bound array and ensure that it is marked as compiler generated.
-                    argument = New BoundArrayCreation(node, True,
-                                    (New BoundExpression() {New BoundLiteral(node,
-                                        ConstantValue.Create(items.Count),
-                                        GetSpecialType(SpecialType.System_Int32, node, diagnostics)).MakeCompilerGenerated()}).AsImmutableOrNull(),
-                                    New BoundArrayInitialization(node, items.ToImmutableAndFree(), targetType).MakeCompilerGenerated(), Nothing, Nothing, targetType).MakeCompilerGenerated()
+                    If arrayType IsNot Nothing Then
+                        ' Create the bound array and ensure that it is marked as compiler generated.
+                        argument = New BoundArrayCreation(node, True,
+                                        (New BoundExpression() {New BoundLiteral(node,
+                                            ConstantValue.Create(items.Count),
+                                            GetSpecialType(SpecialType.System_Int32, node, diagnostics)).MakeCompilerGenerated()}).AsImmutableOrNull(),
+                                        New BoundArrayInitialization(node, items.ToImmutableAndFree(), targetType).MakeCompilerGenerated(), Nothing, Nothing, targetType).MakeCompilerGenerated()
+                    Else
+                        argument = CreateCollectionParamArrayArgument(node, targetType, arrayElementType, items.ToImmutableAndFree(), diagnostics)
+                    End If
                 Else
                     Dim argIndex As Integer
                     argIndex = parameterToArgumentMap(paramIndex)

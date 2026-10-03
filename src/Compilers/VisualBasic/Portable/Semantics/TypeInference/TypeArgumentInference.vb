@@ -925,7 +925,37 @@ HandleAsAGeneralExpression:
 
                     If param.IsParamArray AndAlso paramIndex = candidate.ParameterCount - 1 Then
 
+                        Dim declaringCompilation = candidate.DeclaringCompilation
+                        Dim collectionElementType = If(targetType.Kind = SymbolKind.ArrayType OrElse declaringCompilation Is Nothing OrElse declaringCompilation.LanguageVersion < LanguageVersion.VbNext,
+                                                       Nothing,
+                                                       Binder.GetCollectionParamArrayElementType(declaringCompilation, targetType))
                         If targetType.Kind <> SymbolKind.ArrayType Then
+                            If collectionElementType Is Nothing Then
+                                Continue For
+                            End If
+
+                            If Not isExpandedParamArrayForm Then
+                                argIndex = parameterToArgumentMap(paramIndex)
+                                Dim collectionArgument = If(argIndex = -1, Nothing, arguments(argIndex))
+                                If collectionArgument Is Nothing OrElse collectionArgument.HasErrors Then
+                                    Continue For
+                                End If
+
+                                RegisterArgument(collectionArgument, targetType, param)
+                            Else
+                                If paramArrayItems.Count = 1 AndAlso arguments(paramArrayItems(0)).IsNothingLiteral() Then
+                                    Continue For
+                                End If
+
+                                For j As Integer = 0 To paramArrayItems.Count - 1 Step 1
+                                    If arguments(paramArrayItems(j)).HasErrors Then
+                                        Continue For
+                                    End If
+
+                                    RegisterArgument(arguments(paramArrayItems(j)), collectionElementType, param)
+                                Next
+                            End If
+
                             Continue For
                         End If
 

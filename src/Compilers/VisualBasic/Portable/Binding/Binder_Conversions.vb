@@ -406,14 +406,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Creates the target with its parameterless constructor and adds each element.
         ''' A type that does not already accept a collection initializer is left for the normal conversion.
         ''' </summary>
+        Friend Function TryGetCollectionParamArrayElementType(paramType As TypeSymbol) As TypeSymbol
+            If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return Nothing
+            End If
+
+            Return GetCollectionParamArrayElementType(Compilation, paramType)
+        End Function
+
+        ''' <summary>
+        ''' List(Of T) and IEnumerable(Of T) are ParamArray types on vbnext. The element type is T.
+        ''' </summary>
+        Friend Shared Function GetCollectionParamArrayElementType(compilation As VisualBasicCompilation, paramType As TypeSymbol) As TypeSymbol
+            Dim named = TryCast(paramType, NamedTypeSymbol)
+            If named Is Nothing OrElse named.Arity <> 1 Then
+                Return Nothing
+            End If
+
+            Dim definition = named.OriginalDefinition
+            If definition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T Then
+                Return named.TypeArgumentsNoUseSiteDiagnostics(0)
+            End If
+
+            Dim listType = compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_List_T)
+            If listType IsNot Nothing AndAlso Not listType.IsErrorType() AndAlso TypeSymbol.Equals(definition, listType, TypeCompareKind.ConsiderEverything) Then
+                Return named.TypeArgumentsNoUseSiteDiagnostics(0)
+            End If
+
+            Return Nothing
+        End Function
+
         Private Function TryBindCollectionInitializerFromElements(argument As BoundExpression, targetType As TypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Return TryBindCollectionInitializerFromElements(argument.Syntax, targetType, elements, diagnostics)
+        End Function
+
+        Private Function TryBindCollectionInitializerFromElements(syntax As SyntaxNode, targetType As TypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim named = TryCast(targetType, NamedTypeSymbol)
             If named Is Nothing OrElse (named.TypeKind <> TypeKind.Class AndAlso named.TypeKind <> TypeKind.Structure) Then
                 Return Nothing
             End If
 
             Dim probe = BindingDiagnosticBag.GetInstance(diagnostics)
-            If Not IsCollectionInitializerTarget(named, argument.Syntax, probe) Then
+            If Not IsCollectionInitializerTarget(named, syntax, probe) Then
                 probe.Free()
                 Return Nothing
             End If
@@ -425,9 +459,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                             Return candidate.Kind = SymbolKind.Method
                                                         End Function,
                                                         result,
-                                                        argument.Syntax,
+                                                        syntax,
                                                         probe)
-            Dim constructor = If(hasAdd AndAlso result.IsGood, FindParameterlessConstructor(named, argument.Syntax, probe), Nothing)
+            Dim constructor = If(hasAdd AndAlso result.IsGood, FindParameterlessConstructor(named, syntax, probe), Nothing)
             If constructor Is Nothing Then
                 result.Free()
                 probe.Free()
@@ -436,7 +470,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             diagnostics.AddRangeAndFree(probe)
 
-            Dim placeholder = New BoundWithLValueExpressionPlaceholder(argument.Syntax, named)
+            Dim placeholder = New BoundWithLValueExpressionPlaceholder(syntax, named)
             placeholder.SetWasCompilerGenerated()
 
             Dim addInvocations = ArrayBuilder(Of BoundExpression).GetInstance()
@@ -450,8 +484,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             result.Free()
 
-            Dim initializer = New BoundCollectionInitializerExpression(argument.Syntax, placeholder, addInvocations.ToImmutableAndFree(), named)
-            Return New BoundObjectCreationExpression(argument.Syntax, constructor, ImmutableArray(Of BoundExpression).Empty, initializer, named)
+            Dim initializer = New BoundCollectionInitializerExpression(syntax, placeholder, addInvocations.ToImmutableAndFree(), named)
+            Return New BoundObjectCreationExpression(syntax, constructor, ImmutableArray(Of BoundExpression).Empty, initializer, named)
         End Function
 
         Private Function IsCollectionInitializerTarget(collectionType As TypeSymbol, syntax As SyntaxNode, diagnostics As BindingDiagnosticBag) As Boolean

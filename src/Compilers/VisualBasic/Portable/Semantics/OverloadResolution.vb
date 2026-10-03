@@ -3292,12 +3292,16 @@ Bailout:
 
                 If param.IsParamArray AndAlso paramIndex = candidate.Candidate.ParameterCount - 1 Then
 
+                    Dim collectionElementType As TypeSymbol = Nothing
                     If targetType.Kind <> SymbolKind.ArrayType Then
-                        ' ERRID_ParamArrayWrongType
-                        candidate.State = CandidateAnalysisResultState.ArgumentMismatch
-                        candidate.IgnoreExtensionMethods = False
-                        GoTo Bailout
-                        'Continue For
+                        collectionElementType = binder.TryGetCollectionParamArrayElementType(targetType)
+                        If collectionElementType Is Nothing Then
+                            ' ERRID_ParamArrayWrongType
+                            candidate.State = CandidateAnalysisResultState.ArgumentMismatch
+                            candidate.IgnoreExtensionMethods = False
+                            GoTo Bailout
+                            'Continue For
+                        End If
                     End If
 
                     If Not candidate.IsExpandedParamArrayForm Then
@@ -3370,17 +3374,21 @@ Bailout:
                         ' Otherwise, for a ParamArray parameter, all the matching arguments are passed
                         ' ByVal as instances of the element type of the ParamArray.
                         ' Perform the conversions to the element type of the ParamArray here.
-                        Dim arrayType = DirectCast(targetType, ArrayTypeSymbol)
+                        If collectionElementType IsNot Nothing Then
+                            targetType = collectionElementType
+                        Else
+                            Dim arrayType = DirectCast(targetType, ArrayTypeSymbol)
 
-                        If Not arrayType.IsSZArray Then
-                            ' ERRID_ParamArrayWrongType
-                            candidate.State = CandidateAnalysisResultState.ArgumentMismatch
-                            candidate.IgnoreExtensionMethods = False
-                            GoTo Bailout
-                            'Continue For
+                            If Not arrayType.IsSZArray Then
+                                ' ERRID_ParamArrayWrongType
+                                candidate.State = CandidateAnalysisResultState.ArgumentMismatch
+                                candidate.IgnoreExtensionMethods = False
+                                GoTo Bailout
+                                'Continue For
+                            End If
+
+                            targetType = arrayType.ElementType
                         End If
-
-                        targetType = arrayType.ElementType
 
                         If targetType.Kind = SymbolKind.ErrorType Then
                             candidate.State = CandidateAnalysisResultState.ArgumentMismatch

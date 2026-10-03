@@ -341,8 +341,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             If (flags And SourceParameterFlags.ParamArray) <> 0 AndAlso paramType.TypeKind <> TypeKind.Error Then
                 If paramType.TypeKind <> TypeKind.Array Then
-                    ' ParamArray must be of array type.
-                    Binder.ReportDiagnostic(diagnostics, syntax.Identifier, ERRID.ERR_ParamArrayNotArray)
+                    If binder.TryGetCollectionParamArrayElementType(paramType) Is Nothing Then
+                        ' ParamArray must be an array, or on vbnext a List(Of T) or IEnumerable(Of T).
+                        Binder.ReportDiagnostic(diagnostics, syntax.Identifier, ERRID.ERR_ParamArrayNotArray)
+                    Else
+                        binder.ReportUseSiteInfoForSynthesizedAttribute(WellKnownMember.System_ParamArrayAttribute__ctor,
+                                                                         syntax,
+                                                                         diagnostics)
+                    End If
                 Else
                     Dim paramTypeAsArray = DirectCast(paramType, ArrayTypeSymbol)
                     If Not paramTypeAsArray.IsSZArray Then
