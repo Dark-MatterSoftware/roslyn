@@ -97,7 +97,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 5g | VB-004 | Positional patterns on tuples and on types with `Deconstruct`. |
 | 5h | VB-004 | A `Select Case` expression produces a value. List patterns wait until phase 7. |
 
-5e through 5h each need the syntax sketch from the VB-004 proposal. That proposal is written during phase 2. It does not start parser work early.
+5e through 5h use the spelling locked in `docs/vbnext-vb004-syntax.md`.
 
 ## Phase 6 — Type shape
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 5d, a method named Deconstruct when the type is not a tuple, is implemented. The next slice is 5e, a Case that combines type and relational tests. That slice waits on a short VB-004 syntax note before any parser change.
+The VB-004 spelling is locked in `docs/vbnext-vb004-syntax.md`. The next slice is 5e, `Case Is TypeOf` combined with a relational test.
