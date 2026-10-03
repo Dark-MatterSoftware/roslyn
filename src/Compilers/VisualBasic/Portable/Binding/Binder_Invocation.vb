@@ -2668,6 +2668,33 @@ ProduceBoundNode:
         ''' </summary>
         Private Function CreateCollectionParamArrayArgument(syntax As SyntaxNode, paramType As TypeSymbol, elementType As TypeSymbol, items As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim named = TryCast(paramType, NamedTypeSymbol)
+            If named IsNot Nothing AndAlso named.Arity = 1 Then
+                Dim definition = named.OriginalDefinition
+                Dim constructorMember As WellKnownMember
+                If TypeSymbol.Equals(definition, Compilation.GetWellKnownType(WellKnownType.System_Span_T), TypeCompareKind.ConsiderEverything) Then
+                    constructorMember = WellKnownMember.System_Span_T__ctor_Array
+                ElseIf TypeSymbol.Equals(definition, Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.ConsiderEverything) Then
+                    constructorMember = WellKnownMember.System_ReadOnlySpan_T__ctor_Array
+                Else
+                    constructorMember = CType(0, WellKnownMember)
+                End If
+
+                If constructorMember <> 0 Then
+                    Dim arrayType = ArrayTypeSymbol.CreateVBArray(elementType, Nothing, 1, Compilation)
+                    Dim boundCount = New BoundLiteral(syntax, ConstantValue.Create(items.Length), GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)).MakeCompilerGenerated()
+                    Dim initializer = New BoundArrayInitialization(syntax, items, Nothing).MakeCompilerGenerated()
+                    Dim arrayCreation = New BoundArrayCreation(syntax, ImmutableArray.Create(Of BoundExpression)(boundCount), initializer, arrayType).MakeCompilerGenerated()
+                    Dim constructor = TryCast(GetWellKnownTypeMember(constructorMember, syntax, diagnostics), MethodSymbol)
+                    If constructor Is Nothing Then
+                        Return arrayCreation
+                    End If
+
+                    constructor = constructor.AsMember(named)
+                    Dim creation = New BoundObjectCreationExpression(syntax, constructor, ImmutableArray.Create(Of BoundExpression)(arrayCreation), Nothing, named).MakeCompilerGenerated()
+                    Return creation
+                End If
+            End If
+
             If named IsNot Nothing AndAlso named.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T Then
                 Dim arrayType = ArrayTypeSymbol.CreateSZArray(elementType, ImmutableArray(Of CustomModifier).Empty, Compilation)
                 Dim boundCount = New BoundLiteral(syntax, ConstantValue.Create(items.Length), GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)).MakeCompilerGenerated()

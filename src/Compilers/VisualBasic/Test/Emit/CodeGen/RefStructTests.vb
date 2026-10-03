@@ -197,5 +197,24 @@ End Module
             compilation.VerifyDiagnostics()
             compilation.VerifyEmitDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub Span_ParamArrayCompiles()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Sub Main()
+        Count(1, 2, 3)
+    End Sub
+
+    Function Count(ParamArray values As Span(Of Integer)) As Integer
+        Return values.Length
+    End Function
+End Module
+", parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
     End Class
 End Namespace

@@ -474,6 +474,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return named.TypeArgumentsNoUseSiteDiagnostics(0)
             End If
 
+            Dim spanType = compilation.GetWellKnownType(WellKnownType.System_Span_T)
+            If spanType IsNot Nothing AndAlso Not spanType.IsErrorType() AndAlso TypeSymbol.Equals(definition, spanType, TypeCompareKind.ConsiderEverything) Then
+                Return named.TypeArgumentsNoUseSiteDiagnostics(0)
+            End If
+
+            Dim readOnlySpanType = compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T)
+            If readOnlySpanType IsNot Nothing AndAlso Not readOnlySpanType.IsErrorType() AndAlso TypeSymbol.Equals(definition, readOnlySpanType, TypeCompareKind.ConsiderEverything) Then
+                Return named.TypeArgumentsNoUseSiteDiagnostics(0)
+            End If
+
             Return Nothing
         End Function
 
