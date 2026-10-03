@@ -121,12 +121,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Select
         End Function
 
+        Private Const ByRefLikeMarker As String = "Types with embedded references are not supported in this version of your compiler."
+
         ''' <summary>
         ''' Create a diagnostic for the given symbol. This could be an error or a warning based on
         ''' the ObsoleteAttribute's arguments.
         ''' </summary>
-        Friend Shared Function CreateObsoleteDiagnostic(symbol As Symbol) As DiagnosticInfo
+        Friend Shared Function CreateObsoleteDiagnostic(symbol As Symbol, Optional compilation As VisualBasicCompilation = Nothing) As DiagnosticInfo
             Dim data = If(If(symbol.ObsoleteAttributeData, symbol.ContainingModule.ObsoleteAttributeData), symbol.ContainingAssembly.ObsoleteAttributeData)
+
+            If compilation IsNot Nothing AndAlso
+               compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+               data IsNot Nothing AndAlso
+               data.Message = ByRefLikeMarker Then
+                Return Nothing
+            End If
 
             Debug.Assert(data IsNot Nothing)
 

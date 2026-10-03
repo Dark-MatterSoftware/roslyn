@@ -37,6 +37,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _arity As UShort
         Private ReadOnly _mangleName As Boolean ' CONSIDER: combine with flags
         Private _lazyIsReadOnly As ThreeState = ThreeState.Unknown
+        Private _lazyIsRefLike As ThreeState = ThreeState.Unknown
 #End Region
 
         ''' <summary>
@@ -901,6 +902,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 End If
 
                 Return _lazyIsReadOnly.Value()
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsRefLikeType As Boolean
+            Get
+                If Not _lazyIsRefLike.HasValue() Then
+                    Dim hasAttribute = DirectCast(ContainingModule, PEModuleSymbol).Module.HasIsByRefLikeAttribute(_handle)
+                    _lazyIsRefLike = hasAttribute.ToThreeState()
+                End If
+
+                Return _lazyIsRefLike.Value()
             End Get
         End Property
 

@@ -31,8 +31,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(kind <> ObsoleteDiagnosticKind.Lazy)
                 Debug.Assert(kind <> ObsoleteDiagnosticKind.LazyPotentiallySuppressed)
 
+                Dim compilation As VisualBasicCompilation = Nothing
+                If _containingSymbol IsNot Nothing Then
+                    compilation = _containingSymbol.DeclaringCompilation
+                End If
+
                 Dim info = If(kind = ObsoleteDiagnosticKind.Diagnostic,
-                    ObsoleteAttributeHelpers.CreateObsoleteDiagnostic(_symbol),
+                    ObsoleteAttributeHelpers.CreateObsoleteDiagnostic(_symbol, compilation),
                     Nothing)
 
                 ' If this symbol is not obsolete or is in an obsolete context, we don't want to report any diagnostics.

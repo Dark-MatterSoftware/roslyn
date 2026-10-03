@@ -105,5 +105,57 @@ End Structure
                 Diagnostic(ERRID.ERR_InvalidInNamespace, "Public Value As Integer").WithLocation(3, 5),
                 Diagnostic(ERRID.ERR_EndStructureNoStructure, "End Structure").WithLocation(4, 1))
         End Sub
+
+        <Fact>
+        Public Sub Span_LocalIsLegalOnVbNext()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Sub Main()
+        Dim values As Span(Of Integer) = Nothing
+        System.Console.Write(values.Length)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics()
+            compilation.VerifyEmitDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub Span_RejectsBoxingAndClassField()
+            Dim compilation = CreateCompilation("
+Imports System
+Class Holder
+    Public Item As Span(Of Integer)
+End Class
+
+Module Program
+    Sub Main()
+        Dim values As Span(Of Integer) = Nothing
+        Dim boxed As Object = values
+    End Sub
+End Module
+", parseOptions:=VbNext, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ByRefStructField2, "Span(Of Integer)").WithArguments("System.Span(Of Integer)", "Holder").WithLocation(4, 20),
+                Diagnostic(ERRID.ERR_TypeMismatch2, "values").WithArguments("System.Span(Of Integer)", "Object").WithLocation(10, 31))
+        End Sub
+
+        <Fact>
+        Public Sub Span_StillObsoleteOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Sub Main()
+        Dim values As Span(Of Integer) = Nothing
+    End Sub
+End Module
+", parseOptions:=Vb17_13, targetFramework:=TargetFramework.Net70)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_UseOfObsoleteSymbol2, "Span(Of Integer)").WithArguments("System.Span(Of Integer)", "Types with embedded references are not supported in this version of your compiler.").WithLocation(5, 23))
+        End Sub
     End Class
 End Namespace

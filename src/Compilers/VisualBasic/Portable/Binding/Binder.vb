@@ -984,7 +984,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim info As DiagnosticInfo = Nothing
             Select Case kind
                 Case ObsoleteDiagnosticKind.Diagnostic
-                    info = ObsoleteAttributeHelpers.CreateObsoleteDiagnostic(symbol)
+                    Dim compilation As VisualBasicCompilation = Nothing
+                    If context IsNot Nothing Then
+                        compilation = context.DeclaringCompilation
+                    End If
+
+                    info = ObsoleteAttributeHelpers.CreateObsoleteDiagnostic(symbol, compilation)
                 Case ObsoleteDiagnosticKind.Lazy, ObsoleteDiagnosticKind.LazyPotentiallySuppressed
                     info = New LazyObsoleteDiagnosticInfo(symbol, context)
             End Select
