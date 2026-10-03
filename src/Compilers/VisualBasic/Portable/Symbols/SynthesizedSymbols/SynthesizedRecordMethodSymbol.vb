@@ -149,6 +149,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Function ObjectEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            If ContainingType.IsValueType Then
+                Return StructureObjectEqualsBody(factory)
+            End If
+
             Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
             Dim other = factory.SynthesizedLocal(ContainingType)
             Dim cast = factory.TryCast(factory.Parameter(_parameters(0), isLValue:=False), ContainingType)
@@ -166,9 +170,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 factory.If(isNothing, factory.Return(factory.Literal(False)), factory.Return(callEquals)))
         End Function
 
+        Private Function StructureObjectEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
+            Dim objectType = factory.SpecialType(SpecialType.System_Object)
+            Dim value = factory.Parameter(_parameters(0), isLValue:=False)
+            Dim isNothing = factory.Binary(BinaryOperatorKind.Is, boolType, value, NothingLiteral(factory, objectType))
+            Dim isType = New BoundTypeOf(m_SyntaxNode, value, isTypeOfIsNotExpression:=False, ContainingType, boolType).MakeCompilerGenerated()
+            Dim conversion = Conversions.ClassifyDirectCastConversion(objectType, ContainingType, CompoundUseSiteInfo(Of AssemblySymbol).Discarded)
+            Dim unboxed = New BoundDirectCast(m_SyntaxNode, value, conversion, ContainingType).MakeCompilerGenerated()
+            Dim typedEquals = TypedEqualsMethod()
+            Dim callEquals As BoundExpression
+            If typedEquals Is Nothing Then
+                callEquals = factory.Literal(True)
+            Else
+                callEquals = factory.Call(factory.Me(), typedEquals, unboxed)
+            End If
+            Return factory.Block(
+                factory.If(isNothing, factory.Return(factory.Literal(False)),
+                           factory.If(isType, factory.Return(callEquals), factory.Return(factory.Literal(False)))))
+        End Function
+
         Private Function TypedEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
             Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
             Dim other = factory.Parameter(_parameters(0), isLValue:=False)
+            If ContainingType.IsValueType Then
+                Dim valueComparison As BoundExpression = factory.Literal(True)
+                For Each member In EqualityMembers()
+                    Dim equals = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__Equals, ReadMember(factory, factory.Me(), member), ReadMember(factory, other, member))
+                    If equals Is Nothing Then
+                        Continue For
+                    End If
+
+                    valueComparison = factory.Binary(BinaryOperatorKind.AndAlso, boolType, valueComparison, equals)
+                Next
+
+                Return factory.Block(factory.Return(valueComparison))
+            End If
+
             Dim isNothing = factory.Binary(BinaryOperatorKind.Is, boolType, other, NothingLiteral(factory, ContainingType))
             Dim comparison As BoundExpression = factory.Literal(True)
             For Each member In EqualityMembers()

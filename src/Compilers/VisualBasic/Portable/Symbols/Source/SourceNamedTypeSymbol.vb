@@ -429,7 +429,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 binder.ReportModifierError(modifiers, badFlag, diagBag, SyntaxKind.ByRefKeyword)
             End If
 
-            If modifiers.Any(SyntaxKind.RecordKeyword) AndAlso node.Kind <> SyntaxKind.ClassBlock Then
+            Dim recordAllowed = node.Kind = SyntaxKind.ClassBlock OrElse
+                (node.Kind = SyntaxKind.StructureBlock AndAlso binder.Compilation.LanguageVersion >= LanguageVersion.VbNext)
+            If modifiers.Any(SyntaxKind.RecordKeyword) AndAlso Not recordAllowed Then
                 Dim badFlag As ERRID
                 Select Case node.Kind
                     Case SyntaxKind.StructureBlock

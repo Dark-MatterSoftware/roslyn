@@ -172,6 +172,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                 Case DeclarationKind.Structure
                     flags = SourceTypeFlags.Structure Or SourceTypeFlags.NotInheritable
+                    If (modifiers And DeclarationModifiers.Record) <> 0 AndAlso
+                       m_containingModule.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext Then
+                        flags = flags Or SourceTypeFlags.Record
+                    End If
+
                     If (modifiers And DeclarationModifiers.ReadOnly) <> 0 AndAlso
                        InternalSyntax.Parser.CheckFeatureAvailability(m_containingModule.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion, InternalSyntax.Feature.ReadOnlyStructures) Then
                         flags = flags Or SourceTypeFlags.ReadOnly
@@ -3076,9 +3081,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim booleanType = DeclaringCompilation.GetSpecialType(SpecialType.System_Boolean)
             Dim integerType = DeclaringCompilation.GetSpecialType(SpecialType.System_Int32)
             Dim stringType = DeclaringCompilation.GetSpecialType(SpecialType.System_String)
-            Dim objectEquals = TryCast(DeclaringCompilation.GetSpecialTypeMember(SpecialMember.System_Object__Equals), MethodSymbol)
-            Dim objectHash = TryCast(DeclaringCompilation.GetSpecialTypeMember(SpecialMember.System_Object__GetHashCode), MethodSymbol)
-            Dim objectPrint = TryCast(DeclaringCompilation.GetSpecialTypeMember(SpecialMember.System_Object__ToString), MethodSymbol)
+            Dim objectType = DeclaringCompilation.GetSpecialType(SpecialType.System_Object)
+            Dim overrideOwner = If(TypeKind = TypeKind.Structure, DeclaringCompilation.GetSpecialType(SpecialType.System_ValueType), objectType)
+            Dim objectEquals = FindOverridableMethod(overrideOwner, WellKnownMemberNames.ObjectEquals, 1, objectType)
+            Dim objectHash = FindOverridableMethod(overrideOwner, WellKnownMemberNames.ObjectGetHashCode, 0, Nothing)
+            Dim objectPrint = FindOverridableMethod(overrideOwner, WellKnownMemberNames.ObjectToString, 0, Nothing)
 
             If objectEquals IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectEquals, 1, DeclaringCompilation.GetSpecialType(SpecialType.System_Object)) Then
                 AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectEquals, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.ObjectEquals, objectEquals,
@@ -3156,6 +3163,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                 Return parameters.ToImmutableAndFree()
                             End Function)
         End Sub
+
+        Private Shared Function FindOverridableMethod(owner As TypeSymbol, name As String, parameterCount As Integer, parameterType As TypeSymbol) As MethodSymbol
+            If owner Is Nothing OrElse owner.IsErrorType() Then
+                Return Nothing
+            End If
+
+            For Each member In owner.GetMembers(name)
+                Dim method = TryCast(member, MethodSymbol)
+                If method Is Nothing OrElse method.IsShared OrElse method.IsNotOverridable OrElse method.ParameterCount <> parameterCount OrElse
+                   Not (method.IsOverridable OrElse method.IsOverrides) Then
+                    Continue For
+                End If
+
+                If parameterCount = 0 OrElse (parameterType IsNot Nothing AndAlso method.Parameters(0).Type.Equals(parameterType)) Then
+                    Return method
+                End If
+            Next
+
+            Return Nothing
+        End Function
 
         Private Sub AddRecordMethod(members As MembersAndInitializersBuilder,
                                     binder As Binder,

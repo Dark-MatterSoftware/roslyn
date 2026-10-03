@@ -53,15 +53,50 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub RecordStructure_IsRejected()
+        Public Sub RecordStructure_EmitsEqualityAndWithCopy()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Structure Point
+    Public Property X As Integer
+    Public InitOnly Property Y As Integer
+End Structure
+
+Module Program
+    Sub Main()
+        Dim a As New Point With {.X = 1, .Y = 2}
+        Dim b = a With {.Y = 3}
+        Dim same As New Point With {.X = 1, .Y = 2}
+        System.Console.Write(a.X)
+        System.Console.Write(a.Y)
+        System.Console.Write(b.X)
+        System.Console.Write(b.Y)
+        System.Console.Write(a.Equals(b))
+        System.Console.Write(a.ToString())
+        System.Console.Write(a.Equals(CObj(same)))
+        System.Console.Write(a.Equals(Nothing))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1213FalsePoint { X = 1, Y = 2 }TrueFalse").VerifyDiagnostics()
+            Dim point = DirectCast(compilation.GlobalNamespace.GetMembers("Point").Single(), INamedTypeSymbol)
+            Assert.True(point.IsRecord)
+        End Sub
+
+        <Fact>
+        Public Sub RecordStructure_RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Record Structure Point
     Public Property X As Integer
 End Structure
-", parseOptions:=VbNext)
+", parseOptions:=Vb17_13)
 
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_BadRecordFlags1, "Record").WithArguments("Record").WithLocation(2, 1))
+                Diagnostic(ERRID.ERR_ExpectedDeclaration, "Record").WithLocation(2, 1))
         End Sub
 
         <Fact>
