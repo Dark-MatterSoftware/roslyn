@@ -217,5 +217,124 @@ End Class
                 Diagnostic(ERRID.ERR_ClassConstraintNotInheritable1, "String").WithLocation(2, 24),
                 Diagnostic(ERRID.ERR_TypeNotExpression1, "name").WithArguments("name").WithLocation(3, 48))
         End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureInitializerUsesParameter()
+            Dim compilation = CreateCompilation("
+Structure Point(x As Integer, y As Integer)
+    Public ReadOnly Property X As Integer = x
+    Private ReadOnly _y As Integer = y
+    Public Function Describe() As String
+        Return X & _y
+    End Function
+End Structure
+Module Program
+    Sub Main()
+        Dim p = New Point(NextValue(), 4)
+        System.Console.Write(p.Describe())
+    End Sub
+    Function NextValue() As Integer
+        System.Console.Write(""1"")
+        Return 3
+    End Function
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="134").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureParameterlessConstructorZeros()
+            Dim compilation = CreateCompilation("
+Structure Point(x As Integer)
+    Public ReadOnly Property X As Integer = x
+End Structure
+Module Program
+    Sub Main()
+        Dim zero = New Point()
+        Dim value = New Point(7)
+        System.Console.Write(zero.X)
+        System.Console.Write(value.X)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="07").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureGenericParameterInInitializer()
+            Dim compilation = CreateCompilation("
+Structure Box(Of T)(value As T)
+    Public ReadOnly Property Value As T = value
+End Structure
+Module Program
+    Sub Main()
+        Dim box = New Box(Of String)(""ok"")
+        System.Console.Write(box.Value)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="ok").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureSharedInitializerCannotUseParameter()
+            Dim compilation = CreateCompilation("
+Structure Point(x As Integer)
+    Public Shared ReadOnly Broken As Integer = x
+End Structure
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "x").WithArguments("x").WithLocation(3, 48))
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureParameterIsNotAProperty()
+            Dim compilation = CreateCompilation("
+Structure Point(x As Integer)
+    Public ReadOnly Property Label As Integer = x
+End Structure
+Module Program
+    Sub Main()
+        Dim p = New Point(1)
+        System.Console.Write(p.x)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotMember2, "p.x").WithArguments("x", "Point").WithLocation(8, 30))
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureDuplicateOnPartial()
+            Dim compilation = CreateCompilation("
+Partial Structure Point(x As Integer)
+End Structure
+Partial Structure Point(y As Integer)
+End Structure
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DuplicatePrimaryConstructor, "(y As Integer)").WithLocation(4, 24))
+        End Sub
+
+        <Fact>
+        Public Sub PrimaryConstructor_StructureRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Structure Point(x As Integer)
+    Public ReadOnly Property X As Integer = x
+End Structure
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_OfExpected, "").WithLocation(2, 17),
+                Diagnostic(ERRID.ERR_ConstNotClassInterfaceOrTypeParam1, "Integer").WithArguments("Integer").WithLocation(2, 22),
+                Diagnostic(ERRID.ERR_AutoPropertyInitializedInStructure, "X").WithLocation(3, 30),
+                Diagnostic(ERRID.ERR_ShadowingGenericParamWithMember1, "X").WithArguments("X").WithLocation(3, 30))
+        End Sub
     End Class
 End Namespace

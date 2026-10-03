@@ -527,7 +527,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 #If Not ALLOW_STRUCT_INST_INITIALIZERS Then
                 'instance members of a structure cannot have initializations (const values are implicitly shared)
                 If container.TypeKind = TypeKind.Structure AndAlso
-                   (flags And SourceMemberFlags.Shared) = 0 Then
+                   (flags And SourceMemberFlags.Shared) = 0 AndAlso
+                   Not container.HasPrimaryConstructorDeclaration() Then
                     If initializerOpt IsNot Nothing Then
                         binder.ReportDiagnostic(diagBag,
                                                 If(declarator.Names.Count > 0,

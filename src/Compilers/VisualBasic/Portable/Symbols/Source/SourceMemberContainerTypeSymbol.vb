@@ -3224,7 +3224,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     ' auto implemented properties inside of structures can only have an initialization value
                     ' if they are shared.
                     If propertySymbol.IsAutoProperty AndAlso
-                        propertySymbol.ContainingType.TypeKind = TypeKind.Structure Then
+                        TypeKind = TypeKind.Structure AndAlso
+                        Not HasPrimaryConstructorDeclaration() Then
 
                         Binder.ReportDiagnostic(diagBag, syntax.Identifier, ERRID.ERR_AutoPropertyInitializedInStructure)
                     End If
@@ -3323,7 +3324,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private Sub EnsureCtor(members As MembersAndInitializersBuilder, isShared As Boolean, isDebuggable As Boolean, diagBag As BindingDiagnosticBag)
 
             If Not isShared AndAlso TryAddPrimaryConstructor(members, diagBag) Then
-                Return
+                ' A class primary constructor replaces the parameterless constructor.
+                ' A structure still needs that constructor.
+                If TypeKind <> TypeKind.Structure Then
+                    Return
+                End If
             End If
 
             Dim constructorName = If(isShared, WellKnownMemberNames.StaticConstructorName, WellKnownMemberNames.InstanceConstructorName)
@@ -3804,8 +3809,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Function HasPrimaryConstructorDeclaration() As Boolean
+            If TypeKind <> TypeKind.Class AndAlso TypeKind <> TypeKind.Structure Then
+                Return False
+            End If
+
+            For Each reference In SyntaxReferences
+                Dim typeBlock = TryCast(reference.GetSyntax(), TypeBlockSyntax)
+                Dim statement = TryCast(typeBlock?.BlockStatement, TypeStatementSyntax)
+                If statement?.ParameterList IsNot Nothing Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
         Private Function TryAddPrimaryConstructor(members As MembersAndInitializersBuilder, diagBag As BindingDiagnosticBag) As Boolean
-            If TypeKind <> TypeKind.Class Then
+            If TypeKind <> TypeKind.Class AndAlso TypeKind <> TypeKind.Structure Then
                 Return False
             End If
 
@@ -3814,7 +3835,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             For Each reference In SyntaxReferences
                 Dim typeBlock = TryCast(reference.GetSyntax(), TypeBlockSyntax)
-                Dim statement = TryCast(typeBlock?.BlockStatement, ClassStatementSyntax)
+                Dim statement = TryCast(typeBlock?.BlockStatement, TypeStatementSyntax)
                 Dim list = statement?.ParameterList
                 If list Is Nothing Then
                     Continue For

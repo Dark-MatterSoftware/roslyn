@@ -15,6 +15,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private _parameters As ImmutableArray(Of ParameterSymbol)
         Private ReadOnly _debuggable As Boolean
+        Private ReadOnly _parameterListPosition As Integer
 
         Friend Sub New(
             syntaxReference As SyntaxReference,
@@ -26,6 +27,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         )
             MyBase.New(syntaxReference, container, isShared:=False, binder, diagnostics)
             _debuggable = isDebuggable
+            _parameterListPosition = parameterList.SpanStart
             _parameters = ImmutableArray(Of ParameterSymbol).Empty
 
             Dim signatureBinder = New LocationSpecificBinder(BindingLocation.MethodSignature, Me, binder)
@@ -72,6 +74,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Next
 
             Return Nothing
+        End Function
+
+        Friend Overrides Function GetLexicalSortKey() As LexicalSortKey
+            ' The synthesized parameterless structure constructor sorts with the type.
+            ' This constructor sorts at the parameter list so both constructors can be ordered.
+            Return New LexicalSortKey(m_syntaxReference.SyntaxTree, _parameterListPosition, DirectCast(DeclaringCompilation, VisualBasicCompilation))
         End Function
 
         Friend Overrides ReadOnly Property GenerateDebugInfoImpl As Boolean

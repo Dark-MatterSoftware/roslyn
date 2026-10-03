@@ -109,7 +109,7 @@ Deconstruction finishes before pattern matching. Records in phase 8 use both.
 | 6d | VB-016 | Done. On `vbnext`, `Partial Sub New()` is the defining declaration and must be empty. A second `Sub New` with the same parameters supplies the body. The declarations must have the same modifiers. Visual Basic 17.13 still reports that a constructor cannot be declared `Partial`. |
 | 6e | VB-032 | Done. On `vbnext`, a class parameter list is a constructor, and an instance field or auto-property initializer may name those parameters. The constructor argument is evaluated once. A shared initializer cannot use the parameter, and the parameter is not a property. Visual Basic 17.13 still rejects the list. |
 | 6f | VB-032 | Done. On `vbnext`, `Inherits Base(arguments)` passes those arguments to the base constructor, and the arguments may name primary constructor parameters. `Inherits Base` with no argument list stays the existing form. An explicit constructor may chain to the primary constructor with `Me.New`. Visual Basic 17.13 still treats the argument list as a generic type. |
-| 6g | VB-032 | The same form works on a `Structure`. |
+| 6g | VB-032 | Done. On `vbnext`, a structure parameter list is a constructor, and an instance field or auto-property initializer may name those parameters. The parameterless constructor remains and zeroes the structure. A shared initializer cannot use the parameter, and the parameter is not a property. Visual Basic 17.13 still rejects the list. |
 
 ## Phase 7 — Collections and memory
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 6f, a primary constructor that chains to `MyBase` or `Me`, is implemented. The next slice is 6g, the same parameter list on a `Structure`.
+Slice 6g, the same parameter list on a `Structure`, is implemented. The next slice is 7a, a collection expression that targets an array.

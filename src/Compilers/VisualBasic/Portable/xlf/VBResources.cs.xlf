@@ -93,8 +93,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ERR_DuplicatePrimaryConstructor">
-        <source>A class can have only one primary constructor.</source>
-        <target state="new">A class can have only one primary constructor.</target>
+        <source>A type can have only one primary constructor.</source>
+        <target state="new">A type can have only one primary constructor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_EncUpdateFailedMissingSymbol">

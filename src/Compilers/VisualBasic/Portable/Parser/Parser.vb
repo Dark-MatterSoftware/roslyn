@@ -1648,7 +1648,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         Private Function BeginsPrimaryConstructor(kind As SyntaxKind) As Boolean
-            If kind <> SyntaxKind.ClassStatement OrElse Not CheckFeatureAvailability(Feature.PrimaryConstructor) Then
+            If (kind <> SyntaxKind.ClassStatement AndAlso kind <> SyntaxKind.StructureStatement) OrElse Not CheckFeatureAvailability(Feature.PrimaryConstructor) Then
                 Return False
             End If
 
