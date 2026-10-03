@@ -350,7 +350,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property ReturnsByRef As Boolean
             Get
-                Return False
+                Dim declaration = TryCast(Me.DeclarationSyntax, PropertyStatementSyntax)
+                Return declaration IsNot Nothing AndAlso declaration.Modifiers.Any(SyntaxKind.ByRefKeyword)
             End Get
         End Property
 

@@ -1262,6 +1262,13 @@ lReportErrorOnTwoTokens:
 
         Public NotOverridable Overrides ReadOnly Property ReturnsByRef As Boolean
             Get
+                If MethodKind = MethodKind.PropertyGet Then
+                    Dim prop = TryCast(AssociatedSymbol, PropertySymbol)
+                    If prop IsNot Nothing Then
+                        Return prop.ReturnsByRef
+                    End If
+                End If
+
                 Dim declaration = Me.DeclarationSyntax
                 Return declaration IsNot Nothing AndAlso declaration.Kind = SyntaxKind.FunctionStatement AndAlso
                     declaration.Modifiers.Any(SyntaxKind.ByRefKeyword)

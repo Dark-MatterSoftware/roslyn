@@ -63,6 +63,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 fieldAccess = New BoundFieldAccess(syntax, meReference, field, True, field.Type)
             End If
 
+            If accessor.MethodKind = MethodKind.PropertyGet AndAlso accessor.ReturnsByRef AndAlso fieldAccess IsNot Nothing Then
+                Dim refReturn = New BoundReturnStatement(syntax, fieldAccess, Nothing, Nothing).MakeCompilerGenerated()
+                Return New BoundBlock(syntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(Of BoundStatement)(refReturn)).MakeCompilerGenerated()
+            End If
+
             Dim exitLabel = New GeneratedLabelSymbol("exit")
 
             Dim statements As ArrayBuilder(Of BoundStatement) = ArrayBuilder(Of BoundStatement).GetInstance
