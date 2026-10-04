@@ -33,6 +33,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 18. Compact members | VB-050, pulled in from wave 4 | A member whose body is one expression. |
 | 19. Unchecked arithmetic | VB-057, pulled in from wave 4 | `Unchecked(expression)` wraps integer overflow. |
 | 20. Concise lambdas | VB-051, pulled in from wave 4 | A shorter way to write a one-parameter lambda. |
+| 21. XML statement blocks | VB-060, pulled in from wave 4 | Statements inside `<%= %>`. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -260,6 +261,15 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb051-syntax.md`.
 | --- | --- | --- |
 | 20a | VB-051 | Done. `docs/vbnext-vb051-syntax.md` records that `_`, `$1`, `Fn`, and a leading `.` were left open. `Function(c) c.Name` keeps its meaning. No implementation until one spelling is chosen. |
 
+## Phase 21 — XML statement blocks
+
+Pulled in from wave 4. The spelling is in `docs/vbnext-vb060-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 21a | VB-060 | Done. `docs/vbnext-vb060-syntax.md` locks a statement block inside `<%= %>` that starts with a statement keyword. `Return` and `Yield` are scoped to the block. `Let` and `Set` assignment forms are not locked. |
+| 21b | VB-060 | Waits until XML literals are placed in scope for this fork. |
+
 ## What starts now
 
-Slice 20a records that the concise lambda spelling is not locked. The next wave 4 item is VB-060, XML literal enhancements, and it still needs a spelling note before an implementation slice.
+Slice 21a records the XML statement block spelling. Slice 21b waits on the XML scope decision. The last wave 4 item is VB-058, chaining a `Sub` call, and it still needs a note.
