@@ -31,6 +31,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 16. With variable | VB-053, pulled in from wave 4 | A `With` block that declares its variable. |
 | 17. For Each ByRef | VB-056, pulled in from wave 4 | A loop variable that refers to each array element. |
 | 18. Compact members | VB-050, pulled in from wave 4 | A member whose body is one expression. |
+| 19. Unchecked arithmetic | VB-057, pulled in from wave 4 | `Unchecked(expression)` wraps integer overflow. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -241,6 +242,15 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb050-syntax.md`.
 | --- | --- | --- |
 | 18a | VB-050 | Done. `docs/vbnext-vb050-syntax.md` records that `ReadOnly Property P As T = expr` stays an auto-property initializer. `=>`, `= Get`, `= Return`, a trailing `Get`, and a trailing `On` were left open. No implementation until one spelling is chosen. |
 
+## Phase 19 — Unchecked arithmetic
+
+Pulled in from wave 4. The spelling is in `docs/vbnext-vb057-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 19a | VB-057 | Done. `docs/vbnext-vb057-syntax.md` locks `Unchecked(expression)`. `Unchecked` stays an identifier, and the operator applies only when that name refers to nothing in scope. The `Option` and block forms are not locked. |
+| 19b | VB-057 | On `vbnext`, `Unchecked(expression)` wraps integer overflow at run time and in constant expressions. A symbol named `Unchecked` keeps its meaning. Visual Basic 17.13 still reports that `Unchecked` is not declared. |
+
 ## What starts now
 
-Slice 18a records that the compact member spelling is not locked. The next wave 4 item is VB-057, unchecked arithmetic, and it still needs a spelling note before an implementation slice.
+Slice 19a locks `Unchecked(expression)`. Slice 19b implements it.
