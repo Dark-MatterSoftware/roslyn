@@ -30,6 +30,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 15. Optional End Namespace | VB-059, pulled in from wave 4 | A namespace may run to the end of the file. |
 | 16. With variable | VB-053, pulled in from wave 4 | A `With` block that declares its variable. |
 | 17. For Each ByRef | VB-056, pulled in from wave 4 | A loop variable that refers to each array element. |
+| 18. Compact members | VB-050, pulled in from wave 4 | A member whose body is one expression. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -232,6 +233,14 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb056-syntax.md`.
 | 17a | VB-056 | Done. `docs/vbnext-vb056-syntax.md` locks `For Each ByRef item In values`. The loop variable refers to each element of a one-dimensional array. |
 | 17b | VB-056 | Done. On `vbnext`, `For Each ByRef item In values` writes each element of a one-dimensional array. An existing variable, a collection that is not that array, and a lambda capture are errors. Visual Basic 17.13 still rejects `ByRef`. |
 
+## Phase 18 — Compact members
+
+Pulled in from wave 4. The note is in `docs/vbnext-vb050-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 18a | VB-050 | Done. `docs/vbnext-vb050-syntax.md` records that `ReadOnly Property P As T = expr` stays an auto-property initializer. `=>`, `= Get`, `= Return`, a trailing `Get`, and a trailing `On` were left open. No implementation until one spelling is chosen. |
+
 ## What starts now
 
-Slice 17b is implemented. The next wave 4 item is VB-050, compact members, and it still needs a spelling note before an implementation slice.
+Slice 18a records that the compact member spelling is not locked. The next wave 4 item is VB-057, unchecked arithmetic, and it still needs a spelling note before an implementation slice.
