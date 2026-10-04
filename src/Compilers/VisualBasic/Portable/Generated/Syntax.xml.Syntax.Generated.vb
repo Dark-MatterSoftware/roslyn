@@ -21123,8 +21123,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachStatementSyntax(kind, errors, annotations, forKeyword, eachKeyword, DirectCast(controlVariable.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.VisualBasicSyntaxNode), inKeyword, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachStatementSyntax(kind, errors, annotations, forKeyword, eachKeyword, DirectCast(controlVariable.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.VisualBasicSyntaxNode), withKeyword, index, inKeyword, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -21150,7 +21150,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithForKeyword(forKeyword as SyntaxToken) As ForEachStatementSyntax
-            return Update(forKeyword, Me.EachKeyword, Me.ControlVariable, Me.InKeyword, Me.Expression)
+            return Update(forKeyword, Me.EachKeyword, Me.ControlVariable, Me.WithKeyword, Me.Index, Me.InKeyword, Me.Expression)
         End Function
 
         ''' <summary>
@@ -21168,7 +21168,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithEachKeyword(eachKeyword as SyntaxToken) As ForEachStatementSyntax
-            return Update(Me.ForKeyword, eachKeyword, Me.ControlVariable, Me.InKeyword, Me.Expression)
+            return Update(Me.ForKeyword, eachKeyword, Me.ControlVariable, Me.WithKeyword, Me.Index, Me.InKeyword, Me.Expression)
         End Function
 
         ''' <summary>
@@ -21197,7 +21197,56 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithControlVariable(controlVariable as VisualBasicSyntaxNode) As ForEachStatementSyntax
-            return Update(Me.ForKeyword, Me.EachKeyword, controlVariable, Me.InKeyword, Me.Expression)
+            return Update(Me.ForKeyword, Me.EachKeyword, controlVariable, Me.WithKeyword, Me.Index, Me.InKeyword, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The optional "With" keyword that names the iteration index.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property WithKeyword As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachStatementSyntax)._withKeyword
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(3), Me.GetChildIndex(3))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the WithKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithWithKeyword(withKeyword as SyntaxToken) As ForEachStatementSyntax
+            return Update(Me.ForKeyword, Me.EachKeyword, Me.ControlVariable, withKeyword, Me.Index, Me.InKeyword, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The iteration index name. The first item is 0.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property Index As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachStatementSyntax)._index
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(4), Me.GetChildIndex(4))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Index property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithIndex(index as SyntaxToken) As ForEachStatementSyntax
+            return Update(Me.ForKeyword, Me.EachKeyword, Me.ControlVariable, Me.WithKeyword, index, Me.InKeyword, Me.Expression)
         End Function
 
         ''' <summary>
@@ -21205,7 +21254,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' </summary>
         Public ReadOnly Property InKeyword As SyntaxToken
             Get
-                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachStatementSyntax)._inKeyword, Me.GetChildPosition(3), Me.GetChildIndex(3))
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachStatementSyntax)._inKeyword, Me.GetChildPosition(5), Me.GetChildIndex(5))
             End Get
         End Property
 
@@ -21215,7 +21264,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithInKeyword(inKeyword as SyntaxToken) As ForEachStatementSyntax
-            return Update(Me.ForKeyword, Me.EachKeyword, Me.ControlVariable, inKeyword, Me.Expression)
+            return Update(Me.ForKeyword, Me.EachKeyword, Me.ControlVariable, Me.WithKeyword, Me.Index, inKeyword, Me.Expression)
         End Function
 
         ''' <summary>
@@ -21223,7 +21272,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' </summary>
         Public ReadOnly Property Expression As ExpressionSyntax
             Get
-                Return GetRed(_expression, 4)
+                Return GetRed(_expression, 6)
             End Get
         End Property
 
@@ -21233,14 +21282,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithExpression(expression as ExpressionSyntax) As ForEachStatementSyntax
-            return Update(Me.ForKeyword, Me.EachKeyword, Me.ControlVariable, Me.InKeyword, expression)
+            return Update(Me.ForKeyword, Me.EachKeyword, Me.ControlVariable, Me.WithKeyword, Me.Index, Me.InKeyword, expression)
         End Function
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
                 Case 2
                     Return Me._controlVariable
-                Case 4
+                Case 6
                     Return Me._expression
                 Case Else
                     Return Nothing
@@ -21251,7 +21300,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Select case i
                 Case 2
                     Return Me.ControlVariable
-                Case 4
+                Case 6
                     Return Me.Expression
                 Case Else
                     Return Nothing
@@ -21280,15 +21329,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="controlVariable">
         ''' The value for the ControlVariable property.
         ''' </param>
+        ''' <param name="withKeyword">
+        ''' The value for the WithKeyword property.
+        ''' </param>
+        ''' <param name="index">
+        ''' The value for the Index property.
+        ''' </param>
         ''' <param name="inKeyword">
         ''' The value for the InKeyword property.
         ''' </param>
         ''' <param name="expression">
         ''' The value for the Expression property.
         ''' </param>
-        Public Function Update(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
-            If forKeyword <> Me.ForKeyword OrElse eachKeyword <> Me.EachKeyword OrElse controlVariable IsNot Me.ControlVariable OrElse inKeyword <> Me.InKeyword OrElse expression IsNot Me.Expression Then
-                Dim newNode = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, controlVariable, inKeyword, expression)
+        Public Function Update(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, withKeyword As SyntaxToken, index As SyntaxToken, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+            If forKeyword <> Me.ForKeyword OrElse eachKeyword <> Me.EachKeyword OrElse controlVariable IsNot Me.ControlVariable OrElse withKeyword <> Me.WithKeyword OrElse index <> Me.Index OrElse inKeyword <> Me.InKeyword OrElse expression IsNot Me.Expression Then
+                Dim newNode = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, controlVariable, withKeyword, index, inKeyword, expression)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

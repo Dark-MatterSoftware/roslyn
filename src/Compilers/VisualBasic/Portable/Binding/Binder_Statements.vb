@@ -4045,10 +4045,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            ReportDuplicateIterationIndex(forEachStatement, diagnostics)
+
             ' Bind the loop body and the next variables 
             Dim loopBody As BoundBlock = Nothing
             Dim nextVariables As ImmutableArray(Of BoundExpression) = Nothing
             Me.BindForLoopBodyAndNextControlVariables(node, nextVariables, loopBody, diagnostics)
+            loopBody = AddIterationIndexLocal(forEachStatement, loopBody)
 
             Dim enumeratorInfo = New ForEachEnumeratorInfo(boundGetEnumeratorCall,
                                                            boundMoveNextCall,
@@ -4069,6 +4072,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                              declaredOrInferredLocalOpt, controlVariableOpt, loopBody, nextVariables,
                                              continueLabel:=GetContinueLabel(SyntaxKind.ContinueForStatement),
                                              exitLabel:=GetExitLabel(SyntaxKind.ExitForStatement))
+        End Function
+
+        Private Sub ReportDuplicateIterationIndex(statement As ForEachStatementSyntax, diagnostics As BindingDiagnosticBag)
+            Dim index = statement.Index
+            If index.Kind <> SyntaxKind.IdentifierToken OrElse index.IsMissing Then
+                Return
+            End If
+
+            Dim controlName = ControlVariableName(statement)
+            If controlName IsNot Nothing AndAlso String.Equals(controlName, index.ValueText, StringComparison.Ordinal) Then
+                ReportDiagnostic(diagnostics, index, ERRID.ERR_DuplicateLocals1, index.ValueText)
+                Return
+            End If
+
+            Dim result = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            ContainingBinder.Lookup(result, index.ValueText, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(statement, useSiteInfo)
+            If result.IsGood AndAlso (result.Symbols(0).Kind = SymbolKind.Local OrElse result.Symbols(0).Kind = SymbolKind.Parameter) Then
+                ReportDiagnostic(diagnostics, index, ERRID.ERR_DuplicateLocals1, index.ValueText)
+            End If
+
+            result.Free()
+        End Sub
+
+        Private Shared Function ControlVariableName(statement As ForEachStatementSyntax) As String
+            Dim declarator = TryCast(statement.ControlVariable, VariableDeclaratorSyntax)
+            If declarator IsNot Nothing AndAlso declarator.Names.Count = 1 Then
+                Return declarator.Names(0).Identifier.ValueText
+            End If
+
+            Dim name = TryCast(statement.ControlVariable, IdentifierNameSyntax)
+            If name IsNot Nothing Then
+                Return name.Identifier.ValueText
+            End If
+
+            Return Nothing
+        End Function
+
+        Private Function AddIterationIndexLocal(statement As ForEachStatementSyntax, loopBody As BoundBlock) As BoundBlock
+            Dim index = statement.Index
+            If index.Kind <> SyntaxKind.IdentifierToken OrElse index.IsMissing Then
+                Return loopBody
+            End If
+
+            Dim indexLocal As LocalSymbol = Nothing
+            For Each local In DirectCast(Me, ForOrForEachBlockBinder).Locals
+                If local.IdentifierToken = index Then
+                    indexLocal = local
+                    Exit For
+                End If
+            Next
+
+            If indexLocal Is Nothing Then
+                Return loopBody
+            End If
+
+            Return New BoundBlock(loopBody.Syntax, loopBody.StatementListSyntax, loopBody.Locals.Add(indexLocal), loopBody.Statements, loopBody.HasErrors)
         End Function
 
         ''' <summary>

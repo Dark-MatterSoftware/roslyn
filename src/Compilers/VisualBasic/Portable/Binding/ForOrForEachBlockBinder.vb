@@ -97,11 +97,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            Dim indexLocal = CreateIndexLocal()
+            If localVar IsNot Nothing AndAlso indexLocal IsNot Nothing Then
+                Return ImmutableArray.Create(localVar, indexLocal)
+            End If
+
             If localVar IsNot Nothing Then
                 Return ImmutableArray.Create(localVar)
             End If
 
+            If indexLocal IsNot Nothing Then
+                Return ImmutableArray.Create(indexLocal)
+            End If
+
             Return ImmutableArray(Of LocalSymbol).Empty
+        End Function
+
+        Private Function CreateIndexLocal() As LocalSymbol
+            If _syntax.Kind <> SyntaxKind.ForEachBlock Then
+                Return Nothing
+            End If
+
+            Dim forEachStatement = DirectCast(_syntax.ForOrForEachStatement, ForEachStatementSyntax)
+            Dim index = forEachStatement.Index
+            If index.Kind <> SyntaxKind.IdentifierToken OrElse index.IsMissing Then
+                Return Nothing
+            End If
+
+            Dim integerType = Compilation.GetSpecialType(SpecialType.System_Int32)
+            Return LocalSymbol.Create(ContainingMember, Me, index, LocalDeclarationKind.Variable, integerType)
         End Function
 
         Private Function CreateLocalSymbol(identifier As SyntaxToken) As LocalSymbol

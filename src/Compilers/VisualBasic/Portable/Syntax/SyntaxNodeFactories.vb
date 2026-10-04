@@ -21,6 +21,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
     Partial Public Class SyntaxFactory
 
+        ''' <summary>
+        ''' Creates a For Each statement without an iteration index.
+        ''' </summary>
+        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+            Return ForEachStatement(forKeyword, eachKeyword, controlVariable, Nothing, Nothing, inKeyword, expression)
+        End Function
+
 #Region "ParseMethods"
 
         ' direct access to parsing for common grammar areas

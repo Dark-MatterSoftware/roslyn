@@ -813,6 +813,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim controlVariable = ParseForLoopControlVariable()
 
+            Dim withKeyword As KeywordSyntax = Nothing
+            Dim index As IdentifierTokenSyntax = Nothing
+            If _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso CurrentToken.Kind = SyntaxKind.WithKeyword Then
+                withKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+                If CurrentToken.Kind = SyntaxKind.IdentifierToken Then
+                    index = DirectCast(CurrentToken, IdentifierTokenSyntax)
+                    GetNextToken()
+                Else
+                    index = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingIdentifier(), ERRID.ERR_ExpectedIdentifier), IdentifierTokenSyntax)
+                End If
+            End If
+
             Dim expression As ExpressionSyntax = Nothing
 
             If controlVariable.ContainsDiagnostics Then
@@ -837,7 +850,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 expression = InternalSyntaxFactory.MissingExpression.AddTrailingSyntax(ResyncAt({SyntaxKind.ToKeyword}), ERRID.ERR_Syntax)
             End If
 
-            Dim statement = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, controlVariable, inKeyword, expression)
+            Dim statement = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, controlVariable, withKeyword, index, inKeyword, expression)
 
             Return statement
         End Function

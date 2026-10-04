@@ -194,7 +194,7 @@ The sequence is that difficulty order, with one adjustment: a feature moves earl
 | 34 | VB-036 | Static abstract interface members | XL | Follows the interface work in VB-038. |
 | 35 | VB-030 | Nullable reference types | XL | Last. It crosses every bound expression, and `?` already means `Nullable(Of T)`. |
 
-Start at row 1. VB-004's Select Case spelling is locked in `docs/vbnext-vb004-syntax.md`. VB-032's primary constructor spelling is locked in `docs/vbnext-vb032-syntax.md`. Slice 12a is implemented. `TypeOf` lists are locked in `docs/vbnext-vb054-syntax.md`. The GUID literal spelling is locked in `docs/vbnext-vb052-syntax.md`. Slice 13b is implemented. `For Each` with an index is locked in `docs/vbnext-vb055-syntax.md`. The next slice implements that form on `vbnext`.
+Start at row 1. VB-004's Select Case spelling is locked in `docs/vbnext-vb004-syntax.md`. VB-032's primary constructor spelling is locked in `docs/vbnext-vb032-syntax.md`. Slice 12a is implemented. `TypeOf` lists are locked in `docs/vbnext-vb054-syntax.md`. The GUID literal spelling is locked in `docs/vbnext-vb052-syntax.md`. Slice 13b is implemented. `For Each` with an index is locked in `docs/vbnext-vb055-syntax.md`. Slice 14b is implemented. The next wave 4 item is VB-059, optional `End Namespace`, and it still needs a spelling note before an implementation slice.
 
 ### Wave 4, if one is pulled in
 

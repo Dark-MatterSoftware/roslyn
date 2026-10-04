@@ -201,7 +201,8 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb055-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 14a | VB-055 | Done. `docs/vbnext-vb055-syntax.md` locks `For Each item With index In items`. The index is an `Integer` that starts at 0. |
+| 14b | VB-055 | Done. On `vbnext`, `For Each item With index In items` numbers each item from 0, and `Continue For` still advances the index. A name already used by the loop variable or by an enclosing local or parameter is an error. Visual Basic 17.13 still expects `In`. |
 
 ## What starts now
 
-Slice 14a is the spelling note. The next slice implements `For Each item With index In items` on `vbnext`.
+Slice 14b is implemented. The next wave 4 item is VB-059, optional `End Namespace`, and it still needs a spelling note before an implementation slice.

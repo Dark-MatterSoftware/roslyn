@@ -3780,13 +3780,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.EachKeyword.Node IsNot newEachKeyword Then anyChanges = True
             Dim newControlVariable = DirectCast(Visit(node.ControlVariable), VisualBasicSyntaxNode)
             If node.ControlVariable IsNot newControlVariable Then anyChanges = True
+            Dim newWithKeyword = DirectCast(VisitToken(node.WithKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.WithKeyword.Node IsNot newWithKeyword Then anyChanges = True
+            Dim newIndex = DirectCast(VisitToken(node.Index).Node, InternalSyntax.IdentifierTokenSyntax)
+            If node.Index.Node IsNot newIndex Then anyChanges = True
             Dim newInKeyword = DirectCast(VisitToken(node.InKeyword).Node, InternalSyntax.KeywordSyntax)
             If node.InKeyword.Node IsNot newInKeyword Then anyChanges = True
             Dim newExpression = DirectCast(Visit(node.Expression), ExpressionSyntax)
             If node.Expression IsNot newExpression Then anyChanges = True
 
             If anyChanges Then
-                Return New ForEachStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newForKeyword, newEachKeyword, newControlVariable, newInKeyword, newExpression)
+                Return New ForEachStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newForKeyword, newEachKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
             Else
                 Return node
             End If
@@ -21255,13 +21259,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' variable. If this loop is of a form that does declare a new control variable,
         ''' this is a VariableDeclarator that has the variable being declared.
         ''' </param>
+        ''' <param name="withKeyword">
+        ''' The optional "With" keyword that names the iteration index.
+        ''' </param>
+        ''' <param name="index">
+        ''' The iteration index name. The first item is 0.
+        ''' </param>
         ''' <param name="inKeyword">
         ''' The "In" keyword.
         ''' </param>
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
-        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, withKeyword As SyntaxToken, index As SyntaxToken, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
             Select Case forKeyword.Kind()
                 Case SyntaxKind.ForKeyword
                 Case Else
@@ -21518,7 +21528,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("expression")
             End Select
-            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, Nothing, Nothing, DirectCast(forKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(eachKeyword.Node, InternalSyntax.KeywordSyntax), controlVariable, DirectCast(inKeyword.Node, InternalSyntax.KeywordSyntax), expression)
+            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, Nothing, Nothing, DirectCast(forKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(eachKeyword.Node, InternalSyntax.KeywordSyntax), controlVariable, DirectCast(withKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(index.Node, InternalSyntax.IdentifierTokenSyntax), DirectCast(inKeyword.Node, InternalSyntax.KeywordSyntax), expression)
+        End Function
+
+
+        ''' <summary>
+        ''' The For Each statement that begins a For Each-Next block. This statement always
+        ''' occurs as the Begin of a ForBlock, and the body of the For Each-Next is the
+        ''' Body of that ForBlock. Most of the time, the End of that ForBlock is the
+        ''' corresponding Next statement. However, multiple nested For statements are ended
+        ''' by a single Next statement with multiple variables, then the inner For
+        ''' statements will have End set to Nothing, and the Next statement is the End of
+        ''' the outermost For statement that is being ended.
+        ''' </summary>
+        ''' <param name="controlVariable">
+        ''' If the For or For Each statement is of a form that does not declare a new loop
+        ''' control variable, this is the expression that denotes the loop control
+        ''' variable. If this loop is of a form that does declare a new control variable,
+        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' </param>
+        ''' <param name="index">
+        ''' The iteration index name. The first item is 0.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression denoting the collection to iterate over.
+        ''' </param>
+        Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, index As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), controlVariable, Nothing, index, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
         End Function
 
 
@@ -21541,7 +21577,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The expression denoting the collection to iterate over.
         ''' </param>
         Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), controlVariable, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
+            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), controlVariable, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
         End Function
 
 

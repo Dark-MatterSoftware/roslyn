@@ -4785,6 +4785,14 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="Each"></native-equiv>
       </child>
 
+      <child name="WithKeyword" optional="true" kind="WithKeyword" order="35">
+        <description>The optional "With" keyword that names the iteration index.</description>
+      </child>
+
+      <child name="Index" optional="true" kind="IdentifierToken" order="36">
+        <description>The iteration index name. The first item is 0.</description>
+      </child>
+
       <child name="InKeyword" kind="InKeyword" order="40">
         <description>The "In" keyword.</description>
         <lm-equiv name="InKeyword"></lm-equiv>

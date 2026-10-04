@@ -19,6 +19,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ''' <param name="node">The node.</param><returns></returns>
         Public Overrides Function VisitForEachStatement(node As BoundForEachStatement) As BoundNode
+            Dim iterationIndex = FindIterationIndex(node)
+            If iterationIndex IsNot Nothing Then
+                Dim body = DirectCast(node.Body, BoundBlock)
+                Dim newBody = New BoundBlock(body.Syntax, body.StatementListSyntax, body.Locals.Remove(iterationIndex), body.Statements, body.HasErrors)
+                node = node.Update(node.Collection, node.EnumeratorInfo, node.DeclaredOrInferredLocalOpt, node.ControlVariable, newBody, node.NextVariablesOpt, node.ContinueLabel, node.ExitLabel)
+            End If
+
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
 
@@ -128,12 +135,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If collectionType.IsArrayType AndAlso DirectCast(collectionType, ArrayTypeSymbol).IsSZArray Then
                 ' Optimized rewrite for one dimensional arrays (iterate over index is faster than IEnumerable)
-                RewriteForEachArrayOrString(node, statements, locals, isArray:=True, collectionExpression:=replacedCollection)
+                RewriteForEachArrayOrString(node, statements, locals, isArray:=True, collectionExpression:=replacedCollection, iterationIndex:=iterationIndex)
             ElseIf collectionType.IsStringType Then
                 ' Optimized rewrite for strings (iterate over index is faster than IEnumerable)
-                RewriteForEachArrayOrString(node, statements, locals, isArray:=False, collectionExpression:=replacedCollection)
+                RewriteForEachArrayOrString(node, statements, locals, isArray:=False, collectionExpression:=replacedCollection, iterationIndex:=iterationIndex)
             ElseIf Not node.Collection.HasErrors Then
-                RewriteForEachIEnumerable(node, statements, locals)
+                RewriteForEachIEnumerable(node, statements, locals, iterationIndex)
+            End If
+
+            If iterationIndex IsNot Nothing Then
+                locals.Add(iterationIndex)
+                statements.Insert(0, CreateIterationIndexInitialization(DirectCast(node.Syntax, VisualBasicSyntaxNode), iterationIndex))
             End If
 
             If node.EnumeratorInfo.CollectionPlaceholder IsNot Nothing Then
@@ -144,6 +156,41 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                   Nothing,
                                   locals.ToImmutableAndFree(),
                                   statements.ToImmutableAndFree)
+        End Function
+
+        Private Shared Function FindIterationIndex(node As BoundForEachStatement) As LocalSymbol
+            Dim block = TryCast(node.Syntax, ForEachBlockSyntax)
+            If block Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim index = block.ForEachStatement.Index
+            If index.Kind <> SyntaxKind.IdentifierToken OrElse index.IsMissing Then
+                Return Nothing
+            End If
+
+            Dim body = TryCast(node.Body, BoundBlock)
+            If body Is Nothing Then
+                Return Nothing
+            End If
+
+            For Each local In body.Locals
+                If local.IdentifierToken = index Then
+                    Return local
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        Private Function CreateIterationIndexInitialization(syntaxNode As VisualBasicSyntaxNode, index As LocalSymbol) As BoundStatement
+            Dim boundIndex = New BoundLocal(syntaxNode, index, index.Type)
+            Dim assignment = New BoundAssignmentOperator(syntaxNode,
+                                                         boundIndex,
+                                                         New BoundLiteral(syntaxNode, ConstantValue.Create(0), index.Type),
+                                                         suppressObjectClone:=True,
+                                                         type:=index.Type).ToStatement.MakeCompilerGenerated
+            Return DirectCast(Visit(assignment), BoundStatement)
         End Function
 
         ''' <summary>
@@ -182,7 +229,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             statements As ArrayBuilder(Of BoundStatement),
             locals As ArrayBuilder(Of LocalSymbol),
             isArray As Boolean,
-            collectionExpression As BoundExpression
+            collectionExpression As BoundExpression,
+            iterationIndex As LocalSymbol
         )
 
             Dim syntaxNode = DirectCast(node.Syntax, ForEachBlockSyntax)
@@ -331,7 +379,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                    boundIndex,
                                                                    boundCurrentAssignment,
                                                                    boundIncrementAssignment,
-                                                                   generateUnstructuredExceptionHandlingResumeCode)
+                                                                   generateUnstructuredExceptionHandlingResumeCode,
+                                                                   iterationIndex)
 
             statements.AddRange(DirectCast(boundWhileStatement, BoundStatementList).Statements)
 
@@ -426,7 +475,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             index As BoundLocal,
             currentAssignment As BoundStatement,
             incrementAssignment As BoundStatement,
-            generateUnstructuredExceptionHandlingResumeCode As Boolean
+            generateUnstructuredExceptionHandlingResumeCode As Boolean,
+            iterationIndex As LocalSymbol
         ) As BoundStatementList
 
             Dim body = DirectCast(Visit(forEachStatement.Body), BoundStatement)
@@ -448,10 +498,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' Note: we're moving the continue label before the increment of the array index to not create an infinite loop
             ' if somebody uses "Continue For". This will then increase the index and start a new iteration. 
             ' Also: see while node creation below
-            Dim rewrittenBodyStatements = ImmutableArray.Create(Of BoundStatement)(currentAssignment,
-                                                                                      body,
-                                                                                      New BoundLabelStatement(statementSyntax, forEachStatement.ContinueLabel),
-                                                                                      incrementAssignment)
+            Dim rewrittenBodyBuilder = ArrayBuilder(Of BoundStatement).GetInstance()
+            rewrittenBodyBuilder.Add(currentAssignment)
+            rewrittenBodyBuilder.Add(body)
+            rewrittenBodyBuilder.Add(New BoundLabelStatement(statementSyntax, forEachStatement.ContinueLabel))
+            If iterationIndex IsNot Nothing Then
+                rewrittenBodyBuilder.Add(CreateIndexIncrement(DirectCast(statementSyntax, VisualBasicSyntaxNode), New BoundLocal(statementSyntax, iterationIndex, iterationIndex.Type)))
+            End If
+            rewrittenBodyBuilder.Add(incrementAssignment)
+            Dim rewrittenBodyStatements = rewrittenBodyBuilder.ToImmutableAndFree()
 
             ' declare the control variable inside of the while loop to capture it for each
             ' iteration of this loop with a copy constructor
@@ -536,7 +591,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub RewriteForEachIEnumerable(
             node As BoundForEachStatement,
             statements As ArrayBuilder(Of BoundStatement),
-            locals As ArrayBuilder(Of LocalSymbol)
+            locals As ArrayBuilder(Of LocalSymbol),
+            iterationIndex As LocalSymbol
         )
             Dim syntaxNode = DirectCast(node.Syntax, ForEachBlockSyntax)
             Dim enumeratorInfo = node.EnumeratorInfo
@@ -621,6 +677,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             rewrittenBodyBlock = AppendToBlock(rewrittenBodyBlock, bodyEpilogue)
+            If iterationIndex IsNot Nothing Then
+                rewrittenBodyBlock = AppendToBlock(rewrittenBodyBlock, CreateIndexIncrement(syntaxNode, New BoundLocal(syntaxNode, iterationIndex, iterationIndex.Type)))
+            End If
 
             ' now build while loop
             Dim boundWhileStatement = RewriteWhileStatement(node,
