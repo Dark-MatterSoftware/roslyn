@@ -8,7 +8,7 @@ Public Class LanguageVersionTests
         Dim highest = System.Enum.
             GetValues(GetType(LanguageVersion)).
             Cast(Of LanguageVersion).
-            Where(Function(x) x <> LanguageVersion.Latest).
+            Where(Function(x) x <> LanguageVersion.Latest AndAlso x <> LanguageVersion.VbNext).
             Max()
 
         Assert.Equal(LanguageVersionFacts.CurrentVersion, highest)

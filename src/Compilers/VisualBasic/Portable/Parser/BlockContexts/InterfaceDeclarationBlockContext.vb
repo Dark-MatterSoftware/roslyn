@@ -194,6 +194,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return UseSyntax(node, newContext, DirectCast(node, TypeBlockSyntax).EndBlockStatement.IsMissing)
 
                 Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock
+                    ' Before vbnext an interface method has no body, so a method block cannot be reused here.
+                    If Parser.Options.LanguageVersion < LanguageVersion.VbNext Then
+                        newContext = Me
+                        Return LinkResult.Crumble
+                    End If
+
                     Return UseSyntax(node, newContext, DirectCast(node, MethodBlockBaseSyntax).End.IsMissing)
 
                 Case SyntaxKind.EnumBlock

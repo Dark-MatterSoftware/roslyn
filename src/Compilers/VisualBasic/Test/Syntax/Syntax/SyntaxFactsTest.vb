@@ -116,7 +116,7 @@ Public Class SyntaxFactsTests
         Assert.Equal(SyntaxKind.None, SyntaxFacts.GetContextualKeywordKind(String.Empty))
         Assert.Equal(SyntaxKind.None, SyntaxFacts.GetBaseTypeStatementKind(SyntaxKind.ForKeyword))
 
-        Dim expected = New String() {"aggregate", "all", "ansi", "ascending", "assembly", "async", "auto", "await", "binary", "by", "compare", "custom", "descending", "distinct", "equals", "explicit", "externalsource", "externalchecksum", "from", "group", "infer", "into", "isfalse", "istrue", "iterator", "join", "key", "mid", "off", "order", "out", "preserve", "r", "region", "skip", "strict", "take", "text", "unicode", "until", "where", "type", "xml", "yield", "enable", "disable", "warning"}
+        Dim expected = New String() {"aggregate", "all", "ansi", "ascending", "assembly", "async", "auto", "await", "binary", "by", "compare", "custom", "descending", "distinct", "equals", "explicit", "externalsource", "externalchecksum", "from", "group", "infer", "into", "isfalse", "istrue", "iterator", "join", "key", "mid", "off", "order", "out", "preserve", "r", "region", "skip", "strict", "take", "text", "unicode", "until", "where", "type", "xml", "yield", "enable", "disable", "warning", "initonly", "required", "record", "extension"}
         For Each item In expected
             Assert.NotEqual(SyntaxKind.None, SyntaxFacts.GetContextualKeywordKind(item))
         Next
