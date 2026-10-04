@@ -153,6 +153,71 @@ End Module
             Assert.Equal(NullableAnnotation.NotAnnotated, method.Parameters(0).NullableAnnotation)
         End Sub
 
+        Private Const NullableAttributeSource As String = "
+Namespace System.Runtime.CompilerServices
+    Public Class NullableAttribute
+        Inherits Attribute
+        Public Sub New(flag As Byte)
+        End Sub
+        Public Sub New(flags As Byte())
+        End Sub
+    End Class
+    Public Class NullableContextAttribute
+        Inherits Attribute
+        Public Sub New(flag As Byte)
+        End Sub
+    End Class
+End Namespace
+"
+
+        <Fact>
+        Public Sub Metadata_EmitsContextWhenTheSignatureAgrees()
+            Dim compilation = CreateCompilation(NullableAttributeSource & "
+Module Program
+    Function Plain(text As String) As String
+        Return text
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim attribute = EmittedMethodAttribute(compilation, "Program", "Plain", "NullableContextAttribute")
+            Assert.Equal(CByte(1), attribute.ConstructorArguments.Single().Value)
+        End Sub
+
+        <Fact>
+        Public Sub Metadata_EmitsFlagsWhenTheSignatureDiffers()
+            Dim compilation = CreateCompilation(NullableAttributeSource & "
+Module Program
+    Function Mix(text As String) As String?
+        Return text
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim attribute = EmittedMethodAttribute(compilation, "Program", "Mix", "NullableAttribute")
+            Dim values = attribute.ConstructorArguments.Single().Values
+            Assert.Equal(2, values.Length)
+            Assert.Equal(CByte(2), values(0).Value)
+            Assert.Equal(CByte(1), values(1).Value)
+        End Sub
+
+        <Fact>
+        Public Sub Metadata_OmittedWhenAnnotationsAreOff()
+            Dim compilation = CreateCompilation(NullableAttributeSource & "
+Module Program
+    Function Plain(text As String) As String
+        Return text
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim method = EmittedMethod(compilation, "Program", "Plain")
+            Assert.DoesNotContain(method.GetAttributes(), Function(attribute) attribute.AttributeClass.Name.StartsWith("Nullable", StringComparison.Ordinal))
+        End Sub
+
         <Fact>
         Public Sub StringQuestion_StillErrorsWhenAnnotationsAreOff()
             Dim compilation = CreateCompilation("
@@ -216,6 +281,16 @@ End Class
                 additionalReferenceDirectories:=Nothing)
             Assert.Equal(NullableContextOptions.Disable, DirectCast(omitted.CompilationOptions, VisualBasicCompilationOptions).NullableContext)
         End Sub
+
+        Private Shared Function EmittedMethod(compilation As VisualBasicCompilation, typeName As String, methodName As String) As IMethodSymbol
+            Dim image = compilation.EmitToArray()
+            Dim consumer = CreateCompilation("", references:={MetadataReference.CreateFromImage(image)}, parseOptions:=VbNext)
+            Return DirectCast(consumer.GetTypeByMetadataName(typeName).GetMembers(methodName).Single(), IMethodSymbol)
+        End Function
+
+        Private Shared Function EmittedMethodAttribute(compilation As VisualBasicCompilation, typeName As String, methodName As String, attributeName As String) As AttributeData
+            Return EmittedMethod(compilation, typeName, methodName).GetAttributes().Single(Function(attribute) attribute.AttributeClass.Name = attributeName)
+        End Function
 
         Private Shared Function LocalNamed(model As SemanticModel, tree As SyntaxTree, name As String) As ILocalSymbol
             Dim syntax = tree.GetRoot().DescendantNodes().OfType(Of ModifiedIdentifierSyntax)().Single(Function(identifier) identifier.Identifier.ValueText = name)

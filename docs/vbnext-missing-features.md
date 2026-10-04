@@ -194,7 +194,7 @@ The sequence is that difficulty order, with one adjustment: a feature moves earl
 | 34 | VB-036 | Static abstract interface members | XL | Follows the interface work in VB-038. |
 | 35 | VB-030 | Nullable reference types | XL | Last. It crosses every bound expression, and `?` already means `Nullable(Of T)`. |
 
-Start at row 1. VB-004's Select Case spelling is locked in `docs/vbnext-vb004-syntax.md`. VB-032's primary constructor spelling is locked in `docs/vbnext-vb032-syntax.md`. Slice 10c is implemented. The next slice is 10d. VB-030's annotation spelling is locked in `docs/vbnext-vb030-syntax.md`.
+Start at row 1. VB-004's Select Case spelling is locked in `docs/vbnext-vb004-syntax.md`. VB-032's primary constructor spelling is locked in `docs/vbnext-vb032-syntax.md`. Slice 10d is implemented. The next slice is 10e. VB-030's annotation spelling is locked in `docs/vbnext-vb030-syntax.md`.
 
 ### Wave 4, if one is pulled in
 

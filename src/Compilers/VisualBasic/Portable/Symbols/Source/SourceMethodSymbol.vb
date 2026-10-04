@@ -1496,7 +1496,54 @@ lReportErrorOnTwoTokens:
                         ImmutableArray(Of KeyValuePair(Of String, TypedConstant)).Empty))
                 End If
             End If
+
+            AddNullableMetadataAttribute(compilation, attributes)
         End Sub
+
+        Private Sub AddNullableMetadataAttribute(compilation As VisualBasicCompilation, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
+            If compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return
+            End If
+
+            Dim flags As New List(Of Byte)
+            flags.Add(NullableMetadataFlag(GetReturnNullableAnnotation()))
+            For Each parameter In Me.Parameters
+                If Not parameter.IsMe Then
+                    flags.Add(NullableMetadataFlag(DirectCast(parameter, IParameterSymbol).NullableAnnotation))
+                End If
+            Next
+
+            If flags.All(Function(flag) flag = 0) Then
+                Return
+            End If
+
+            Dim byteType = compilation.GetSpecialType(SpecialType.System_Byte)
+            If flags.All(Function(flag) flag = flags(0)) Then
+                AddSynthesizedAttribute(attributes, compilation.TrySynthesizeAttribute(
+                    WellKnownMember.System_Runtime_CompilerServices_NullableContextAttribute__ctor,
+                    ImmutableArray.Create(New TypedConstant(byteType, TypedConstantKind.Primitive, flags(0))),
+                    isOptionalUse:=True))
+                Return
+            End If
+
+            Dim constants = flags.Select(Function(flag) New TypedConstant(byteType, TypedConstantKind.Primitive, flag)).ToImmutableArray()
+            Dim arrayType = compilation.CreateArrayTypeSymbol(byteType)
+            AddSynthesizedAttribute(attributes, compilation.TrySynthesizeAttribute(
+                WellKnownMember.System_Runtime_CompilerServices_NullableAttribute__ctorTransformFlags,
+                ImmutableArray.Create(New TypedConstant(arrayType, constants)),
+                isOptionalUse:=True))
+        End Sub
+
+        Private Shared Function NullableMetadataFlag(annotation As NullableAnnotation) As Byte
+            Select Case annotation
+                Case NullableAnnotation.NotAnnotated
+                    Return 1
+                Case NullableAnnotation.Annotated
+                    Return 2
+                Case Else
+                    Return 0
+            End Select
+        End Function
 
         Friend Overrides Sub AddSynthesizedReturnTypeAttributes(ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedReturnTypeAttributes(attributes)

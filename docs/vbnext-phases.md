@@ -161,9 +161,9 @@ The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type rem
 | 10a | VB-030 | Done. `docs/vbnext-vb030-syntax.md` locks `?` as the reference annotation and `/nullable:` as the project switch. `Integer?` remains `Nullable(Of Integer)`. The default switch is `disable`. |
 | 10b | VB-030 | Done. On `vbnext`, `/nullable:enable` or `/nullable:annotations` stores an annotation on a local, a parameter, and a method return type. `As String?` stays `String` and is annotated. `As String` is not annotated. `Integer?` remains `Nullable(Of Integer)`. Visual Basic 17.13, and `vbnext` with annotations off, still reject `String?`. No warnings yet. |
 | 10c | VB-030 | Done. On `vbnext`, `/nullable:enable` warns when Nothing reaches a non-nullable local, parameter, return, or member access. `If x IsNot Nothing` treats `x` as not null in that branch. `#Nullable Enable|Disable|Warnings|Annotations|Restore` overrides the project switch for the rest of the file. Visual Basic 17.13 still reports `#Nullable` as an unrecognized directive. |
-| 10d | VB-030 | The compiler emits the nullable metadata attributes. |
+| 10d | VB-030 | Done. On `vbnext`, a method whose return type and parameters carry annotations emits `NullableContextAttribute` when every flag agrees, and `NullableAttribute` with one byte per return value and parameter when they differ. `1` is not annotated and `2` is annotated. Annotations off emits neither attribute. |
 | 10e | VB-030 | Annotations work on generics and on overridden signatures. |
 
 ## What starts now
 
-Slice 10c is implemented. The next slice is 10d, the compiler emits the nullable metadata attributes.
+Slice 10d is implemented. The next slice is 10e, annotations on generics and overridden signatures.
