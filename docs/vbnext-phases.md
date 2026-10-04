@@ -29,6 +29,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 14. For Each index | VB-055, pulled in from wave 4 | `For Each item With index In items` numbers each item. |
 | 15. Optional End Namespace | VB-059, pulled in from wave 4 | A namespace may run to the end of the file. |
 | 16. With variable | VB-053, pulled in from wave 4 | A `With` block that declares its variable. |
+| 17. For Each ByRef | VB-056, pulled in from wave 4 | A loop variable that refers to each array element. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -222,6 +223,14 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb053-syntax.md`.
 | --- | --- | --- |
 | 16a | VB-053 | Done. `docs/vbnext-vb053-syntax.md` records that `With X = expr` stays an equality test. `With Dim`, `Into`, and `:=` were left open. No implementation until one spelling is chosen. |
 
+## Phase 17 — For Each ByRef
+
+Pulled in from wave 4. The spelling is in `docs/vbnext-vb056-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 17a | VB-056 | Done. `docs/vbnext-vb056-syntax.md` locks `For Each ByRef item In values`. The loop variable refers to each element of a one-dimensional array. |
+
 ## What starts now
 
-Slice 16a records that the `With` variable spelling is not locked. The next wave 4 item with a proposal spelling is VB-056, `For Each ByRef item In values`.
+Slice 17a locks `For Each ByRef item In values`. The next slice is 17b, the implementation.
