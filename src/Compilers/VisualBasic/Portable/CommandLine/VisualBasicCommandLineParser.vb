@@ -136,6 +136,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim globalImports = New List(Of GlobalImport)
             Dim rootNamespace As String = ""
             Dim optionStrict As OptionStrict = OptionStrict.Off
+            Dim nullableContext As NullableContextOptions = NullableContextOptions.Disable
             Dim optionInfer As Boolean = False ' MSDN says: ...The compiler default for this option is /optioninfer-.
             Dim optionExplicit As Boolean = True
             Dim optionCompareText As Boolean = False
@@ -250,6 +251,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         End If
 
                         ParseGlobalImports(value, globalImports, diagnostics)
+                        Continue For
+
+                    Case "nullable"
+                        value = RemoveQuotesAndSlashes(value)
+                        If value Is Nothing Then
+                            AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, "nullable", ":enable|disable|warnings|annotations")
+                        ElseIf String.Equals(value, "enable", StringComparison.OrdinalIgnoreCase) Then
+                            nullableContext = NullableContextOptions.Enable
+                        ElseIf String.Equals(value, "disable", StringComparison.OrdinalIgnoreCase) Then
+                            nullableContext = NullableContextOptions.Disable
+                        ElseIf String.Equals(value, "warnings", StringComparison.OrdinalIgnoreCase) Then
+                            nullableContext = NullableContextOptions.Warnings
+                        ElseIf String.Equals(value, "annotations", StringComparison.OrdinalIgnoreCase) Then
+                            nullableContext = NullableContextOptions.Annotations
+                        Else
+                            AddDiagnostic(diagnostics, ERRID.ERR_InvalidSwitchValue, "nullable", value)
+                        End If
+
                         Continue For
 
                     Case "optionstrict"
@@ -1465,7 +1484,7 @@ lVbRuntimePlus:
                 specificDiagnosticOptions:=specificDiagnosticOptions,
                 optimizationLevel:=If(optimize, OptimizationLevel.Release, OptimizationLevel.Debug),
                 parseOptions:=parseOptions,
-                reportSuppressedDiagnostics:=reportSuppressedDiagnostics)
+                reportSuppressedDiagnostics:=reportSuppressedDiagnostics).WithNullableContext(nullableContext)
 
             Dim emitOptions = New EmitOptions(
                 metadataOnly:=refOnly,

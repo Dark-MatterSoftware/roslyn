@@ -30,6 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private _suppressEmbeddedDeclarations As Boolean
 
         Private _ignoreCorLibraryDuplicatedTypes As Boolean
+        Private _nullableContext As NullableContextOptions
 
 #Disable Warning RS0026 ' Do not add multiple overloads with optional parameters
         ''' <summary>
@@ -332,6 +333,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 referencesSupersedeLowerVersions:=other.ReferencesSupersedeLowerVersions,
                 publicSign:=other.PublicSign,
                 ignoreCorLibraryDuplicatedTypes:=other.IgnoreCorLibraryDuplicatedTypes)
+
+            _nullableContext = other._nullableContext
         End Sub
 
         Public Overrides ReadOnly Property Language As String
@@ -391,6 +394,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public ReadOnly Property OptionStrict As OptionStrict
             Get
                 Return _optionStrict
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets the nullable context selected by <c>/nullable:</c>. The default is <see cref="NullableContextOptions.Disable"/>.
+        ''' </summary>
+        Public ReadOnly Property NullableContext As NullableContextOptions
+            Get
+                Return _nullableContext
             End Get
         End Property
 
@@ -572,6 +584,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ''' <param name="value">The Option Strict setting.  <see cref="Microsoft.CodeAnalysis.VisualBasic.OptionStrict"/></param>        
         ''' <returns>A new instance of VisualBasicCompilationOptions, if the option strict is different; otherwise current instance.</returns>        
+        Public Function WithNullableContext(value As NullableContextOptions) As VisualBasicCompilationOptions
+            If value = Me.NullableContext Then
+                Return Me
+            End If
+
+            Return New VisualBasicCompilationOptions(Me) With {._nullableContext = value}
+        End Function
+
         Public Shadows Function WithOptionStrict(value As OptionStrict) As VisualBasicCompilationOptions
             If value = Me.OptionStrict Then
                 Return Me
@@ -1100,6 +1120,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    Me.EmbedVbCoreRuntime = other.EmbedVbCoreRuntime AndAlso
                    Me.SuppressEmbeddedDeclarations = other.SuppressEmbeddedDeclarations AndAlso
                    Me.IgnoreCorLibraryDuplicatedTypes = other.IgnoreCorLibraryDuplicatedTypes AndAlso
+                   Me.NullableContext = other.NullableContext AndAlso
                    If(Me.ParseOptions Is Nothing, other.ParseOptions Is Nothing, Me.ParseOptions.Equals(other.ParseOptions))
         End Function
 
@@ -1127,7 +1148,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    Hash.Combine(Me.EmbedVbCoreRuntime,
                    Hash.Combine(Me.SuppressEmbeddedDeclarations,
                    Hash.Combine(Me.IgnoreCorLibraryDuplicatedTypes,
-                   Hash.Combine(Me.ParseOptions, 0)))))))))))
+                   Hash.Combine(Me.NullableContext,
+                   Hash.Combine(Me.ParseOptions, 0))))))))))))
         End Function
 
         Friend Overrides Function FilterDiagnostic(diagnostic As Diagnostic, cancellationToken As CancellationToken) As Diagnostic

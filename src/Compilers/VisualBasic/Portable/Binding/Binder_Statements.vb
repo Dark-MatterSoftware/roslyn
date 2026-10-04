@@ -1738,6 +1738,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim type As TypeSymbol
             Dim hasExplicitType As Boolean
+            Dim nullableAnnotation As NullableAnnotation = NullableAnnotation.None
 
             If modifiedIdentifierOpt IsNot Nothing Then
 
@@ -1765,7 +1766,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                         diagnostics,
                                                         If(symbol.IsStatic,
                                                            ModifiedIdentifierTypeDecoderContext.StaticLocalType Or ModifiedIdentifierTypeDecoderContext.LocalType,
-                                                           ModifiedIdentifierTypeDecoderContext.LocalType))
+                                                           ModifiedIdentifierTypeDecoderContext.LocalType),
+                                                        nullableAnnotation)
 
                 hasExplicitType = Not HasDefaultType(modifiedIdentifierOpt, asClauseOpt)
             Else
@@ -1773,7 +1775,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 type = DecodeIdentifierType(identifier, asClauseOpt,
                                         typeDiagnostic,
                                         asClauseType,
-                                        diagnostics)
+                                        diagnostics,
+                                        nullableAnnotation)
 
                 hasExplicitType = Not HasDefaultType(identifier, asClauseOpt)
             End If
@@ -1781,6 +1784,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If hasExplicitType AndAlso Not (symbol.IsConst AndAlso type.SpecialType = SpecialType.System_Object) Then
                 ' There is an explicit type or TypeCharacter.  Return the type. 
                 ' Constants are special.  Don't return here when a constant is typed as object.
+                symbol.SetNullableAnnotation(nullableAnnotation)
                 Return type
             End If
 

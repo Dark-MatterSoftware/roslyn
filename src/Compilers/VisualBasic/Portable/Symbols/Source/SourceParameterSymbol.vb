@@ -16,6 +16,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _location As Location
         Private ReadOnly _name As String
         Private ReadOnly _type As TypeSymbol
+        Private _nullableAnnotation As NullableAnnotation
 
         Friend Sub New(
             container As Symbol,
@@ -29,6 +30,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _type = type
             _location = location
         End Sub
+
+        Friend Sub SetNullableAnnotation(annotation As NullableAnnotation)
+            _nullableAnnotation = annotation
+        End Sub
+
+        Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+            Return _nullableAnnotation
+        End Function
 
         Friend ReadOnly Property Location As Location
             Get

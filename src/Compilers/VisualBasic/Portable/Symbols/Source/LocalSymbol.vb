@@ -23,6 +23,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _container As Symbol ' the method, field or property that contains the declaration of this variable
 
         Private _lazyType As TypeSymbol
+        Private _nullableAnnotation As NullableAnnotation
 
         ''' <summary>
         '''  Create a local symbol from a local variable declaration.
@@ -149,6 +150,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         ' Set the type of this variable. This is used by the expression binder to set the type of the variable.
         ' If the type has already been computed, it should have been computed to be the same type.
+        Friend Sub SetNullableAnnotation(annotation As NullableAnnotation)
+            _nullableAnnotation = annotation
+        End Sub
+
         Public Sub SetType(type As TypeSymbol)
             If _lazyType Is Nothing Then
                 Interlocked.CompareExchange(_lazyType, type, Nothing)
@@ -400,7 +405,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property ILocalSymbol_NullableAnnotation As NullableAnnotation Implements ILocalSymbol.NullableAnnotation
             Get
-                Return NullableAnnotation.None
+                Dim type = Me.Type
+                Return If(type Is Nothing, NullableAnnotation.None, _nullableAnnotation)
             End Get
         End Property
 

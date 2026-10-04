@@ -562,6 +562,56 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Function
 
+        Private Function ReferenceAnnotationsEnabled() As Boolean
+            If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            Return (DirectCast(Compilation.Options, VisualBasicCompilationOptions).NullableContext And NullableContextOptions.Annotations) <> 0
+        End Function
+
+        Private Shared Function IsReferenceAnnotationTarget(type As TypeSymbol) As Boolean
+            Return type IsNot Nothing AndAlso
+                Not type.IsErrorType() AndAlso
+                type.TypeKind <> TypeKind.TypeParameter AndAlso
+                type.IsReferenceType
+        End Function
+
+        ''' <summary>
+        ''' Binds a declaration type. When annotations are enabled, <c>String?</c> stays <c>String</c>
+        ''' and records <see cref="NullableAnnotation.Annotated"/>. A reference type written without
+        ''' <c>?</c> records <see cref="NullableAnnotation.NotAnnotated"/>. <c>Integer?</c> stays
+        ''' <c>Nullable(Of Integer)</c>.
+        ''' </summary>
+        Private Function BindDeclarationType(typeSyntax As TypeSyntax,
+                                             diagBag As BindingDiagnosticBag,
+                                             ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
+            nullableAnnotation = NullableAnnotation.None
+
+            If ReferenceAnnotationsEnabled() AndAlso typeSyntax.Kind = SyntaxKind.NullableType Then
+                Dim elementBag = BindingDiagnosticBag.GetInstance(diagBag)
+                Dim elementType = BindTypeSyntax(DirectCast(typeSyntax, NullableTypeSyntax).ElementType, elementBag)
+                If IsReferenceAnnotationTarget(elementType) Then
+                    diagBag.AddRangeAndFree(elementBag)
+                    nullableAnnotation = NullableAnnotation.Annotated
+                    Return elementType
+                End If
+
+                elementBag.Free()
+            End If
+
+            Dim type = BindTypeSyntax(typeSyntax, diagBag)
+            If ReferenceAnnotationsEnabled() AndAlso IsReferenceAnnotationTarget(type) Then
+                nullableAnnotation = NullableAnnotation.NotAnnotated
+            End If
+
+            Return type
+        End Function
+
+        Private Shared Function AllowsReferenceAnnotation(decoderContext As ModifiedIdentifierTypeDecoderContext) As Boolean
+            Return (decoderContext And (ModifiedIdentifierTypeDecoderContext.LocalType Or ModifiedIdentifierTypeDecoderContext.ParameterType)) <> 0
+        End Function
+
         ''' <summary>
         ''' Given a modified identifier and a type syntax, return the actual type to use. Applies the type character
         ''' and type modifiers to the given type.
@@ -617,6 +667,47 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Function
 
+        Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
+                                                     asClauseOpt As AsClauseSyntax,
+                                                     initializerSyntaxOpt As EqualsValueSyntax,
+                                                     getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
+                                                     diagBag As BindingDiagnosticBag,
+                                                     decoderContext As ModifiedIdentifierTypeDecoderContext,
+                                                     ByRef nullableAnnotation As NullableAnnotation
+        ) As TypeSymbol
+
+            Dim asClauseType As TypeSymbol = Nothing
+            Return DecodeModifiedIdentifierType(modifiedIdentifier, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, asClauseType, diagBag, decoderContext, nullableAnnotation)
+        End Function
+
+        Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
+                                                     asClauseOpt As AsClauseSyntax,
+                                                     initializerSyntaxOpt As EqualsValueSyntax,
+                                                     getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
+                                                     <Out()> ByRef asClauseType As TypeSymbol,
+                                                     diagBag As BindingDiagnosticBag,
+                                                     decoderContext As ModifiedIdentifierTypeDecoderContext,
+                                                     ByRef nullableAnnotation As NullableAnnotation
+        ) As TypeSymbol
+
+            nullableAnnotation = NullableAnnotation.None
+
+            If asClauseOpt IsNot Nothing Then
+                Debug.Assert(asClauseOpt.Kind <> SyntaxKind.AsNewClause OrElse
+                             DirectCast(asClauseOpt, AsNewClauseSyntax).NewExpression.Kind <> SyntaxKind.AnonymousObjectCreationExpression)
+
+                If AllowsReferenceAnnotation(decoderContext) Then
+                    asClauseType = BindDeclarationType(asClauseOpt.Type, diagBag, nullableAnnotation)
+                Else
+                    asClauseType = BindTypeSyntax(asClauseOpt.Type, diagBag)
+                End If
+            Else
+                asClauseType = Nothing
+            End If
+
+            Return DecodeModifiedIdentifierType(modifiedIdentifier, asClauseType, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, diagBag, decoderContext)
+        End Function
+
         ''' <summary>
         ''' Given a identifier and as clause syntax, return the actual type to use. Uses the type character or the type syntax.
         ''' </summary>
@@ -654,6 +745,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                              diagBag As BindingDiagnosticBag) As TypeSymbol
             Dim asClauseType As TypeSymbol = Nothing
             Return DecodeIdentifierType(identifier, asClauseOpt, getRequireTypeDiagnosticInfoFunc, asClauseType, diagBag)
+        End Function
+
+        Public Function DecodeIdentifierType(identifier As SyntaxToken,
+                                             asClauseOpt As AsClauseSyntax,
+                                             getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
+                                             diagBag As BindingDiagnosticBag,
+                                             ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
+            Dim asClauseType As TypeSymbol = Nothing
+            Return DecodeIdentifierType(identifier, asClauseOpt, getRequireTypeDiagnosticInfoFunc, asClauseType, diagBag, nullableAnnotation)
+        End Function
+
+        Public Function DecodeIdentifierType(identifier As SyntaxToken,
+                                             asClauseOpt As AsClauseSyntax,
+                                             getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
+                                             ByRef asClauseType As TypeSymbol,
+                                             diagBag As BindingDiagnosticBag,
+                                             ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
+            nullableAnnotation = NullableAnnotation.None
+
+            If asClauseOpt IsNot Nothing Then
+                asClauseType = BindDeclarationType(asClauseOpt.Type, diagBag, nullableAnnotation)
+            Else
+                asClauseType = Nothing
+            End If
+
+            Return DecodeIdentifierType(identifier, asClauseType, getRequireTypeDiagnosticInfoFunc, diagBag)
         End Function
 
         ''' <summary>

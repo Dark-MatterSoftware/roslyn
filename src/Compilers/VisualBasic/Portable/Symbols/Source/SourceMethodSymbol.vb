@@ -2316,6 +2316,7 @@ lReportErrorOnTwoTokens:
 
         ' Return type. Void for a Sub.
         Private _lazyReturnType As TypeSymbol
+        Private _returnNullableAnnotation As NullableAnnotation
 
         ' The overridden or hidden methods.
         Private _lazyOverriddenMethods As OverriddenMembersResult(Of MethodSymbol)
@@ -2514,6 +2515,11 @@ lReportErrorOnTwoTokens:
             End Get
         End Property
 
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            EnsureSignature()
+            Return _returnNullableAnnotation
+        End Function
+
         Private Shared Function GetNameToken(methodStatement As MethodBaseSyntax) As SyntaxToken
             Select Case methodStatement.Kind
                 Case SyntaxKind.OperatorStatement
@@ -2578,7 +2584,9 @@ lReportErrorOnTwoTokens:
 
                             Dim asClause As AsClauseSyntax = methodStatement.AsClauseInternal
 
-                            retType = binder.DecodeIdentifierType(GetNameToken(methodStatement), asClause, getErrorInfo, diagBag)
+                            Dim nullableAnnotation As NullableAnnotation
+                            retType = binder.DecodeIdentifierType(GetNameToken(methodStatement), asClause, getErrorInfo, diagBag, nullableAnnotation)
+                            _returnNullableAnnotation = nullableAnnotation
 
                             If asClause IsNot Nothing Then
                                 errorLocation = asClause.Type

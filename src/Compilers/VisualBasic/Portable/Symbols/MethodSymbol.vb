@@ -1200,9 +1200,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overridable Function GetReturnNullableAnnotation() As NullableAnnotation
+            Return NullableAnnotation.None
+        End Function
+
         Private ReadOnly Property IMethodSymbol_ReturnNullableAnnotation As NullableAnnotation Implements IMethodSymbol.ReturnNullableAnnotation
             Get
-                Return NullableAnnotation.None
+                Return GetReturnNullableAnnotation()
             End Get
         End Property
 

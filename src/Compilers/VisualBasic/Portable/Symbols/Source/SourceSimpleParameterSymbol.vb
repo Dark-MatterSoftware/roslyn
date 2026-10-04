@@ -33,7 +33,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         Friend Overrides Function ChangeOwner(newContainingSymbol As Symbol) As ParameterSymbol
-            Return New SourceSimpleParameterSymbol(newContainingSymbol, Name, Ordinal, Type, Location)
+            Dim parameter = New SourceSimpleParameterSymbol(newContainingSymbol, Name, Ordinal, Type, Location)
+            parameter.SetNullableAnnotation(GetDeclaredNullableAnnotation())
+            Return parameter
         End Function
 
         Private Function GetCorrespondingPartialParameter() As SourceComplexParameterSymbol

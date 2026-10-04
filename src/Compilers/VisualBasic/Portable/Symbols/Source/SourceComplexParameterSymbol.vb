@@ -317,7 +317,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             ' Asking for the default value earlier than that can lead to infinite recursion. Instead, pass in the m_lazyDefaultValue.  If the value hasn't
             ' been computed yet, the new symbol will compute it.
 
-            Return New SourceComplexParameterSymbol(newContainingSymbol, Me.Name, Me.Ordinal, Me.Type, Me.GetFirstLocation(), _syntaxRef, _flags, _lazyDefaultValue)
+            Dim parameter = New SourceComplexParameterSymbol(newContainingSymbol, Me.Name, Me.Ordinal, Me.Type, Me.GetFirstLocation(), _syntaxRef, _flags, _lazyDefaultValue)
+            parameter.SetNullableAnnotation(GetDeclaredNullableAnnotation())
+            Return parameter
         End Function
 
         ' Create a parameter from syntax.
@@ -337,7 +339,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 getErrorInfo = ErrorFactory.GetErrorInfo_WRN_ObjectAssumedVar1_WRN_MissingAsClauseinVarDecl
             End If
 
-            Dim paramType = binder.DecodeModifiedIdentifierType(syntax.Identifier, syntax.AsClause, Nothing, getErrorInfo, diagnostics, ModifiedIdentifierTypeDecoderContext.ParameterType)
+            Dim nullableAnnotation As NullableAnnotation
+            Dim paramType = binder.DecodeModifiedIdentifierType(syntax.Identifier, syntax.AsClause, Nothing, getErrorInfo, diagnostics, ModifiedIdentifierTypeDecoderContext.ParameterType, nullableAnnotation)
 
             If (flags And SourceParameterFlags.ParamArray) <> 0 AndAlso paramType.TypeKind <> TypeKind.Error Then
                 If paramType.TypeKind <> TypeKind.Array Then
@@ -394,7 +397,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End Select
             End If
 
-            Return Create(container, name, ordinal, paramType, syntax.Identifier.Identifier.GetLocation(), syntaxRef, flags, defaultValue)
+            Dim parameter = Create(container, name, ordinal, paramType, syntax.Identifier.Identifier.GetLocation(), syntaxRef, flags, defaultValue)
+            DirectCast(parameter, SourceParameterSymbol).SetNullableAnnotation(nullableAnnotation)
+            Return parameter
         End Function
 
         Public Overrides ReadOnly Property CustomModifiers As ImmutableArray(Of CustomModifier)
