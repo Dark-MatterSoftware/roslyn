@@ -25,6 +25,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 10. Nullability | 35 | Annotations, then flow, then metadata. |
 | 11. List patterns | VB-004, after phase 7 | `Case Is { }` matches an array, then a list. |
 | 12. TypeOf lists | VB-054, pulled in from wave 4 | `TypeOf value Is {T1, T2}` matches any listed type. |
+| 13. GUID literals | VB-052, pulled in from wave 4 | `&G{...}` is a `System.Guid` value. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -183,6 +184,14 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb054-syntax.md`.
 | --- | --- | --- |
 | 12a | VB-054 | Done. On `vbnext`, `TypeOf value Is {Customer, Order}` is true when the value is either type, and `TypeOf value IsNot {Customer, Order}` is true when it is neither. The value is evaluated once. Visual Basic 17.13 still rejects the brace list. |
 
+## Phase 13 — GUID literals
+
+Pulled in from wave 4. The spelling is in `docs/vbnext-vb052-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 13a | VB-052 | Done. `docs/vbnext-vb052-syntax.md` locks `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` and the compact `&G{936DA01F9ABD4d9d80C702AF85C822A8}`. The value's type is `System.Guid`. `#` stays a date, and square brackets stay escaped identifiers. |
+
 ## What starts now
 
-Slice 12a is implemented. The next wave 4 item is VB-052, a GUID literal, and it still needs a spelling note before an implementation slice.
+Slice 13a is the spelling note. The next slice implements `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` on `vbnext`.
