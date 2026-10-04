@@ -331,6 +331,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             checker.AddName(AttributeDescription.ExperimentalAttribute.Name, QuickAttributes.Obsolete)
             checker.AddName(AttributeDescription.MyGroupCollectionAttribute.Name, QuickAttributes.MyGroupCollection)
             checker.AddName(AttributeDescription.TypeIdentifierAttribute.Name, QuickAttributes.TypeIdentifier)
+            checker.AddName(AttributeDescription.UnmanagedCallersOnlyAttribute.Name, QuickAttributes.UnmanagedCallersOnly)
 
             ' Now process alias imports
             For Each globalImport In Options.GlobalImports

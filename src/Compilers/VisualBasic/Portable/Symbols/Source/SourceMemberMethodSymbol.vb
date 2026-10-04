@@ -177,6 +177,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return quickAttrs
         End Function
 
+        Protected Overrides ReadOnly Property MayHaveUnmanagedCallersOnlyAttribute As Boolean
+            Get
+                Return (GetQuickAttributes() And QuickAttributes.UnmanagedCallersOnly) <> 0
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property MayBeReducibleExtensionMethod As Boolean
             Get
                 Return (GetQuickAttributes() And QuickAttributes.Extension) <> 0

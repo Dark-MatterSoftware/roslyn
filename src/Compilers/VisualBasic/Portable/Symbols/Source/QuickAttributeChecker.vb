@@ -136,7 +136,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Obsolete = 1 << 1
         MyGroupCollection = 1 << 2
         TypeIdentifier = 1 << 3
-        Last = TypeIdentifier
+        UnmanagedCallersOnly = 1 << 4
+        Last = UnmanagedCallersOnly
     End Enum
 
     Friend Class QuickAttributeHelpers
@@ -147,7 +148,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Public Shared Function GetQuickAttributes(name As String, inAttribute As Boolean) As QuickAttributes
             ' Update this code if we add New quick attributes.
-            Debug.Assert(QuickAttributes.Last = QuickAttributes.TypeIdentifier)
+            Debug.Assert(QuickAttributes.Last = QuickAttributes.UnmanagedCallersOnly)
 
             Dim result = QuickAttributes.None
 
@@ -163,6 +164,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 result = result Or QuickAttributes.TypeIdentifier
             ElseIf Matches(name, inAttribute, AttributeDescription.TypeIdentifierAttribute) Then
                 result = result Or QuickAttributes.MyGroupCollection
+            ElseIf Matches(name, inAttribute, AttributeDescription.UnmanagedCallersOnlyAttribute) Then
+                result = result Or QuickAttributes.UnmanagedCallersOnly
             End If
 
             Return result

@@ -1700,12 +1700,20 @@ lReportErrorOnTwoTokens:
         End Function
 
         Friend Overrides Function GetUseSiteInfo() As UseSiteInfo(Of AssemblySymbol)
-            If IsDefinition AndAlso HasUnmanagedCallersOnlyAttribute() Then
+            ' Overload resolution reads use-site info while binding an attribute on this same method,
+            ' so attributes are decoded here only for an ordinary method that may name UnmanagedCallersOnly.
+            If IsDefinition AndAlso MethodKind = MethodKind.Ordinary AndAlso MayHaveUnmanagedCallersOnlyAttribute AndAlso HasUnmanagedCallersOnlyAttribute() Then
                 Return New UseSiteInfo(Of AssemblySymbol)(ErrorFactory.ErrorInfo(ERRID.ERR_UnmanagedCallersOnlyMethodsCannotBeCalledDirectly, Name))
             End If
 
             Return MyBase.GetUseSiteInfo()
         End Function
+
+        Protected Overridable ReadOnly Property MayHaveUnmanagedCallersOnlyAttribute As Boolean
+            Get
+                Return True
+            End Get
+        End Property
 
         Friend Overrides Function HasUnmanagedCallersOnlyAttribute() As Boolean
             Dim data = GetEarlyDecodedWellKnownAttributeData()

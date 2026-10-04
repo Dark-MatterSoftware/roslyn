@@ -2988,9 +2988,9 @@ BC30668: 'S2' is obsolete: 'Types with embedded references are not supported in 
                                    Single(Function(n) n.Identifier.ValueText = name)
                                    Return CType(model.GetDeclaredSymbol(decl), ILocalSymbol).Type
                                End Function
-            ' VB does not have a concept of a ref-like type
+            ' A ref struct from metadata is ref-like, because vbnext supports ByRef structures
             Assert.False(getLocalType("s1").IsRefLikeType)
-            Assert.False(getLocalType("s2").IsRefLikeType)
+            Assert.True(getLocalType("s2").IsRefLikeType)
             Assert.False(getLocalType("s3").IsRefLikeType)
             Assert.False(getLocalType("e1").IsRefLikeType)
         End Sub

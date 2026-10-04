@@ -565,10 +565,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' The only time constructor will be null is if we're trying to invoke a parameterless struct ctor, and it's not accessible (such as being protected).
             Debug.Assert((constructor IsNot Nothing AndAlso ReferenceEquals(constructor.ContainingType, containingType)) OrElse containingType.IsStructureType())
 
-            If constructor IsNot Nothing AndAlso constructor.HasSetsRequiredMembers Then
-                Return
-            End If
-
             If containingType.HasRequiredMembersError Then
                 ' A use-site diagnostic will be reported on the use, so we don't need to do any more checking here.
                 Return
@@ -577,6 +573,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim requiredMembers = containingType.AllRequiredMembers
 
             If requiredMembers.Count = 0 Then
+                Return
+            End If
+
+            ' Reading the constructor's attributes can bind an attribute on that same constructor,
+            ' so this is checked only when there are required members to enforce.
+            If constructor IsNot Nothing AndAlso constructor.HasSetsRequiredMembers Then
                 Return
             End If
 

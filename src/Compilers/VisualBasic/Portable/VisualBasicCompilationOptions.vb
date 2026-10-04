@@ -580,10 +580,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' Creates a new VisualBasicCompilationOptions instance with a different option strict specified.
+        ''' Creates a new VisualBasicCompilationOptions instance with a different nullable context specified.
         ''' </summary>
-        ''' <param name="value">The Option Strict setting.  <see cref="Microsoft.CodeAnalysis.VisualBasic.OptionStrict"/></param>        
-        ''' <returns>A new instance of VisualBasicCompilationOptions, if the option strict is different; otherwise current instance.</returns>        
+        ''' <param name="value">The nullable context selected by <c>/nullable:</c>.</param>
+        ''' <returns>A new instance of VisualBasicCompilationOptions, if the nullable context is different; otherwise current instance.</returns>
         Public Function WithNullableContext(value As NullableContextOptions) As VisualBasicCompilationOptions
             If value = Me.NullableContext Then
                 Return Me
@@ -592,6 +592,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New VisualBasicCompilationOptions(Me) With {._nullableContext = value}
         End Function
 
+        ''' <summary>
+        ''' Creates a new VisualBasicCompilationOptions instance with a different option strict specified.
+        ''' </summary>
+        ''' <param name="value">The Option Strict setting.  <see cref="Microsoft.CodeAnalysis.VisualBasic.OptionStrict"/></param>        
+        ''' <returns>A new instance of VisualBasicCompilationOptions, if the option strict is different; otherwise current instance.</returns>        
         Public Shadows Function WithOptionStrict(value As OptionStrict) As VisualBasicCompilationOptions
             If value = Me.OptionStrict Then
                 Return Me
