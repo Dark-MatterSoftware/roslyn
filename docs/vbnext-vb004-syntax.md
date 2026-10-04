@@ -54,4 +54,6 @@ Case Is {1, 2}
 Case Is {}
 ```
 
-Braces are the list pattern. Parentheses stay the positional pattern from 5g, and square brackets stay escaped identifiers. `Case Is {1, 2}` matches a one-dimensional array whose length is 2 and whose elements equal those values. `Case Is {}` matches an empty array. The array is evaluated once. A value that is not a one-dimensional array is an error. A `List(Of T)` match is a later slice.
+Braces are the list pattern. Parentheses stay the positional pattern from 5g, and square brackets stay escaped identifiers. `Case Is {1, 2}` matches a one-dimensional array whose length is 2 and whose elements equal those values. `Case Is {}` matches an empty array. The array is evaluated once.
+
+The same pattern matches a collection with an `Integer` `Count` and an indexer, such as `List(Of T)`. The count must equal the number of values, and each indexer result must equal the value in that position. The collection is evaluated once. A value that is neither a one-dimensional array nor such a collection is an error.

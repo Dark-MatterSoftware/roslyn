@@ -709,6 +709,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim booleanType = GetSpecialType(SpecialType.System_Boolean, node, diagnostics)
             Dim arrayType = TryCast(receiver.Type, ArrayTypeSymbol)
             If arrayType Is Nothing OrElse arrayType.Rank <> 1 Then
+                Dim collection = TryBindCollectionListComparisons(node, receiver, booleanType, diagnostics)
+                If collection IsNot Nothing Then
+                    Return collection
+                End If
+
                 If Not receiver.HasErrors Then
                     ReportDiagnostic(diagnostics, node, ERRID.ERR_ListPatternRequiresArray)
                 End If
@@ -762,6 +767,89 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             Return condition
+        End Function
+
+        Private Function TryBindCollectionListComparisons(node As ListCaseClauseSyntax, receiver As BoundExpression, booleanType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim count = TryBindIntegerMember(node, receiver, "Count", diagnostics)
+            If count Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim group = TryCast(BindDefaultPropertyGroup(node, receiver, diagnostics), BoundMethodOrPropertyGroup)
+            If group Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+            Dim expectedLength = New BoundLiteral(node, ConstantValue.Create(node.Arguments.Count), int32Type)
+            Dim condition = BindBinaryOperator(
+                node:=node,
+                left:=count,
+                right:=expectedLength,
+                operatorTokenKind:=SyntaxKind.EqualsToken,
+                preliminaryOperatorKind:=BinaryOperatorKind.Equals,
+                isOperandOfConditionalBranch:=False,
+                diagnostics:=diagnostics,
+                isSelectCase:=True)
+
+            For i = 0 To node.Arguments.Count - 1
+                Dim elementSyntax = node.Arguments(i)
+                Dim index = New BoundLiteral(elementSyntax, ConstantValue.Create(i), int32Type)
+                Dim actual = BindInvocationExpression(
+                    node:=elementSyntax,
+                    target:=elementSyntax,
+                    typeChar:=TypeCharacter.None,
+                    group:=group,
+                    boundArguments:=ImmutableArray.Create(Of BoundExpression)(index),
+                    argumentNames:=Nothing,
+                    diagnostics:=diagnostics,
+                    callerInfoOpt:=elementSyntax,
+                    isDefaultMemberAccess:=True)
+                Dim expected = BindValue(elementSyntax, diagnostics)
+                Dim compare = BindBinaryOperator(
+                    node:=elementSyntax,
+                    left:=actual,
+                    right:=expected,
+                    operatorTokenKind:=SyntaxKind.EqualsToken,
+                    preliminaryOperatorKind:=BinaryOperatorKind.Equals,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True)
+                condition = BindBinaryOperator(
+                    node:=node,
+                    left:=condition,
+                    right:=compare,
+                    operatorTokenKind:=SyntaxKind.AndAlsoKeyword,
+                    preliminaryOperatorKind:=BinaryOperatorKind.AndAlso,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True).MakeCompilerGenerated()
+            Next
+
+            Return condition
+        End Function
+
+        Private Function TryBindIntegerMember(syntax As VisualBasicSyntaxNode, receiver As BoundExpression, name As String, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim result = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(result, receiver.Type, name, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(syntax, useSiteInfo)
+
+            Dim member As BoundExpression = Nothing
+            If result.IsGood AndAlso result.HasSingleSymbol AndAlso result.SingleSymbol.Kind = SymbolKind.Property Then
+                Dim [property] = DirectCast(result.SingleSymbol, PropertySymbol)
+                If [property].Parameters.Length = 0 AndAlso [property].Type.SpecialType = SpecialType.System_Int32 Then
+                    Dim memberReceiver = If([property].IsShared, Nothing, receiver)
+                    member = New BoundPropertyAccess(syntax, [property], Nothing, PropertyAccessKind.Get, isWriteable:=False, memberReceiver, ImmutableArray(Of BoundExpression).Empty)
+                End If
+            End If
+
+            result.Free()
+            Return member
         End Function
 
         Private Function BindPositionalCaseClause(node As PositionalCaseClauseSyntax, selectExpressionOpt As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause

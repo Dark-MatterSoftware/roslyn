@@ -172,8 +172,8 @@ Deferred from slice 5h until collection expressions existed. The spelling is in 
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 11a | VB-004 | Done. On `vbnext`, `Case Is {1, 2}` matches a one-dimensional array of that length, and `Case Is {}` matches an empty array. The array is evaluated once. A value that is not a one-dimensional array is an error. Visual Basic 17.13 still reports an expected relational operator. |
-| 11b | VB-004 | `Case Is {1, 2}` matches a `List(Of T)` by its count and indexer. |
+| 11b | VB-004 | Done. On `vbnext`, `Case Is {1, 2}` matches a `List(Of T)` whose count is 2 and whose indexer returns those values. `Case Is {}` matches an empty list. The list is evaluated once. A value that is neither a one-dimensional array nor a collection with a count and an indexer is still an error. |
 
 ## What starts now
 
-Slice 11a is implemented. The next slice is 11b, list patterns on `List(Of T)`.
+Slice 11b is implemented. List patterns match arrays and `List(Of T)`.

@@ -163,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ERR_ListPatternRequiresArray">
-        <source>A list pattern requires an array.</source>
-        <target state="new">A list pattern requires an array.</target>
+        <source>A list pattern requires an array or a collection with a count and an indexer.</source>
+        <target state="new">A list pattern requires an array or a collection with a count and an indexer.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleInitializerCannotBeUnmanagedCallersOnly">

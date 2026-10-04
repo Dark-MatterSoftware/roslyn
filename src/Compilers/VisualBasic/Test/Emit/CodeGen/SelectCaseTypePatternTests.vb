@@ -231,6 +231,48 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub SelectCase_ListPatternMatchesAList()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Class Program
+    Shared n As Integer
+    Shared Function NextValues() As List(Of Integer)
+        n += 1
+        Dim values As New List(Of Integer)()
+        values.Add(1)
+        values.Add(2)
+        Return values
+    End Function
+    Shared Sub Main()
+        Select Case NextValues()
+            Case Is {1, 2}
+                System.Console.Write(""pair"")
+            Case Else
+                System.Console.Write(""other"")
+        End Select
+        Select Case New List(Of Integer)()
+            Case Is {}
+                System.Console.Write(""empty"")
+            Case Else
+                System.Console.Write(""full"")
+        End Select
+        Dim one As New List(Of Integer)()
+        one.Add(9)
+        Select Case one
+            Case Is {1, 2}
+                System.Console.Write(""pair"")
+            Case Else
+                System.Console.Write(""miss"")
+        End Select
+        System.Console.Write(n)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="pairemptymiss1").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub SelectCase_ListPatternRequiresAnArray()
             Dim compilation = CreateCompilation("
 Class Program
