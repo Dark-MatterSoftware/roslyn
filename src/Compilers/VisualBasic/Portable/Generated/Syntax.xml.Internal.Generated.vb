@@ -16372,37 +16372,89 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Inherits StatementSyntax
 
         Friend ReadOnly _withKeyword as KeywordSyntax
+        Friend ReadOnly _dimKeyword as KeywordSyntax
+        Friend ReadOnly _identifier as ModifiedIdentifierSyntax
+        Friend ReadOnly _asClause as SimpleAsClauseSyntax
+        Friend ReadOnly _equalsToken as PunctuationSyntax
         Friend ReadOnly _expression as ExpressionSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, withKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, withKeyword As InternalSyntax.KeywordSyntax, dimKeyword As InternalSyntax.KeywordSyntax, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax, expression As ExpressionSyntax)
             MyBase.New(kind)
-            Me.SlotCount = 2
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(withKeyword)
             Me._withKeyword = withKeyword
+            If dimKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(dimKeyword)
+                Me._dimKeyword = dimKeyword
+            End If
+            If identifier IsNot Nothing Then
+                AdjustFlagsAndWidth(identifier)
+                Me._identifier = identifier
+            End If
+            If asClause IsNot Nothing Then
+                AdjustFlagsAndWidth(asClause)
+                Me._asClause = asClause
+            End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
             AdjustFlagsAndWidth(expression)
             Me._expression = expression
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, withKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, withKeyword As InternalSyntax.KeywordSyntax, dimKeyword As InternalSyntax.KeywordSyntax, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax, expression As ExpressionSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind)
-            Me.SlotCount = 2
+            Me.SlotCount = 6
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(withKeyword)
             Me._withKeyword = withKeyword
+            If dimKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(dimKeyword)
+                Me._dimKeyword = dimKeyword
+            End If
+            If identifier IsNot Nothing Then
+                AdjustFlagsAndWidth(identifier)
+                Me._identifier = identifier
+            End If
+            If asClause IsNot Nothing Then
+                AdjustFlagsAndWidth(asClause)
+                Me._asClause = asClause
+            End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
             AdjustFlagsAndWidth(expression)
             Me._expression = expression
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), withKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), withKeyword As InternalSyntax.KeywordSyntax, dimKeyword As InternalSyntax.KeywordSyntax, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax, expression As ExpressionSyntax)
             MyBase.New(kind, errors, annotations)
-            Me.SlotCount = 2
+            Me.SlotCount = 6
 
             AdjustFlagsAndWidth(withKeyword)
             Me._withKeyword = withKeyword
+            If dimKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(dimKeyword)
+                Me._dimKeyword = dimKeyword
+            End If
+            If identifier IsNot Nothing Then
+                AdjustFlagsAndWidth(identifier)
+                Me._identifier = identifier
+            End If
+            If asClause IsNot Nothing Then
+                AdjustFlagsAndWidth(asClause)
+                Me._asClause = asClause
+            End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
             AdjustFlagsAndWidth(expression)
             Me._expression = expression
 
@@ -16422,7 +16474,58 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Property
 
         ''' <summary>
-        ''' The expression that is the operand of the With statement.
+        ''' The optional "Dim" keyword. When present, the With statement declares a local
+        ''' scoped to the block.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property DimKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._dimKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The name of the declared local. Present only with "Dim".
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Identifier As InternalSyntax.ModifiedIdentifierSyntax
+            Get
+                Return Me._identifier
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The optional "As" clause of the declared local.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property AsClause As InternalSyntax.SimpleAsClauseSyntax
+            Get
+                Return Me._asClause
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The "=" token before the initial value of the declared local. Present only with
+        ''' "Dim".
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property EqualsToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._equalsToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
         ''' </summary>
         Friend ReadOnly Property Expression As InternalSyntax.ExpressionSyntax
             Get
@@ -16435,6 +16538,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case 0
                     Return Me._withKeyword
                 Case 1
+                    Return Me._dimKeyword
+                Case 2
+                    Return Me._identifier
+                Case 3
+                    Return Me._asClause
+                Case 4
+                    Return Me._equalsToken
+                Case 5
                     Return Me._expression
                 Case Else
                     Debug.Assert(false, "child index out of range")
@@ -16444,11 +16555,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new WithStatementSyntax(Me.Kind, newErrors, GetAnnotations, _withKeyword, _expression)
+            Return new WithStatementSyntax(Me.Kind, newErrors, GetAnnotations, _withKeyword, _dimKeyword, _identifier, _asClause, _equalsToken, _expression)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new WithStatementSyntax(Me.Kind, GetDiagnostics, annotations, _withKeyword, _expression)
+            Return new WithStatementSyntax(Me.Kind, GetDiagnostics, annotations, _withKeyword, _dimKeyword, _identifier, _asClause, _equalsToken, _expression)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -34398,11 +34509,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim newWithKeyword = DirectCast(Visit(node.WithKeyword), KeywordSyntax)
             If node._withKeyword IsNot newWithKeyword Then anyChanges = True
+            Dim newDimKeyword = DirectCast(Visit(node.DimKeyword), KeywordSyntax)
+            If node._dimKeyword IsNot newDimKeyword Then anyChanges = True
+            Dim newIdentifier = DirectCast(Visit(node._identifier), ModifiedIdentifierSyntax)
+            If node._identifier IsNot newIdentifier Then anyChanges = True
+            Dim newAsClause = DirectCast(Visit(node._asClause), SimpleAsClauseSyntax)
+            If node._asClause IsNot newAsClause Then anyChanges = True
+            Dim newEqualsToken = DirectCast(Visit(node.EqualsToken), PunctuationSyntax)
+            If node._equalsToken IsNot newEqualsToken Then anyChanges = True
             Dim newExpression = DirectCast(Visit(node._expression), ExpressionSyntax)
             If node._expression IsNot newExpression Then anyChanges = True
 
             If anyChanges Then
-                Return New WithStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newWithKeyword, newExpression)
+                Return New WithStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newWithKeyword, newDimKeyword, newIdentifier, newAsClause, newEqualsToken, newExpression)
             Else
                 Return node
             End If
@@ -43921,25 +44040,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="withKeyword">
         ''' The "With" keyword.
         ''' </param>
-        ''' <param name="expression">
-        ''' The expression that is the operand of the With statement.
+        ''' <param name="dimKeyword">
+        ''' The optional "Dim" keyword. When present, the With statement declares a local
+        ''' scoped to the block.
         ''' </param>
-        Friend Shared Function WithStatement(withKeyword As KeywordSyntax, expression As ExpressionSyntax) As WithStatementSyntax
+        ''' <param name="identifier">
+        ''' The name of the declared local. Present only with "Dim".
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The optional "As" clause of the declared local.
+        ''' </param>
+        ''' <param name="equalsToken">
+        ''' The "=" token before the initial value of the declared local. Present only with
+        ''' "Dim".
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
+        ''' </param>
+        Friend Shared Function WithStatement(withKeyword As KeywordSyntax, dimKeyword As KeywordSyntax, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As PunctuationSyntax, expression As ExpressionSyntax) As WithStatementSyntax
             Debug.Assert(withKeyword IsNot Nothing AndAlso withKeyword.Kind = SyntaxKind.WithKeyword)
             Debug.Assert(expression IsNot Nothing)
-
-            Dim hash As Integer
-            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.WithStatement, withKeyword, expression, hash)
-            If cached IsNot Nothing Then
-                Return DirectCast(cached, WithStatementSyntax)
-            End If
-
-            Dim result = New WithStatementSyntax(SyntaxKind.WithStatement, withKeyword, expression)
-            If hash >= 0 Then
-                SyntaxNodeCache.AddNode(result, hash)
-            End If
-
-            Return result
+            Return New WithStatementSyntax(SyntaxKind.WithStatement, withKeyword, dimKeyword, identifier, asClause, equalsToken, expression)
         End Function
 
 
@@ -56641,25 +56763,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="withKeyword">
         ''' The "With" keyword.
         ''' </param>
-        ''' <param name="expression">
-        ''' The expression that is the operand of the With statement.
+        ''' <param name="dimKeyword">
+        ''' The optional "Dim" keyword. When present, the With statement declares a local
+        ''' scoped to the block.
         ''' </param>
-        Friend Function WithStatement(withKeyword As KeywordSyntax, expression As ExpressionSyntax) As WithStatementSyntax
+        ''' <param name="identifier">
+        ''' The name of the declared local. Present only with "Dim".
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The optional "As" clause of the declared local.
+        ''' </param>
+        ''' <param name="equalsToken">
+        ''' The "=" token before the initial value of the declared local. Present only with
+        ''' "Dim".
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
+        ''' </param>
+        Friend Function WithStatement(withKeyword As KeywordSyntax, dimKeyword As KeywordSyntax, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As PunctuationSyntax, expression As ExpressionSyntax) As WithStatementSyntax
             Debug.Assert(withKeyword IsNot Nothing AndAlso withKeyword.Kind = SyntaxKind.WithKeyword)
             Debug.Assert(expression IsNot Nothing)
-
-            Dim hash As Integer
-            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.WithStatement, withKeyword, expression, _factoryContext, hash)
-            If cached IsNot Nothing Then
-                Return DirectCast(cached, WithStatementSyntax)
-            End If
-
-            Dim result = New WithStatementSyntax(SyntaxKind.WithStatement, withKeyword, expression, _factoryContext)
-            If hash >= 0 Then
-                SyntaxNodeCache.AddNode(result, hash)
-            End If
-
-            Return result
+            Return New WithStatementSyntax(SyntaxKind.WithStatement, withKeyword, dimKeyword, identifier, asClause, equalsToken, expression, _factoryContext)
         End Function
 
 

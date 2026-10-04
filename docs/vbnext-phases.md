@@ -227,7 +227,7 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb053-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 16a | VB-053 | Done. `docs/vbnext-vb053-syntax.md` locks `With Dim name = expression` and `With Dim name As Type = expression`. `With X = expr` stays an equality test. |
-| 16b | VB-053 | On `vbnext`, `With Dim name = expression` declares a local scoped to the block and uses it as the `With` object. Visual Basic 17.13 rejects `Dim` after `With`. |
+| 16b | VB-053 | Done. On `vbnext`, `With Dim name = expression` and `With Dim name As Type = expression` declare a local scoped to the block and use it as the `With` object. The initial value binds against an enclosing `With`. `With X = expr` stays an equality test. Visual Basic 17.13 still reports an expected expression after `With`. |
 
 ## Phase 17 — For Each ByRef
 

@@ -377,7 +377,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(Not original.WasCompilerGenerated)
             Debug.Assert(original.Syntax.Kind = SyntaxKind.ModifiedIdentifier)
             Debug.Assert(original.Syntax.Parent.Kind = SyntaxKind.VariableDeclarator OrElse
-                         original.Syntax.Parent.Kind = SyntaxKind.TupleDeconstructionStatement)
+                         original.Syntax.Parent.Kind = SyntaxKind.TupleDeconstructionStatement OrElse
+                         original.Syntax.Parent.Kind = SyntaxKind.WithStatement)
             Return rewritten
         End Function
 

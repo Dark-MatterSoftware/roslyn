@@ -5174,8 +5174,24 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name=""></native-equiv>
       </child>
 
+      <child name="DimKeyword" optional="true" kind="DimKeyword">
+        <description>The optional "Dim" keyword. When present, the With statement declares a local scoped to the block.</description>
+      </child>
+
+      <child name="Identifier" optional="true" kind="ModifiedIdentifier">
+        <description>The name of the declared local. Present only with "Dim".</description>
+      </child>
+
+      <child name="AsClause" optional="true" kind="SimpleAsClause">
+        <description>The optional "As" clause of the declared local.</description>
+      </child>
+
+      <child name="EqualsToken" optional="true" kind="EqualsToken">
+        <description>The "=" token before the initial value of the declared local. Present only with "Dim".</description>
+      </child>
+
       <child name="Expression" kind="@ExpressionSyntax">
-        <description>The expression that is the operand of the With statement.</description>
+        <description>The expression that is the operand of the With statement. With "Dim", it is the initial value of the declared local.</description>
         <lm-equiv name="Value"></lm-equiv>
         <native-equiv name="Operand"></native-equiv>
       </child>

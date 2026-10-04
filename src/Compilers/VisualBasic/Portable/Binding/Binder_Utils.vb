@@ -661,7 +661,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <returns>The type, as modified by the type character, type modifiers. Uses Object as default if needed.</returns>
         Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
                                                      asClauseOpt As AsClauseSyntax,
-                                                     initializerSyntaxOpt As EqualsValueSyntax,
+                                                     initializerSyntaxOpt As VisualBasicSyntaxNode,
                                                      getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
                                                      <Out()> ByRef asClauseType As TypeSymbol,
                                                      diagBag As BindingDiagnosticBag,
@@ -694,7 +694,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <returns>The type, as modified by the type character, type modifiers. Uses Object as default if needed.</returns>
         Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
                                                      asClauseOpt As AsClauseSyntax,
-                                                     initializerSyntaxOpt As EqualsValueSyntax,
+                                                     initializerSyntaxOpt As VisualBasicSyntaxNode,
                                                      getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
                                                      diagBag As BindingDiagnosticBag,
                                                      Optional decoderContext As ModifiedIdentifierTypeDecoderContext = Nothing
@@ -707,7 +707,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
                                                      asClauseOpt As AsClauseSyntax,
-                                                     initializerSyntaxOpt As EqualsValueSyntax,
+                                                     initializerSyntaxOpt As VisualBasicSyntaxNode,
                                                      getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
                                                      diagBag As BindingDiagnosticBag,
                                                      decoderContext As ModifiedIdentifierTypeDecoderContext,
@@ -720,7 +720,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
                                                      asClauseOpt As AsClauseSyntax,
-                                                     initializerSyntaxOpt As EqualsValueSyntax,
+                                                     initializerSyntaxOpt As VisualBasicSyntaxNode,
                                                      getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
                                                      <Out()> ByRef asClauseType As TypeSymbol,
                                                      diagBag As BindingDiagnosticBag,

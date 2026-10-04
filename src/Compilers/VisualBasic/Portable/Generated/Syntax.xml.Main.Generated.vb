@@ -3933,11 +3933,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim newWithKeyword = DirectCast(VisitToken(node.WithKeyword).Node, InternalSyntax.KeywordSyntax)
             If node.WithKeyword.Node IsNot newWithKeyword Then anyChanges = True
+            Dim newDimKeyword = DirectCast(VisitToken(node.DimKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.DimKeyword.Node IsNot newDimKeyword Then anyChanges = True
+            Dim newIdentifier = DirectCast(Visit(node.Identifier), ModifiedIdentifierSyntax)
+            If node.Identifier IsNot newIdentifier Then anyChanges = True
+            Dim newAsClause = DirectCast(Visit(node.AsClause), SimpleAsClauseSyntax)
+            If node.AsClause IsNot newAsClause Then anyChanges = True
+            Dim newEqualsToken = DirectCast(VisitToken(node.EqualsToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.EqualsToken.Node IsNot newEqualsToken Then anyChanges = True
             Dim newExpression = DirectCast(Visit(node.Expression), ExpressionSyntax)
             If node.Expression IsNot newExpression Then anyChanges = True
 
             If anyChanges Then
-                Return New WithStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newWithKeyword, newExpression)
+                Return New WithStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newWithKeyword, newDimKeyword, newIdentifier, newAsClause, newEqualsToken, newExpression)
             Else
                 Return node
             End If
@@ -26415,10 +26423,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="withKeyword">
         ''' The "With" keyword.
         ''' </param>
-        ''' <param name="expression">
-        ''' The expression that is the operand of the With statement.
+        ''' <param name="dimKeyword">
+        ''' The optional "Dim" keyword. When present, the With statement declares a local
+        ''' scoped to the block.
         ''' </param>
-        Public Shared Function WithStatement(withKeyword As SyntaxToken, expression As ExpressionSyntax) As WithStatementSyntax
+        ''' <param name="identifier">
+        ''' The name of the declared local. Present only with "Dim".
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The optional "As" clause of the declared local.
+        ''' </param>
+        ''' <param name="equalsToken">
+        ''' The "=" token before the initial value of the declared local. Present only with
+        ''' "Dim".
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
+        ''' </param>
+        Public Shared Function WithStatement(withKeyword As SyntaxToken, dimKeyword As SyntaxToken, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As SyntaxToken, expression As ExpressionSyntax) As WithStatementSyntax
             Select Case withKeyword.Kind()
                 Case SyntaxKind.WithKeyword
                 Case Else
@@ -26544,7 +26567,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("expression")
             End Select
-            Return New WithStatementSyntax(SyntaxKind.WithStatement, Nothing, Nothing, DirectCast(withKeyword.Node, InternalSyntax.KeywordSyntax), expression)
+            Return New WithStatementSyntax(SyntaxKind.WithStatement, Nothing, Nothing, DirectCast(withKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(dimKeyword.Node, InternalSyntax.KeywordSyntax), identifier, asClause, DirectCast(equalsToken.Node, InternalSyntax.PunctuationSyntax), expression)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a "With" statement. This statement always occurs as the
+        ''' BeginStatement of a WithBlock, and the body of the With is the Body of that
+        ''' WithBlock.
+        ''' </summary>
+        ''' <param name="identifier">
+        ''' The name of the declared local. Present only with "Dim".
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The optional "As" clause of the declared local.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
+        ''' </param>
+        Public Shared Function WithStatement(identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, expression As ExpressionSyntax) As WithStatementSyntax
+            Return SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), Nothing, identifier, asClause, Nothing, expression)
         End Function
 
 
@@ -26554,10 +26597,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' WithBlock.
         ''' </summary>
         ''' <param name="expression">
-        ''' The expression that is the operand of the With statement.
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
         ''' </param>
         Public Shared Function WithStatement(expression As ExpressionSyntax) As WithStatementSyntax
-            Return SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), expression)
+            Return SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), Nothing, Nothing, Nothing, Nothing, expression)
         End Function
 
 

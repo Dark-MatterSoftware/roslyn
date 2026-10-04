@@ -28,6 +28,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return ForEachStatement(forKeyword, eachKeyword, Nothing, controlVariable, Nothing, Nothing, inKeyword, expression)
         End Function
 
+        ''' <summary>
+        ''' Creates a With statement that does not declare a local.
+        ''' </summary>
+        Public Shared Function WithStatement(withKeyword As SyntaxToken, expression As ExpressionSyntax) As WithStatementSyntax
+            Return WithStatement(withKeyword, Nothing, Nothing, Nothing, Nothing, expression)
+        End Function
+
 #Region "ParseMethods"
 
         ' direct access to parsing for common grammar areas

@@ -41,6 +41,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' Create the local declared by <c>With Dim name [As Type] = expression</c>.
+        ''' </summary>
+        Friend Shared Function CreateWithDim(container As Symbol,
+            binder As Binder,
+            modifiedIdentifier As ModifiedIdentifierSyntax,
+            asClauseOpt As AsClauseSyntax,
+            valueSyntax As ExpressionSyntax) As LocalSymbol
+
+            Return New VariableLocalSymbol(container, binder, modifiedIdentifier.Identifier, modifiedIdentifier, asClauseOpt, Nothing, LocalDeclarationKind.Variable, valueSyntaxOpt:=valueSyntax)
+        End Function
+
+        ''' <summary>
         ''' Create a local symbol associated with an identifier token.
         ''' </summary>
         Friend Shared Function Create(container As Symbol,
@@ -831,6 +843,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Private ReadOnly _modifiedIdentifierOpt As ModifiedIdentifierSyntax ' either Nothing or a modifier identifier containing the type modifiers.
             Private ReadOnly _asClauseOpt As AsClauseSyntax ' can be Nothing if no AsClause
             Private ReadOnly _initializerOpt As EqualsValueSyntax ' can be Nothing if no initializer
+            Private ReadOnly _valueSyntaxOpt As ExpressionSyntax ' the initializing expression, if any
             Private _evaluatedConstant As EvaluatedConstantInfo
 
             Private NotInheritable Class EvaluatedConstantInfo
@@ -860,16 +873,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                            asClauseOpt As AsClauseSyntax,
                            initializerOpt As EqualsValueSyntax,
                            declarationKind As LocalDeclarationKind,
-                           Optional isByRef As Boolean = False)
+                           Optional isByRef As Boolean = False,
+                           Optional valueSyntaxOpt As ExpressionSyntax = Nothing)
 
                 MyBase.New(container, binder, declaringIdentifier, declarationKind, Nothing, isByRef)
 
                 Debug.Assert(modifiedIdentifierOpt IsNot Nothing OrElse declarationKind = LocalDeclarationKind.Catch,
                              "Only catch variables should have Nothing for modifiedIdentifierOpt")
+                Debug.Assert(initializerOpt Is Nothing OrElse valueSyntaxOpt Is Nothing)
 
                 _modifiedIdentifierOpt = modifiedIdentifierOpt
                 _asClauseOpt = asClauseOpt
                 _initializerOpt = initializerOpt
+                _valueSyntaxOpt = If(valueSyntaxOpt, initializerOpt?.Value)
             End Sub
 
             ' Compute the type of this variable.
@@ -899,7 +915,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 type = localBinder.ComputeVariableType(Me,
                                                        _modifiedIdentifierOpt,
                                                        _asClauseOpt,
-                                                       _initializerOpt,
+                                                       _valueSyntaxOpt,
                                                        valueExpression,
                                                        declType,
                                                        BindingDiagnosticBag.Discarded)

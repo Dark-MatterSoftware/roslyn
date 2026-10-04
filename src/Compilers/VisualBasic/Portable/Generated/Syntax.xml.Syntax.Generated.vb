@@ -22476,6 +22476,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     Public NotInheritable Class WithStatementSyntax
         Inherits StatementSyntax
 
+        Friend _identifier as ModifiedIdentifierSyntax
+        Friend _asClause as SimpleAsClauseSyntax
         Friend _expression as ExpressionSyntax
 
         Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
@@ -22484,8 +22486,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), withKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.WithStatementSyntax(kind, errors, annotations, withKeyword, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), withKeyword As InternalSyntax.KeywordSyntax, dimKeyword As InternalSyntax.KeywordSyntax, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax, expression As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.WithStatementSyntax(kind, errors, annotations, withKeyword, dimKeyword, if(identifier IsNot Nothing, DirectCast(identifier.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ModifiedIdentifierSyntax), Nothing), if(asClause IsNot Nothing, DirectCast(asClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SimpleAsClauseSyntax), Nothing), equalsToken, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -22503,15 +22505,110 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithWithKeyword(withKeyword as SyntaxToken) As WithStatementSyntax
-            return Update(withKeyword, Me.Expression)
+            return Update(withKeyword, Me.DimKeyword, Me.Identifier, Me.AsClause, Me.EqualsToken, Me.Expression)
         End Function
 
         ''' <summary>
-        ''' The expression that is the operand of the With statement.
+        ''' The optional "Dim" keyword. When present, the With statement declares a local
+        ''' scoped to the block.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property DimKeyword As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.WithStatementSyntax)._dimKeyword
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(1), Me.GetChildIndex(1))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the DimKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithDimKeyword(dimKeyword as SyntaxToken) As WithStatementSyntax
+            return Update(Me.WithKeyword, dimKeyword, Me.Identifier, Me.AsClause, Me.EqualsToken, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The name of the declared local. Present only with "Dim".
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property Identifier As ModifiedIdentifierSyntax
+            Get
+                Return GetRed(_identifier, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Identifier property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIdentifier(identifier as ModifiedIdentifierSyntax) As WithStatementSyntax
+            return Update(Me.WithKeyword, Me.DimKeyword, identifier, Me.AsClause, Me.EqualsToken, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The optional "As" clause of the declared local.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property AsClause As SimpleAsClauseSyntax
+            Get
+                Return GetRed(_asClause, 3)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the AsClause property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithAsClause(asClause as SimpleAsClauseSyntax) As WithStatementSyntax
+            return Update(Me.WithKeyword, Me.DimKeyword, Me.Identifier, asClause, Me.EqualsToken, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The "=" token before the initial value of the declared local. Present only with
+        ''' "Dim".
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property EqualsToken As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.WithStatementSyntax)._equalsToken
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(4), Me.GetChildIndex(4))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the EqualsToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithEqualsToken(equalsToken as SyntaxToken) As WithStatementSyntax
+            return Update(Me.WithKeyword, Me.DimKeyword, Me.Identifier, Me.AsClause, equalsToken, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The expression that is the operand of the With statement. With "Dim", it is the
+        ''' initial value of the declared local.
         ''' </summary>
         Public ReadOnly Property Expression As ExpressionSyntax
             Get
-                Return GetRed(_expression, 1)
+                Return GetRed(_expression, 5)
             End Get
         End Property
 
@@ -22521,12 +22618,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithExpression(expression as ExpressionSyntax) As WithStatementSyntax
-            return Update(Me.WithKeyword, expression)
+            return Update(Me.WithKeyword, Me.DimKeyword, Me.Identifier, Me.AsClause, Me.EqualsToken, expression)
         End Function
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
-                Case 1
+                Case 2
+                    Return Me._identifier
+                Case 3
+                    Return Me._asClause
+                Case 5
                     Return Me._expression
                 Case Else
                     Return Nothing
@@ -22535,7 +22636,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
 
         Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
             Select case i
-                Case 1
+                Case 2
+                    Return Me.Identifier
+                Case 3
+                    Return Me.AsClause
+                Case 5
                     Return Me.Expression
                 Case Else
                     Return Nothing
@@ -22558,12 +22663,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="withKeyword">
         ''' The value for the WithKeyword property.
         ''' </param>
+        ''' <param name="dimKeyword">
+        ''' The value for the DimKeyword property.
+        ''' </param>
+        ''' <param name="identifier">
+        ''' The value for the Identifier property.
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The value for the AsClause property.
+        ''' </param>
+        ''' <param name="equalsToken">
+        ''' The value for the EqualsToken property.
+        ''' </param>
         ''' <param name="expression">
         ''' The value for the Expression property.
         ''' </param>
-        Public Function Update(withKeyword As SyntaxToken, expression As ExpressionSyntax) As WithStatementSyntax
-            If withKeyword <> Me.WithKeyword OrElse expression IsNot Me.Expression Then
-                Dim newNode = SyntaxFactory.WithStatement(withKeyword, expression)
+        Public Function Update(withKeyword As SyntaxToken, dimKeyword As SyntaxToken, identifier As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, equalsToken As SyntaxToken, expression As ExpressionSyntax) As WithStatementSyntax
+            If withKeyword <> Me.WithKeyword OrElse dimKeyword <> Me.DimKeyword OrElse identifier IsNot Me.Identifier OrElse asClause IsNot Me.AsClause OrElse equalsToken <> Me.EqualsToken OrElse expression IsNot Me.Expression Then
+                Dim newNode = SyntaxFactory.WithStatement(withKeyword, dimKeyword, identifier, asClause, equalsToken, expression)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

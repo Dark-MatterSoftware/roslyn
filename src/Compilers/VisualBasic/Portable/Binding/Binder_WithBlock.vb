@@ -103,7 +103,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                            draftSubstitute As BoundExpression,
                            draftInitializers As ImmutableArray(Of BoundExpression),
                            capturedLvalueByRefCallOrProperty As BoundExpression,
-                           diagnostics As ReadOnlyBindingDiagnostic(Of AssemblySymbol))
+                           diagnostics As ReadOnlyBindingDiagnostic(Of AssemblySymbol),
+                           declaration As BoundLocalDeclaration)
 
                 Debug.Assert(originalExpression IsNot Nothing)
                 Debug.Assert(expressionPlaceholder IsNot Nothing AndAlso (expressionPlaceholder.Kind = BoundKind.WithLValueExpressionPlaceholder OrElse expressionPlaceholder.Kind = BoundKind.WithRValueExpressionPlaceholder))
@@ -116,7 +117,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Me.CapturedLvalueByRefCallOrProperty = capturedLvalueByRefCallOrProperty
                 Me.DraftInitializers = draftInitializers
                 Me.Diagnostics = diagnostics
+                Me.Declaration = declaration
             End Sub
+
+            ''' <summary> The local declared by <c>With Dim</c>, otherwise Nothing </summary>
+            Public ReadOnly Declaration As BoundLocalDeclaration
 
             ''' <summary> Original bound expression from With statement </summary>
             Public ReadOnly OriginalExpression As BoundExpression
@@ -208,8 +213,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' don't allocate this diagnostics bag from a pool
                 Dim diagnostics = BindingDiagnosticBag.GetInstance()
 
-                ' Bind the expression as a value
-                Dim boundExpression As BoundExpression = Me.ContainingBinder.BindValue(Me.Expression, diagnostics)
+                Dim withStatement = Me._withBlockSyntax.WithStatement
+                Dim declaration As BoundLocalDeclaration = Nothing
+                Dim boundExpression As BoundExpression
+
+                If withStatement.Identifier IsNot Nothing Then
+                    ' With Dim: the operand is the declared local, initialized before the block runs
+                    declaration = Me.ContainingBinder.BindWithDimDeclaration(withStatement, diagnostics)
+                    Dim local = declaration.LocalSymbol
+                    boundExpression = New BoundLocal(withStatement.Identifier, local, isLValue:=True, type:=local.Type).MakeCompilerGenerated()
+                Else
+                    ' Bind the expression as a value
+                    boundExpression = Me.ContainingBinder.BindValue(Me.Expression, diagnostics)
+                End If
 
                 ' NOTE: If the expression is not an l-value we should make an r-value of it
                 If Not boundExpression.IsLValue Then
@@ -246,7 +262,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' so if the following call fails we can just drop the bound node and diagnostics on the floor
                 Interlocked.CompareExchange(Me._withBlockInfo,
                                             New WithBlockInfo(boundExpression, placeholder,
-                                                              result.Expression, result.Initializers, result.CapturedLvalueByRefCallOrProperty, diagnostics.ToReadOnlyAndFree()),
+                                                              result.Expression, result.Initializers, result.CapturedLvalueByRefCallOrProperty, diagnostics.ToReadOnlyAndFree(),
+                                                              declaration),
                                             Nothing)
             End If
 
@@ -325,6 +342,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    result.Binder.ExpressionIsAccessedFromNestedLambda Then
                     ReportDiagnostic(diagnostics, Me._withBlockInfo.CapturedLvalueByRefCallOrProperty.Syntax, ERRID.ERR_UnsupportedRefReturningCallInWithStatement)
                 End If
+            End If
+
+            Dim declaration = Me._withBlockInfo.Declaration
+            If declaration IsNot Nothing Then
+                Return New BoundBlock(node,
+                                      Nothing,
+                                      ImmutableArray.Create(declaration.LocalSymbol),
+                                      ImmutableArray.Create(Of BoundStatement)(declaration, result)).MakeCompilerGenerated()
             End If
 
             Return result
@@ -416,6 +441,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
 #End Region
 
+    End Class
+
+    ''' <summary>
+    ''' Holds the local declared by <c>With Dim name [As Type] = expression</c>. It sits outside the
+    ''' <see cref="WithBlockBinder"/>, so the initial value binds against the enclosing With block, if any.
+    ''' </summary>
+    Friend NotInheritable Class WithDimLocalBinder
+        Inherits BlockBaseBinder
+
+        Private ReadOnly _syntax As WithStatementSyntax
+        Private _locals As ImmutableArray(Of LocalSymbol)
+
+        Public Sub New(enclosing As Binder, syntax As WithStatementSyntax)
+            MyBase.New(enclosing)
+            Debug.Assert(syntax.Identifier IsNot Nothing)
+            _syntax = syntax
+        End Sub
+
+        Friend Overrides ReadOnly Property Locals As ImmutableArray(Of LocalSymbol)
+            Get
+                If _locals.IsDefault Then
+                    ImmutableInterlocked.InterlockedCompareExchange(
+                        _locals,
+                        ImmutableArray.Create(LocalSymbol.CreateWithDim(Me.ContainingMember, Me, _syntax.Identifier, _syntax.AsClause, _syntax.Expression)),
+                        Nothing)
+                End If
+
+                Return _locals
+            End Get
+        End Property
     End Class
 
 End Namespace

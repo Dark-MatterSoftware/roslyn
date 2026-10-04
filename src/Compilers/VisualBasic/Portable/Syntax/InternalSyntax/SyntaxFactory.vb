@@ -27,6 +27,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return ForEachStatement(forKeyword, eachKeyword, Nothing, controlVariable, Nothing, Nothing, inKeyword, expression)
         End Function
 
+        Friend Shared Function WithStatement(withKeyword As KeywordSyntax, expression As ExpressionSyntax) As WithStatementSyntax
+            Return WithStatement(withKeyword, Nothing, Nothing, Nothing, Nothing, expression)
+        End Function
         Friend Shared Function EndOfLine(text As String, Optional elastic As Boolean = False) As SyntaxTrivia
 
             Dim trivia As SyntaxTrivia = Nothing

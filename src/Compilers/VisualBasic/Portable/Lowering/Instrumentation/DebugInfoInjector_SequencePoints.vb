@@ -155,6 +155,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New BoundSequencePoint(syntax.Parent, rewrittenStatement)
             End If
 
+            If syntax.Parent.Kind = SyntaxKind.WithStatement Then
+                ' [|With Dim a = 1|]
+                Return New BoundSequencePoint(syntax.Parent, rewrittenStatement)
+            End If
+
             Debug.Assert(syntax.Parent.Kind = SyntaxKind.VariableDeclarator)
 
             Dim modifiedIdentifier = DirectCast(syntax, ModifiedIdentifierSyntax)

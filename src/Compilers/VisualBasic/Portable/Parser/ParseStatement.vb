@@ -1635,6 +1635,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             GetNextToken()
 
+            If keyword.Kind = SyntaxKind.WithKeyword AndAlso
+               CurrentToken.Kind = SyntaxKind.DimKeyword AndAlso
+               _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                Return ParseWithDimStatement(keyword)
+            End If
+
             Dim operand = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
 
             If operand.ContainsDiagnostics Then
@@ -1647,12 +1653,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case SyntaxKind.WhileKeyword
                     statement = SyntaxFactory.WhileStatement(keyword, operand)
                 Case SyntaxKind.WithKeyword
-                    statement = SyntaxFactory.WithStatement(keyword, operand)
+                    statement = SyntaxFactory.WithStatement(keyword, Nothing, Nothing, Nothing, Nothing, operand)
                 Case SyntaxKind.SyncLockKeyword
                     statement = SyntaxFactory.SyncLockStatement(keyword, operand)
             End Select
 
             Return statement
+        End Function
+
+        ' With Dim name [As Type] = expression
+        Private Function ParseWithDimStatement(withKeyword As KeywordSyntax) As WithStatementSyntax
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.DimKeyword)
+
+            Dim dimKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Dim identifier = ParseModifiedIdentifier(AllowExplicitArraySizes:=False, checkForCustom:=False)
+
+            Dim asClause As SimpleAsClauseSyntax = Nothing
+            Dim asKeyword As KeywordSyntax = Nothing
+            If TryGetToken(SyntaxKind.AsKeyword, asKeyword) Then
+                Dim type As TypeSyntax = ParseGeneralType()
+                If type.ContainsDiagnostics Then
+                    type = ResyncAt(type, SyntaxKind.EqualsToken)
+                End If
+                asClause = SyntaxFactory.SimpleAsClause(asKeyword, Nothing, type)
+            End If
+
+            Dim equalsToken As PunctuationSyntax = Nothing
+            Dim value As ExpressionSyntax
+            If TryGetTokenAndEatNewLine(SyntaxKind.EqualsToken, equalsToken) Then
+                value = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+                If value.ContainsDiagnostics Then
+                    value = ResyncAt(value)
+                End If
+            Else
+                equalsToken = DirectCast(HandleUnexpectedToken(SyntaxKind.EqualsToken), PunctuationSyntax)
+                value = InternalSyntaxFactory.MissingExpression()
+            End If
+
+            Return SyntaxFactory.WithStatement(withKeyword, dimKeyword, identifier, asClause, equalsToken, value)
         End Function
 
         ' File: Parser.cpp

@@ -1520,6 +1520,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Optional skipAsNewInitializer As Boolean = False
         ) As BoundLocalDeclaration
 
+            Return BindVariableDeclarationCore(name, asClauseOpt, equalsValueOpt?.Value, equalsValueOpt, diagnostics, skipAsNewInitializer)
+        End Function
+
+        ''' <summary>
+        ''' Binds the local declared by <c>With Dim name [As Type] = expression</c>.
+        ''' </summary>
+        Friend Function BindWithDimDeclaration(statement As WithStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundLocalDeclaration
+            Debug.Assert(statement.Identifier IsNot Nothing)
+            Return BindVariableDeclarationCore(statement.Identifier, statement.AsClause, statement.Expression, statement.Expression, diagnostics, skipAsNewInitializer:=False)
+        End Function
+
+        Private Function BindVariableDeclarationCore(
+            name As ModifiedIdentifierSyntax,
+            asClauseOpt As AsClauseSyntax,
+            valueSyntaxOpt As ExpressionSyntax,
+            initializerSyntaxOpt As VisualBasicSyntaxNode,
+            diagnostics As BindingDiagnosticBag,
+            skipAsNewInitializer As Boolean
+        ) As BoundLocalDeclaration
+
             Dim symbol As LocalSymbol = GetLocalForDeclaration(name.Identifier)
 
             Dim declarationInitializer As BoundExpression = Nothing
@@ -1544,7 +1564,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim type As TypeSymbol = ComputeVariableType(symbol,
                                                          name,
                                                          asClauseOpt,
-                                                         equalsValueOpt,
+                                                         valueSyntaxOpt,
                                                          declarationInitializer,
                                                          declType,
                                                          diagnostics)
@@ -1555,7 +1575,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(type IsNot Nothing)
 
             Dim isInitializedByAsNew As Boolean = asClauseOpt IsNot Nothing AndAlso asClauseOpt.Kind = SyntaxKind.AsNewClause
-            Dim errSyntax = If(asClauseOpt Is Nothing, DirectCast(equalsValueOpt, VisualBasicSyntaxNode), asClauseOpt.Type)
+            Dim errSyntax = If(asClauseOpt Is Nothing, initializerSyntaxOpt, asClauseOpt.Type)
 
             Dim restrictedType As TypeSymbol = Nothing
             If type.IsRestrictedArrayType(restrictedType) Then
@@ -1587,8 +1607,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If symbol.IsConst Then
                     declarationInitializer = symbol.GetConstantExpression(Me)
 
-                ElseIf equalsValueOpt IsNot Nothing Then
-                    Dim valueSyntax = equalsValueOpt.Value
+                ElseIf valueSyntaxOpt IsNot Nothing Then
+                    Dim valueSyntax = valueSyntaxOpt
                     Dim targetTypedNew = TryCast(valueSyntax, ObjectCreationExpressionSyntax)
                     If targetTypedNew IsNot Nothing AndAlso targetTypedNew.Type.IsMissing AndAlso
                         asClauseOpt IsNot Nothing AndAlso asClauseOpt.Kind = SyntaxKind.SimpleAsClause Then
@@ -1704,13 +1724,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="symbol">The local symbol</param>
         ''' <param name="modifiedIdentifierOpt">The symbols modified identifier is there is one</param>
         ''' <param name="asClauseOpt">The optional as clause</param>
-        ''' <param name="equalsValueOpt">The optional initializing expression</param>
+        ''' <param name="valueSyntaxOpt">The optional initializing expression</param>
         ''' <param name="valueExpression">The bound initializing expression</param>
         ''' <param name="asClauseType">The bound as clause type</param>
         Friend Function ComputeVariableType(symbol As LocalSymbol,
                                     modifiedIdentifierOpt As ModifiedIdentifierSyntax,
                                     asClauseOpt As AsClauseSyntax,
-                                    equalsValueOpt As EqualsValueSyntax,
+                                    valueSyntaxOpt As ExpressionSyntax,
                                     <Out()> ByRef valueExpression As BoundExpression,
                                     <Out()> ByRef asClauseType As TypeSymbol,
                                     diagnostics As BindingDiagnosticBag) As TypeSymbol
@@ -1727,7 +1747,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     typeDiagnostic = ErrorFactory.GetErrorInfo_WRN_ObjectAssumedVar1_WRN_StaticLocalNoInference
                 End If
 
-            ElseIf Not (OptionInfer AndAlso equalsValueOpt IsNot Nothing) Then
+            ElseIf Not (OptionInfer AndAlso valueSyntaxOpt IsNot Nothing) Then
                 If OptionStrict = OptionStrict.On Then
                     typeDiagnostic = ErrorFactory.GetErrorInfo_ERR_StrictDisallowImplicitObject
 
@@ -1760,7 +1780,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' Adjust type because the modified identifier can change the type to array or make it nullable.
                 ' DecodeModifiedIdentifierType returns the explicit type or the default type based on object. i.e. object or object()
-                type = DecodeModifiedIdentifierType(modifiedIdentifierOpt, asClauseOpt, equalsValueOpt,
+                type = DecodeModifiedIdentifierType(modifiedIdentifierOpt, asClauseOpt, valueSyntaxOpt,
                                                         typeDiagnostic,
                                                         asClauseType,
                                                         diagnostics,
@@ -1792,8 +1812,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' Don't infer types for static locals.
             ' Always infer type of constant. 
             If OptionInfer AndAlso Not symbol.IsStatic AndAlso Not symbol.IsConst Then
-                If equalsValueOpt IsNot Nothing Then
-                    Dim valueSyntax As ExpressionSyntax = equalsValueOpt.Value
+                If valueSyntaxOpt IsNot Nothing Then
+                    Dim valueSyntax As ExpressionSyntax = valueSyntaxOpt
 
                     ' Use a LocalInProgressBinder to detect cycles using locals.
                     Dim binder = New LocalInProgressBinder(Me, symbol)
@@ -1878,7 +1898,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    Not hasExplicitType AndAlso type.IsObjectType() AndAlso
                    modifiedIdentifierOpt IsNot Nothing AndAlso
                    modifiedIdentifierOpt.Nullable.Node IsNot Nothing AndAlso
-                   equalsValueOpt IsNot Nothing Then
+                   valueSyntaxOpt IsNot Nothing Then
                 Debug.Assert(Not symbol.IsConst AndAlso Not symbol.IsStatic AndAlso Not OptionInfer)
 
                 ReportDiagnostic(diagnostics, modifiedIdentifierOpt, ERRID.ERR_NullableTypeInferenceNotSupported)

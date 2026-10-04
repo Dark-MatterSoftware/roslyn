@@ -221,6 +221,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitWithBlock(node As WithBlockSyntax)
+            If node.WithStatement.Identifier IsNot Nothing Then
+                _containingBinder = New WithDimLocalBinder(_containingBinder, node.WithStatement)
+            End If
+
             _containingBinder = New WithBlockBinder(_containingBinder, node)
 
             RememberBinder(node, _containingBinder)
