@@ -219,6 +219,42 @@ End Interface
                 Diagnostic(ERRID.ERR_InvInsideInterface, "End Function").WithLocation(5, 5))
         End Sub
 
+        <Fact>
+        Public Sub InterfaceSharedMustOverride_ClassSuppliesIt()
+            Dim compilation = CreateCompilation("
+Interface IName
+    Shared MustOverride Function GetName() As String
+End Interface
+
+Class Person
+    Implements IName
+
+    Public Shared Function GetName() As String Implements IName.GetName
+        Return ""ok""
+    End Function
+End Class
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+
+            Dim method = DirectCast(compilation.GlobalNamespace.GetTypeMembers("IName").Single().GetMembers("GetName").Single(), MethodSymbol)
+            Assert.True(method.IsShared)
+            Assert.True(method.IsMustOverride)
+        End Sub
+
+        <Fact>
+        Public Sub InterfaceSharedMustOverride_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Interface IName
+    Shared MustOverride Function GetName() As String
+End Interface
+", options:=TestOptions.ReleaseDll, parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_BadFlagsOnSharedMeth1, "MustOverride").WithArguments("MustOverride").WithLocation(3, 12),
+                Diagnostic(ERRID.ERR_BadInterfaceMethodFlags1, "Shared").WithArguments("Shared").WithLocation(3, 5))
+        End Sub
+
     End Class
 
 End Namespace

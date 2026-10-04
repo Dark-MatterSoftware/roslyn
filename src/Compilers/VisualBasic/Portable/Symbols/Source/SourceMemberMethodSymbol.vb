@@ -410,8 +410,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 (syntax.ImplementsClause IsNot Nothing) Then
 
                 Dim binder As Binder = BinderBuilder.CreateBinderForType(sourceModule, Me.SyntaxTree, ContainingType)
-                If Me.IsShared And Not ContainingType.IsModuleType Then
-                    ' Implementing with shared methods is illegal.
+                If Me.IsShared And Not ContainingType.IsModuleType AndAlso
+                   ContainingType.DeclaringCompilation.LanguageVersion < LanguageVersion.VbNext Then
+                    ' Implementing with shared methods is illegal below vbnext.
                     ' Module case is caught inside ProcessImplementsClause and has different message.
                     Binder.ReportDiagnostic(diagBag,
                                             syntax.Modifiers.First(SyntaxKind.SharedKeyword),

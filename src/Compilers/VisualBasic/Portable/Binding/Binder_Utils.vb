@@ -1244,9 +1244,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim flags = memberModifiers.FoundFlags
 
             If (flags And SourceMemberFlags.Shared) <> 0 AndAlso (flags And SourceMemberFlags.InvalidIfShared) <> 0 Then
-                ReportModifierError(modifierList, If(isProperty, ERRID.ERR_BadFlagsOnSharedProperty1, ERRID.ERR_BadFlagsOnSharedMeth1), diagBag, InvalidModifiersIfShared)
-                flags = flags And Not SourceMemberFlags.InvalidIfShared
-                memberModifiers = New MemberModifiers(flags, memberModifiers.ComputedFlags)
+                ' On vbnext, an interface method may be Shared MustOverride. MustOverride stays.
+                Dim invalidIfShared = SourceMemberFlags.InvalidIfShared
+                If Not isProperty AndAlso
+                   container.TypeKind = TypeKind.Interface AndAlso
+                   Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    invalidIfShared = invalidIfShared And Not SourceMemberFlags.MustOverride
+                End If
+
+                If (flags And invalidIfShared) <> 0 Then
+                    ReportModifierError(modifierList, If(isProperty, ERRID.ERR_BadFlagsOnSharedProperty1, ERRID.ERR_BadFlagsOnSharedMeth1), diagBag, InvalidModifiersIfShared)
+                    flags = flags And Not invalidIfShared
+                    memberModifiers = New MemberModifiers(flags, memberModifiers.ComputedFlags)
+                End If
             End If
 
             Select Case container.TypeKind
@@ -1276,13 +1286,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     memberModifiers = New MemberModifiers(flags, memberModifiers.ComputedFlags Or SourceMemberFlags.Shared)
 
                 Case TypeKind.Interface
-                    If (flags And SourceMemberFlags.InvalidInInterface) <> 0 Then
+                    Dim invalidInInterface = SourceMemberFlags.InvalidInInterface
+                    If Not isProperty AndAlso
+                       Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       (flags And SourceMemberFlags.Shared) <> 0 Then
+                        ' Shared MustOverride is the static abstract spelling. Both keywords stay.
+                        invalidInInterface = invalidInInterface And Not SourceMemberFlags.Shared And Not SourceMemberFlags.MustOverride
+                    End If
+
+                    If (flags And invalidInInterface) <> 0 Then
                         ReportModifierError(modifierList, If(isProperty, ERRID.ERR_BadInterfacePropertyFlags1, ERRID.ERR_BadInterfaceMethodFlags1), diagBag, InvalidModifiersInInterface)
-                        flags = flags And Not SourceMemberFlags.InvalidInInterface
+                        flags = flags And Not invalidInInterface
                     End If
 
                     ' Interface members are always public and always implicitly MustOverride.
-                    memberModifiers = New MemberModifiers(flags, memberModifiers.ComputedFlags Or SourceMemberFlags.MustOverride)
+                    Dim computedFlags = memberModifiers.ComputedFlags Or SourceMemberFlags.MustOverride
+                    If (flags And SourceMemberFlags.Shared) <> 0 Then
+                        computedFlags = computedFlags Or SourceMemberFlags.Shared
+                    End If
+
+                    memberModifiers = New MemberModifiers(flags, computedFlags)
 
                 Case TypeKind.Structure
                     If (flags And SourceMemberFlags.Protected) <> 0 AndAlso (flags And SourceMemberFlags.Overrides) = 0 Then
