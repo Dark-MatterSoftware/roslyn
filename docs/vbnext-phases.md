@@ -26,6 +26,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 11. List patterns | VB-004, after phase 7 | `Case Is { }` matches an array, then a list. |
 | 12. TypeOf lists | VB-054, pulled in from wave 4 | `TypeOf value Is {T1, T2}` matches any listed type. |
 | 13. GUID literals | VB-052, pulled in from wave 4 | `&G{...}` is a `System.Guid` value. |
+| 14. For Each index | VB-055, pulled in from wave 4 | `For Each item With index In items` numbers each item. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -193,6 +194,14 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb052-syntax.md`.
 | 13a | VB-052 | Done. `docs/vbnext-vb052-syntax.md` locks `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` and the compact `&G{936DA01F9ABD4d9d80C702AF85C822A8}`. The value's type is `System.Guid`. `#` stays a date, and square brackets stay escaped identifiers. |
 | 13b | VB-052 | Done. On `vbnext`, `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` and `&G{936DA01F9ABD4d9d80C702AF85C822A8}` are `System.Guid` values. A malformed literal is an error. `&Goo` stays concatenation. Visual Basic 17.13 still treats `&G{...}` as concatenation. |
 
+## Phase 14 — For Each index
+
+Pulled in from wave 4. The spelling is in `docs/vbnext-vb055-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 14a | VB-055 | Done. `docs/vbnext-vb055-syntax.md` locks `For Each item With index In items`. The index is an `Integer` that starts at 0. |
+
 ## What starts now
 
-Slice 13b is implemented. The next wave 4 item is VB-055, `For Each` with an index, and it still needs a spelling note before an implementation slice.
+Slice 14a is the spelling note. The next slice implements `For Each item With index In items` on `vbnext`.
