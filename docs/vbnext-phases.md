@@ -211,7 +211,8 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb059-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 15a | VB-059 | Done. `docs/vbnext-vb059-syntax.md` locks a namespace that runs to the end of the file. A second `Namespace` before `End Namespace` still nests. |
+| 15b | VB-059 | Done. On `vbnext`, a namespace with no `End Namespace` runs to the end of the file. A second `Namespace` still nests. `End Namespace` remains valid. Visual Basic 17.13 still expects `End Namespace`. |
 
 ## What starts now
 
-Slice 15a is the spelling note. The next slice allows a namespace to run to the end of the file on `vbnext`.
+Slice 15b is implemented. The next wave 4 item is VB-053, a `With` that declares its variable, and it still needs a spelling note before an implementation slice.

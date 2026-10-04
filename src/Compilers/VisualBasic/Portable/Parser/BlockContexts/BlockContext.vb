@@ -112,6 +112,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     errorId = Nothing
                 End If
 
+                ' On vbnext a namespace may run to the end of the file.
+                If errorId = ERRID.ERR_ExpectedEndNamespace AndAlso Parser.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                    errorId = Nothing
+                End If
+
                 If errorId <> Nothing Then
                     beginStmt = Parser.ReportSyntaxError(beginStmt, errorId)
                 End If
