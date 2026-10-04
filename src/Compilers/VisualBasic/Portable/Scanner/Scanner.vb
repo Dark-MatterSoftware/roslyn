@@ -1319,12 +1319,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ScanBracketedIdentifier(precedingTrivia)
 
                 Case "?"c
-                    ' Nullable "?" must stay a separate token from a following "=".
-                    If CanGet(1) AndAlso Not IsWhitespace(Peek(1)) AndAlso TrySkipFollowingEquals(lengthWithMaybeEquals) Then
-                        Return MakeQuestionEqualsToken(precedingTrivia, lengthWithMaybeEquals)
-                    Else
-                        Return MakeQuestionToken(precedingTrivia, fullWidth)
-                    End If
+                    ' A nullable "?" may touch a following "=", as in "Integer?= 1".
+                    ' The statement parser joins "?" and "=" into "?=" for an assignment.
+                    Return MakeQuestionToken(precedingTrivia, fullWidth)
 
                 Case "%"c
                     If NextIs(1, ">"c) Then

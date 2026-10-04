@@ -229,6 +229,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(Not _evaluatingConditionCompilationExpression OrElse
                 StartsValidConditionalCompilationExpr(CurrentToken), "Conditional compilation expression parsing confused!!!")
 
+            Dim allowQuestionEquals = _allowQuestionEqualsAfterTerm
+            _allowQuestionEqualsAfterTerm = False
+
             Dim term As ExpressionSyntax = Nothing
             Dim start As SyntaxToken = CurrentToken
 
@@ -514,12 +517,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 term = ParsePostFixExpression(RedimOrNewParent, term)
             End If
 
-            If CurrentToken IsNot Nothing AndAlso CurrentToken.Kind = SyntaxKind.QuestionToken Then
+            If CurrentToken IsNot Nothing AndAlso CurrentToken.Kind = SyntaxKind.QuestionToken AndAlso
+               Not (allowQuestionEquals AndAlso IsQuestionTouchingEquals()) Then
                 term = term.AddTrailingSyntax(CurrentToken, ERRID.ERR_NullableCharNotSupported)
                 GetNextToken()
             End If
 
             Return term
+        End Function
+
+        Private Function IsQuestionTouchingEquals() As Boolean
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.QuestionToken)
+            Return Not CurrentToken.HasTrailingTrivia AndAlso
+                   PeekToken(1).Kind = SyntaxKind.EqualsToken AndAlso
+                   Not PeekToken(1).HasLeadingTrivia
         End Function
 
         Private Function ParsePostFixExpression(RedimOrNewParent As Boolean, term As ExpressionSyntax) As ExpressionSyntax

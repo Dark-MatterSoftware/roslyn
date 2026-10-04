@@ -31,6 +31,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Private _possibleFirstStatementOnLine As PossibleFirstStatementKind = PossibleFirstStatementKind.Yes
         Private _recursionDepth As Integer
         Private _evaluatingConditionCompilationExpression As Boolean
+        Private _allowQuestionEqualsAfterTerm As Boolean
         Private ReadOnly _scanner As Scanner
         Private ReadOnly _cancellationToken As CancellationToken
         Friend ReadOnly _pool As New SyntaxListPool

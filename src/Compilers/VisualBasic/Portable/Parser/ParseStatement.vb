@@ -1317,7 +1317,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         Private Function ParseAssignmentOrInvocationStatement() As StatementSyntax
+            _allowQuestionEqualsAfterTerm = True
             Dim target As ExpressionSyntax = ParseTerm()
+            _allowQuestionEqualsAfterTerm = False
 
             If target.ContainsDiagnostics Then
                 target = ResyncAt(target, SyntaxKind.EqualsToken)
@@ -1325,10 +1327,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             ' Could be a function call or it could be an assignment
 
-            If SyntaxFacts.IsAssignmentStatementOperatorToken(CurrentToken.Kind) Then
+            Dim isQuestionEquals = CurrentToken.Kind = SyntaxKind.QuestionToken AndAlso IsQuestionTouchingEquals()
+
+            If isQuestionEquals OrElse SyntaxFacts.IsAssignmentStatementOperatorToken(CurrentToken.Kind) Then
                 ' Consume the assignment operator
                 Dim operatorToken As PunctuationSyntax = DirectCast(CurrentToken, PunctuationSyntax)
                 GetNextToken()
+
+                If isQuestionEquals Then
+                    Dim equalsToken = DirectCast(CurrentToken, PunctuationSyntax)
+                    GetNextToken()
+                    operatorToken = New PunctuationSyntax(SyntaxKind.QuestionEqualsToken, "?=", operatorToken.GetLeadingTrivia, equalsToken.GetTrailingTrivia)
+                End If
 
                 If operatorToken.Kind = SyntaxKind.QuestionEqualsToken Then
                     operatorToken = CheckFeatureAvailability(Feature.NothingCoalescingAssignment, operatorToken)

@@ -51,5 +51,39 @@ End Class
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_LanguageVersion, "?=").WithArguments("17.13", "nothing-coalescing assignment", "vbnext").WithLocation(5, 14))
         End Sub
+
+        <Fact>
+        Public Sub NothingCoalescingAssignment_WithoutSpaces()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim number As Integer?= Nothing
+        number?= 4
+        number?= 5
+        System.Console.Write(number)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="4").VerifyDiagnostics()
+        End Sub
+
+        <Theory>
+        <InlineData(LanguageVersion.VisualBasic17_13)>
+        <InlineData(LanguageVersion.VbNext)>
+        Public Sub NullableTypeBeforeEqualsStillParses(version As LanguageVersion)
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim number As Integer?= 3
+        Dim pair As (Integer?, Integer?)?= (1, 2)
+        System.Console.Write(number)
+        System.Console.Write(pair.Value.Item2)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(version))
+
+            CompileAndVerify(compilation, expectedOutput:="32").VerifyDiagnostics()
+        End Sub
     End Class
 End Namespace

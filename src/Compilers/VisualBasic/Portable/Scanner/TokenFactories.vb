@@ -567,10 +567,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return MakePunctuationToken(precedingTrivia, length, SyntaxKind.PlusEqualsToken)
         End Function
 
-        Private Function MakeQuestionEqualsToken(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode), length As Integer) As PunctuationSyntax
-            Return MakePunctuationToken(precedingTrivia, length, SyntaxKind.QuestionEqualsToken)
-        End Function
-
         Private Function MakeMinusEqualsToken(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode), length As Integer) As PunctuationSyntax
             Return MakePunctuationToken(precedingTrivia, length, SyntaxKind.MinusEqualsToken)
         End Function
