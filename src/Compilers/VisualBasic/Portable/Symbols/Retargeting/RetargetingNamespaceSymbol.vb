@@ -249,6 +249,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             Next
         End Sub
 
+        Friend Overrides Sub AppendProbableExtensionDefaultProperties(properties As ArrayBuilder(Of PropertySymbol))
+            Dim oldCount = properties.Count
+            For Each underlyingContainedType As NamedTypeSymbol In _underlyingNamespace.TypesToCheckForExtensionMethods
+                underlyingContainedType.AppendProbableExtensionDefaultProperties(properties)
+            Next
+
+            For i = oldCount To properties.Count - 1
+                properties(i) = RetargetingTranslator.Retarget(properties(i))
+            Next
+        End Sub
+
         Friend Overrides Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
             Dim oldCount = properties.Count
             For Each underlyingContainedType As NamedTypeSymbol In _underlyingNamespace.TypesToCheckForExtensionMethods

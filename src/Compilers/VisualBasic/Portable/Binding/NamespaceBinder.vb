@@ -96,6 +96,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _nsSymbol.AppendProbableExtensionProperties(name, properties)
         End Sub
 
+        Protected Overrides Sub CollectProbableExtensionDefaultPropertiesInSingleBinder(properties As ArrayBuilder(Of PropertySymbol),
+                                                                                        originalBinder As Binder)
+            Debug.Assert(properties.Count = 0)
+            _nsSymbol.AppendProbableExtensionDefaultProperties(properties)
+        End Sub
+
         Protected Overrides Sub AddExtensionMethodLookupSymbolsInfoInSingleBinder(nameSet As LookupSymbolsInfo,
                                                                                    options As LookupOptions,
                                                                                    originalBinder As Binder)

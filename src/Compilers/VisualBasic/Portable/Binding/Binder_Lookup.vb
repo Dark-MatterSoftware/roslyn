@@ -977,6 +977,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     type = type.BaseTypeWithDefinitionUseSiteDiagnostics(useSiteInfo)
                 End While
 
+                If Not result.IsGood Then
+                    LookupForExtensionDefaultProperties(result, accessThroughType, binder, useSiteInfo)
+                End If
+            End Sub
+
+            Private Shared Sub LookupForExtensionDefaultProperties(
+                lookupResult As LookupResult,
+                container As TypeSymbol,
+                binder As Binder,
+                <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+            )
+                If Not ShouldLookupExtensionMethods(LookupOptions.Default, container) Then
+                    Return
+                End If
+
+                Dim currentBinder = binder
+                Dim properties = ArrayBuilder(Of PropertySymbol).GetInstance()
+                Do
+                    properties.Clear()
+                    currentBinder.CollectProbableExtensionDefaultPropertiesInSingleBinder(properties, binder)
+                    For Each candidate In properties
+                        Dim reduced = ReduceExtensionProperty(candidate, container, useSiteInfo)
+                        If reduced IsNot Nothing AndAlso reduced.IsDefault Then
+                            lookupResult.MergeOverloadedOrPrioritized(
+                                binder.CheckViability(reduced, arity:=-1, LookupOptions.Default, reduced.ContainingType, useSiteInfo),
+                                checkIfCurrentHasOverloads:=False)
+                        End If
+                    Next
+
+                    currentBinder = currentBinder.m_containingBinder
+                Loop While currentBinder IsNot Nothing
+
+                properties.Free()
             End Sub
 
             ' See Semantics::LookupDefaultPropertyInInterface.
@@ -1287,7 +1320,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 instanceType As TypeSymbol,
                 <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
             ) As PropertySymbol
-                If Not candidate.IsExtensionProperty OrElse Not candidate.IsShared OrElse candidate.ParameterCount <> 1 Then
+                If Not candidate.IsExtensionProperty OrElse Not candidate.IsShared OrElse candidate.ParameterCount < 1 Then
                     Return Nothing
                 End If
 

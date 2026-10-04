@@ -147,7 +147,7 @@ Depends on phase 3 (init-only, required) and slice 5d (deconstruction). Position
 | 9a | VB-038 | Done. On `vbnext`, an interface method may have a body. A class that implements the interface and does not supply the method uses that body. The class may still supply its own with `Implements`. A method without a body still must be implemented. Visual Basic 17.13 still rejects a body inside an interface. |
 | 9b | VB-038 | Done. On `vbnext`, when a class implements a derived interface, the most specific default body is the implementation. A derived body covers an abstract base method. Two equally specific bodies still leave the base method unimplemented. |
 | 9c | VB-039 | Done. On `vbnext`, `Extension(s As String)` ... `End Extension` inside a module may declare a property. `text.WordCount` calls that property with `text` as the receiver. Visual Basic 17.13 does not parse `Extension` as a block. |
-| 9d | VB-039 | An extension block may add an indexer. |
+| 9d | VB-039 | Done. On `vbnext`, an extension block may declare a parameterized property. `box(index)` calls it when the type has no default property of its own, and both the receiver and the index are passed. |
 | 9e | VB-039 | An extension block may add a shared member. |
 | 9f | VB-036 | An interface may declare a `Shared MustOverride` member. |
 | 9g | VB-036 | A type parameter constrained to that interface can call the shared member. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 9c, an extension property, is implemented. The next slice is 9d, an extension block that adds an indexer.
+Slice 9d, an extension indexer, is implemented. The next slice is 9e, an extension block that adds a shared member.

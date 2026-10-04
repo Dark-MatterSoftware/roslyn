@@ -1529,7 +1529,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Sub New(originalDefinition As PropertySymbol)
             Debug.Assert(originalDefinition IsNot Nothing)
             Debug.Assert(originalDefinition.IsShared)
-            Debug.Assert(originalDefinition.ParameterCount = 1)
+            Debug.Assert(originalDefinition.ParameterCount >= 1)
 
             _originalDefinition = originalDefinition
         End Sub
@@ -1614,7 +1614,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides ReadOnly Property IsDefault As Boolean
             Get
-                Return False
+                Return _originalDefinition.ParameterCount > 1
             End Get
         End Property
 
@@ -1666,13 +1666,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides ReadOnly Property Parameters As ImmutableArray(Of ParameterSymbol)
             Get
-                Return ImmutableArray(Of ParameterSymbol).Empty
+                Dim getter = GetMethod
+                If getter Is Nothing Then
+                    Return ImmutableArray(Of ParameterSymbol).Empty
+                End If
+
+                Return getter.Parameters
             End Get
         End Property
 
         Public Overrides ReadOnly Property ParameterCount As Integer
             Get
-                Return 0
+                Return Math.Max(0, _originalDefinition.ParameterCount - 1)
             End Get
         End Property
 

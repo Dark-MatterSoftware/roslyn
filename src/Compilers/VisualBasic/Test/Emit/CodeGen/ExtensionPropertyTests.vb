@@ -38,6 +38,35 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub ExtensionIndexer_ReceiverAndIndexArePassed()
+            Dim compilation = CreateCompilation("
+Class Box
+    Public Value As String
+End Class
+
+Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Item(index As Integer) As Char
+            Get
+                Return box.Value(index)
+            End Get
+        End Property
+    End Extension
+End Module
+
+Module Program
+    Sub Main()
+        Dim box As New Box()
+        box.Value = ""hi""
+        System.Console.Write(box(0))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="h").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub ExtensionProperty_RejectedOutsideModule()
             Dim compilation = CreateCompilation("
 Class C

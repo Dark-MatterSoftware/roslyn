@@ -302,6 +302,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' This method is an entry point for the Binder to collect extension methods with the given name
         ''' declared within this named type. Overridden by RetargetingNamedTypeSymbol.
         ''' </summary>
+        Friend Overridable Sub AppendProbableExtensionDefaultProperties(properties As ArrayBuilder(Of PropertySymbol))
+            For Each member As Symbol In Me.GetMembers()
+                If member.Kind <> SymbolKind.Property Then
+                    Continue For
+                End If
+
+                Dim [property] = DirectCast(member, PropertySymbol)
+                If [property].IsExtensionProperty AndAlso [property].ParameterCount > 1 Then
+                    properties.Add([property])
+                End If
+            Next
+        End Sub
+
         Friend Overridable Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
             For Each member As Symbol In Me.GetMembers(name)
                 If member.Kind <> SymbolKind.Property Then

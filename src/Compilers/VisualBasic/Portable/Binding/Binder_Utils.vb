@@ -985,6 +985,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return result
         End Function
 
+        ''' <summary>
+        ''' Decode an extension property. The receiver parameters come first, then the indexer's own parameters.
+        ''' </summary>
+        Public Function DecodeExtensionPropertyParameterList(container As PropertySymbol,
+                                                             extensionList As ParameterListSyntax,
+                                                             ownList As ParameterListSyntax,
+                                                             diagBag As BindingDiagnosticBag) As ImmutableArray(Of ParameterSymbol)
+            Dim params = ArrayBuilder(Of ParameterSymbol).GetInstance()
+            If extensionList IsNot Nothing Then
+                DecodeParameterList(container, False, SourceMemberFlags.None, extensionList.Parameters, params, s_checkPropertyParameterModifierCallback, diagBag)
+            End If
+
+            Dim ownStart = params.Count
+            If ownList IsNot Nothing Then
+                DecodeParameterList(container, False, SourceMemberFlags.None, ownList.Parameters, params, s_checkPropertyParameterModifierCallback, diagBag)
+            End If
+
+            For i = 0 To params.Count - 1
+                Dim paramSyntax = If(i < ownStart, extensionList.Parameters(i), ownList.Parameters(i - ownStart))
+                Dim param = params(i)
+                If CheckReservedParameterName(StringConstants.ValueParameterName, paramSyntax, ERRID.ERR_PropertySetParamCollisionWithValue, diagBag) Then
+                    CheckReservedParameterName(container.Name, paramSyntax, ERRID.ERR_ParamNameFunctionNameCollision, diagBag)
+                End If
+
+                CheckParameterNameNotDuplicate(params, i, paramSyntax, param, diagBag)
+            Next
+
+            Dim decoded = params.ToImmutable()
+            params.Free()
+            Return decoded
+        End Function
+
         Private Shared ReadOnly s_checkPropertyParameterModifierCallback As CheckParameterModifierDelegate = AddressOf CheckPropertyParameterModifier
 
         Private Shared Function CheckPropertyParameterModifier(container As Symbol, token As SyntaxToken, flag As SourceParameterFlags, diagnostics As BindingDiagnosticBag) As SourceParameterFlags

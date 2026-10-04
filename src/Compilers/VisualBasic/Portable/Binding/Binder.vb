@@ -232,6 +232,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(properties.Count = 0)
         End Sub
 
+        Protected Overridable Sub CollectProbableExtensionDefaultPropertiesInSingleBinder(properties As ArrayBuilder(Of PropertySymbol),
+                                                                                          originalBinder As Binder)
+            Debug.Assert(properties.Count = 0)
+        End Sub
+
         ''' <summary>
         ''' Lookup all names of extension methods that are available from a single binder, without delegating
         ''' to containing binder. The original binder passed in is used for accessibility checking
