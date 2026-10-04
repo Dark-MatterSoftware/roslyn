@@ -34,6 +34,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 19. Unchecked arithmetic | VB-057, pulled in from wave 4 | `Unchecked(expression)` wraps integer overflow. |
 | 20. Concise lambdas | VB-051, pulled in from wave 4 | A shorter way to write a one-parameter lambda. |
 | 21. XML statement blocks | VB-060, pulled in from wave 4 | Statements inside `<%= %>`. |
+| 22. Sub chains | VB-058, pulled in from wave 4 | Calling a `Sub` again with new arguments. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -270,6 +271,14 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb060-syntax.md`.
 | 21a | VB-060 | Done. `docs/vbnext-vb060-syntax.md` locks a statement block inside `<%= %>` that starts with a statement keyword. `Return` and `Yield` are scoped to the block. `Let` and `Set` assignment forms are not locked. |
 | 21b | VB-060 | Waits until XML literals are placed in scope for this fork. |
 
+## Phase 22 — Sub chains
+
+Pulled in from wave 4. The note is in `docs/vbnext-vb058-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 22a | VB-058 | Done. `docs/vbnext-vb058-syntax.md` records that `F(a)(b)`, `: (b)`, and `Call F With (a), (b)` were left open. No implementation until a proposal says what a chained `Sub` call means. |
+
 ## What starts now
 
-Slice 21a records the XML statement block spelling. Slice 21b waits on the XML scope decision. The last wave 4 item is VB-058, chaining a `Sub` call, and it still needs a note.
+Every wave 4 item now has a note. Slice 21b waits on the XML scope decision. VB-050, VB-051, VB-053, and VB-058 wait for a chosen spelling.
