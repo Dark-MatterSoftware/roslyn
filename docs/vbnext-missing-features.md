@@ -105,7 +105,7 @@ Do not start these until a Wave 1 feature has gone through parser, binder, tests
 
 | Id | Feature | Why it waits |
 | --- | --- | --- |
-| VB-030 | Nullable reference types | Highest discussion on vblang ([#355](https://github.com/dotnet/vblang/issues/355), 94 comments). Every symbol's nullable annotation is hard-coded to `None`. VB already uses `?` for `Nullable(Of T)`, so the spelling is a language-design problem, not a port of C# `?`. |
+| VB-030 | Nullable reference types | Highest discussion on vblang ([#355](https://github.com/dotnet/vblang/issues/355), 94 comments). Every symbol's nullable annotation is hard-coded to `None`. The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type remains `Nullable(Of T)`. |
 | VB-031 | Records | `IsRecord` is hard-coded false. Covers record classes, record structures, and non-destructive `With` expressions. Needs VB-002, and probably VB-005. VB already has anonymous types and `With` blocks; the design has to say what a record adds. |
 | VB-032 | Primary constructors | C# 12. Touches type declarations, parameters, and lowering. |
 | VB-033 | Raw string literals | VB 14 already has multiline strings. [vblang #301](https://github.com/dotnet/vblang/issues/301) is about literal parsing. A new literal has to be distinct from the one that exists. |
@@ -194,7 +194,7 @@ The sequence is that difficulty order, with one adjustment: a feature moves earl
 | 34 | VB-036 | Static abstract interface members | XL | Follows the interface work in VB-038. |
 | 35 | VB-030 | Nullable reference types | XL | Last. It crosses every bound expression, and `?` already means `Nullable(Of T)`. |
 
-Start at row 1. VB-004's Select Case spelling is locked in `docs/vbnext-vb004-syntax.md`. VB-032's primary constructor spelling is locked in `docs/vbnext-vb032-syntax.md`. Slice 9g is implemented. The next slice is 10a. VB-030 still needs a syntax proposal before any parser change.
+Start at row 1. VB-004's Select Case spelling is locked in `docs/vbnext-vb004-syntax.md`. VB-032's primary constructor spelling is locked in `docs/vbnext-vb032-syntax.md`. Slice 10a is written. The next slice is 10b. VB-030's annotation spelling is locked in `docs/vbnext-vb030-syntax.md`.
 
 ### Wave 4, if one is pulled in
 

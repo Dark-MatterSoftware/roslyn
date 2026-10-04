@@ -154,11 +154,11 @@ Depends on phase 3 (init-only, required) and slice 5d (deconstruction). Position
 
 ## Phase 10 — Nullability
 
-The spelling is decided in 10a. Parser work starts only after that note. `?` on a value type remains `Nullable(Of T)`.
+The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type remains `Nullable(Of T)`.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 10a | VB-030 | A design note chooses the annotation spelling and the project switch. No code change. |
+| 10a | VB-030 | Done. `docs/vbnext-vb030-syntax.md` locks `?` as the reference annotation and `/nullable:` as the project switch. `Integer?` remains `Nullable(Of Integer)`. The default switch is `disable`. |
 | 10b | VB-030 | Annotations are stored on locals, parameters, and return types. No warnings yet. |
 | 10c | VB-030 | Flow analysis warns on the experimental version. |
 | 10d | VB-030 | The compiler emits the nullable metadata attributes. |
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 9g, a constrained call to a shared interface member, is implemented. The next slice is 10a, a design note for nullable annotations. No parser change until that note exists.
+Slice 10a, the nullable annotation design note, is written. The next slice is 10b, store annotations on locals, parameters, and return types. No warnings yet.
