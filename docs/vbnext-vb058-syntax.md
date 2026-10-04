@@ -15,4 +15,8 @@ Console.WriteLine("Test") : ("Chain") : ("Call")
 Call Console.WriteLine With ("Test"), ("Chain"), ("Call")
 ```
 
-`:` already separates statements, and `With` already starts an object initializer. No spelling is locked, and a `Sub` call still has no value. There is no implementation slice until a proposal says what a chained `Sub` call means.
+`:` already separates statements, and `With` already starts an object initializer.
+
+## Decision
+
+Rejected. A `Sub` call has no value, and every proposed spelling either changes the meaning of existing syntax or reuses a keyword that already means something else. The fork values a stable language over feature density, so there is no implementation slice. Repeated calls stay separate statements.

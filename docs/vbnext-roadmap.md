@@ -4,6 +4,35 @@
 
 The project name is tentative. This document is a planning note only. It does not specify a finished language design, and it does not implement a language feature.
 
+## Direction
+
+Vb.Next targets three stacks:
+
+- Modern VB.NET on desktop and server
+- VB Razor and VBHTML on the web
+- VB MAUI on mobile and desktop
+
+Language stability now matters more than feature density. A language decision is judged by these goals, in this order:
+
+1. Readability
+2. Keyword-based syntax
+3. Parser simplicity
+4. Razor compatibility
+5. XAML and markup compatibility
+6. Long-term tooling support
+
+New syntax should look unmistakably like Visual Basic. A keyword form is preferred over a symbolic, C#-style form. XML literals are in scope, because VBHTML and markup generation depend on them.
+
+Wave 4 decisions under this direction:
+
+| Id | Decision | Note |
+| --- | --- | --- |
+| VB-050 | Adopted | `= Get` on a read-only property, `= Return` on a `Function`, `= Call` on a `Sub`. |
+| VB-051 | Deferred | No concise lambda form. `Function(c) c.Name` stays the spelling. |
+| VB-053 | Adopted | `With Dim name = expression`. |
+| VB-058 | Rejected | A `Sub` call has no value to chain. |
+| VB-060 | Adopted | Statement blocks inside `<%= %>`. |
+
 ## Branch policy
 
 | Branch | Role |

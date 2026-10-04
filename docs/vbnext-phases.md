@@ -226,7 +226,8 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb053-syntax.md`.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 16a | VB-053 | Done. `docs/vbnext-vb053-syntax.md` records that `With X = expr` stays an equality test. `With Dim`, `Into`, and `:=` were left open. No implementation until one spelling is chosen. |
+| 16a | VB-053 | Done. `docs/vbnext-vb053-syntax.md` locks `With Dim name = expression` and `With Dim name As Type = expression`. `With X = expr` stays an equality test. |
+| 16b | VB-053 | On `vbnext`, `With Dim name = expression` declares a local scoped to the block and uses it as the `With` object. Visual Basic 17.13 rejects `Dim` after `With`. |
 
 ## Phase 17 — For Each ByRef
 
@@ -243,7 +244,8 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb050-syntax.md`.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 18a | VB-050 | Done. `docs/vbnext-vb050-syntax.md` records that `ReadOnly Property P As T = expr` stays an auto-property initializer. `=>`, `= Get`, `= Return`, a trailing `Get`, and a trailing `On` were left open. No implementation until one spelling is chosen. |
+| 18a | VB-050 | Done. `docs/vbnext-vb050-syntax.md` locks `= Get expression` on a read-only property, `= Return expression` on a `Function`, and `= Call invocation` on a `Sub`. `ReadOnly Property P As T = expr` stays an auto-property initializer. |
+| 18b | VB-050 | On `vbnext`, the three compact forms compile to the matching block bodies. A spelling on the wrong member kind is an error. Visual Basic 17.13 rejects the keyword after `=`. |
 
 ## Phase 19 — Unchecked arithmetic
 
@@ -260,7 +262,9 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb051-syntax.md`.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 20a | VB-051 | Done. `docs/vbnext-vb051-syntax.md` records that `_`, `$1`, `Fn`, and a leading `.` were left open. `Function(c) c.Name` keeps its meaning. No implementation until one spelling is chosen. |
+| 20a | VB-051 | Done. `docs/vbnext-vb051-syntax.md` records that `_`, `$1`, `Fn`, and a leading `.` were left open. `Function(c) c.Name` keeps its meaning. |
+
+VB-051 is deferred. There is no implementation slice.
 
 ## Phase 21 — XML statement blocks
 
@@ -269,7 +273,7 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb060-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 21a | VB-060 | Done. `docs/vbnext-vb060-syntax.md` locks a statement block inside `<%= %>` that starts with a statement keyword. `Return` and `Yield` are scoped to the block. `Let` and `Set` assignment forms are not locked. |
-| 21b | VB-060 | Waits until XML literals are placed in scope for this fork. |
+| 21b | VB-060 | On `vbnext`, a statement block inside `<%= %>` produces the value of its `Return`, or a sequence of its `Yield` values. Visual Basic 17.13 still expects an expression. |
 
 ## Phase 22 — Sub chains
 
@@ -277,8 +281,10 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb058-syntax.md`.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 22a | VB-058 | Done. `docs/vbnext-vb058-syntax.md` records that `F(a)(b)`, `: (b)`, and `Call F With (a), (b)` were left open. No implementation until a proposal says what a chained `Sub` call means. |
+| 22a | VB-058 | Done. `docs/vbnext-vb058-syntax.md` records that `F(a)(b)`, `: (b)`, and `Call F With (a), (b)` were left open. |
+
+VB-058 is rejected. There is no implementation slice.
 
 ## What starts now
 
-Every wave 4 item now has a note. Slice 21b waits on the XML scope decision. VB-050, VB-051, VB-053, and VB-058 wait for a chosen spelling.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b start now, in that order.

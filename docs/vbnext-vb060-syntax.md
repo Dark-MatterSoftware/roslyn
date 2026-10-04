@@ -25,4 +25,4 @@ When the content of `<%= %>` starts with a statement keyword that cannot start a
 
 The thread also proposed `<%= Let value = "x" %>` and `<%= Set value = "x" %>` for assignment, and left both open. Those forms are not locked.
 
-The backlog schedules VB-060 only if XML literals are in scope for this fork. That scope decision is not recorded yet, so there is no implementation slice until it is.
+XML literals are in scope for this fork, because VBHTML and markup generation depend on them. The implementation slice is 21b.
