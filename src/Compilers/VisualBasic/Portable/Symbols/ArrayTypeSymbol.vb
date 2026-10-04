@@ -16,9 +16,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' <summary>
     ''' An ArrayTypeSymbol represents an array type, such as Integer() or Object(,).
     ''' </summary>
-    Friend MustInherit Class ArrayTypeSymbol
+        Friend MustInherit Class ArrayTypeSymbol
         Inherits TypeSymbol
         Implements IArrayTypeSymbol, IArrayTypeSymbolInternal
+
+        Private _elementNullableAnnotation As NullableAnnotation
+
+        Friend Sub SetElementNullableAnnotation(annotation As NullableAnnotation)
+            _elementNullableAnnotation = annotation
+        End Sub
 
         ''' <summary>
         ''' Create a new ArrayTypeSymbol.
@@ -411,7 +417,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IArrayTypeSymbol_ElementNullableAnnotation As NullableAnnotation Implements IArrayTypeSymbol.ElementNullableAnnotation
             Get
-                Return NullableAnnotation.None
+                Return _elementNullableAnnotation
             End Get
         End Property
 

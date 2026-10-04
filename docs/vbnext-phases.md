@@ -162,8 +162,8 @@ The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type rem
 | 10b | VB-030 | Done. On `vbnext`, `/nullable:enable` or `/nullable:annotations` stores an annotation on a local, a parameter, and a method return type. `As String?` stays `String` and is annotated. `As String` is not annotated. `Integer?` remains `Nullable(Of Integer)`. Visual Basic 17.13, and `vbnext` with annotations off, still reject `String?`. No warnings yet. |
 | 10c | VB-030 | Done. On `vbnext`, `/nullable:enable` warns when Nothing reaches a non-nullable local, parameter, return, or member access. `If x IsNot Nothing` treats `x` as not null in that branch. `#Nullable Enable|Disable|Warnings|Annotations|Restore` overrides the project switch for the rest of the file. Visual Basic 17.13 still reports `#Nullable` as an unrecognized directive. |
 | 10d | VB-030 | Done. On `vbnext`, a method whose return type and parameters carry annotations emits `NullableContextAttribute` when every flag agrees, and `NullableAttribute` with one byte per return value and parameter when they differ. `1` is not annotated and `2` is annotated. Annotations off emits neither attribute. |
-| 10e | VB-030 | Annotations work on generics and on overridden signatures. |
+| 10e | VB-030 | Done. On `vbnext`, `/nullable:annotations` stores a class-constrained `T?` as `T`. `List(Of String?)` records the type-argument annotation, `List(Of String)?` annotates the list, and `String?()` is an array of nullable strings. An overriding method keeps the annotations written on its signature. A structure-constrained `T?` stays `Nullable(Of T)`. An unconstrained `T?`, and any of these forms with annotations off, still report the structure-constraint error. |
 
 ## What starts now
 
-Slice 10d is implemented. The next slice is 10e, annotations on generics and overridden signatures.
+Slice 10e is implemented. Phase 10 is complete.

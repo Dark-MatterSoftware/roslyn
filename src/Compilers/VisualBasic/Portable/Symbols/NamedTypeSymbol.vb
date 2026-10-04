@@ -33,6 +33,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Private _lazyRequiredMembers As ImmutableSegmentedDictionary(Of String, Symbol) = Nothing
 
+        ''' <summary>
+        ''' Nullable annotations of the type arguments at this use. Default means every argument is oblivious.
+        ''' The constructed type is still identified by its type arguments, so two uses of List(Of String)
+        ''' compare equal when one argument is annotated and the other is not.
+        ''' </summary>
+        Private _typeArgumentNullableAnnotations As ImmutableArray(Of NullableAnnotation)
+
         ' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ' Changes to the public interface of this class should remain synchronized with the C# version.
         ' Do not make any changes to the public interface without making the corresponding change
@@ -1424,9 +1431,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property TypeArgumentNullableAnnotations As ImmutableArray(Of NullableAnnotation) Implements INamedTypeSymbol.TypeArgumentNullableAnnotations
             Get
-                Return Me.TypeArgumentsNoUseSiteDiagnostics.SelectAsArray(Function(t) NullableAnnotation.None)
+                Return GetTypeArgumentNullableAnnotations()
             End Get
         End Property
+
+        Friend Sub SetTypeArgumentNullableAnnotations(annotations As ImmutableArray(Of NullableAnnotation))
+            If annotations.IsDefault OrElse annotations.Length <> Me.Arity Then
+                Return
+            End If
+
+            _typeArgumentNullableAnnotations = annotations
+        End Sub
+
+        Friend Function GetTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            If Not _typeArgumentNullableAnnotations.IsDefault Then
+                Return _typeArgumentNullableAnnotations
+            End If
+
+            Return Me.TypeArgumentsNoUseSiteDiagnostics.SelectAsArray(Function(t) NullableAnnotation.None)
+        End Function
 
         Private ReadOnly Property INamedTypeSymbol_TypeParameters As ImmutableArray(Of ITypeParameterSymbol) Implements INamedTypeSymbol.TypeParameters
             Get

@@ -219,6 +219,121 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub Generics_StoreTypeArgumentAnnotations()
+            Dim compilation = CreateCompilation("
+Module Program
+    Function Take(marked As System.Collections.Generic.List(Of String?),
+                  plain As System.Collections.Generic.List(Of String),
+                  maybe As System.Collections.Generic.List(Of String)?) As String?()
+        Return Nothing
+    End Function
+
+    Sub Ranks(values() As String?)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Annotations), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+
+            Dim method = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Program").Single().GetMembers("Take").Single(), IMethodSymbol)
+            Dim marked = DirectCast(method.Parameters(0).Type, INamedTypeSymbol)
+            Dim plain = DirectCast(method.Parameters(1).Type, INamedTypeSymbol)
+            Dim maybe = DirectCast(method.Parameters(2).Type, INamedTypeSymbol)
+            Dim returned = DirectCast(method.ReturnType, IArrayTypeSymbol)
+
+            Assert.Equal(NullableAnnotation.NotAnnotated, method.Parameters(0).NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, marked.TypeArgumentNullableAnnotations.Single())
+            Assert.Equal(SpecialType.System_String, marked.TypeArguments.Single().SpecialType)
+
+            Assert.Equal(NullableAnnotation.NotAnnotated, plain.TypeArgumentNullableAnnotations.Single())
+            Assert.Equal(NullableAnnotation.Annotated, method.Parameters(2).NullableAnnotation)
+            Assert.Equal(NullableAnnotation.NotAnnotated, maybe.TypeArgumentNullableAnnotations.Single())
+
+            Assert.Equal(NullableAnnotation.NotAnnotated, method.ReturnNullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, returned.ElementNullableAnnotation)
+            Assert.Equal(SpecialType.System_String, returned.ElementType.SpecialType)
+
+            Dim ranks = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Program").Single().GetMembers("Ranks").Single(), IMethodSymbol)
+            Dim values = DirectCast(ranks.Parameters(0).Type, IArrayTypeSymbol)
+            Assert.Equal(NullableAnnotation.NotAnnotated, ranks.Parameters(0).NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, values.ElementNullableAnnotation)
+        End Sub
+
+        <Fact>
+        Public Sub ClassConstraint_QuestionAnnotatesTheTypeParameter()
+            Dim compilation = CreateCompilation("
+Module Program
+    Function Id(Of T As Class)(value As T?) As T
+        Return value
+    End Function
+
+    Function IdStruct(Of S As Structure)(value As S?) As S?
+        Return value
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Annotations), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+
+            Dim id = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Program").Single().GetMembers("Id").Single(), IMethodSymbol)
+            Assert.Equal(NullableAnnotation.Annotated, id.Parameters(0).NullableAnnotation)
+            Assert.Equal(TypeKind.TypeParameter, id.Parameters(0).Type.TypeKind)
+            Assert.Equal(NullableAnnotation.NotAnnotated, id.ReturnNullableAnnotation)
+            Assert.Equal(TypeKind.TypeParameter, id.ReturnType.TypeKind)
+
+            Dim idStruct = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Program").Single().GetMembers("IdStruct").Single(), IMethodSymbol)
+            Assert.Equal(NullableAnnotation.None, idStruct.Parameters(0).NullableAnnotation)
+            Assert.Equal("System.Nullable(Of S)", idStruct.Parameters(0).Type.ToTestDisplayString())
+            Assert.Equal(NullableAnnotation.None, idStruct.ReturnNullableAnnotation)
+            Assert.Equal("System.Nullable(Of S)", idStruct.ReturnType.ToTestDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub Override_StoresTheWrittenAnnotations()
+            Dim compilation = CreateCompilation("
+Class Base
+    Overridable Function Find(values As System.Collections.Generic.List(Of String?)) As String?
+        Return Nothing
+    End Function
+End Class
+
+Class Derived
+    Inherits Base
+    Public Overrides Function Find(values As System.Collections.Generic.List(Of String?)) As String?
+        Return Nothing
+    End Function
+End Class
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Annotations), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+
+            Dim derived = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Derived").Single().GetMembers("Find").Single(), IMethodSymbol)
+            Assert.Equal(NullableAnnotation.Annotated, derived.ReturnNullableAnnotation)
+            Assert.Equal(SpecialType.System_String, derived.ReturnType.SpecialType)
+            Assert.Equal(NullableAnnotation.NotAnnotated, derived.Parameters(0).NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, DirectCast(derived.Parameters(0).Type, INamedTypeSymbol).TypeArgumentNullableAnnotations.Single())
+
+            Dim baseMethod = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Base").Single().GetMembers("Find").Single(), IMethodSymbol)
+            Assert.Equal(NullableAnnotation.Annotated, baseMethod.ReturnNullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, DirectCast(baseMethod.Parameters(0).Type, INamedTypeSymbol).TypeArgumentNullableAnnotations.Single())
+        End Sub
+
+        <Fact>
+        Public Sub GenericQuestion_StillErrorsWhenAnnotationsAreOff()
+            Dim compilation = CreateCompilation("
+Module Program
+    Function Take(values As System.Collections.Generic.List(Of String?)) As String?()
+        Return Nothing
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_BadTypeArgForStructConstraintNull, "values").WithArguments("String").WithLocation(3, 19),
+                Diagnostic(ERRID.ERR_BadTypeArgForStructConstraintNull, "String?()").WithArguments("String").WithLocation(3, 77))
+        End Sub
+
+        <Fact>
         Public Sub StringQuestion_StillErrorsWhenAnnotationsAreOff()
             Dim compilation = CreateCompilation("
 Module Program

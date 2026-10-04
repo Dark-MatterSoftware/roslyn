@@ -562,6 +562,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Function
 
+        Private _captureNullableAnnotations As Boolean
+        Private _capturedNullableAnnotation As NullableAnnotation
+
         Private Function ReferenceAnnotationsEnabled(node As SyntaxNode) As Boolean
             Return (NullableContextAt(node) And NullableContextOptions.Annotations) <> 0
         End Function
@@ -575,43 +578,73 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return NullableContextFacts.ForTree(node.SyntaxTree, project).GetContext(node.SpanStart)
         End Function
 
-        Private Shared Function IsReferenceAnnotationTarget(type As TypeSymbol) As Boolean
-            Return type IsNot Nothing AndAlso
-                Not type.IsErrorType() AndAlso
-                type.TypeKind <> TypeKind.TypeParameter AndAlso
-                type.IsReferenceType
+        Private Function IsNullableAnnotationTarget(type As TypeSymbol) As Boolean
+            If type Is Nothing OrElse type.IsErrorType() Then
+                Return False
+            End If
+
+            ' A class-constrained type parameter is a reference annotation. A structure-constrained
+            ' or unconstrained type parameter stays on the Nullable(Of T) path.
+            If type.TypeKind = TypeKind.TypeParameter Then
+                Return type.IsReferenceType
+            End If
+
+            Return type.IsReferenceType
+        End Function
+
+        Private Function CapturedAnnotationOf(type As TypeSymbol) As NullableAnnotation
+            If _capturedNullableAnnotation <> NullableAnnotation.None Then
+                Return _capturedNullableAnnotation
+            End If
+
+            If IsNullableAnnotationTarget(type) Then
+                Return NullableAnnotation.NotAnnotated
+            End If
+
+            Return NullableAnnotation.None
         End Function
 
         ''' <summary>
         ''' Binds a declaration type. When annotations are enabled, <c>String?</c> stays <c>String</c>
         ''' and records <see cref="NullableAnnotation.Annotated"/>. A reference type written without
         ''' <c>?</c> records <see cref="NullableAnnotation.NotAnnotated"/>. <c>Integer?</c> stays
-        ''' <c>Nullable(Of Integer)</c>.
+        ''' <c>Nullable(Of Integer)</c>. A class-constrained <c>T?</c> stays <c>T</c>. Nested
+        ''' <c>?</c> inside a generic argument or an array element is recorded on that use.
         ''' </summary>
         Private Function BindDeclarationType(typeSyntax As TypeSyntax,
                                              diagBag As BindingDiagnosticBag,
                                              ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
             nullableAnnotation = NullableAnnotation.None
 
-            If ReferenceAnnotationsEnabled(typeSyntax) AndAlso typeSyntax.Kind = SyntaxKind.NullableType Then
-                Dim elementBag = BindingDiagnosticBag.GetInstance(diagBag)
-                Dim elementType = BindTypeSyntax(DirectCast(typeSyntax, NullableTypeSyntax).ElementType, elementBag)
-                If IsReferenceAnnotationTarget(elementType) Then
-                    diagBag.AddRangeAndFree(elementBag)
-                    nullableAnnotation = NullableAnnotation.Annotated
-                    Return elementType
-                End If
-
-                elementBag.Free()
+            If Not ReferenceAnnotationsEnabled(typeSyntax) Then
+                Return BindTypeSyntax(typeSyntax, diagBag)
             End If
 
+            Dim savedCapture = _captureNullableAnnotations
+            Dim savedAnnotation = _capturedNullableAnnotation
+            _captureNullableAnnotations = True
+            _capturedNullableAnnotation = NullableAnnotation.None
             Dim type = BindTypeSyntax(typeSyntax, diagBag)
-            If ReferenceAnnotationsEnabled(typeSyntax) AndAlso IsReferenceAnnotationTarget(type) Then
-                nullableAnnotation = NullableAnnotation.NotAnnotated
-            End If
-
+            nullableAnnotation = CapturedAnnotationOf(type)
+            _captureNullableAnnotations = savedCapture
+            _capturedNullableAnnotation = savedAnnotation
             Return type
         End Function
+
+        Private Shared Sub StampArrayElementAnnotation(arrayType As TypeSymbol, elementType As TypeSymbol, annotation As NullableAnnotation)
+            If annotation = NullableAnnotation.None OrElse arrayType Is Nothing OrElse arrayType.TypeKind <> TypeKind.Array OrElse elementType Is Nothing Then
+                Return
+            End If
+
+            Dim current = DirectCast(arrayType, ArrayTypeSymbol)
+            Do While current.ElementType IsNot elementType AndAlso current.ElementType IsNot Nothing AndAlso current.ElementType.TypeKind = TypeKind.Array
+                current = DirectCast(current.ElementType, ArrayTypeSymbol)
+            Loop
+
+            If current.ElementType Is elementType Then
+                current.SetElementNullableAnnotation(annotation)
+            End If
+        End Sub
 
         Private Shared Function AllowsReferenceAnnotation(decoderContext As ModifiedIdentifierTypeDecoderContext) As Boolean
             Return (decoderContext And (ModifiedIdentifierTypeDecoderContext.LocalType Or ModifiedIdentifierTypeDecoderContext.ParameterType)) <> 0
@@ -710,7 +743,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 asClauseType = Nothing
             End If
 
-            Return DecodeModifiedIdentifierType(modifiedIdentifier, asClauseType, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, diagBag, decoderContext)
+            Dim result = DecodeModifiedIdentifierType(modifiedIdentifier, asClauseType, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, diagBag, decoderContext)
+
+            ' Dim values() As String?  — the ? annotates the element, and the array itself is not annotated.
+            If AllowsReferenceAnnotation(decoderContext) AndAlso
+               nullableAnnotation <> NullableAnnotation.None AndAlso
+               result IsNot Nothing AndAlso
+               result.TypeKind = TypeKind.Array AndAlso
+               (asClauseType Is Nothing OrElse asClauseType.TypeKind <> TypeKind.Array) Then
+                StampArrayElementAnnotation(result, asClauseType, nullableAnnotation)
+                nullableAnnotation = NullableAnnotation.NotAnnotated
+            End If
+
+            Return result
         End Function
 
         ''' <summary>

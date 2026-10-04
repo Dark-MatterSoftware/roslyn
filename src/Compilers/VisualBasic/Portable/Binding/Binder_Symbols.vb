@@ -834,6 +834,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                     diagBag As BindingDiagnosticBag,
                                                     suppressUseSiteError As Boolean,
                                                     inGetTypeContext As Boolean) As SingleLookupResult
+                If binder._captureNullableAnnotations Then
+                    binder._capturedNullableAnnotation = NullableAnnotation.None
+                    Dim capturedElement = binder.BindTypeSyntax(arrayTypeSyntax.ElementType,
+                                                                diagBag,
+                                                                suppressUseSiteError:=suppressUseSiteError,
+                                                                inGetTypeContext:=inGetTypeContext)
+                    Dim elementAnnotation = binder.CapturedAnnotationOf(capturedElement)
+                    Dim arrayType = binder.ApplyArrayRankSpecifiersToType(capturedElement, arrayTypeSyntax.RankSpecifiers, diagBag)
+                    StampArrayElementAnnotation(arrayType, capturedElement, elementAnnotation)
+                    binder._capturedNullableAnnotation = NullableAnnotation.NotAnnotated
+                    Return SingleLookupResult.Good(arrayType)
+                End If
+
                 Dim elementType As TypeSymbol = binder.BindTypeSyntax(arrayTypeSyntax.ElementType,
                                                                       diagBag,
                                                                       suppressUseSiteError:=suppressUseSiteError,
@@ -849,6 +862,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                        diagBag As BindingDiagnosticBag,
                                                        suppressUseSiteError As Boolean) As SingleLookupResult
                 Dim elementType As TypeSymbol = binder.BindTypeSyntax(nullableTypeSyntax.ElementType, diagBag, suppressUseSiteError)
+                If binder._captureNullableAnnotations AndAlso binder.IsNullableAnnotationTarget(elementType) Then
+                    ' String? and a class-constrained T? stay the element type and record the annotation.
+                    ' Structure-constrained T? and Integer? still become Nullable(Of T).
+                    binder._capturedNullableAnnotation = NullableAnnotation.Annotated
+                    Return SingleLookupResult.Good(elementType)
+                End If
+
+                If binder._captureNullableAnnotations Then
+                    binder._capturedNullableAnnotation = NullableAnnotation.None
+                End If
+
                 Return SingleLookupResult.Good(binder.CreateNullableOf(elementType, nullableTypeSyntax, nullableTypeSyntax.ElementType, diagBag))
             End Function
 
@@ -916,7 +940,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 diagBag.Add(genericNameSyntax, useSiteInfo)
 
                 ' Bind the type arguments and report errors in the current context. 
-                Dim typeArguments As ImmutableArray(Of TypeSymbol) = BindTypeArguments(typeArgumentsSyntax, binder, diagBag, suppressUseSiteError)
+                Dim typeArgumentAnnotations As ImmutableArray(Of NullableAnnotation) = Nothing
+                Dim typeArguments As ImmutableArray(Of TypeSymbol) = BindTypeArguments(typeArgumentsSyntax, binder, diagBag, suppressUseSiteError, typeArgumentAnnotations)
 
                 If lookupResult.Kind = LookupResultKind.Empty Then
                     Return
@@ -944,6 +969,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' Construct the type and validate constraints.
                     Dim constructedType = binder.ConstructAndValidateConstraints(
                         genericType, typeArguments, genericNameSyntax, typeArgumentsSyntax.Arguments, diagBag)
+
+                    RememberTypeArgumentAnnotations(binder, constructedType, typeArgumentAnnotations)
 
                     ' Put the constructed type in. Note that this preserves any error associated with the lookupResult.
                     lookupResult.ReplaceSymbol(constructedType)
@@ -1068,7 +1095,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                             inGetTypeContext:=False, resolvingBaseType:=resolvingBaseType)
 
                 ' Bind the type arguments and report errors in the current context. 
-                Dim typeArguments As ImmutableArray(Of TypeSymbol) = BindTypeArguments(typeArgumentsSyntax, binder, diagBag, suppressUseSiteError)
+                Dim typeArgumentAnnotations As ImmutableArray(Of NullableAnnotation) = Nothing
+                Dim typeArguments As ImmutableArray(Of TypeSymbol) = BindTypeArguments(typeArgumentsSyntax, binder, diagBag, suppressUseSiteError, typeArgumentAnnotations)
 
                 If Not lookupResult.HasSymbol Then
                     Return
@@ -1125,6 +1153,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim constructedType = binder.ConstructAndValidateConstraints(
                         genericType, typeArguments, genDottedNameSyntax, typeArgumentsSyntax.Arguments, diagBag)
 
+                    RememberTypeArgumentAnnotations(binder, constructedType, typeArgumentAnnotations)
+
                     ' Note: this preserves any error associated with the generic type, which is what we want.
                     lookupResult.ReplaceSymbol(constructedType)
                 End If
@@ -1144,16 +1174,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Private Shared Function BindTypeArguments(typeArgumentsSyntax As TypeArgumentListSyntax,
                                                       binder As Binder,
                                                       diagBag As BindingDiagnosticBag,
-                                                      suppressUseSiteError As Boolean) As ImmutableArray(Of TypeSymbol)
+                                                      suppressUseSiteError As Boolean,
+                                                      ByRef annotations As ImmutableArray(Of NullableAnnotation)) As ImmutableArray(Of TypeSymbol)
                 Dim arity As Integer = typeArgumentsSyntax.Arguments.Count
                 Dim types As TypeSymbol() = New TypeSymbol(0 To arity - 1) {}
+                Dim captured As NullableAnnotation() = Nothing
+                If binder._captureNullableAnnotations Then
+                    captured = New NullableAnnotation(0 To arity - 1) {}
+                End If
 
                 For i As Integer = 0 To arity - 1
-                    types(i) = binder.BindTypeSyntax(typeArgumentsSyntax.Arguments(i), diagBag, suppressUseSiteError)
+                    If binder._captureNullableAnnotations Then
+                        Dim saved = binder._capturedNullableAnnotation
+                        binder._capturedNullableAnnotation = NullableAnnotation.None
+                        types(i) = binder.BindTypeSyntax(typeArgumentsSyntax.Arguments(i), diagBag, suppressUseSiteError)
+                        captured(i) = binder.CapturedAnnotationOf(types(i))
+                        binder._capturedNullableAnnotation = saved
+                    Else
+                        types(i) = binder.BindTypeSyntax(typeArgumentsSyntax.Arguments(i), diagBag, suppressUseSiteError)
+                    End If
                 Next
+
+                If captured IsNot Nothing Then
+                    annotations = captured.AsImmutableOrNull()
+                End If
 
                 Return types.AsImmutableOrNull()
             End Function
+
+            Private Shared Sub RememberTypeArgumentAnnotations(binder As Binder,
+                                                               constructedType As NamedTypeSymbol,
+                                                               annotations As ImmutableArray(Of NullableAnnotation))
+                If Not binder._captureNullableAnnotations Then
+                    Return
+                End If
+
+                If constructedType IsNot Nothing AndAlso Not constructedType.IsErrorType() AndAlso Not annotations.IsDefault Then
+                    constructedType.SetTypeArgumentNullableAnnotations(annotations)
+                End If
+
+                binder._capturedNullableAnnotation = If(binder.IsNullableAnnotationTarget(constructedType),
+                    NullableAnnotation.NotAnnotated,
+                    NullableAnnotation.None)
+            End Sub
 
             ''' <summary>
             ''' Given a type syntax, strip out ?, (), (of xxx) stuff and return a string of the form
