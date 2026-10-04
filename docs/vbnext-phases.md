@@ -32,6 +32,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 17. For Each ByRef | VB-056, pulled in from wave 4 | A loop variable that refers to each array element. |
 | 18. Compact members | VB-050, pulled in from wave 4 | A member whose body is one expression. |
 | 19. Unchecked arithmetic | VB-057, pulled in from wave 4 | `Unchecked(expression)` wraps integer overflow. |
+| 20. Concise lambdas | VB-051, pulled in from wave 4 | A shorter way to write a one-parameter lambda. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -251,6 +252,14 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb057-syntax.md`.
 | 19a | VB-057 | Done. `docs/vbnext-vb057-syntax.md` locks `Unchecked(expression)`. `Unchecked` stays an identifier, and the operator applies only when that name refers to nothing in scope. The `Option` and block forms are not locked. |
 | 19b | VB-057 | Done. On `vbnext`, `Unchecked(expression)` wraps integer overflow at run time and in constant expressions. A symbol named `Unchecked` keeps its meaning. Visual Basic 17.13 still reports that `Unchecked` is not declared. |
 
+## Phase 20 — Concise lambdas
+
+Pulled in from wave 4. The note is in `docs/vbnext-vb051-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 20a | VB-051 | Done. `docs/vbnext-vb051-syntax.md` records that `_`, `$1`, `Fn`, and a leading `.` were left open. `Function(c) c.Name` keeps its meaning. No implementation until one spelling is chosen. |
+
 ## What starts now
 
-Slice 19b is implemented. The next wave 4 item is VB-051, concise lambdas, and it still needs a spelling note before an implementation slice.
+Slice 20a records that the concise lambda spelling is not locked. The next wave 4 item is VB-060, XML literal enhancements, and it still needs a spelling note before an implementation slice.
