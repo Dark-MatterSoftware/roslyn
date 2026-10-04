@@ -66,7 +66,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                declarator.Initializer,
                                                If(_syntax.Kind = SyntaxKind.ForEachBlock,
                                                   LocalDeclarationKind.ForEach,
-                                                  LocalDeclarationKind.For))
+                                                  LocalDeclarationKind.For),
+                                               IsByRefForEach())
 
             Else
                 Dim identifierName = TryCast(controlVariableSyntax, IdentifierNameSyntax)
@@ -113,6 +114,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return ImmutableArray(Of LocalSymbol).Empty
         End Function
 
+        Private Function IsByRefForEach() As Boolean
+            If _syntax.Kind <> SyntaxKind.ForEachBlock Then
+                Return False
+            End If
+
+            Dim forEachStatement = DirectCast(_syntax.ForOrForEachStatement, ForEachStatementSyntax)
+            Return forEachStatement.ByRefKeyword.Kind = SyntaxKind.ByRefKeyword
+        End Function
+
         Private Function CreateIndexLocal() As LocalSymbol
             If _syntax.Kind <> SyntaxKind.ForEachBlock Then
                 Return Nothing
@@ -146,7 +156,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim localVar = LocalSymbol.CreateInferredForEach(Me.ContainingMember,
                                                          Me,
                                                          identifier,
-                                                         forEachStatementSyntax.Expression)
+                                                         forEachStatementSyntax.Expression,
+                                                         IsByRefForEach())
 
                 Return localVar
             End If

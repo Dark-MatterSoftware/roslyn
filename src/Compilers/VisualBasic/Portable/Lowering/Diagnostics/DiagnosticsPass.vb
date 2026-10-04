@@ -83,6 +83,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return MyBase.VisitParameter(node)
         End Function
 
+        Public Overrides Function VisitLocal(node As BoundLocal) As BoundNode
+            Dim localSymbol As LocalSymbol = node.LocalSymbol
+
+            If localSymbol.IsByRef AndAlso localSymbol.IsForEach Then
+                Dim localContainingSymbol As Symbol = localSymbol.ContainingSymbol
+
+                If _containingSymbol IsNot localContainingSymbol AndAlso Not _insideNameof Then
+                    If Binder.IsTopMostEnclosingLambdaAQueryLambda(_containingSymbol, localContainingSymbol) Then
+                        Binder.ReportDiagnostic(Me._diagnostics, node.Syntax, ERRID.ERR_CannotLiftByRefLocalQuery1, localSymbol.Name)
+                    Else
+                        Binder.ReportDiagnostic(Me._diagnostics, node.Syntax, ERRID.ERR_CannotLiftByRefLocalLambda1, localSymbol.Name)
+                    End If
+                End If
+            End If
+
+            Return MyBase.VisitLocal(node)
+        End Function
+
         Public Overrides Function VisitMeReference(node As BoundMeReference) As BoundNode
             Dim errorId As ERRID = GetMeAccessError()
 

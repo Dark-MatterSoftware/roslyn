@@ -24,7 +24,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend Shared ReadOnly ElasticZeroSpace As SyntaxTrivia = Whitespace(String.Empty, elastic:=True)
 
         Friend Shared Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return ForEachStatement(forKeyword, eachKeyword, controlVariable, Nothing, Nothing, inKeyword, expression)
+            Return ForEachStatement(forKeyword, eachKeyword, Nothing, controlVariable, Nothing, Nothing, inKeyword, expression)
         End Function
 
         Friend Shared Function EndOfLine(text As String, Optional elastic As Boolean = False) As SyntaxTrivia

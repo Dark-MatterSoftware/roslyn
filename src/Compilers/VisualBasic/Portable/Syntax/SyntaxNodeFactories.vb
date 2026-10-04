@@ -25,7 +25,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Creates a For Each statement without an iteration index.
         ''' </summary>
         Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return ForEachStatement(forKeyword, eachKeyword, controlVariable, Nothing, Nothing, inKeyword, expression)
+            Return ForEachStatement(forKeyword, eachKeyword, Nothing, controlVariable, Nothing, Nothing, inKeyword, expression)
         End Function
 
 #Region "ParseMethods"

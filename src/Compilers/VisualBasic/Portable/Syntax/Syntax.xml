@@ -4785,6 +4785,10 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="Each"></native-equiv>
       </child>
 
+      <child name="ByRefKeyword" optional="true" kind="ByRefKeyword" order="25">
+        <description>The optional "ByRef" keyword. The loop variable refers to each array element.</description>
+      </child>
+
       <child name="WithKeyword" optional="true" kind="WithKeyword" order="35">
         <description>The optional "With" keyword that names the iteration index.</description>
       </child>

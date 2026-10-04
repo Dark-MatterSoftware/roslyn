@@ -4045,6 +4045,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            If forEachStatement.ByRefKeyword.Kind = SyntaxKind.ByRefKeyword Then
+                If declaredOrInferredLocalOpt Is Nothing OrElse Not declaredOrInferredLocalOpt.IsByRef Then
+                    ReportDiagnostic(diagnostics, forEachStatement.ByRefKeyword, ERRID.ERR_ForEachByRefDeclaresVariable)
+                ElseIf Not collection.HasErrors AndAlso
+                       controlVariableOpt IsNot Nothing AndAlso
+                       Not controlVariableOpt.HasErrors AndAlso
+                       elementType IsNot Nothing AndAlso
+                       Not elementType.IsErrorType AndAlso
+                       Not controlVariableOpt.Type.IsErrorType AndAlso
+                       Not (collection.Type IsNot Nothing AndAlso
+                            collection.Type.IsArrayType AndAlso
+                            DirectCast(collection.Type, ArrayTypeSymbol).IsSZArray AndAlso
+                            TypeSymbol.Equals(controlVariableOpt.Type, elementType, TypeCompareKind.ConsiderEverything)) Then
+                    ReportDiagnostic(diagnostics, forEachStatement.Expression, ERRID.ERR_ForEachByRefRequiresArray)
+                End If
+            End If
+
             ReportDuplicateIterationIndex(forEachStatement, diagnostics)
 
             ' Bind the loop body and the next variables 

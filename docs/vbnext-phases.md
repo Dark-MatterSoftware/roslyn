@@ -230,7 +230,8 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb056-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 17a | VB-056 | Done. `docs/vbnext-vb056-syntax.md` locks `For Each ByRef item In values`. The loop variable refers to each element of a one-dimensional array. |
+| 17b | VB-056 | Done. On `vbnext`, `For Each ByRef item In values` writes each element of a one-dimensional array. An existing variable, a collection that is not that array, and a lambda capture are errors. Visual Basic 17.13 still rejects `ByRef`. |
 
 ## What starts now
 
-Slice 17a locks `For Each ByRef item In values`. The next slice is 17b, the implementation.
+Slice 17b is implemented. The next wave 4 item is VB-050, compact members, and it still needs a spelling note before an implementation slice.

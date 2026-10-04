@@ -811,6 +811,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Private Function ParseForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax) As ForEachStatementSyntax
 
+            Dim byRefKeyword As KeywordSyntax = Nothing
+            If _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso CurrentToken.Kind = SyntaxKind.ByRefKeyword Then
+                byRefKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+            End If
+
             Dim controlVariable = ParseForLoopControlVariable()
 
             Dim withKeyword As KeywordSyntax = Nothing
@@ -850,7 +856,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 expression = InternalSyntaxFactory.MissingExpression.AddTrailingSyntax(ResyncAt({SyntaxKind.ToKeyword}), ERRID.ERR_Syntax)
             End If
 
-            Dim statement = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, controlVariable, withKeyword, index, inKeyword, expression)
+            Dim statement = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression)
 
             Return statement
         End Function

@@ -359,13 +359,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' controlVariable = arrayCopy(arrayIndex)
             ' because the controlVariable can be any LValue, this might have side effects (e.g. ObjArray(SomeFunc()).field)
             ' we will evaluate the expression once per iteration, the side effects are intended.
-            Dim boundCurrentAssignment As BoundStatement = New BoundAssignmentOperator(syntaxNode,
-                                                                                       node.ControlVariable,
-                                                                                       enumeratorInfo.CurrentConversion,
-                                                                                       suppressObjectClone:=False,
-                                                                                       type:=node.ControlVariable.Type).ToStatement
-            boundCurrentAssignment.SetWasCompilerGenerated() ' used to not create sequence points
-            boundCurrentAssignment = DirectCast(Visit(boundCurrentAssignment), BoundStatement)
+            ' On vbnext, For Each ByRef stores the address of the array element instead of a copy.
+            Dim boundCurrentAssignment As BoundStatement
+            Dim controlLocal = TryCast(node.ControlVariable, BoundLocal)
+            If isArray AndAlso controlLocal IsNot Nothing AndAlso controlLocal.LocalSymbol.IsByRef Then
+                Dim elementAddress = New BoundArrayAccess(syntaxNode,
+                                                          boundCollectionLocal.MakeRValue(),
+                                                          ImmutableArray.Create(Of BoundExpression)(boundIndex.MakeRValue()),
+                                                          isLValue:=True,
+                                                          type:=elementType)
+                elementAddress.SetWasCompilerGenerated()
+                Dim referenceAssignment = New BoundReferenceAssignment(syntaxNode, controlLocal, elementAddress, isLValue:=True, type:=elementType)
+                referenceAssignment.SetWasCompilerGenerated()
+                boundCurrentAssignment = New BoundExpressionStatement(syntaxNode, referenceAssignment)
+                boundCurrentAssignment.SetWasCompilerGenerated()
+            Else
+                boundCurrentAssignment = New BoundAssignmentOperator(syntaxNode,
+                                                                     node.ControlVariable,
+                                                                     enumeratorInfo.CurrentConversion,
+                                                                     suppressObjectClone:=False,
+                                                                     type:=node.ControlVariable.Type).ToStatement
+                boundCurrentAssignment.SetWasCompilerGenerated() ' used to not create sequence points
+                boundCurrentAssignment = DirectCast(Visit(boundCurrentAssignment), BoundStatement)
+            End If
 
             Dim boundIncrementAssignment = CreateIndexIncrement(syntaxNode, boundIndex)
 

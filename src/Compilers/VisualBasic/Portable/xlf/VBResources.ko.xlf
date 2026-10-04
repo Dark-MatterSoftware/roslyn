@@ -72,6 +72,16 @@
         <target state="translated">필요한 멤버가 있어 '{0}'에서 상속할 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CannotLiftByRefLocalLambda1">
+        <source>'ByRef' variable '{0}' cannot be used in a lambda expression.</source>
+        <target state="new">'ByRef' variable '{0}' cannot be used in a lambda expression.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_CannotLiftByRefLocalQuery1">
+        <source>'ByRef' variable '{0}' cannot be used in a query expression.</source>
+        <target state="new">'ByRef' variable '{0}' cannot be used in a query expression.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_CannotUseByRefInUnmanagedCallersOnly">
         <source>A method marked UnmanagedCallersOnly cannot have ByRef parameters.</source>
         <target state="new">A method marked UnmanagedCallersOnly cannot have ByRef parameters.</target>
@@ -145,6 +155,16 @@
       <trans-unit id="ERR_FieldInReadOnlyStructure">
         <source>Instance fields in a ReadOnly structure must be ReadOnly.</source>
         <target state="new">Instance fields in a ReadOnly structure must be ReadOnly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ForEachByRefDeclaresVariable">
+        <source>For Each ByRef declares a new loop variable.</source>
+        <target state="new">For Each ByRef declares a new loop variable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ForEachByRefRequiresArray">
+        <source>For Each ByRef requires a one-dimensional array whose element type is the loop variable's type.</source>
+        <target state="new">For Each ByRef requires a one-dimensional array whose element type is the loop variable's type.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_IndexFromEndRequiresArray">

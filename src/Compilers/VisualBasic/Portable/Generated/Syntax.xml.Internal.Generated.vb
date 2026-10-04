@@ -15293,17 +15293,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Inherits ForOrForEachStatementSyntax
 
         Friend ReadOnly _eachKeyword as KeywordSyntax
+        Friend ReadOnly _byRefKeyword as KeywordSyntax
         Friend ReadOnly _withKeyword as KeywordSyntax
         Friend ReadOnly _index as IdentifierTokenSyntax
         Friend ReadOnly _inKeyword as KeywordSyntax
         Friend ReadOnly _expression as ExpressionSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, byRefKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
             MyBase.New(kind, forKeyword, controlVariable)
-            Me.SlotCount = 7
+            Me.SlotCount = 8
 
             AdjustFlagsAndWidth(eachKeyword)
             Me._eachKeyword = eachKeyword
+            If byRefKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(byRefKeyword)
+                Me._byRefKeyword = byRefKeyword
+            End If
             If withKeyword IsNot Nothing Then
                 AdjustFlagsAndWidth(withKeyword)
                 Me._withKeyword = withKeyword
@@ -15319,13 +15324,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, byRefKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind, forKeyword, controlVariable)
-            Me.SlotCount = 7
+            Me.SlotCount = 8
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(eachKeyword)
             Me._eachKeyword = eachKeyword
+            If byRefKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(byRefKeyword)
+                Me._byRefKeyword = byRefKeyword
+            End If
             If withKeyword IsNot Nothing Then
                 AdjustFlagsAndWidth(withKeyword)
                 Me._withKeyword = withKeyword
@@ -15341,12 +15350,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), forKeyword As InternalSyntax.KeywordSyntax, eachKeyword As InternalSyntax.KeywordSyntax, byRefKeyword As InternalSyntax.KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As InternalSyntax.KeywordSyntax, index As InternalSyntax.IdentifierTokenSyntax, inKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
             MyBase.New(kind, errors, annotations, forKeyword, controlVariable)
-            Me.SlotCount = 7
+            Me.SlotCount = 8
 
             AdjustFlagsAndWidth(eachKeyword)
             Me._eachKeyword = eachKeyword
+            If byRefKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(byRefKeyword)
+                Me._byRefKeyword = byRefKeyword
+            End If
             If withKeyword IsNot Nothing Then
                 AdjustFlagsAndWidth(withKeyword)
                 Me._withKeyword = withKeyword
@@ -15372,6 +15385,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend ReadOnly Property EachKeyword As InternalSyntax.KeywordSyntax
             Get
                 Return Me._eachKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The optional "ByRef" keyword. The loop variable refers to each array element.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property ByRefKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._byRefKeyword
             End Get
         End Property
 
@@ -15424,14 +15449,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case 1
                     Return Me._eachKeyword
                 Case 2
-                    Return Me._controlVariable
+                    Return Me._byRefKeyword
                 Case 3
-                    Return Me._withKeyword
+                    Return Me._controlVariable
                 Case 4
-                    Return Me._index
+                    Return Me._withKeyword
                 Case 5
-                    Return Me._inKeyword
+                    Return Me._index
                 Case 6
+                    Return Me._inKeyword
+                Case 7
                     Return Me._expression
                 Case Else
                     Debug.Assert(false, "child index out of range")
@@ -15441,11 +15468,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new ForEachStatementSyntax(Me.Kind, newErrors, GetAnnotations, _forKeyword, _eachKeyword, _controlVariable, _withKeyword, _index, _inKeyword, _expression)
+            Return new ForEachStatementSyntax(Me.Kind, newErrors, GetAnnotations, _forKeyword, _eachKeyword, _byRefKeyword, _controlVariable, _withKeyword, _index, _inKeyword, _expression)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new ForEachStatementSyntax(Me.Kind, GetDiagnostics, annotations, _forKeyword, _eachKeyword, _controlVariable, _withKeyword, _index, _inKeyword, _expression)
+            Return new ForEachStatementSyntax(Me.Kind, GetDiagnostics, annotations, _forKeyword, _eachKeyword, _byRefKeyword, _controlVariable, _withKeyword, _index, _inKeyword, _expression)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -34216,6 +34243,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._forKeyword IsNot newForKeyword Then anyChanges = True
             Dim newEachKeyword = DirectCast(Visit(node.EachKeyword), KeywordSyntax)
             If node._eachKeyword IsNot newEachKeyword Then anyChanges = True
+            Dim newByRefKeyword = DirectCast(Visit(node.ByRefKeyword), KeywordSyntax)
+            If node._byRefKeyword IsNot newByRefKeyword Then anyChanges = True
             Dim newControlVariable = DirectCast(Visit(node._controlVariable), VisualBasicSyntaxNode)
             If node._controlVariable IsNot newControlVariable Then anyChanges = True
             Dim newWithKeyword = DirectCast(Visit(node.WithKeyword), KeywordSyntax)
@@ -34228,7 +34257,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._expression IsNot newExpression Then anyChanges = True
 
             If anyChanges Then
-                Return New ForEachStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newForKeyword, newEachKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
+                Return New ForEachStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newForKeyword, newEachKeyword, newByRefKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
             Else
                 Return node
             End If
@@ -43141,6 +43170,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="eachKeyword">
         ''' The "Each" keyword.
         ''' </param>
+        ''' <param name="byRefKeyword">
+        ''' The optional "ByRef" keyword. The loop variable refers to each array element.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -43159,13 +43191,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
-        Friend Shared Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As KeywordSyntax, index As IdentifierTokenSyntax, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
+        Friend Shared Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, byRefKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As KeywordSyntax, index As IdentifierTokenSyntax, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
             Debug.Assert(forKeyword IsNot Nothing AndAlso forKeyword.Kind = SyntaxKind.ForKeyword)
             Debug.Assert(eachKeyword IsNot Nothing AndAlso eachKeyword.Kind = SyntaxKind.EachKeyword)
             Debug.Assert(controlVariable IsNot Nothing)
             Debug.Assert(inKeyword IsNot Nothing AndAlso inKeyword.Kind = SyntaxKind.InKeyword)
             Debug.Assert(expression IsNot Nothing)
-            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, forKeyword, eachKeyword, controlVariable, withKeyword, index, inKeyword, expression)
+            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression)
         End Function
 
 
@@ -55858,6 +55890,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="eachKeyword">
         ''' The "Each" keyword.
         ''' </param>
+        ''' <param name="byRefKeyword">
+        ''' The optional "ByRef" keyword. The loop variable refers to each array element.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -55876,13 +55911,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
-        Friend Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As KeywordSyntax, index As IdentifierTokenSyntax, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
+        Friend Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, byRefKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As KeywordSyntax, index As IdentifierTokenSyntax, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
             Debug.Assert(forKeyword IsNot Nothing AndAlso forKeyword.Kind = SyntaxKind.ForKeyword)
             Debug.Assert(eachKeyword IsNot Nothing AndAlso eachKeyword.Kind = SyntaxKind.EachKeyword)
             Debug.Assert(controlVariable IsNot Nothing)
             Debug.Assert(inKeyword IsNot Nothing AndAlso inKeyword.Kind = SyntaxKind.InKeyword)
             Debug.Assert(expression IsNot Nothing)
-            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, forKeyword, eachKeyword, controlVariable, withKeyword, index, inKeyword, expression, _factoryContext)
+            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression, _factoryContext)
         End Function
 
 

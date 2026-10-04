@@ -34,9 +34,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             modifiedIdentifierOpt As ModifiedIdentifierSyntax,
             asClauseOpt As AsClauseSyntax,
             initializerOpt As EqualsValueSyntax,
-            declarationKind As LocalDeclarationKind) As LocalSymbol
+            declarationKind As LocalDeclarationKind,
+            Optional isByRef As Boolean = False) As LocalSymbol
 
-            Return New VariableLocalSymbol(container, binder, declaringIdentifier, modifiedIdentifierOpt, asClauseOpt, initializerOpt, declarationKind)
+            Return New VariableLocalSymbol(container, binder, declaringIdentifier, modifiedIdentifierOpt, asClauseOpt, initializerOpt, declarationKind, isByRef)
         End Function
 
         ''' <summary>
@@ -91,9 +92,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Friend Shared Function CreateInferredForEach(container As Symbol,
             binder As Binder,
             declaringIdentifier As SyntaxToken,
-            expression As ExpressionSyntax) As LocalSymbol
+            expression As ExpressionSyntax,
+            Optional isByRef As Boolean = False) As LocalSymbol
 
-            Return New InferredForEachLocalSymbol(container, binder, declaringIdentifier, expression)
+            Return New InferredForEachLocalSymbol(container, binder, declaringIdentifier, expression, isByRef)
         End Function
 
         ''' <summary>
@@ -492,11 +494,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Protected ReadOnly _identifierToken As SyntaxToken
             Protected ReadOnly _binder As Binder
 
+            Private ReadOnly _isByRef As Boolean
+
             Public Sub New(containingSymbol As Symbol,
                            binder As Binder,
                            identifierToken As SyntaxToken,
                            declarationKind As LocalDeclarationKind,
-                           type As TypeSymbol)
+                           type As TypeSymbol,
+                           Optional isByRef As Boolean = False)
                 MyBase.New(containingSymbol, type)
 
                 Debug.Assert(identifierToken.Kind <> SyntaxKind.None)
@@ -506,7 +511,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 _identifierToken = identifierToken
                 _declarationKind = declarationKind
                 _binder = binder
+                _isByRef = isByRef
             End Sub
+
+            Friend Overrides ReadOnly Property IsByRef As Boolean
+                Get
+                    Return _isByRef
+                End Get
+            End Property
+
+            Friend Overrides ReadOnly Property CanScheduleToStack As Boolean
+                Get
+                    ' A ByRef local holds an address that later stores write through.
+                    ' The stack scheduler rewrites those stores as ordinary value stores.
+                    Return MyBase.CanScheduleToStack AndAlso Not _isByRef
+                End Get
+            End Property
 
             Friend Overrides ReadOnly Property DeclarationKind As LocalDeclarationKind
                 Get
@@ -688,9 +708,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Public Sub New(container As Symbol,
                            binder As Binder,
                            declaringIdentifier As SyntaxToken,
-                           collectionExpressionSyntax As ExpressionSyntax)
+                           collectionExpressionSyntax As ExpressionSyntax,
+                           Optional isByRef As Boolean = False)
 
-                MyBase.New(container, binder, declaringIdentifier, LocalDeclarationKind.ForEach, Nothing)
+                MyBase.New(container, binder, declaringIdentifier, LocalDeclarationKind.ForEach, Nothing, isByRef)
                 Debug.Assert(collectionExpressionSyntax IsNot Nothing)
 
                 _collectionExpressionSyntax = collectionExpressionSyntax
@@ -838,9 +859,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                            modifiedIdentifierOpt As ModifiedIdentifierSyntax,
                            asClauseOpt As AsClauseSyntax,
                            initializerOpt As EqualsValueSyntax,
-                           declarationKind As LocalDeclarationKind)
+                           declarationKind As LocalDeclarationKind,
+                           Optional isByRef As Boolean = False)
 
-                MyBase.New(container, binder, declaringIdentifier, declarationKind, Nothing)
+                MyBase.New(container, binder, declaringIdentifier, declarationKind, Nothing, isByRef)
 
                 Debug.Assert(modifiedIdentifierOpt IsNot Nothing OrElse declarationKind = LocalDeclarationKind.Catch,
                              "Only catch variables should have Nothing for modifiedIdentifierOpt")

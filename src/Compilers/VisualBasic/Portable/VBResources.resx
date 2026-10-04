@@ -5962,4 +5962,16 @@
   <data name="ERR_InvalidGuidLiteral" xml:space="preserve">
     <value>GUID literal is not a valid GUID.</value>
   </data>
+  <data name="ERR_ForEachByRefRequiresArray" xml:space="preserve">
+    <value>For Each ByRef requires a one-dimensional array whose element type is the loop variable's type.</value>
+  </data>
+  <data name="ERR_ForEachByRefDeclaresVariable" xml:space="preserve">
+    <value>For Each ByRef declares a new loop variable.</value>
+  </data>
+  <data name="ERR_CannotLiftByRefLocalLambda1" xml:space="preserve">
+    <value>'ByRef' variable '{0}' cannot be used in a lambda expression.</value>
+  </data>
+  <data name="ERR_CannotLiftByRefLocalQuery1" xml:space="preserve">
+    <value>'ByRef' variable '{0}' cannot be used in a query expression.</value>
+  </data>
 </root>

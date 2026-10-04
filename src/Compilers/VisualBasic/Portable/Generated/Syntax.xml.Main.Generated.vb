@@ -3778,6 +3778,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.ForKeyword.Node IsNot newForKeyword Then anyChanges = True
             Dim newEachKeyword = DirectCast(VisitToken(node.EachKeyword).Node, InternalSyntax.KeywordSyntax)
             If node.EachKeyword.Node IsNot newEachKeyword Then anyChanges = True
+            Dim newByRefKeyword = DirectCast(VisitToken(node.ByRefKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.ByRefKeyword.Node IsNot newByRefKeyword Then anyChanges = True
             Dim newControlVariable = DirectCast(Visit(node.ControlVariable), VisualBasicSyntaxNode)
             If node.ControlVariable IsNot newControlVariable Then anyChanges = True
             Dim newWithKeyword = DirectCast(VisitToken(node.WithKeyword).Node, InternalSyntax.KeywordSyntax)
@@ -3790,7 +3792,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.Expression IsNot newExpression Then anyChanges = True
 
             If anyChanges Then
-                Return New ForEachStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newForKeyword, newEachKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
+                Return New ForEachStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newForKeyword, newEachKeyword, newByRefKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
             Else
                 Return node
             End If
@@ -21253,6 +21255,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="eachKeyword">
         ''' The "Each" keyword.
         ''' </param>
+        ''' <param name="byRefKeyword">
+        ''' The optional "ByRef" keyword. The loop variable refers to each array element.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -21271,7 +21276,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
-        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, withKeyword As SyntaxToken, index As SyntaxToken, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, byRefKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, withKeyword As SyntaxToken, index As SyntaxToken, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
             Select Case forKeyword.Kind()
                 Case SyntaxKind.ForKeyword
                 Case Else
@@ -21528,7 +21533,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("expression")
             End Select
-            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, Nothing, Nothing, DirectCast(forKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(eachKeyword.Node, InternalSyntax.KeywordSyntax), controlVariable, DirectCast(withKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(index.Node, InternalSyntax.IdentifierTokenSyntax), DirectCast(inKeyword.Node, InternalSyntax.KeywordSyntax), expression)
+            Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, Nothing, Nothing, DirectCast(forKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(eachKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(byRefKeyword.Node, InternalSyntax.KeywordSyntax), controlVariable, DirectCast(withKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(index.Node, InternalSyntax.IdentifierTokenSyntax), DirectCast(inKeyword.Node, InternalSyntax.KeywordSyntax), expression)
         End Function
 
 
@@ -21554,7 +21559,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The expression denoting the collection to iterate over.
         ''' </param>
         Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, index As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), controlVariable, Nothing, index, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
+            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, index, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
         End Function
 
 
@@ -21577,7 +21582,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The expression denoting the collection to iterate over.
         ''' </param>
         Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), controlVariable, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
+            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
         End Function
 
 
