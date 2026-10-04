@@ -10173,6 +10173,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression
                 Case Else
@@ -10325,6 +10326,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression
                 Case Else
@@ -10482,6 +10484,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression
                 Case Else
@@ -12423,6 +12426,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -12577,6 +12581,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -13020,6 +13025,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -13158,6 +13164,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -14529,6 +14536,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -14823,6 +14831,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -15009,6 +15018,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -15399,6 +15409,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -15613,6 +15624,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -16330,6 +16342,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -16774,6 +16787,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -16910,6 +16924,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17034,6 +17049,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17195,6 +17211,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17348,6 +17365,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17501,6 +17519,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17654,6 +17673,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17807,6 +17827,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -17960,6 +17981,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -18120,6 +18142,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -18510,6 +18533,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -18676,6 +18700,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -18888,6 +18913,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -19061,6 +19087,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -19925,6 +19952,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -20078,6 +20106,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -20236,6 +20265,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -20385,6 +20415,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -20642,6 +20673,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -20767,6 +20799,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -20891,6 +20924,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -21082,6 +21116,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -21254,6 +21289,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -21379,6 +21415,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -21679,6 +21716,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -21813,6 +21851,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -21966,6 +22005,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22090,6 +22130,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22243,6 +22284,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22367,6 +22409,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22520,6 +22563,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22644,6 +22688,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22797,6 +22842,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -22921,6 +22967,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23074,6 +23121,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23198,6 +23246,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23351,6 +23400,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23475,6 +23525,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23628,6 +23679,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23752,6 +23804,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -23905,6 +23958,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24029,6 +24083,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24182,6 +24237,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24306,6 +24362,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24459,6 +24516,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24583,6 +24641,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24736,6 +24795,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -24860,6 +24920,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25025,6 +25086,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25147,6 +25209,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25405,6 +25468,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25529,6 +25593,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25689,6 +25754,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25813,6 +25879,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -25979,6 +26046,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -26103,6 +26171,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -26331,6 +26400,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -26627,6 +26697,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -26795,10 +26866,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function CharacterLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -26807,6 +26878,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -26832,10 +26904,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function TrueLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -26844,6 +26916,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -26869,10 +26942,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function FalseLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -26881,6 +26954,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -26906,10 +26980,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function NumericLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -26918,6 +26992,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -26943,10 +27018,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function DateLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -26955,6 +27030,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -26980,10 +27056,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
+        ''' </param>
+        Public Shared Function GuidLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
+            Select Case token.Kind()
+                Case SyntaxKind.IntegerLiteralToken :
+                Case SyntaxKind.CharacterLiteralToken :
+                Case SyntaxKind.DecimalLiteralToken :
+                Case SyntaxKind.FloatingLiteralToken :
+                Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
+                Case SyntaxKind.StringLiteralToken :
+                Case SyntaxKind.TrueKeyword :
+                Case SyntaxKind.FalseKeyword :
+                Case SyntaxKind.NothingKeyword :
+                Case SyntaxKind.DefaultKeyword
+                Case Else
+                    Throw new ArgumentException("token")
+            End Select
+            Return New LiteralExpressionSyntax(SyntaxKind.GuidLiteralExpression, Nothing, Nothing, DirectCast(token.Node, InternalSyntax.SyntaxToken))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a literal. The kind of literal is determined by the Kind property:
+        ''' IntegerLiteral, CharacterLiteral, BooleanLiteral, DecimalLiteral,
+        ''' FloatingLiteral, DateLiteral or StringLiteral. The value of the literal can be
+        ''' determined by casting the associated Token to the correct type and getting the
+        ''' value from the token.
+        ''' </summary>
+        ''' <param name="token">
+        ''' The token that represents the literal. The Kind property determines what type
+        ''' this property returns: Kind=IntegerLiteral ==&gt; Returns IntegerLiteralToken.
+        ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
+        ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
+        ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function StringLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -26992,6 +27106,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -27017,10 +27132,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function NothingLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Select Case token.Kind()
@@ -27029,6 +27144,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -27052,7 +27168,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' LiteralExpressionSyntax. One of CharacterLiteralExpression,
         ''' TrueLiteralExpression, FalseLiteralExpression, NumericLiteralExpression,
-        ''' DateLiteralExpression, StringLiteralExpression, NothingLiteralExpression.
+        ''' DateLiteralExpression, GuidLiteralExpression, StringLiteralExpression,
+        ''' NothingLiteralExpression.
         ''' </param>
         ''' <param name="token">
         ''' The token that represents the literal. The Kind property determines what type
@@ -27060,10 +27177,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Public Shared Function LiteralExpression(ByVal kind As SyntaxKind, token As SyntaxToken) As LiteralExpressionSyntax
             If Not SyntaxFacts.IsLiteralExpression(kind) Then
@@ -27075,6 +27192,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DecimalLiteralToken :
                 Case SyntaxKind.FloatingLiteralToken :
                 Case SyntaxKind.DateLiteralToken :
+                Case SyntaxKind.GuidLiteralToken :
                 Case SyntaxKind.StringLiteralToken :
                 Case SyntaxKind.TrueKeyword :
                 Case SyntaxKind.FalseKeyword :
@@ -27122,6 +27240,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -27589,6 +27708,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -27770,6 +27890,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -27957,6 +28078,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -28158,6 +28280,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -28338,6 +28461,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -28525,6 +28649,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -29686,6 +29811,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -29848,6 +29974,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -30038,6 +30165,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -30228,6 +30356,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -30431,6 +30560,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -30586,6 +30716,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -30733,6 +30864,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -30884,6 +31016,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31008,6 +31141,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31159,6 +31293,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31283,6 +31418,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31434,6 +31570,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31558,6 +31695,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31709,6 +31847,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31833,6 +31972,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -31984,6 +32124,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32108,6 +32249,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32259,6 +32401,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32383,6 +32526,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32534,6 +32678,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32658,6 +32803,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32809,6 +32955,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -32933,6 +33080,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33084,6 +33232,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33208,6 +33357,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33359,6 +33509,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33483,6 +33634,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33634,6 +33786,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33758,6 +33911,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -33909,6 +34063,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34033,6 +34188,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34184,6 +34340,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34308,6 +34465,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34459,6 +34617,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34583,6 +34742,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34734,6 +34894,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -34858,6 +35019,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35009,6 +35171,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35133,6 +35296,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35284,6 +35448,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35408,6 +35573,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35559,6 +35725,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35683,6 +35850,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35834,6 +36002,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -35958,6 +36127,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36109,6 +36279,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36233,6 +36404,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36384,6 +36556,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36508,6 +36681,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36659,6 +36833,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36783,6 +36958,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -36934,6 +37110,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37058,6 +37235,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37223,6 +37401,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37345,6 +37524,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37541,6 +37721,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37690,6 +37871,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37839,6 +38021,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -37988,6 +38171,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -38137,6 +38321,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -38292,6 +38477,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -38508,6 +38694,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -38632,6 +38819,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -38814,6 +39002,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -38938,6 +39127,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -39062,6 +39252,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -39229,6 +39420,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -39535,6 +39727,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -39849,6 +40042,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -40598,6 +40792,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -40785,6 +40980,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -40909,6 +41105,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -41105,6 +41302,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -41273,6 +41471,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -41789,6 +41988,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -41948,6 +42148,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -42107,6 +42308,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -42271,6 +42473,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -42439,6 +42642,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -42588,6 +42792,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -42742,6 +42947,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -42959,6 +43165,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -43083,6 +43290,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -43440,6 +43648,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -43587,6 +43796,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -43741,6 +43951,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -44499,6 +44710,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -45149,6 +45361,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -45298,6 +45511,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -45645,6 +45859,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
 
         ''' <summary>
+        ''' Represents a GUID literal token.
+        ''' </summary>
+        ''' <param name="text">
+        ''' The actual text of this token.
+        ''' </param>
+        Public Shared Function GuidLiteralToken(leadingTrivia As SyntaxTriviaList, text as String, value As String, trailingTrivia As SyntaxTriviaList) As SyntaxToken
+            if text Is Nothing Then
+                Throw New ArgumentNullException(NameOf(text))
+            End If
+            Return New SyntaxToken(Nothing, New InternalSyntax.GuidLiteralTokenSyntax(SyntaxKind.GuidLiteralToken, Nothing, Nothing, text, leadingTrivia.Node, trailingTrivia.Node, value), 0, 0)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a GUID literal token.
+        ''' </summary>
+        ''' <param name="text">
+        ''' The actual text of this token.
+        ''' </param>
+        Public Shared Function GuidLiteralToken(text as String, value As String) As SyntaxToken
+            Return GuidLiteralToken(Nothing, text, value, Nothing)
+        End Function
+
+
+        ''' <summary>
         ''' Represents a string literal token.
         ''' </summary>
         ''' <param name="text">
@@ -45946,6 +46185,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -46184,6 +46424,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -46357,6 +46598,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -46719,6 +46961,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -46891,6 +47134,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -47042,6 +47286,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -47200,6 +47445,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.FalseLiteralExpression,
                      SyntaxKind.NumericLiteralExpression,
                      SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.GuidLiteralExpression,
                      SyntaxKind.StringLiteralExpression,
                      SyntaxKind.NothingLiteralExpression,
                      SyntaxKind.ParenthesizedExpression,
@@ -48429,6 +48675,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.FalseLiteralExpression,
                 SyntaxKind.NumericLiteralExpression,
                 SyntaxKind.DateLiteralExpression,
+                SyntaxKind.GuidLiteralExpression,
                 SyntaxKind.StringLiteralExpression,
                 SyntaxKind.NothingLiteralExpression
                     Return True
@@ -48444,6 +48691,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SyntaxKind.DecimalLiteralToken,
                 SyntaxKind.FloatingLiteralToken,
                 SyntaxKind.DateLiteralToken,
+                SyntaxKind.GuidLiteralToken,
                 SyntaxKind.StringLiteralToken,
                 SyntaxKind.TrueKeyword,
                 SyntaxKind.FalseKeyword,

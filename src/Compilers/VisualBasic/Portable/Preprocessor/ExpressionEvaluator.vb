@@ -242,6 +242,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Dim typedToken = DirectCast(token, DateLiteralTokenSyntax)
                     Return CConst.Create(typedToken.Value)
 
+                Case SyntaxKind.GuidLiteralToken
+                    Return ReportSemanticError(ERRID.ERR_BadCCExpression, expr)
+
                 Case SyntaxKind.DecimalLiteralToken
                     Dim typedToken = DirectCast(token, DecimalLiteralTokenSyntax)
                     Return CConst.Create(typedToken.Value)

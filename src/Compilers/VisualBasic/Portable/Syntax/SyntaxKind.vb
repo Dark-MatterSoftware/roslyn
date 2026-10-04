@@ -3326,5 +3326,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         TypeOfIsNotListExpression = 817              ' TypeOfListExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents a GUID literal token, <c>&amp;G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}</c>.
+        ''' </summary>
+        GuidLiteralToken = 818                       ' GuidLiteralTokenSyntax : SyntaxToken
+
+        ''' <summary>
+        ''' Represents a GUID literal, <c>&amp;G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}</c>.
+        ''' </summary>
+        GuidLiteralExpression = 819                  ' LiteralExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

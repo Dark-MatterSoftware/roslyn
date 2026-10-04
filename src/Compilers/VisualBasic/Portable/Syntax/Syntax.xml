@@ -5318,6 +5318,10 @@ Unify Enum declarations with other block type declarations.
         <lm-equiv name="Literal" />
         <native-equiv name="Expression.Opcodes.DateLiteral" />
       </node-kind>
+      <node-kind name="GuidLiteralExpression">
+        <lm-equiv name="Literal" />
+        <native-equiv name="Expression.Opcodes.DateLiteral" />
+      </node-kind>
       <node-kind name="StringLiteralExpression">
         <lm-equiv name="Literal" />
         <native-equiv name="Expression.Opcodes.StringLiteral" />
@@ -5327,7 +5331,7 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="Expression.Opcodes.Nothing" />
       </node-kind>
 
-      <child name="Token" kind="IntegerLiteralToken|CharacterLiteralToken|DecimalLiteralToken|FloatingLiteralToken|DateLiteralToken|StringLiteralToken|TrueKeyword|FalseKeyword|NothingKeyword|DefaultKeyword">
+      <child name="Token" kind="IntegerLiteralToken|CharacterLiteralToken|DecimalLiteralToken|FloatingLiteralToken|DateLiteralToken|GuidLiteralToken|StringLiteralToken|TrueKeyword|FalseKeyword|NothingKeyword|DefaultKeyword">
         <description>
           The token that represents the literal. The Kind property determines what type this property returns:
           Kind=IntegerLiteral ==&gt; Returns IntegerLiteralToken.
@@ -5335,6 +5339,7 @@ Unify Enum declarations with other block type declarations.
           Kind=DecimalLiteral ==&gt; Returns DecimalLiteralToken
           Kind=FloatingLiteral ==&gt; Returns FloatingLiteralToken
           Kind=DateLiteral ==&gt; Returns DateLiteralToken
+          Kind=GuidLiteral ==&gt; Returns GuidLiteralToken
           Kind=StringLiteral ==&gt; Returns StringLiteralToken
           Kind=BooleanLiteral ==&gt; Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
           Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being NothingKeyword)
@@ -9671,6 +9676,21 @@ Unify Enum declarations with other block type declarations.
       <field name="Value" type="DateTime">
         <description>The value of the token.</description>
         <native-equiv name="Token.m_DateLiteral.m_Value" />
+      </field>
+    </node-structure>
+
+    <!--********************
+      -  GuidLiteralToken
+      **********************-->
+    <node-structure name="GuidLiteralTokenSyntax" parent="SyntaxToken">
+      <description>Represents a GUID literal token.</description>
+
+      <node-kind name="GuidLiteralToken">
+        <lm-equiv name="TokenKind.GuidLiteralToken" />
+      </node-kind>
+
+      <field name="Value" type="text">
+        <description>The canonical GUID text, eight-four-four-four-twelve hexadecimal digits.</description>
       </field>
     </node-structure>
 

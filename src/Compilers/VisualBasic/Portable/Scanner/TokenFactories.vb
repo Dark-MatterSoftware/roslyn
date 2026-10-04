@@ -689,6 +689,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return p
         End Function
 
+        Private Function MakeGuidLiteralToken(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode), value As String, length As Integer) As SyntaxToken
+            Dim spelling = GetText(length)
+            Dim followingTrivia = ScanSingleLineTrivia()
+
+            Dim tp As New TokenParts(precedingTrivia, followingTrivia, spelling)
+
+            Dim p As SyntaxToken = Nothing
+            If _literalTable.TryGetValue(tp, p) Then
+                Return p
+            End If
+
+            p = SyntaxFactory.GuidLiteralToken(spelling, value, precedingTrivia.Node, followingTrivia.Node)
+            _literalTable.Add(tp, p)
+            Return p
+        End Function
+
         Private Function MakeFloatingLiteralToken(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode),
                                          typeCharacter As TypeCharacter,
                                          floatingValue As Double,

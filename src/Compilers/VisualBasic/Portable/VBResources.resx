@@ -5959,4 +5959,7 @@
   <data name="ERR_ListPatternRequiresArray" xml:space="preserve">
     <value>A list pattern requires an array or a collection with a count and an indexer.</value>
   </data>
+  <data name="ERR_InvalidGuidLiteral" xml:space="preserve">
+    <value>GUID literal is not a valid GUID.</value>
+  </data>
 </root>

@@ -22,6 +22,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Property
     End Class
 
+    Partial Friend Class GuidLiteralTokenSyntax
+        Friend NotOverridable Overrides ReadOnly Property ObjectValue As Object
+            Get
+                Return Me.Value
+            End Get
+        End Property
+    End Class
+
     Partial Friend Class DecimalLiteralTokenSyntax
         Friend NotOverridable Overrides ReadOnly Property ObjectValue As Object
             Get

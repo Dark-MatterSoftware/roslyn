@@ -369,6 +369,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case SyntaxKind.DateLiteralToken
                     term = ParseDateLiteral()
 
+                Case SyntaxKind.GuidLiteralToken
+                    term = ParseGuidLiteral()
+
                 Case SyntaxKind.StringLiteralToken
                     term = ParseStringLiteral()
 

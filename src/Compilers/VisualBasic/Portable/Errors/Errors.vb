@@ -1839,8 +1839,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         ERR_BadNullableDirective = 37379
         ERR_ListPatternRequiresArray = 37380
+        ERR_InvalidGuidLiteral = 37381
 
-        ERR_NextAvailable = 37381
+        ERR_NextAvailable = 37382
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

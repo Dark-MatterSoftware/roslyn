@@ -191,7 +191,8 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb052-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 13a | VB-052 | Done. `docs/vbnext-vb052-syntax.md` locks `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` and the compact `&G{936DA01F9ABD4d9d80C702AF85C822A8}`. The value's type is `System.Guid`. `#` stays a date, and square brackets stay escaped identifiers. |
+| 13b | VB-052 | Done. On `vbnext`, `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` and `&G{936DA01F9ABD4d9d80C702AF85C822A8}` are `System.Guid` values. A malformed literal is an error. `&Goo` stays concatenation. Visual Basic 17.13 still treats `&G{...}` as concatenation. |
 
 ## What starts now
 
-Slice 13a is the spelling note. The next slice implements `&G{936DA01F-9ABD-4d9d-80C7-02AF85C822A8}` on `vbnext`.
+Slice 13b is implemented. The next wave 4 item is VB-055, `For Each` with an index, and it still needs a spelling note before an implementation slice.

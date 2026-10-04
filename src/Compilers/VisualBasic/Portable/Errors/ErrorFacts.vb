@@ -1593,6 +1593,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ExpectedEndExtension,
                      ERRID.ERR_BadNullableDirective,
                      ERRID.ERR_ListPatternRequiresArray,
+                     ERRID.ERR_InvalidGuidLiteral,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

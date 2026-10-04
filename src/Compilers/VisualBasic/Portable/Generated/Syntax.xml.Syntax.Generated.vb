@@ -22914,6 +22914,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     ''' <item><description><see cref="SyntaxKind.FalseLiteralExpression"/></description></item>
     ''' <item><description><see cref="SyntaxKind.NumericLiteralExpression"/></description></item>
     ''' <item><description><see cref="SyntaxKind.DateLiteralExpression"/></description></item>
+    ''' <item><description><see cref="SyntaxKind.GuidLiteralExpression"/></description></item>
     ''' <item><description><see cref="SyntaxKind.StringLiteralExpression"/></description></item>
     ''' <item><description><see cref="SyntaxKind.NothingLiteralExpression"/></description></item>
     ''' </list>
@@ -22938,10 +22939,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </summary>
         Public ReadOnly Property Token As SyntaxToken
             Get

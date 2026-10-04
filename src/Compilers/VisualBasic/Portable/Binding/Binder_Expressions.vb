@@ -116,6 +116,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.DateLiteralExpression
                     Return BindLiteralConstant(DirectCast(node, LiteralExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.GuidLiteralExpression
+                    Return BindGuidLiteral(DirectCast(node, LiteralExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.ParenthesizedExpression
                     ' Parenthesis tokens are ignored, and operand is bound in the context of
                     ' parent expression.
@@ -5082,6 +5085,76 @@ lElseClause:
             Dim creation = New BoundObjectCreationExpression(node, constructor, ImmutableArray.Create(Of BoundExpression)(bytes), Nothing, spanType)
             creation.SetWasCompilerGenerated()
             Return creation
+        End Function
+
+        Private Function BindGuidLiteral(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim guidType = GetWellKnownType(WellKnownType.System_Guid, node, diagnostics)
+            Dim text = TryCast(node.Token.Value, String)
+            Dim constructor = FindGuidConstructor(guidType)
+            If constructor Is Nothing OrElse guidType.TypeKind = TypeKind.Error OrElse text Is Nothing Then
+                Return New BoundBadExpression(node, LookupResultKind.Empty, ImmutableArray(Of Symbol).Empty, ImmutableArray(Of BoundExpression).Empty, guidType, hasErrors:=True)
+            End If
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+            Dim int16Type = GetSpecialType(SpecialType.System_Int16, node, diagnostics)
+            Dim byteType = GetSpecialType(SpecialType.System_Byte, node, diagnostics)
+            Dim arguments = ImmutableArray.Create(Of BoundExpression)(
+                GuidArgument(node, ConstantValue.Create(HexToInt32(text.Substring(0, 8))), int32Type),
+                GuidArgument(node, ConstantValue.Create(HexToInt16(text.Substring(9, 4))), int16Type),
+                GuidArgument(node, ConstantValue.Create(HexToInt16(text.Substring(14, 4))), int16Type),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(19, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(21, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(24, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(26, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(28, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(30, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(32, 2), 16)), byteType),
+                GuidArgument(node, ConstantValue.Create(Convert.ToByte(text.Substring(34, 2), 16)), byteType))
+
+            Dim creation = New BoundObjectCreationExpression(node, constructor, arguments, Nothing, guidType)
+            creation.SetWasCompilerGenerated()
+            Return creation
+        End Function
+
+        Private Shared Function FindGuidConstructor(guidType As NamedTypeSymbol) As MethodSymbol
+            For Each candidate In guidType.InstanceConstructors
+                If candidate.ParameterCount <> 11 Then
+                    Continue For
+                End If
+
+                Dim parameters = candidate.Parameters
+                If parameters(0).Type.SpecialType = SpecialType.System_Int32 AndAlso
+                   parameters(1).Type.SpecialType = SpecialType.System_Int16 AndAlso
+                   parameters(2).Type.SpecialType = SpecialType.System_Int16 AndAlso
+                   parameters(3).Type.SpecialType = SpecialType.System_Byte Then
+                    Return candidate
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        Private Shared Function GuidArgument(node As SyntaxNode, value As ConstantValue, type As TypeSymbol) As BoundLiteral
+            Dim literal = New BoundLiteral(node, value, type)
+            literal.SetWasCompilerGenerated()
+            Return literal
+        End Function
+
+        Private Shared Function HexToInt32(text As String) As Integer
+            Dim value = Convert.ToUInt32(text, 16)
+            If value > Integer.MaxValue Then
+                Return CInt(CLng(value) - 4294967296L)
+            End If
+
+            Return CInt(value)
+        End Function
+
+        Private Shared Function HexToInt16(text As String) As Short
+            Dim value = Convert.ToInt32(text, 16)
+            If value > Short.MaxValue Then
+                Return CShort(value - 65536)
+            End If
+
+            Return CShort(value)
         End Function
 
         Private Function BindLiteralConstant(node As LiteralExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundLiteral

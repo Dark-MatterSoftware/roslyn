@@ -875,6 +875,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DateLiteralToken
                     Return SyntaxKind.DateLiteralExpression
 
+                Case SyntaxKind.GuidLiteralToken
+                    Return SyntaxKind.GuidLiteralExpression
+
                 Case SyntaxKind.StringLiteralToken
                     Return SyntaxKind.StringLiteralExpression
 

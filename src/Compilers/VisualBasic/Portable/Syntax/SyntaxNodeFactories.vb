@@ -720,6 +720,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.DateLiteralToken
                     t = SyntaxFactory.DateLiteralToken("", Nothing)
 
+                Case SyntaxKind.GuidLiteralToken
+                    t = SyntaxFactory.GuidLiteralToken("", "")
+
                 Case SyntaxKind.XmlNameToken
                     t = SyntaxFactory.XmlNameToken("", SyntaxKind.XmlNameToken)
 

@@ -157,6 +157,11 @@
         <target state="translated">'Experimental' 属性への diagnosticId 引数は有効な識別子である必要があります</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_InvalidGuidLiteral">
+        <source>GUID literal is not a valid GUID.</source>
+        <target state="new">GUID literal is not a valid GUID.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidUnmanagedCallersOnlyCallConv">
         <source>'{0}' is not a valid calling convention for UnmanagedCallersOnly.</source>
         <target state="new">'{0}' is not a valid calling convention for UnmanagedCallersOnly.</target>

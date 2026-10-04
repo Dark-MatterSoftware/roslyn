@@ -16764,10 +16764,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </summary>
         Friend ReadOnly Property Token As InternalSyntax.SyntaxToken
             Get
@@ -27806,6 +27806,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
             Return new DateLiteralTokenSyntax(Me.Kind, GetDiagnostics, annotations, text, GetLeadingTrivia, GetTrailingTrivia, _value)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents a GUID literal token.
+    ''' </summary>
+    Friend NotInheritable Class GuidLiteralTokenSyntax
+        Inherits SyntaxToken
+
+        Friend ReadOnly _value as String
+
+        Friend Sub New(ByVal kind As SyntaxKind, text as String, leadingTrivia As GreenNode, trailingTrivia As GreenNode, value As String)
+            MyBase.New(kind, text, leadingTrivia, trailingTrivia)
+            Me._value = value
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, text as String, leadingTrivia As GreenNode, trailingTrivia As GreenNode, value As String, context As ISyntaxFactoryContext)
+            MyBase.New(kind, text, leadingTrivia, trailingTrivia)
+            Me.SetFactoryContext(context)
+            Me._value = value
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), text as String, leadingTrivia As GreenNode, trailingTrivia As GreenNode, value As String)
+            MyBase.New(kind, errors, annotations, text, leadingTrivia, trailingTrivia)
+            Me._value = value
+        End Sub
+
+        ''' <summary>
+        ''' The canonical GUID text, eight-four-four-four-twelve hexadecimal digits.
+        ''' </summary>
+        Friend ReadOnly Property Value As String
+            Get
+                Return Me._value
+            End Get
+        End Property
+
+        Public Overrides Function WithLeadingTrivia(ByVal trivia As GreenNode) As GreenNode
+            Return new GuidLiteralTokenSyntax(Me.Kind, GetDiagnostics, GetAnnotations, text, trivia, GetTrailingTrivia, _value)
+        End Function
+
+        Public Overrides Function WithTrailingTrivia(ByVal trivia As GreenNode) As GreenNode
+            Return new GuidLiteralTokenSyntax(Me.Kind, GetDiagnostics, GetAnnotations, text, GetLeadingTrivia, trivia, _value)
+        End Function
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new GuidLiteralTokenSyntax(Me.Kind, newErrors, GetAnnotations, text, GetLeadingTrivia, GetTrailingTrivia, _value)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new GuidLiteralTokenSyntax(Me.Kind, GetDiagnostics, annotations, text, GetLeadingTrivia, GetTrailingTrivia, _value)
         End Function
 
     End Class
@@ -43926,10 +43977,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function CharacterLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -43962,10 +44013,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function TrueLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -43998,10 +44049,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function FalseLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -44034,10 +44085,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function NumericLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -44070,10 +44121,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function DateLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -44106,10 +44157,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
+        ''' </param>
+        Friend Shared Function GuidLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
+            Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.GuidLiteralExpression, token, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, LiteralExpressionSyntax)
+            End If
+
+            Dim result = New LiteralExpressionSyntax(SyntaxKind.GuidLiteralExpression, token)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a literal. The kind of literal is determined by the Kind property:
+        ''' IntegerLiteral, CharacterLiteral, BooleanLiteral, DecimalLiteral,
+        ''' FloatingLiteral, DateLiteral or StringLiteral. The value of the literal can be
+        ''' determined by casting the associated Token to the correct type and getting the
+        ''' value from the token.
+        ''' </summary>
+        ''' <param name="token">
+        ''' The token that represents the literal. The Kind property determines what type
+        ''' this property returns: Kind=IntegerLiteral ==&gt; Returns IntegerLiteralToken.
+        ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
+        ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
+        ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function StringLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -44142,10 +44229,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function NothingLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -44176,7 +44263,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' LiteralExpressionSyntax. One of CharacterLiteralExpression,
         ''' TrueLiteralExpression, FalseLiteralExpression, NumericLiteralExpression,
-        ''' DateLiteralExpression, StringLiteralExpression, NothingLiteralExpression.
+        ''' DateLiteralExpression, GuidLiteralExpression, StringLiteralExpression,
+        ''' NothingLiteralExpression.
         ''' </param>
         ''' <param name="token">
         ''' The token that represents the literal. The Kind property determines what type
@@ -44184,10 +44272,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Shared Function LiteralExpression(kind As SyntaxKind, token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(SyntaxFacts.IsLiteralExpression(kind))
@@ -48385,6 +48473,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend Shared Function DateLiteralToken(text as String, value As DateTime, leadingTrivia As GreenNode, trailingTrivia As GreenNode) As DateLiteralTokenSyntax
             Debug.Assert(text IsNot Nothing)
             Return New DateLiteralTokenSyntax(SyntaxKind.DateLiteralToken, text, leadingTrivia, trailingTrivia, value)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a GUID literal token.
+        ''' </summary>
+        ''' <param name="text">
+        ''' The actual text of this token.
+        ''' </param>
+        Friend Shared Function GuidLiteralToken(text as String, value As String, leadingTrivia As GreenNode, trailingTrivia As GreenNode) As GuidLiteralTokenSyntax
+            Debug.Assert(text IsNot Nothing)
+            Return New GuidLiteralTokenSyntax(SyntaxKind.GuidLiteralToken, text, leadingTrivia, trailingTrivia, value)
         End Function
 
 
@@ -56588,10 +56688,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function CharacterLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56624,10 +56724,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function TrueLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56660,10 +56760,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function FalseLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56696,10 +56796,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function NumericLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56732,10 +56832,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function DateLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56768,10 +56868,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
+        ''' </param>
+        Friend Function GuidLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
+            Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.GuidLiteralExpression, token, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, LiteralExpressionSyntax)
+            End If
+
+            Dim result = New LiteralExpressionSyntax(SyntaxKind.GuidLiteralExpression, token, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a literal. The kind of literal is determined by the Kind property:
+        ''' IntegerLiteral, CharacterLiteral, BooleanLiteral, DecimalLiteral,
+        ''' FloatingLiteral, DateLiteral or StringLiteral. The value of the literal can be
+        ''' determined by casting the associated Token to the correct type and getting the
+        ''' value from the token.
+        ''' </summary>
+        ''' <param name="token">
+        ''' The token that represents the literal. The Kind property determines what type
+        ''' this property returns: Kind=IntegerLiteral ==&gt; Returns IntegerLiteralToken.
+        ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
+        ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
+        ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function StringLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56804,10 +56940,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function NothingLiteralExpression(token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(token IsNot Nothing AndAlso SyntaxFacts.IsLiteralExpressionToken(token.Kind))
@@ -56838,7 +56974,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' A <see cref="SyntaxKind"/> representing the specific kind of
         ''' LiteralExpressionSyntax. One of CharacterLiteralExpression,
         ''' TrueLiteralExpression, FalseLiteralExpression, NumericLiteralExpression,
-        ''' DateLiteralExpression, StringLiteralExpression, NothingLiteralExpression.
+        ''' DateLiteralExpression, GuidLiteralExpression, StringLiteralExpression,
+        ''' NothingLiteralExpression.
         ''' </param>
         ''' <param name="token">
         ''' The token that represents the literal. The Kind property determines what type
@@ -56846,10 +56983,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' Kind=CharacterLiteral ==&gt; Returns CharacterLiteralToken. Kind=DecimalLiteral
         ''' ==&gt; Returns DecimalLiteralToken Kind=FloatingLiteral ==&gt; Returns
         ''' FloatingLiteralToken Kind=DateLiteral ==&gt; Returns DateLiteralToken
-        ''' Kind=StringLiteral ==&gt; Returns StringLiteralToken Kind=BooleanLiteral ==&gt;
-        ''' Returns Keyword (with it's kind being TrueKeyword or FalseKeyword)
-        ''' Kind=NothingLiteral ==&gt; Returns Keyword (with it's kind being
-        ''' NothingKeyword)
+        ''' Kind=GuidLiteral ==&gt; Returns GuidLiteralToken Kind=StringLiteral ==&gt;
+        ''' Returns StringLiteralToken Kind=BooleanLiteral ==&gt; Returns Keyword (with
+        ''' it's kind being TrueKeyword or FalseKeyword) Kind=NothingLiteral ==&gt; Returns
+        ''' Keyword (with it's kind being NothingKeyword)
         ''' </param>
         Friend Function LiteralExpression(kind As SyntaxKind, token As SyntaxToken) As LiteralExpressionSyntax
             Debug.Assert(SyntaxFacts.IsLiteralExpression(kind))
@@ -61047,6 +61184,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend Function DateLiteralToken(text as String, value As DateTime, leadingTrivia As GreenNode, trailingTrivia As GreenNode) As DateLiteralTokenSyntax
             Debug.Assert(text IsNot Nothing)
             Return New DateLiteralTokenSyntax(SyntaxKind.DateLiteralToken, text, leadingTrivia, trailingTrivia, value, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a GUID literal token.
+        ''' </summary>
+        ''' <param name="text">
+        ''' The actual text of this token.
+        ''' </param>
+        Friend Function GuidLiteralToken(text as String, value As String, leadingTrivia As GreenNode, trailingTrivia As GreenNode) As GuidLiteralTokenSyntax
+            Debug.Assert(text IsNot Nothing)
+            Return New GuidLiteralTokenSyntax(SyntaxKind.GuidLiteralToken, text, leadingTrivia, trailingTrivia, value, _factoryContext)
         End Function
 
 

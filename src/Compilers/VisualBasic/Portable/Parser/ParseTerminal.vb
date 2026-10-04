@@ -224,6 +224,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return Literal
         End Function
 
+        Private Function ParseGuidLiteral() As LiteralExpressionSyntax
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.GuidLiteralToken, "must be at a guid literal.")
+
+            Dim literal As LiteralExpressionSyntax = SyntaxFactory.GuidLiteralExpression(CurrentToken)
+            GetNextToken()
+            Return literal
+        End Function
+
     End Class
 
 End Namespace

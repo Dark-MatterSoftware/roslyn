@@ -406,6 +406,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case SyntaxKind.DateLiteralToken
                     t = SyntaxFactory.DateLiteralToken("", Nothing, Nothing, Nothing)
 
+                Case SyntaxKind.GuidLiteralToken
+                    t = SyntaxFactory.GuidLiteralToken("", "", Nothing, Nothing)
+
                 Case SyntaxKind.XmlNameToken
                     t = SyntaxFactory.XmlNameToken("", SyntaxKind.XmlNameToken, Nothing, Nothing)
 

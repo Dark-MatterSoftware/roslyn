@@ -1177,6 +1177,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         Return ScanNumericLiteral(precedingTrivia)
                     End If
 
+                    If Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       CanGet(2) AndAlso
+                       (Peek(1) = "G"c OrElse Peek(1) = "g"c) AndAlso
+                       Peek(2) = "{"c Then
+                        Return ScanGuidLiteral(precedingTrivia)
+                    End If
+
                     If TrySkipFollowingEquals(lengthWithMaybeEquals) Then
                         Return MakeAmpersandEqualsToken(precedingTrivia, lengthWithMaybeEquals)
                     Else
@@ -1701,6 +1708,75 @@ FullWidthRepeat:
             Float
             [Decimal]
         End Enum
+
+        Private Function ScanGuidLiteral(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode)) As SyntaxToken
+            Debug.Assert(CanGet(2))
+            Debug.Assert(Peek(2) = "{"c)
+
+            Dim here As Integer = 3
+            While CanGet(here)
+                Dim ch = Peek(here)
+                If ch = "}"c OrElse IsNewLine(ch) Then
+                    Exit While
+                End If
+                here += 1
+            End While
+
+            Dim canonical As String = Nothing
+            Dim valid = CanGet(here) AndAlso Peek(here) = "}"c
+            If valid Then
+                here += 1
+                valid = TryCanonicalGuid(here, canonical)
+            End If
+
+            If Not valid Then
+                canonical = "00000000-0000-0000-0000-000000000000"
+            End If
+
+            Dim token = MakeGuidLiteralToken(precedingTrivia, canonical, here)
+            If valid Then
+                Return token
+            End If
+
+            Return DirectCast(token.AddError(ErrorFactory.ErrorInfo(ERRID.ERR_InvalidGuidLiteral)), SyntaxToken)
+        End Function
+
+        Private Function TryCanonicalGuid(length As Integer, ByRef canonical As String) As Boolean
+            Dim bodyLength = length - 4
+            If bodyLength = 32 AndAlso IsHexSpan(3, 32) Then
+                canonical = HexSpan(3, 8) & "-" & HexSpan(11, 4) & "-" & HexSpan(15, 4) & "-" & HexSpan(19, 4) & "-" & HexSpan(23, 12)
+                Return True
+            End If
+
+            If bodyLength = 36 AndAlso
+               Peek(11) = "-"c AndAlso Peek(16) = "-"c AndAlso Peek(21) = "-"c AndAlso Peek(26) = "-"c AndAlso
+               IsHexSpan(3, 8) AndAlso IsHexSpan(12, 4) AndAlso IsHexSpan(17, 4) AndAlso IsHexSpan(22, 4) AndAlso IsHexSpan(27, 12) Then
+                canonical = HexSpan(3, 8) & "-" & HexSpan(12, 4) & "-" & HexSpan(17, 4) & "-" & HexSpan(22, 4) & "-" & HexSpan(27, 12)
+                Return True
+            End If
+
+            canonical = Nothing
+            Return False
+        End Function
+
+        Private Function IsHexSpan(start As Integer, count As Integer) As Boolean
+            For offset = 0 To count - 1
+                If Not IsHexDigit(Peek(start + offset)) Then
+                    Return False
+                End If
+            Next
+
+            Return True
+        End Function
+
+        Private Function HexSpan(start As Integer, count As Integer) As String
+            Dim chars(count - 1) As Char
+            For offset = 0 To count - 1
+                chars(offset) = Char.ToUpperInvariant(Peek(start + offset))
+            Next
+
+            Return New String(chars)
+        End Function
 
         Private Function ScanNumericLiteral(precedingTrivia As CoreInternalSyntax.SyntaxList(Of VisualBasicSyntaxNode)) As SyntaxToken
             Debug.Assert(CanGet)

@@ -48,6 +48,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                 Case SyntaxKind.IdentifierToken,
                      SyntaxKind.CharacterLiteralToken,
                      SyntaxKind.DateLiteralToken,
+                     SyntaxKind.GuidLiteralToken,
                      SyntaxKind.DecimalLiteralToken,
                      SyntaxKind.FloatingLiteralToken,
                      SyntaxKind.IntegerLiteralToken,
