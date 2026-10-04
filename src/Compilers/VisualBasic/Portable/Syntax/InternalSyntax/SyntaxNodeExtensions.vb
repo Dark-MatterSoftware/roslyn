@@ -396,6 +396,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         SyntaxKind.EnableWarningDirectiveTrivia,
                         SyntaxKind.DisableWarningDirectiveTrivia,
                         SyntaxKind.ReferenceDirectiveTrivia,
+                        SyntaxKind.NullableDirectiveTrivia,
                         SyntaxKind.BadDirectiveTrivia
 
                         Throw ExceptionUtilities.UnexpectedValue(trivia(i).Kind)
@@ -431,6 +432,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         SyntaxKind.ReferenceDirectiveTrivia,
                         SyntaxKind.EnableWarningDirectiveTrivia,
                         SyntaxKind.DisableWarningDirectiveTrivia,
+                        SyntaxKind.NullableDirectiveTrivia,
                         SyntaxKind.BadDirectiveTrivia
                         Return True
                 End Select

@@ -40120,6 +40120,135 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents a #Nullable directive.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.NullableDirectiveTrivia"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class NullableDirectiveTriviaSyntax
+        Inherits DirectiveTriviaSyntax
+
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), hashToken As InternalSyntax.PunctuationSyntax, nullableKeyword As InternalSyntax.IdentifierTokenSyntax, settingKeyword As InternalSyntax.IdentifierTokenSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.NullableDirectiveTriviaSyntax(kind, errors, annotations, hashToken, nullableKeyword, settingKeyword), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The "#" token in a preprocessor directive.
+        ''' </summary>
+        Public Shadows ReadOnly Property HashToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.NullableDirectiveTriviaSyntax)._hashToken, Me.Position, 0)
+            End Get
+        End Property
+
+        Friend Overrides Function GetHashTokenCore() As SyntaxToken
+            Return Me.HashToken
+        End Function
+
+        Friend Overrides Function WithHashTokenCore(hashToken As SyntaxToken) As DirectiveTriviaSyntax
+            Return WithHashToken(hashToken)
+        End Function
+
+        ''' <summary>
+        ''' Returns a copy of this with the HashToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithHashToken(hashToken as SyntaxToken) As NullableDirectiveTriviaSyntax
+            return Update(hashToken, Me.NullableKeyword, Me.SettingKeyword)
+        End Function
+
+        Public ReadOnly Property NullableKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.NullableDirectiveTriviaSyntax)._nullableKeyword, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the NullableKeyword property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithNullableKeyword(nullableKeyword as SyntaxToken) As NullableDirectiveTriviaSyntax
+            return Update(Me.HashToken, nullableKeyword, Me.SettingKeyword)
+        End Function
+
+        Public ReadOnly Property SettingKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.NullableDirectiveTriviaSyntax)._settingKeyword, Me.GetChildPosition(2), Me.GetChildIndex(2))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the SettingKeyword property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithSettingKeyword(settingKeyword as SyntaxToken) As NullableDirectiveTriviaSyntax
+            return Update(Me.HashToken, Me.NullableKeyword, settingKeyword)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitNullableDirectiveTrivia(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitNullableDirectiveTrivia(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="hashToken">
+        ''' The value for the HashToken property.
+        ''' </param>
+        ''' <param name="nullableKeyword">
+        ''' The value for the NullableKeyword property.
+        ''' </param>
+        ''' <param name="settingKeyword">
+        ''' The value for the SettingKeyword property.
+        ''' </param>
+        Public Function Update(hashToken As SyntaxToken, nullableKeyword As SyntaxToken, settingKeyword As SyntaxToken) As NullableDirectiveTriviaSyntax
+            If hashToken <> Me.HashToken OrElse nullableKeyword <> Me.NullableKeyword OrElse settingKeyword <> Me.SettingKeyword Then
+                Dim newNode = SyntaxFactory.NullableDirectiveTrivia(hashToken, nullableKeyword, settingKeyword)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents an unrecognized pre-processing directive. This occurs when the
     ''' parser encounters a hash '#' token at the beginning of a physical line but does
     ''' recognize the text that follows as a valid Visual Basic pre-processing

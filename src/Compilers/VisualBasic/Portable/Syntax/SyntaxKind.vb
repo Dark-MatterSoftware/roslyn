@@ -3306,5 +3306,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         EndExtensionStatement = 813                  ' EndBlockStatementSyntax : DeclarationStatementSyntax
 
+        ''' <summary>
+        ''' Represents a <c>#Nullable</c> directive.
+        ''' </summary>
+        NullableDirectiveTrivia = 814               ' NullableDirectiveTriviaSyntax : DirectiveTriviaSyntax
+
     End Enum
 End Namespace

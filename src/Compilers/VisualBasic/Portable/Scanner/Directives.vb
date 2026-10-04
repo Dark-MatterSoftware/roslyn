@@ -208,6 +208,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case SyntaxKind.EndExternalSourceDirectiveTrivia
                     preprocessorState = preprocessorState.InterpretEndExternalSourceDirective(statement)
 
+                Case SyntaxKind.NullableDirectiveTrivia
+                    ' The binder reads #Nullable. The preprocessor state does not change.
+
                 Case SyntaxKind.ExternalChecksumDirectiveTrivia,
                     SyntaxKind.BadDirectiveTrivia,
                     SyntaxKind.EnableWarningDirectiveTrivia, 'TODO: Add support for processing #Enable and #Disable

@@ -1837,7 +1837,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_WithCopyNotRecord = 37377
         ERR_ExpectedEndExtension = 37378
 
-        ERR_NextAvailable = 37379
+        ERR_BadNullableDirective = 37379
+
+        ERR_NextAvailable = 37380
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2073,6 +2075,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_ConvertingLock = 42508
 
         WRN_ExperimentalWithMessage = 42509
+
+        WRN_PossibleNullAssignment = 42510
+        WRN_PossibleNullReturn = 42511
+        WRN_PossibleNullReference = 42512
+        WRN_PossibleNullArgument = 42513
 
         ' // AVAILABLE                             42600 - 49998
         WRN_NextAvailable = 42600

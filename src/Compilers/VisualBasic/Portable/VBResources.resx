@@ -5691,6 +5691,33 @@
   <data name="WRN_ConvertingLock" xml:space="preserve">
     <value>A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in SyncLock statement.</value>
   </data>
+  <data name="ERR_BadNullableDirective" xml:space="preserve">
+    <value>#Nullable must be followed by Enable, Disable, Warnings, Annotations, or Restore.</value>
+  </data>
+  <data name="WRN_PossibleNullAssignment" xml:space="preserve">
+    <value>Possible Nothing assignment to '{0}'.</value>
+  </data>
+  <data name="WRN_PossibleNullAssignment_Title" xml:space="preserve">
+    <value>Possible Nothing assignment to '{0}'.</value>
+  </data>
+  <data name="WRN_PossibleNullReturn" xml:space="preserve">
+    <value>This function may return Nothing.</value>
+  </data>
+  <data name="WRN_PossibleNullReturn_Title" xml:space="preserve">
+    <value>This function may return Nothing.</value>
+  </data>
+  <data name="WRN_PossibleNullReference" xml:space="preserve">
+    <value>'{0}' may be Nothing.</value>
+  </data>
+  <data name="WRN_PossibleNullReference_Title" xml:space="preserve">
+    <value>'{0}' may be Nothing.</value>
+  </data>
+  <data name="WRN_PossibleNullArgument" xml:space="preserve">
+    <value>Possible Nothing argument for '{0}'.</value>
+  </data>
+  <data name="WRN_PossibleNullArgument_Title" xml:space="preserve">
+    <value>Possible Nothing argument for '{0}'.</value>
+  </data>
   <data name="WRN_ConvertingLock_Title" xml:space="preserve">
     <value>A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in SyncLock statement.</value>
   </data>

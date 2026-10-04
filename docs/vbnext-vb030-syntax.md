@@ -45,7 +45,7 @@ The compiler switch is `/nullable:` followed by one of these words:
 
 The switch has no effect unless the language version is `vbnext`. `default` and `latest` stay on Visual Basic 17.13.
 
-A source directive `#Nullable Enable`, `#Nullable Disable`, `#Nullable Warnings`, `#Nullable Annotations`, or `#Nullable Restore` overrides the project switch for the rest of the file. The compiler does not parse that directive until slice 10c. Slice 10b reads the project switch only.
+A source directive `#Nullable Enable`, `#Nullable Disable`, `#Nullable Warnings`, `#Nullable Annotations`, or `#Nullable Restore` overrides the project switch for the rest of the file. `Restore` returns to the project switch. Slice 10c parses the directive and warns. Slice 10b stored annotations from the project switch only.
 
 ## Annotations off
 

@@ -30264,6 +30264,94 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents a #Nullable directive.
+    ''' </summary>
+    Friend NotInheritable Class NullableDirectiveTriviaSyntax
+        Inherits DirectiveTriviaSyntax
+
+        Friend ReadOnly _nullableKeyword as IdentifierTokenSyntax
+        Friend ReadOnly _settingKeyword as IdentifierTokenSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, hashToken As InternalSyntax.PunctuationSyntax, nullableKeyword As InternalSyntax.IdentifierTokenSyntax, settingKeyword As InternalSyntax.IdentifierTokenSyntax)
+            MyBase.New(kind, hashToken)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(nullableKeyword)
+            Me._nullableKeyword = nullableKeyword
+            AdjustFlagsAndWidth(settingKeyword)
+            Me._settingKeyword = settingKeyword
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, hashToken As InternalSyntax.PunctuationSyntax, nullableKeyword As InternalSyntax.IdentifierTokenSyntax, settingKeyword As InternalSyntax.IdentifierTokenSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind, hashToken)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(nullableKeyword)
+            Me._nullableKeyword = nullableKeyword
+            AdjustFlagsAndWidth(settingKeyword)
+            Me._settingKeyword = settingKeyword
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), hashToken As InternalSyntax.PunctuationSyntax, nullableKeyword As InternalSyntax.IdentifierTokenSyntax, settingKeyword As InternalSyntax.IdentifierTokenSyntax)
+            MyBase.New(kind, errors, annotations, hashToken)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(nullableKeyword)
+            Me._nullableKeyword = nullableKeyword
+            AdjustFlagsAndWidth(settingKeyword)
+            Me._settingKeyword = settingKeyword
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.NullableDirectiveTriviaSyntax(Me, parent, startLocation)
+        End Function
+
+        Friend ReadOnly Property NullableKeyword As InternalSyntax.IdentifierTokenSyntax
+            Get
+                Return Me._nullableKeyword
+            End Get
+        End Property
+
+        Friend ReadOnly Property SettingKeyword As InternalSyntax.IdentifierTokenSyntax
+            Get
+                Return Me._settingKeyword
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._hashToken
+                Case 1
+                    Return Me._nullableKeyword
+                Case 2
+                    Return Me._settingKeyword
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new NullableDirectiveTriviaSyntax(Me.Kind, newErrors, GetAnnotations, _hashToken, _nullableKeyword, _settingKeyword)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new NullableDirectiveTriviaSyntax(Me.Kind, GetDiagnostics, annotations, _hashToken, _nullableKeyword, _settingKeyword)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitNullableDirectiveTrivia(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents an unrecognized pre-processing directive. This occurs when the
     ''' parser encounters a hash '#' token at the beginning of a physical line but does
     ''' recognize the text that follows as a valid Visual Basic pre-processing
@@ -31490,6 +31578,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return VisitDirectiveTrivia(node)
         End Function
         Public Overridable Function VisitReferenceDirectiveTrivia(ByVal node As ReferenceDirectiveTriviaSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitDirectiveTrivia(node)
+        End Function
+        Public Overridable Function VisitNullableDirectiveTrivia(ByVal node As NullableDirectiveTriviaSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitDirectiveTrivia(node)
         End Function
@@ -35904,6 +35996,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New ReferenceDirectiveTriviaSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newHashToken, newReferenceKeyword, newFile)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitNullableDirectiveTrivia(ByVal node As NullableDirectiveTriviaSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newHashToken = DirectCast(Visit(node.HashToken), PunctuationSyntax)
+            If node._hashToken IsNot newHashToken Then anyChanges = True
+            Dim newNullableKeyword = DirectCast(Visit(node.NullableKeyword), IdentifierTokenSyntax)
+            If node._nullableKeyword IsNot newNullableKeyword Then anyChanges = True
+            Dim newSettingKeyword = DirectCast(Visit(node.SettingKeyword), IdentifierTokenSyntax)
+            If node._settingKeyword IsNot newSettingKeyword Then anyChanges = True
+
+            If anyChanges Then
+                Return New NullableDirectiveTriviaSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newHashToken, newNullableKeyword, newSettingKeyword)
             Else
                 Return node
             End If
@@ -48430,6 +48539,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         ''' <summary>
+        ''' Represents a #Nullable directive.
+        ''' </summary>
+        ''' <param name="hashToken">
+        ''' The "#" token in a preprocessor directive.
+        ''' </param>
+        Friend Shared Function NullableDirectiveTrivia(hashToken As PunctuationSyntax, nullableKeyword As IdentifierTokenSyntax, settingKeyword As IdentifierTokenSyntax) As NullableDirectiveTriviaSyntax
+            Debug.Assert(hashToken IsNot Nothing AndAlso hashToken.Kind = SyntaxKind.HashToken)
+            Debug.Assert(nullableKeyword IsNot Nothing AndAlso nullableKeyword.Kind = SyntaxKind.IdentifierToken)
+            Debug.Assert(settingKeyword IsNot Nothing AndAlso settingKeyword.Kind = SyntaxKind.IdentifierToken)
+            Return New NullableDirectiveTriviaSyntax(SyntaxKind.NullableDirectiveTrivia, hashToken, nullableKeyword, settingKeyword)
+        End Function
+
+
+        ''' <summary>
         ''' Represents an unrecognized pre-processing directive. This occurs when the
         ''' parser encounters a hash '#' token at the beginning of a physical line but does
         ''' recognize the text that follows as a valid Visual Basic pre-processing
@@ -60952,6 +61075,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(referenceKeyword IsNot Nothing AndAlso referenceKeyword.Kind = SyntaxKind.ReferenceKeyword)
             Debug.Assert(file IsNot Nothing AndAlso file.Kind = SyntaxKind.StringLiteralToken)
             Return New ReferenceDirectiveTriviaSyntax(SyntaxKind.ReferenceDirectiveTrivia, hashToken, referenceKeyword, file, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a #Nullable directive.
+        ''' </summary>
+        ''' <param name="hashToken">
+        ''' The "#" token in a preprocessor directive.
+        ''' </param>
+        Friend Function NullableDirectiveTrivia(hashToken As PunctuationSyntax, nullableKeyword As IdentifierTokenSyntax, settingKeyword As IdentifierTokenSyntax) As NullableDirectiveTriviaSyntax
+            Debug.Assert(hashToken IsNot Nothing AndAlso hashToken.Kind = SyntaxKind.HashToken)
+            Debug.Assert(nullableKeyword IsNot Nothing AndAlso nullableKeyword.Kind = SyntaxKind.IdentifierToken)
+            Debug.Assert(settingKeyword IsNot Nothing AndAlso settingKeyword.Kind = SyntaxKind.IdentifierToken)
+            Return New NullableDirectiveTriviaSyntax(SyntaxKind.NullableDirectiveTrivia, hashToken, nullableKeyword, settingKeyword, _factoryContext)
         End Function
 
 

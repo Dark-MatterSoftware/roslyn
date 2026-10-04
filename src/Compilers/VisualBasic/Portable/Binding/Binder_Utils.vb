@@ -562,12 +562,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Function
 
-        Private Function ReferenceAnnotationsEnabled() As Boolean
-            If Compilation.LanguageVersion < LanguageVersion.VbNext Then
-                Return False
+        Private Function ReferenceAnnotationsEnabled(node As SyntaxNode) As Boolean
+            Return (NullableContextAt(node) And NullableContextOptions.Annotations) <> 0
+        End Function
+
+        Private Function NullableContextAt(node As SyntaxNode) As NullableContextOptions
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse node Is Nothing OrElse node.SyntaxTree Is Nothing Then
+                Return NullableContextOptions.Disable
             End If
 
-            Return (DirectCast(Compilation.Options, VisualBasicCompilationOptions).NullableContext And NullableContextOptions.Annotations) <> 0
+            Dim project = DirectCast(Compilation.Options, VisualBasicCompilationOptions).NullableContext
+            Return NullableContextFacts.ForTree(node.SyntaxTree, project).GetContext(node.SpanStart)
         End Function
 
         Private Shared Function IsReferenceAnnotationTarget(type As TypeSymbol) As Boolean
@@ -588,7 +593,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                              ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
             nullableAnnotation = NullableAnnotation.None
 
-            If ReferenceAnnotationsEnabled() AndAlso typeSyntax.Kind = SyntaxKind.NullableType Then
+            If ReferenceAnnotationsEnabled(typeSyntax) AndAlso typeSyntax.Kind = SyntaxKind.NullableType Then
                 Dim elementBag = BindingDiagnosticBag.GetInstance(diagBag)
                 Dim elementType = BindTypeSyntax(DirectCast(typeSyntax, NullableTypeSyntax).ElementType, elementBag)
                 If IsReferenceAnnotationTarget(elementType) Then
@@ -601,7 +606,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim type = BindTypeSyntax(typeSyntax, diagBag)
-            If ReferenceAnnotationsEnabled() AndAlso IsReferenceAnnotationTarget(type) Then
+            If ReferenceAnnotationsEnabled(typeSyntax) AndAlso IsReferenceAnnotationTarget(type) Then
                 nullableAnnotation = NullableAnnotation.NotAnnotated
             End If
 

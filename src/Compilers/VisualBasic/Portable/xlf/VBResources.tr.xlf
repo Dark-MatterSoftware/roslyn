@@ -27,6 +27,11 @@
         <target state="new">'InitOnly' is only valid on an instance auto-implemented property.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_BadNullableDirective">
+        <source>#Nullable must be followed by Enable, Disable, Warnings, Annotations, or Restore.</source>
+        <target state="new">#Nullable must be followed by Enable, Disable, Warnings, Annotations, or Restore.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadRequiredProperty">
         <source>'Required' is only valid on an instance auto-implemented property that can be set.</source>
         <target state="new">'Required' is only valid on an instance auto-implemented property that can be set.</target>
@@ -1084,6 +1089,46 @@
       <trans-unit id="WRN_GeneratorFailedDuringInitialization_Title">
         <source>Generator failed to initialize.</source>
         <target state="translated">Oluşturucu başlatılamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullArgument">
+        <source>Possible Nothing argument for '{0}'.</source>
+        <target state="new">Possible Nothing argument for '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullArgument_Title">
+        <source>Possible Nothing argument for '{0}'.</source>
+        <target state="new">Possible Nothing argument for '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullAssignment">
+        <source>Possible Nothing assignment to '{0}'.</source>
+        <target state="new">Possible Nothing assignment to '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullAssignment_Title">
+        <source>Possible Nothing assignment to '{0}'.</source>
+        <target state="new">Possible Nothing assignment to '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullReference">
+        <source>'{0}' may be Nothing.</source>
+        <target state="new">'{0}' may be Nothing.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullReference_Title">
+        <source>'{0}' may be Nothing.</source>
+        <target state="new">'{0}' may be Nothing.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullReturn">
+        <source>This function may return Nothing.</source>
+        <target state="new">This function may return Nothing.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_PossibleNullReturn_Title">
+        <source>This function may return Nothing.</source>
+        <target state="new">This function may return Nothing.</target>
         <note />
       </trans-unit>
       <trans-unit id="WrongNumberOfTypeArguments">

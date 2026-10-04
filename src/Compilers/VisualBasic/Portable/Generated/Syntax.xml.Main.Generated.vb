@@ -776,6 +776,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitReferenceDirectiveTrivia(ByVal node As ReferenceDirectiveTriviaSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitNullableDirectiveTrivia(ByVal node As NullableDirectiveTriviaSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitBadDirectiveTrivia(ByVal node As BadDirectiveTriviaSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1545,6 +1548,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitReferenceDirectiveTrivia(ByVal node As ReferenceDirectiveTriviaSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitNullableDirectiveTrivia(ByVal node As NullableDirectiveTriviaSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitBadDirectiveTrivia(ByVal node As BadDirectiveTriviaSyntax)
@@ -5957,6 +5963,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New ReferenceDirectiveTriviaSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newHashToken, newReferenceKeyword, newFile)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitNullableDirectiveTrivia(ByVal node As NullableDirectiveTriviaSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newHashToken = DirectCast(VisitToken(node.HashToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.HashToken.Node IsNot newHashToken Then anyChanges = True
+            Dim newNullableKeyword = DirectCast(VisitToken(node.NullableKeyword).Node, InternalSyntax.IdentifierTokenSyntax)
+            If node.NullableKeyword.Node IsNot newNullableKeyword Then anyChanges = True
+            Dim newSettingKeyword = DirectCast(VisitToken(node.SettingKeyword).Node, InternalSyntax.IdentifierTokenSyntax)
+            If node.SettingKeyword.Node IsNot newSettingKeyword Then anyChanges = True
+
+            If anyChanges Then
+                Return New NullableDirectiveTriviaSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newHashToken, newNullableKeyword, newSettingKeyword)
             Else
                 Return node
             End If
@@ -46698,6 +46721,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Public Shared Function ReferenceDirectiveTrivia() As ReferenceDirectiveTriviaSyntax
             Return SyntaxFactory.ReferenceDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), SyntaxFactory.Token(SyntaxKind.ReferenceKeyword), SyntaxFactory.Token(SyntaxKind.StringLiteralToken))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a #Nullable directive.
+        ''' </summary>
+        ''' <param name="hashToken">
+        ''' The "#" token in a preprocessor directive.
+        ''' </param>
+        Public Shared Function NullableDirectiveTrivia(hashToken As SyntaxToken, nullableKeyword As SyntaxToken, settingKeyword As SyntaxToken) As NullableDirectiveTriviaSyntax
+            Select Case hashToken.Kind()
+                Case SyntaxKind.HashToken
+                Case Else
+                    Throw new ArgumentException("hashToken")
+            End Select
+            Select Case nullableKeyword.Kind()
+                Case SyntaxKind.IdentifierToken
+                Case Else
+                    Throw new ArgumentException("nullableKeyword")
+            End Select
+            Select Case settingKeyword.Kind()
+                Case SyntaxKind.IdentifierToken
+                Case Else
+                    Throw new ArgumentException("settingKeyword")
+            End Select
+            Return New NullableDirectiveTriviaSyntax(SyntaxKind.NullableDirectiveTrivia, Nothing, Nothing, DirectCast(hashToken.Node, InternalSyntax.PunctuationSyntax), DirectCast(nullableKeyword.Node, InternalSyntax.IdentifierTokenSyntax), DirectCast(settingKeyword.Node, InternalSyntax.IdentifierTokenSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a #Nullable directive.
+        ''' </summary>
+        Public Shared Function NullableDirectiveTrivia(nullableKeyword As SyntaxToken, settingKeyword As SyntaxToken) As NullableDirectiveTriviaSyntax
+            Return SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), nullableKeyword, settingKeyword)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a #Nullable directive.
+        ''' </summary>
+        Public Shared Function NullableDirectiveTrivia(nullableKeyword As String, settingKeyword As String) As NullableDirectiveTriviaSyntax
+            Return SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), SyntaxFactory.Identifier(nullableKeyword), SyntaxFactory.Identifier(settingKeyword))
         End Function
 
 

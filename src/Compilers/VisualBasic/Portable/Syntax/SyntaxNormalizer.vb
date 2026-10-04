@@ -376,6 +376,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
                     SyntaxKind.EnableWarningDirectiveTrivia,
                     SyntaxKind.DisableWarningDirectiveTrivia,
                     SyntaxKind.ReferenceDirectiveTrivia,
+                    SyntaxKind.NullableDirectiveTrivia,
                     SyntaxKind.BadDirectiveTrivia
 
                     Return Not isTrailingTrivia

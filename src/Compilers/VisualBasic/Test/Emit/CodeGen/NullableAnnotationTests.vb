@@ -29,7 +29,8 @@ Module Program
 End Module
 ", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
 
-            compilation.VerifyDiagnostics()
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_PossibleNullAssignment, "Nothing").WithArguments("plain").WithLocation(4, 31))
 
             Dim method = DirectCast(compilation.GlobalNamespace.GetTypeMembers("Program").Single().GetMembers("Find").Single(), IMethodSymbol)
             Assert.Equal(NullableAnnotation.Annotated, method.ReturnNullableAnnotation)
@@ -49,6 +50,89 @@ End Module
             Assert.Equal(SpecialType.System_String, marked.Type.SpecialType)
             Assert.Equal(NullableAnnotation.None, value.NullableAnnotation)
             Assert.Equal("System.Nullable(Of System.Int32)", value.Type.ToTestDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub Flow_WarnsOnNullAssignmentDereferenceReturnAndArgument()
+            Dim compilation = CreateCompilation("
+Module Program
+    Function Find(marked As String?) As String
+        Dim plain As String = Nothing
+        Dim length = marked.Length
+        If marked IsNot Nothing Then
+            Dim safe = marked.Length
+        End If
+        Return Nothing
+    End Function
+
+    Sub Take(text As String)
+    End Sub
+
+    Sub Pass(marked As String?)
+        Take(marked)
+        Dim value As Integer? = Nothing
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_PossibleNullAssignment, "Nothing").WithArguments("plain").WithLocation(4, 31),
+                Diagnostic(ERRID.WRN_PossibleNullReference, "marked").WithArguments("marked").WithLocation(5, 22),
+                Diagnostic(ERRID.WRN_PossibleNullReturn, "Nothing").WithLocation(9, 16),
+                Diagnostic(ERRID.WRN_PossibleNullArgument, "marked").WithArguments("text").WithLocation(16, 14))
+        End Sub
+
+        <Fact>
+        Public Sub NullableDirective_OverridesTheProjectSwitch()
+            Dim compilation = CreateCompilation("
+#Nullable Disable
+Module Program
+    Function Quiet() As String
+        Dim plain As String = Nothing
+        Return plain
+    End Function
+End Module
+
+#Nullable Enable
+Module Program2
+    Function Loud() As String
+        Dim plain As String = Nothing
+        Return plain
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_PossibleNullAssignment, "Nothing").WithArguments("plain").WithLocation(13, 31),
+                Diagnostic(ERRID.WRN_PossibleNullReturn, "plain").WithLocation(14, 16))
+        End Sub
+
+        <Fact>
+        Public Sub NullableDirective_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+#Nullable Enable
+Module Program
+    Sub Main()
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedConditionalDirective, "#").WithLocation(2, 1))
+        End Sub
+
+        <Fact>
+        Public Sub NullableDirective_RejectsAnUnknownSetting()
+            Dim compilation = CreateCompilation("
+#Nullable Sometimes
+Module Program
+    Sub Main()
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_BadNullableDirective, "Sometimes").WithLocation(2, 11))
         End Sub
 
         <Fact>

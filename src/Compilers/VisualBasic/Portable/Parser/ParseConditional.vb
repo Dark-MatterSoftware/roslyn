@@ -83,7 +83,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                             statement = ParseReferenceDirective(hashToken)
 
                         Case Else
-                            statement = ParseBadDirective(hashToken)
+                            If _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                               String.Equals(DirectCast(CurrentToken, IdentifierTokenSyntax).IdentifierText, "Nullable", StringComparison.OrdinalIgnoreCase) Then
+                                statement = ParseNullableDirective(hashToken)
+                            Else
+                                statement = ParseBadDirective(hashToken)
+                            End If
                     End Select
 
                 Case Else
@@ -461,6 +466,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             VerifyExpectedToken(SyntaxKind.StringLiteralToken, file)
 
             Return SyntaxFactory.ReferenceDirectiveTrivia(hashToken, referenceKeyword, file)
+        End Function
+
+        Private Function ParseNullableDirective(hashToken As PunctuationSyntax) As DirectiveTriviaSyntax
+            Dim name = DirectCast(CurrentToken, IdentifierTokenSyntax)
+            GetNextToken()
+
+            Dim setting As IdentifierTokenSyntax
+            If CurrentToken.Kind = SyntaxKind.IdentifierToken Then
+                setting = DirectCast(CurrentToken, IdentifierTokenSyntax)
+                GetNextToken()
+                If Not IsNullableSetting(setting.IdentifierText) Then
+                    setting = ReportSyntaxError(setting, ERRID.ERR_BadNullableDirective)
+                End If
+            Else
+                setting = ReportSyntaxError(InternalSyntaxFactory.MissingIdentifier(), ERRID.ERR_BadNullableDirective)
+            End If
+
+            Return SyntaxFactory.NullableDirectiveTrivia(hashToken, name, setting)
+        End Function
+
+        Private Shared Function IsNullableSetting(text As String) As Boolean
+            Return String.Equals(text, "Enable", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(text, "Disable", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(text, "Warnings", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(text, "Annotations", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(text, "Restore", StringComparison.OrdinalIgnoreCase)
         End Function
 
         Private Shared Function ParseBadDirective(hashToken As PunctuationSyntax) As BadDirectiveTriviaSyntax

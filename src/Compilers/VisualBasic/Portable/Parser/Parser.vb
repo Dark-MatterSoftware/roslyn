@@ -5961,6 +5961,7 @@ checkNullable:
                             SyntaxKind.EnableWarningDirectiveTrivia,
                             SyntaxKind.DisableWarningDirectiveTrivia,
                             SyntaxKind.ReferenceDirectiveTrivia,
+                            SyntaxKind.NullableDirectiveTrivia,
                             SyntaxKind.BadDirectiveTrivia
                             Return True
 

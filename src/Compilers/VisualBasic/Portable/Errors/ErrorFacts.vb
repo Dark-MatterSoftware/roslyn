@@ -1590,7 +1590,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ByRefStructField2,
                      ERRID.ERR_ByRefTypeArgument2,
                      ERRID.ERR_WithCopyNotRecord,
-                     ERRID.ERR_ExpectedEndExtension
+                     ERRID.ERR_ExpectedEndExtension,
+                     ERRID.ERR_BadNullableDirective,
+                     ERRID.WRN_PossibleNullAssignment,
+                     ERRID.WRN_PossibleNullReturn,
+                     ERRID.WRN_PossibleNullReference,
+                     ERRID.WRN_PossibleNullArgument
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

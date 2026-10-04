@@ -10038,6 +10038,13 @@ Unify Enum declarations with other block type declarations.
       -  BadDirective
       ******************-->
 
+    <node-structure name="NullableDirectiveTriviaSyntax" parent="DirectiveTriviaSyntax">
+      <description>Represents a #Nullable directive.</description>
+      <node-kind name="NullableDirectiveTrivia"></node-kind>
+      <child name="NullableKeyword" kind="IdentifierToken"></child>
+      <child name="SettingKeyword" kind="IdentifierToken"></child>
+    </node-structure>
+
     <node-structure name="BadDirectiveTriviaSyntax" parent="DirectiveTriviaSyntax">
       <description>
         Represents an unrecognized pre-processing directive.

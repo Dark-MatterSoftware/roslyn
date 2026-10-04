@@ -178,7 +178,11 @@
                      ERRID.WRN_AnalyzerReferencesNewerCompiler,
                      ERRID.WRN_DuplicateAnalyzerReference,
                      ERRID.WRN_ConvertingLock,
-                     ERRID.WRN_ExperimentalWithMessage
+                     ERRID.WRN_ExperimentalWithMessage,
+                     ERRID.WRN_PossibleNullAssignment,
+                     ERRID.WRN_PossibleNullReturn,
+                     ERRID.WRN_PossibleNullReference,
+                     ERRID.WRN_PossibleNullArgument
                     Return True
                 Case Else
                     Return False

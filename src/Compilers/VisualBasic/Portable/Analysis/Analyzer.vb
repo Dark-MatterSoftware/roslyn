@@ -33,6 +33,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             FlowAnalysisPass.Analyze(method, body, diagBag)
+            NullableFlowAnalysis.Analyze(method, body, diagBag)
 
             ' the ForLoopVerification only just produces diagnostics. This should be done even if the 
             ' tree already has diagnostics
