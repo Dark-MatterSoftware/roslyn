@@ -24,6 +24,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 9. Interfaces | 32–34 | Default interface methods, extension blocks, static abstract members. |
 | 10. Nullability | 35 | Annotations, then flow, then metadata. |
 | 11. List patterns | VB-004, after phase 7 | `Case Is { }` matches an array, then a list. |
+| 12. TypeOf lists | VB-054, pulled in from wave 4 | `TypeOf value Is {T1, T2}` matches any listed type. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -174,6 +175,14 @@ Deferred from slice 5h until collection expressions existed. The spelling is in 
 | 11a | VB-004 | Done. On `vbnext`, `Case Is {1, 2}` matches a one-dimensional array of that length, and `Case Is {}` matches an empty array. The array is evaluated once. A value that is not a one-dimensional array is an error. Visual Basic 17.13 still reports an expected relational operator. |
 | 11b | VB-004 | Done. On `vbnext`, `Case Is {1, 2}` matches a `List(Of T)` whose count is 2 and whose indexer returns those values. `Case Is {}` matches an empty list. The list is evaluated once. A value that is neither a one-dimensional array nor a collection with a count and an indexer is still an error. |
 
+## Phase 12 — TypeOf lists
+
+Pulled in from wave 4. The spelling is in `docs/vbnext-vb054-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 12a | VB-054 | Done. On `vbnext`, `TypeOf value Is {Customer, Order}` is true when the value is either type, and `TypeOf value IsNot {Customer, Order}` is true when it is neither. The value is evaluated once. Visual Basic 17.13 still rejects the brace list. |
+
 ## What starts now
 
-Slice 11b is implemented. List patterns match arrays and `List(Of T)`.
+Slice 12a is implemented. The next wave 4 item is VB-052, a GUID literal, and it still needs a spelling note before an implementation slice.

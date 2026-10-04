@@ -3316,5 +3316,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ListCaseClause = 815                         ' ListCaseClauseSyntax : CaseClauseSyntax
 
+        ''' <summary>
+        ''' Represents <c>TypeOf x Is {T1, T2}</c>.
+        ''' </summary>
+        TypeOfIsListExpression = 816                 ' TypeOfListExpressionSyntax : ExpressionSyntax
+
+        ''' <summary>
+        ''' Represents <c>TypeOf x IsNot {T1, T2}</c>.
+        ''' </summary>
+        TypeOfIsNotListExpression = 817              ' TypeOfListExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

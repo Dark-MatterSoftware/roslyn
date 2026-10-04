@@ -1051,7 +1051,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function ParseTypeOf() As TypeOfExpressionSyntax
+        Private Function ParseTypeOf() As ExpressionSyntax
             Debug.Assert(CurrentToken.Kind = SyntaxKind.TypeOfKeyword, "must be at TypeOf.")
             Dim [typeOf] As KeywordSyntax = DirectCast(CurrentToken, KeywordSyntax)
 
@@ -1084,6 +1084,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 operatorToken = DirectCast(HandleUnexpectedToken(SyntaxKind.IsKeyword), KeywordSyntax)
             End If
 
+            If CurrentToken.Kind = SyntaxKind.OpenBraceToken AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                Return ParseTypeOfList([typeOf], exp, operatorToken)
+            End If
+
             Dim typeName = ParseGeneralType()
 
             Dim kind As SyntaxKind = If(operatorToken.Kind = SyntaxKind.IsNotKeyword,
@@ -1091,6 +1095,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                                         SyntaxKind.TypeOfIsExpression)
 
             Return SyntaxFactory.TypeOfExpression(kind, [typeOf], exp, operatorToken, typeName)
+        End Function
+
+        Private Function ParseTypeOfList(typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax) As TypeOfListExpressionSyntax
+            Dim openBrace = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim types = _pool.AllocateSeparated(Of TypeSyntax)()
+            If CurrentToken.Kind <> SyntaxKind.CloseBraceToken Then
+                Do
+                    types.Add(ParseGeneralType())
+                    Dim comma As PunctuationSyntax = Nothing
+                    If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                        Exit Do
+                    End If
+
+                    types.AddSeparator(comma)
+                Loop
+            End If
+
+            Dim closeBrace As PunctuationSyntax = Nothing
+            If Not TryGetToken(SyntaxKind.CloseBraceToken, closeBrace) Then
+                closeBrace = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseBraceToken), ERRID.ERR_ExpectedRbrace)
+            ElseIf types.Count = 0 Then
+                closeBrace = ReportSyntaxError(closeBrace, ERRID.ERR_ExpectedIdentifier)
+            End If
+
+            Dim kind As SyntaxKind = If(operatorToken.Kind = SyntaxKind.IsNotKeyword,
+                                        SyntaxKind.TypeOfIsNotListExpression,
+                                        SyntaxKind.TypeOfIsListExpression)
+            Dim result = SyntaxFactory.TypeOfListExpression(kind, typeOfKeyword, expression, operatorToken, openBrace, types.ToList(), closeBrace)
+            _pool.Free(types)
+            Return result
         End Function
 
         ' /*********************************************************************

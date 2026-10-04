@@ -17793,6 +17793,176 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+    ''' </summary>
+    Friend NotInheritable Class TypeOfListExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _typeOfKeyword as KeywordSyntax
+        Friend ReadOnly _expression as ExpressionSyntax
+        Friend ReadOnly _operatorToken as KeywordSyntax
+        Friend ReadOnly _openBraceToken as PunctuationSyntax
+        Friend ReadOnly _types as GreenNode
+        Friend ReadOnly _closeBraceToken as PunctuationSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, typeOfKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, operatorToken As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, types As GreenNode, closeBraceToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 6
+
+            AdjustFlagsAndWidth(typeOfKeyword)
+            Me._typeOfKeyword = typeOfKeyword
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(openBraceToken)
+            Me._openBraceToken = openBraceToken
+            If types IsNot Nothing Then
+                AdjustFlagsAndWidth(types)
+                Me._types = types
+            End If
+            AdjustFlagsAndWidth(closeBraceToken)
+            Me._closeBraceToken = closeBraceToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, typeOfKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, operatorToken As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, types As GreenNode, closeBraceToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 6
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(typeOfKeyword)
+            Me._typeOfKeyword = typeOfKeyword
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(openBraceToken)
+            Me._openBraceToken = openBraceToken
+            If types IsNot Nothing Then
+                AdjustFlagsAndWidth(types)
+                Me._types = types
+            End If
+            AdjustFlagsAndWidth(closeBraceToken)
+            Me._closeBraceToken = closeBraceToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), typeOfKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, operatorToken As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, types As GreenNode, closeBraceToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 6
+
+            AdjustFlagsAndWidth(typeOfKeyword)
+            Me._typeOfKeyword = typeOfKeyword
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(openBraceToken)
+            Me._openBraceToken = openBraceToken
+            If types IsNot Nothing Then
+                AdjustFlagsAndWidth(types)
+                Me._types = types
+            End If
+            AdjustFlagsAndWidth(closeBraceToken)
+            Me._closeBraceToken = closeBraceToken
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeOfListExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The TypeOf keyword.
+        ''' </summary>
+        Friend ReadOnly Property TypeOfKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._typeOfKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The expression being tested.
+        ''' </summary>
+        Friend ReadOnly Property Expression As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._expression
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The Is or IsNot keyword.
+        ''' </summary>
+        Friend ReadOnly Property OperatorToken As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._operatorToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The opening brace.
+        ''' </summary>
+        Friend ReadOnly Property OpenBraceToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openBraceToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The types being tested against.
+        ''' </summary>
+        Friend ReadOnly Property Types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of TypeSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of TypeSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of TypeSyntax)(Me._types))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing brace.
+        ''' </summary>
+        Friend ReadOnly Property CloseBraceToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeBraceToken
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._typeOfKeyword
+                Case 1
+                    Return Me._expression
+                Case 2
+                    Return Me._operatorToken
+                Case 3
+                    Return Me._openBraceToken
+                Case 4
+                    Return Me._types
+                Case 5
+                    Return Me._closeBraceToken
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new TypeOfListExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _typeOfKeyword, _expression, _operatorToken, _openBraceToken, _types, _closeBraceToken)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new TypeOfListExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _typeOfKeyword, _expression, _operatorToken, _openBraceToken, _types, _closeBraceToken)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitTypeOfListExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a GetXmlNamespace expression.
     ''' </summary>
     Friend NotInheritable Class GetXmlNamespaceExpressionSyntax
@@ -31235,6 +31405,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
         End Function
+        Public Overridable Function VisitTypeOfListExpression(ByVal node As TypeOfListExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
         Public Overridable Function VisitGetXmlNamespaceExpression(ByVal node As GetXmlNamespaceExpressionSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
@@ -34307,6 +34481,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New TypeOfExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newTypeOfKeyword, newExpression, newOperatorToken, newType)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeOfListExpression(ByVal node As TypeOfListExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newTypeOfKeyword = DirectCast(Visit(node.TypeOfKeyword), KeywordSyntax)
+            If node._typeOfKeyword IsNot newTypeOfKeyword Then anyChanges = True
+            Dim newExpression = DirectCast(Visit(node._expression), ExpressionSyntax)
+            If node._expression IsNot newExpression Then anyChanges = True
+            Dim newOperatorToken = DirectCast(Visit(node.OperatorToken), KeywordSyntax)
+            If node._operatorToken IsNot newOperatorToken Then anyChanges = True
+            Dim newOpenBraceToken = DirectCast(Visit(node.OpenBraceToken), PunctuationSyntax)
+            If node._openBraceToken IsNot newOpenBraceToken Then anyChanges = True
+            Dim newTypes = VisitList(node.Types)
+            If node._types IsNot newTypes.Node Then anyChanges = True
+            Dim newCloseBraceToken = DirectCast(Visit(node.CloseBraceToken), PunctuationSyntax)
+            If node._closeBraceToken IsNot newCloseBraceToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeOfListExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newTypeOfKeyword, newExpression, newOperatorToken, newOpenBraceToken, newTypes.Node, newCloseBraceToken)
             Else
                 Return node
             End If
@@ -44327,6 +44524,105 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsTypeOfExpressionOperatorToken(operatorToken.Kind))
             Debug.Assert(type IsNot Nothing)
             Return New TypeOfExpressionSyntax(kind, typeOfKeyword, expression, operatorToken, type)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Shared Function TypeOfIsListExpression(typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax, openBraceToken As PunctuationSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As TypeOfListExpressionSyntax
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New TypeOfListExpressionSyntax(SyntaxKind.TypeOfIsListExpression, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Shared Function TypeOfIsNotListExpression(typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax, openBraceToken As PunctuationSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As TypeOfListExpressionSyntax
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.IsNotKeyword)
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New TypeOfListExpressionSyntax(SyntaxKind.TypeOfIsNotListExpression, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="kind">
+        ''' A <see cref="SyntaxKind"/> representing the specific kind of
+        ''' TypeOfListExpressionSyntax. One of TypeOfIsListExpression,
+        ''' TypeOfIsNotListExpression.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Shared Function TypeOfListExpression(kind As SyntaxKind, typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax, openBraceToken As PunctuationSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As TypeOfListExpressionSyntax
+            Debug.Assert(SyntaxFacts.IsTypeOfListExpression(kind))
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsTypeOfListExpressionOperatorToken(operatorToken.Kind))
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New TypeOfListExpressionSyntax(kind, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken)
         End Function
 
 
@@ -56890,6 +57186,105 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsTypeOfExpressionOperatorToken(operatorToken.Kind))
             Debug.Assert(type IsNot Nothing)
             Return New TypeOfExpressionSyntax(kind, typeOfKeyword, expression, operatorToken, type, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Function TypeOfIsListExpression(typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax, openBraceToken As PunctuationSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As TypeOfListExpressionSyntax
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New TypeOfListExpressionSyntax(SyntaxKind.TypeOfIsListExpression, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Function TypeOfIsNotListExpression(typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax, openBraceToken As PunctuationSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As TypeOfListExpressionSyntax
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso operatorToken.Kind = SyntaxKind.IsNotKeyword)
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New TypeOfListExpressionSyntax(SyntaxKind.TypeOfIsNotListExpression, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="kind">
+        ''' A <see cref="SyntaxKind"/> representing the specific kind of
+        ''' TypeOfListExpressionSyntax. One of TypeOfIsListExpression,
+        ''' TypeOfIsNotListExpression.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Function TypeOfListExpression(kind As SyntaxKind, typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax, openBraceToken As PunctuationSyntax, types As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As TypeOfListExpressionSyntax
+            Debug.Assert(SyntaxFacts.IsTypeOfListExpression(kind))
+            Debug.Assert(typeOfKeyword IsNot Nothing AndAlso typeOfKeyword.Kind = SyntaxKind.TypeOfKeyword)
+            Debug.Assert(expression IsNot Nothing)
+            Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsTypeOfListExpressionOperatorToken(operatorToken.Kind))
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New TypeOfListExpressionSyntax(kind, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken, _factoryContext)
         End Function
 
 

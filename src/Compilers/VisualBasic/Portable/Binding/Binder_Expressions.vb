@@ -204,6 +204,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     Return BindTypeOfExpression(DirectCast(node, TypeOfExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression
+
+                    Return BindTypeOfListExpression(DirectCast(node, TypeOfListExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.BinaryConditionalExpression
                     Return BindBinaryConditionalExpression(DirectCast(node, BinaryConditionalExpressionSyntax), diagnostics)
 
@@ -822,6 +827,78 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return New BoundTypeOf(node, operand, operatorIsIsNot, targetType, resultType)
 
+        End Function
+
+        Private Function BindTypeOfListExpression(node As TypeOfListExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim operand = BindRValue(node.Expression, diagnostics, isOperandOfConditionalBranch:=False)
+            Dim resultType = GetSpecialType(SpecialType.System_Boolean, node, diagnostics)
+            Dim rejectType = node.Kind = SyntaxKind.TypeOfIsNotListExpression
+            Dim operandType = operand.Type
+
+            If operandType IsNot Nothing AndAlso Not operand.HasErrors AndAlso Not operandType.IsErrorType() AndAlso
+               Not operandType.IsReferenceType AndAlso Not operandType.IsTypeParameter() Then
+                ReportDiagnostic(diagnostics, node.Expression, ERRID.ERR_TypeOfRequiresReferenceType1, operandType)
+            End If
+
+            If node.Types.Count = 0 OrElse operandType Is Nothing Then
+                Return New BoundTypeOf(node, operand, rejectType, ErrorTypeSymbol.UnknownResultType, resultType, hasErrors:=True)
+            End If
+
+            Dim temp = New SynthesizedLocal(ContainingMember, operandType, SynthesizedLocalKind.LoweringTemp)
+            Dim stored = New BoundAssignmentOperator(
+                node,
+                New BoundLocal(node, temp, operandType),
+                operand,
+                suppressObjectClone:=True,
+                type:=operandType)
+            Dim condition As BoundExpression = Nothing
+
+            For i = 0 To node.Types.Count - 1
+                Dim typeSyntax = node.Types(i)
+                Dim read = New BoundLocal(typeSyntax, temp, operandType).MakeRValue()
+                Dim test = BindTypeOfAgainst(typeSyntax, read, rejectType, diagnostics)
+                If condition Is Nothing Then
+                    condition = test
+                Else
+                    condition = BindBinaryOperator(
+                        node:=node,
+                        left:=condition,
+                        right:=test,
+                        operatorTokenKind:=If(rejectType, SyntaxKind.AndAlsoKeyword, SyntaxKind.OrElseKeyword),
+                        preliminaryOperatorKind:=If(rejectType, BinaryOperatorKind.AndAlso, BinaryOperatorKind.OrElse),
+                        isOperandOfConditionalBranch:=False,
+                        diagnostics:=diagnostics).MakeCompilerGenerated()
+                End If
+            Next
+
+            Return New BoundSequence(node, ImmutableArray.Create(Of LocalSymbol)(temp), ImmutableArray.Create(Of BoundExpression)(stored), condition, resultType)
+        End Function
+
+        Private Function BindTypeOfAgainst(typeSyntax As TypeSyntax, operand As BoundExpression, rejectType As Boolean, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim operandType = operand.Type
+            Dim targetSymbol = BindTypeOrAliasSyntax(typeSyntax, diagnostics)
+            Dim targetType = DirectCast(If(TryCast(targetSymbol, TypeSymbol), DirectCast(targetSymbol, AliasSymbol).Target), TypeSymbol)
+            Dim resultType = GetSpecialType(SpecialType.System_Boolean, typeSyntax, diagnostics)
+
+            If operand.HasErrors OrElse operandType Is Nothing OrElse operandType.IsErrorType() OrElse targetType.IsErrorType() Then
+                Return New BoundTypeOf(typeSyntax, operand, rejectType, targetType, resultType)
+            End If
+
+            If operandType.IsReferenceType OrElse operandType.IsTypeParameter() Then
+                Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+                Dim convKind As ConversionKind = Conversions.ClassifyTryCastConversion(operandType, targetType, useSiteInfo)
+                If diagnostics.Add(typeSyntax, useSiteInfo) Then
+                    diagnostics = BindingDiagnosticBag.Discarded
+                ElseIf Not Conversions.ConversionExists(convKind) Then
+                    ReportDiagnostic(diagnostics, typeSyntax, ERRID.ERR_TypeOfExprAlwaysFalse2, operandType, targetType)
+                End If
+            End If
+
+            If operandType.IsTypeParameter() Then
+                operand = ApplyImplicitConversion(typeSyntax, GetSpecialType(SpecialType.System_Object, typeSyntax, diagnostics), operand, diagnostics)
+            End If
+
+            Return New BoundTypeOf(typeSyntax, operand, rejectType, targetType, resultType)
         End Function
 
         ''' <summary>

@@ -461,6 +461,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitTypeOfExpression(ByVal node As TypeOfExpressionSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitTypeOfListExpression(ByVal node As TypeOfListExpressionSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitGetXmlNamespaceExpression(ByVal node As GetXmlNamespaceExpressionSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1236,6 +1239,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitTypeOfExpression(ByVal node As TypeOfExpressionSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitTypeOfListExpression(ByVal node As TypeOfListExpressionSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitGetXmlNamespaceExpression(ByVal node As GetXmlNamespaceExpressionSyntax)
@@ -4142,6 +4148,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New TypeOfExpressionSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newTypeOfKeyword, newExpression, newOperatorToken, newType)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeOfListExpression(ByVal node As TypeOfListExpressionSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newTypeOfKeyword = DirectCast(VisitToken(node.TypeOfKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.TypeOfKeyword.Node IsNot newTypeOfKeyword Then anyChanges = True
+            Dim newExpression = DirectCast(Visit(node.Expression), ExpressionSyntax)
+            If node.Expression IsNot newExpression Then anyChanges = True
+            Dim newOperatorToken = DirectCast(VisitToken(node.OperatorToken).Node, InternalSyntax.KeywordSyntax)
+            If node.OperatorToken.Node IsNot newOperatorToken Then anyChanges = True
+            Dim newOpenBraceToken = DirectCast(VisitToken(node.OpenBraceToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OpenBraceToken.Node IsNot newOpenBraceToken Then anyChanges = True
+            Dim newTypes = VisitList(node.Types)
+            If node._types IsNot newTypes.Node Then anyChanges = True
+            Dim newCloseBraceToken = DirectCast(VisitToken(node.CloseBraceToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.CloseBraceToken.Node IsNot newCloseBraceToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeOfListExpressionSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newTypeOfKeyword, newExpression, newOperatorToken, newOpenBraceToken, newTypes.Node, newCloseBraceToken)
             Else
                 Return node
             End If
@@ -12405,6 +12434,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -12557,6 +12588,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -12998,6 +13031,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -13134,6 +13169,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -14503,6 +14540,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -14795,6 +14834,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -14979,6 +15020,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -15367,6 +15410,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -15579,6 +15624,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -16294,6 +16341,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -16736,6 +16785,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -16870,6 +16921,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -16992,6 +17045,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -17151,6 +17206,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -17302,6 +17359,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -17453,6 +17512,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -17604,6 +17665,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -17755,6 +17818,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -17906,6 +17971,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -18064,6 +18131,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -18452,6 +18521,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -18616,6 +18687,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -18826,6 +18899,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -18997,6 +19072,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -19859,6 +19936,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -20010,6 +20089,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -20166,6 +20247,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -20313,6 +20396,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -20568,6 +20653,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -20691,6 +20778,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -20813,6 +20902,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21002,6 +21093,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21172,6 +21265,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21295,6 +21390,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21593,6 +21690,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21725,6 +21824,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21876,6 +21977,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -21998,6 +22101,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22149,6 +22254,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22271,6 +22378,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22422,6 +22531,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22544,6 +22655,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22695,6 +22808,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22817,6 +22932,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -22968,6 +23085,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23090,6 +23209,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23241,6 +23362,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23363,6 +23486,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23514,6 +23639,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23636,6 +23763,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23787,6 +23916,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -23909,6 +24040,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24060,6 +24193,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24182,6 +24317,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24333,6 +24470,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24455,6 +24594,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24606,6 +24747,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24728,6 +24871,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -24891,6 +25036,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25011,6 +25158,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25267,6 +25416,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25389,6 +25540,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25547,6 +25700,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25669,6 +25824,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25833,6 +25990,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -25955,6 +26114,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -26181,6 +26342,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -26475,6 +26638,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -26968,6 +27133,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -27433,6 +27600,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -27612,6 +27781,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -27797,6 +27968,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -27938,6 +28111,568 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function TypeOfExpression(ByVal kind As SyntaxKind, expression As ExpressionSyntax, operatorToken As SyntaxToken, type As TypeSyntax) As TypeOfExpressionSyntax
             Return SyntaxFactory.TypeOfExpression(kind, SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), expression, operatorToken, type)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Public Shared Function TypeOfIsListExpression(typeOfKeyword As SyntaxToken, expression As ExpressionSyntax, operatorToken As SyntaxToken, openBraceToken As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax), closeBraceToken As SyntaxToken) As TypeOfListExpressionSyntax
+            Select Case typeOfKeyword.Kind()
+                Case SyntaxKind.TypeOfKeyword
+                Case Else
+                    Throw new ArgumentException("typeOfKeyword")
+            End Select
+            if expression Is Nothing Then
+                Throw New ArgumentNullException(NameOf(expression))
+            End If
+            Select Case expression.Kind()
+                Case SyntaxKind.KeywordEventContainer,
+                     SyntaxKind.WithEventsEventContainer,
+                     SyntaxKind.WithEventsPropertyEventContainer,
+                     SyntaxKind.IdentifierLabel,
+                     SyntaxKind.NumericLabel,
+                     SyntaxKind.NextLabel,
+                     SyntaxKind.SelectCaseExpression,
+                     SyntaxKind.MidExpression,
+                     SyntaxKind.CharacterLiteralExpression,
+                     SyntaxKind.TrueLiteralExpression,
+                     SyntaxKind.FalseLiteralExpression,
+                     SyntaxKind.NumericLiteralExpression,
+                     SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.StringLiteralExpression,
+                     SyntaxKind.NothingLiteralExpression,
+                     SyntaxKind.ParenthesizedExpression,
+                     SyntaxKind.TupleExpression,
+                     SyntaxKind.TupleType,
+                     SyntaxKind.MeExpression,
+                     SyntaxKind.MyBaseExpression,
+                     SyntaxKind.MyClassExpression,
+                     SyntaxKind.GetTypeExpression,
+                     SyntaxKind.TypeOfIsExpression,
+                     SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
+                     SyntaxKind.GetXmlNamespaceExpression,
+                     SyntaxKind.SimpleMemberAccessExpression,
+                     SyntaxKind.DictionaryAccessExpression,
+                     SyntaxKind.XmlElementAccessExpression,
+                     SyntaxKind.XmlDescendantAccessExpression,
+                     SyntaxKind.XmlAttributeAccessExpression,
+                     SyntaxKind.InvocationExpression,
+                     SyntaxKind.ObjectCreationExpression,
+                     SyntaxKind.AnonymousObjectCreationExpression,
+                     SyntaxKind.ArrayCreationExpression,
+                     SyntaxKind.CollectionInitializer,
+                     SyntaxKind.CollectionExpression,
+                     SyntaxKind.WithExpression,
+                     SyntaxKind.CTypeExpression,
+                     SyntaxKind.DirectCastExpression,
+                     SyntaxKind.TryCastExpression,
+                     SyntaxKind.PredefinedCastExpression,
+                     SyntaxKind.AddExpression,
+                     SyntaxKind.SubtractExpression,
+                     SyntaxKind.MultiplyExpression,
+                     SyntaxKind.DivideExpression,
+                     SyntaxKind.IntegerDivideExpression,
+                     SyntaxKind.ExponentiateExpression,
+                     SyntaxKind.LeftShiftExpression,
+                     SyntaxKind.RightShiftExpression,
+                     SyntaxKind.ConcatenateExpression,
+                     SyntaxKind.ModuloExpression,
+                     SyntaxKind.EqualsExpression,
+                     SyntaxKind.NotEqualsExpression,
+                     SyntaxKind.LessThanExpression,
+                     SyntaxKind.LessThanOrEqualExpression,
+                     SyntaxKind.GreaterThanOrEqualExpression,
+                     SyntaxKind.GreaterThanExpression,
+                     SyntaxKind.IsExpression,
+                     SyntaxKind.IsNotExpression,
+                     SyntaxKind.LikeExpression,
+                     SyntaxKind.OrExpression,
+                     SyntaxKind.ExclusiveOrExpression,
+                     SyntaxKind.AndExpression,
+                     SyntaxKind.OrElseExpression,
+                     SyntaxKind.AndAlsoExpression,
+                     SyntaxKind.UnaryPlusExpression,
+                     SyntaxKind.UnaryMinusExpression,
+                     SyntaxKind.NotExpression,
+                     SyntaxKind.AddressOfExpression,
+                     SyntaxKind.FromEndIndexExpression,
+                     SyntaxKind.RangeExpression,
+                     SyntaxKind.BinaryConditionalExpression,
+                     SyntaxKind.TernaryConditionalExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression,
+                     SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.QueryExpression,
+                     SyntaxKind.FunctionAggregation,
+                     SyntaxKind.GroupAggregation,
+                     SyntaxKind.XmlDocument,
+                     SyntaxKind.XmlElement,
+                     SyntaxKind.XmlText,
+                     SyntaxKind.XmlElementStartTag,
+                     SyntaxKind.XmlElementEndTag,
+                     SyntaxKind.XmlEmptyElement,
+                     SyntaxKind.XmlAttribute,
+                     SyntaxKind.XmlString,
+                     SyntaxKind.XmlPrefixName,
+                     SyntaxKind.XmlName,
+                     SyntaxKind.XmlBracketedName,
+                     SyntaxKind.XmlComment,
+                     SyntaxKind.XmlProcessingInstruction,
+                     SyntaxKind.XmlCDataSection,
+                     SyntaxKind.XmlEmbeddedExpression,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference,
+                     SyntaxKind.AwaitExpression,
+                     SyntaxKind.XmlCrefAttribute,
+                     SyntaxKind.XmlNameAttribute,
+                     SyntaxKind.ConditionalAccessExpression,
+                     SyntaxKind.NameOfExpression,
+                     SyntaxKind.InterpolatedStringExpression
+                Case Else
+                    Throw new ArgumentException("expression")
+            End Select
+            Select Case operatorToken.Kind()
+                Case SyntaxKind.IsKeyword :
+                Case SyntaxKind.IsNotKeyword
+                Case Else
+                    Throw new ArgumentException("operatorToken")
+            End Select
+            Select Case openBraceToken.Kind()
+                Case SyntaxKind.OpenBraceToken
+                Case Else
+                    Throw new ArgumentException("openBraceToken")
+            End Select
+            Select Case closeBraceToken.Kind()
+                Case SyntaxKind.CloseBraceToken
+                Case Else
+                    Throw new ArgumentException("closeBraceToken")
+            End Select
+            Return New TypeOfListExpressionSyntax(SyntaxKind.TypeOfIsListExpression, Nothing, Nothing, DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), expression, DirectCast(operatorToken.Node, InternalSyntax.KeywordSyntax), DirectCast(openBraceToken.Node, InternalSyntax.PunctuationSyntax), types.Node, DirectCast(closeBraceToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        Public Shared Function TypeOfIsListExpression(expression As ExpressionSyntax, types As SeparatedSyntaxList(Of TypeSyntax)) As TypeOfListExpressionSyntax
+            Return SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), expression, SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), types, SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Public Shared Function TypeOfIsNotListExpression(typeOfKeyword As SyntaxToken, expression As ExpressionSyntax, operatorToken As SyntaxToken, openBraceToken As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax), closeBraceToken As SyntaxToken) As TypeOfListExpressionSyntax
+            Select Case typeOfKeyword.Kind()
+                Case SyntaxKind.TypeOfKeyword
+                Case Else
+                    Throw new ArgumentException("typeOfKeyword")
+            End Select
+            if expression Is Nothing Then
+                Throw New ArgumentNullException(NameOf(expression))
+            End If
+            Select Case expression.Kind()
+                Case SyntaxKind.KeywordEventContainer,
+                     SyntaxKind.WithEventsEventContainer,
+                     SyntaxKind.WithEventsPropertyEventContainer,
+                     SyntaxKind.IdentifierLabel,
+                     SyntaxKind.NumericLabel,
+                     SyntaxKind.NextLabel,
+                     SyntaxKind.SelectCaseExpression,
+                     SyntaxKind.MidExpression,
+                     SyntaxKind.CharacterLiteralExpression,
+                     SyntaxKind.TrueLiteralExpression,
+                     SyntaxKind.FalseLiteralExpression,
+                     SyntaxKind.NumericLiteralExpression,
+                     SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.StringLiteralExpression,
+                     SyntaxKind.NothingLiteralExpression,
+                     SyntaxKind.ParenthesizedExpression,
+                     SyntaxKind.TupleExpression,
+                     SyntaxKind.TupleType,
+                     SyntaxKind.MeExpression,
+                     SyntaxKind.MyBaseExpression,
+                     SyntaxKind.MyClassExpression,
+                     SyntaxKind.GetTypeExpression,
+                     SyntaxKind.TypeOfIsExpression,
+                     SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
+                     SyntaxKind.GetXmlNamespaceExpression,
+                     SyntaxKind.SimpleMemberAccessExpression,
+                     SyntaxKind.DictionaryAccessExpression,
+                     SyntaxKind.XmlElementAccessExpression,
+                     SyntaxKind.XmlDescendantAccessExpression,
+                     SyntaxKind.XmlAttributeAccessExpression,
+                     SyntaxKind.InvocationExpression,
+                     SyntaxKind.ObjectCreationExpression,
+                     SyntaxKind.AnonymousObjectCreationExpression,
+                     SyntaxKind.ArrayCreationExpression,
+                     SyntaxKind.CollectionInitializer,
+                     SyntaxKind.CollectionExpression,
+                     SyntaxKind.WithExpression,
+                     SyntaxKind.CTypeExpression,
+                     SyntaxKind.DirectCastExpression,
+                     SyntaxKind.TryCastExpression,
+                     SyntaxKind.PredefinedCastExpression,
+                     SyntaxKind.AddExpression,
+                     SyntaxKind.SubtractExpression,
+                     SyntaxKind.MultiplyExpression,
+                     SyntaxKind.DivideExpression,
+                     SyntaxKind.IntegerDivideExpression,
+                     SyntaxKind.ExponentiateExpression,
+                     SyntaxKind.LeftShiftExpression,
+                     SyntaxKind.RightShiftExpression,
+                     SyntaxKind.ConcatenateExpression,
+                     SyntaxKind.ModuloExpression,
+                     SyntaxKind.EqualsExpression,
+                     SyntaxKind.NotEqualsExpression,
+                     SyntaxKind.LessThanExpression,
+                     SyntaxKind.LessThanOrEqualExpression,
+                     SyntaxKind.GreaterThanOrEqualExpression,
+                     SyntaxKind.GreaterThanExpression,
+                     SyntaxKind.IsExpression,
+                     SyntaxKind.IsNotExpression,
+                     SyntaxKind.LikeExpression,
+                     SyntaxKind.OrExpression,
+                     SyntaxKind.ExclusiveOrExpression,
+                     SyntaxKind.AndExpression,
+                     SyntaxKind.OrElseExpression,
+                     SyntaxKind.AndAlsoExpression,
+                     SyntaxKind.UnaryPlusExpression,
+                     SyntaxKind.UnaryMinusExpression,
+                     SyntaxKind.NotExpression,
+                     SyntaxKind.AddressOfExpression,
+                     SyntaxKind.FromEndIndexExpression,
+                     SyntaxKind.RangeExpression,
+                     SyntaxKind.BinaryConditionalExpression,
+                     SyntaxKind.TernaryConditionalExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression,
+                     SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.QueryExpression,
+                     SyntaxKind.FunctionAggregation,
+                     SyntaxKind.GroupAggregation,
+                     SyntaxKind.XmlDocument,
+                     SyntaxKind.XmlElement,
+                     SyntaxKind.XmlText,
+                     SyntaxKind.XmlElementStartTag,
+                     SyntaxKind.XmlElementEndTag,
+                     SyntaxKind.XmlEmptyElement,
+                     SyntaxKind.XmlAttribute,
+                     SyntaxKind.XmlString,
+                     SyntaxKind.XmlPrefixName,
+                     SyntaxKind.XmlName,
+                     SyntaxKind.XmlBracketedName,
+                     SyntaxKind.XmlComment,
+                     SyntaxKind.XmlProcessingInstruction,
+                     SyntaxKind.XmlCDataSection,
+                     SyntaxKind.XmlEmbeddedExpression,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference,
+                     SyntaxKind.AwaitExpression,
+                     SyntaxKind.XmlCrefAttribute,
+                     SyntaxKind.XmlNameAttribute,
+                     SyntaxKind.ConditionalAccessExpression,
+                     SyntaxKind.NameOfExpression,
+                     SyntaxKind.InterpolatedStringExpression
+                Case Else
+                    Throw new ArgumentException("expression")
+            End Select
+            Select Case operatorToken.Kind()
+                Case SyntaxKind.IsNotKeyword
+                Case Else
+                    Throw new ArgumentException("operatorToken")
+            End Select
+            Select Case openBraceToken.Kind()
+                Case SyntaxKind.OpenBraceToken
+                Case Else
+                    Throw new ArgumentException("openBraceToken")
+            End Select
+            Select Case closeBraceToken.Kind()
+                Case SyntaxKind.CloseBraceToken
+                Case Else
+                    Throw new ArgumentException("closeBraceToken")
+            End Select
+            Return New TypeOfListExpressionSyntax(SyntaxKind.TypeOfIsNotListExpression, Nothing, Nothing, DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), expression, DirectCast(operatorToken.Node, InternalSyntax.KeywordSyntax), DirectCast(openBraceToken.Node, InternalSyntax.PunctuationSyntax), types.Node, DirectCast(closeBraceToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        Public Shared Function TypeOfIsNotListExpression(expression As ExpressionSyntax, types As SeparatedSyntaxList(Of TypeSyntax)) As TypeOfListExpressionSyntax
+            Return SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), expression, SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), types, SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="kind">
+        ''' A <see cref="SyntaxKind"/> representing the specific kind of
+        ''' TypeOfListExpressionSyntax. One of TypeOfIsListExpression,
+        ''' TypeOfIsNotListExpression.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The TypeOf keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Public Shared Function TypeOfListExpression(ByVal kind As SyntaxKind, typeOfKeyword As SyntaxToken, expression As ExpressionSyntax, operatorToken As SyntaxToken, openBraceToken As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax), closeBraceToken As SyntaxToken) As TypeOfListExpressionSyntax
+            If Not SyntaxFacts.IsTypeOfListExpression(kind) Then
+                Throw New ArgumentException("kind")
+            End If
+            Select Case typeOfKeyword.Kind()
+                Case SyntaxKind.TypeOfKeyword
+                Case Else
+                    Throw new ArgumentException("typeOfKeyword")
+            End Select
+            if expression Is Nothing Then
+                Throw New ArgumentNullException(NameOf(expression))
+            End If
+            Select Case expression.Kind()
+                Case SyntaxKind.KeywordEventContainer,
+                     SyntaxKind.WithEventsEventContainer,
+                     SyntaxKind.WithEventsPropertyEventContainer,
+                     SyntaxKind.IdentifierLabel,
+                     SyntaxKind.NumericLabel,
+                     SyntaxKind.NextLabel,
+                     SyntaxKind.SelectCaseExpression,
+                     SyntaxKind.MidExpression,
+                     SyntaxKind.CharacterLiteralExpression,
+                     SyntaxKind.TrueLiteralExpression,
+                     SyntaxKind.FalseLiteralExpression,
+                     SyntaxKind.NumericLiteralExpression,
+                     SyntaxKind.DateLiteralExpression,
+                     SyntaxKind.StringLiteralExpression,
+                     SyntaxKind.NothingLiteralExpression,
+                     SyntaxKind.ParenthesizedExpression,
+                     SyntaxKind.TupleExpression,
+                     SyntaxKind.TupleType,
+                     SyntaxKind.MeExpression,
+                     SyntaxKind.MyBaseExpression,
+                     SyntaxKind.MyClassExpression,
+                     SyntaxKind.GetTypeExpression,
+                     SyntaxKind.TypeOfIsExpression,
+                     SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
+                     SyntaxKind.GetXmlNamespaceExpression,
+                     SyntaxKind.SimpleMemberAccessExpression,
+                     SyntaxKind.DictionaryAccessExpression,
+                     SyntaxKind.XmlElementAccessExpression,
+                     SyntaxKind.XmlDescendantAccessExpression,
+                     SyntaxKind.XmlAttributeAccessExpression,
+                     SyntaxKind.InvocationExpression,
+                     SyntaxKind.ObjectCreationExpression,
+                     SyntaxKind.AnonymousObjectCreationExpression,
+                     SyntaxKind.ArrayCreationExpression,
+                     SyntaxKind.CollectionInitializer,
+                     SyntaxKind.CollectionExpression,
+                     SyntaxKind.WithExpression,
+                     SyntaxKind.CTypeExpression,
+                     SyntaxKind.DirectCastExpression,
+                     SyntaxKind.TryCastExpression,
+                     SyntaxKind.PredefinedCastExpression,
+                     SyntaxKind.AddExpression,
+                     SyntaxKind.SubtractExpression,
+                     SyntaxKind.MultiplyExpression,
+                     SyntaxKind.DivideExpression,
+                     SyntaxKind.IntegerDivideExpression,
+                     SyntaxKind.ExponentiateExpression,
+                     SyntaxKind.LeftShiftExpression,
+                     SyntaxKind.RightShiftExpression,
+                     SyntaxKind.ConcatenateExpression,
+                     SyntaxKind.ModuloExpression,
+                     SyntaxKind.EqualsExpression,
+                     SyntaxKind.NotEqualsExpression,
+                     SyntaxKind.LessThanExpression,
+                     SyntaxKind.LessThanOrEqualExpression,
+                     SyntaxKind.GreaterThanOrEqualExpression,
+                     SyntaxKind.GreaterThanExpression,
+                     SyntaxKind.IsExpression,
+                     SyntaxKind.IsNotExpression,
+                     SyntaxKind.LikeExpression,
+                     SyntaxKind.OrExpression,
+                     SyntaxKind.ExclusiveOrExpression,
+                     SyntaxKind.AndExpression,
+                     SyntaxKind.OrElseExpression,
+                     SyntaxKind.AndAlsoExpression,
+                     SyntaxKind.UnaryPlusExpression,
+                     SyntaxKind.UnaryMinusExpression,
+                     SyntaxKind.NotExpression,
+                     SyntaxKind.AddressOfExpression,
+                     SyntaxKind.FromEndIndexExpression,
+                     SyntaxKind.RangeExpression,
+                     SyntaxKind.BinaryConditionalExpression,
+                     SyntaxKind.TernaryConditionalExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression,
+                     SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.QueryExpression,
+                     SyntaxKind.FunctionAggregation,
+                     SyntaxKind.GroupAggregation,
+                     SyntaxKind.XmlDocument,
+                     SyntaxKind.XmlElement,
+                     SyntaxKind.XmlText,
+                     SyntaxKind.XmlElementStartTag,
+                     SyntaxKind.XmlElementEndTag,
+                     SyntaxKind.XmlEmptyElement,
+                     SyntaxKind.XmlAttribute,
+                     SyntaxKind.XmlString,
+                     SyntaxKind.XmlPrefixName,
+                     SyntaxKind.XmlName,
+                     SyntaxKind.XmlBracketedName,
+                     SyntaxKind.XmlComment,
+                     SyntaxKind.XmlProcessingInstruction,
+                     SyntaxKind.XmlCDataSection,
+                     SyntaxKind.XmlEmbeddedExpression,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference,
+                     SyntaxKind.AwaitExpression,
+                     SyntaxKind.XmlCrefAttribute,
+                     SyntaxKind.XmlNameAttribute,
+                     SyntaxKind.ConditionalAccessExpression,
+                     SyntaxKind.NameOfExpression,
+                     SyntaxKind.InterpolatedStringExpression
+                Case Else
+                    Throw new ArgumentException("expression")
+            End Select
+            If (Not operatorToken.IsKind(GetTypeOfListExpressionOperatorTokenKind(kind))) Then
+                Throw new ArgumentException("operatorToken")
+            End If
+            Select Case openBraceToken.Kind()
+                Case SyntaxKind.OpenBraceToken
+                Case Else
+                    Throw new ArgumentException("openBraceToken")
+            End Select
+            Select Case closeBraceToken.Kind()
+                Case SyntaxKind.CloseBraceToken
+                Case Else
+                    Throw new ArgumentException("closeBraceToken")
+            End Select
+            Return New TypeOfListExpressionSyntax(kind, Nothing, Nothing, DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), expression, DirectCast(operatorToken.Node, InternalSyntax.KeywordSyntax), DirectCast(openBraceToken.Node, InternalSyntax.PunctuationSyntax), types.Node, DirectCast(closeBraceToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+        Private Shared Function GetTypeOfListExpressionOperatorTokenKind(kind As SyntaxKind) As SyntaxKind
+            Select Case kind
+                Case SyntaxKind.TypeOfIsListExpression
+                    Return SyntaxKind.IsKeyword
+                Case SyntaxKind.TypeOfIsNotListExpression
+                    Return SyntaxKind.IsNotKeyword
+                Case Else
+                    Throw New ArgumentException("OperatorToken")
+            End Select
+        End Function
+
+        ''' <summary>
+        ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+        ''' </summary>
+        ''' <param name="kind">
+        ''' A <see cref="SyntaxKind"/> representing the specific kind of
+        ''' TypeOfListExpressionSyntax. One of TypeOfIsListExpression,
+        ''' TypeOfIsNotListExpression.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The expression being tested.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The Is or IsNot keyword.
+        ''' </param>
+        ''' <param name="types">
+        ''' The types being tested against.
+        ''' </param>
+        Public Shared Function TypeOfListExpression(ByVal kind As SyntaxKind, expression As ExpressionSyntax, operatorToken As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax)) As TypeOfListExpressionSyntax
+            Return SyntaxFactory.TypeOfListExpression(kind, SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), expression, operatorToken, SyntaxFactory.Token(SyntaxKind.OpenBraceToken), types, SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
         End Function
 
 
@@ -28962,6 +29697,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -29122,6 +29859,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -29310,6 +30049,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -29498,6 +30239,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -29699,6 +30442,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -29852,6 +30597,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -29997,6 +30744,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30146,6 +30895,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30268,6 +31019,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30417,6 +31170,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30539,6 +31294,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30688,6 +31445,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30810,6 +31569,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -30959,6 +31720,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31081,6 +31844,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31230,6 +31995,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31352,6 +32119,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31501,6 +32270,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31623,6 +32394,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31772,6 +32545,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -31894,6 +32669,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32043,6 +32820,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32165,6 +32944,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32314,6 +33095,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32436,6 +33219,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32585,6 +33370,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32707,6 +33494,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32856,6 +33645,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -32978,6 +33769,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33127,6 +33920,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33249,6 +34044,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33398,6 +34195,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33520,6 +34319,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33669,6 +34470,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33791,6 +34594,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -33940,6 +34745,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34062,6 +34869,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34211,6 +35020,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34333,6 +35144,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34482,6 +35295,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34604,6 +35419,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34753,6 +35570,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -34875,6 +35694,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35024,6 +35845,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35146,6 +35969,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35295,6 +36120,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35417,6 +36244,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35566,6 +36395,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35688,6 +36519,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35837,6 +36670,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -35959,6 +36794,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -36108,6 +36945,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -36230,6 +37069,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -36393,6 +37234,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -36513,6 +37356,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -36707,6 +37552,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -36854,6 +37701,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37001,6 +37850,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37148,6 +37999,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37295,6 +38148,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37448,6 +38303,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37662,6 +38519,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37784,6 +38643,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -37964,6 +38825,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -38086,6 +38949,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -38208,6 +39073,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -38373,6 +39240,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -38677,6 +39546,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -38989,6 +39860,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -39736,6 +40609,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -39921,6 +40796,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -40043,6 +40920,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -40237,6 +41116,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -40403,6 +41284,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -40917,6 +41800,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -41074,6 +41959,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -41231,6 +42118,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -41393,6 +42282,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -41559,6 +42450,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -41706,6 +42599,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -41858,6 +42753,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -42073,6 +42970,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -42195,6 +43094,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -42550,6 +43451,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -42695,6 +43598,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -42847,6 +43752,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -43603,6 +44510,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -44251,6 +45160,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -44398,6 +45309,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -45044,6 +45957,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -45280,6 +46195,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -45451,6 +46368,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -45811,6 +46730,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -45981,6 +46902,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -46130,6 +47053,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -46286,6 +47211,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GetTypeExpression,
                      SyntaxKind.TypeOfIsExpression,
                      SyntaxKind.TypeOfIsNotExpression,
+                     SyntaxKind.TypeOfIsListExpression,
+                     SyntaxKind.TypeOfIsNotListExpression,
                      SyntaxKind.GetXmlNamespaceExpression,
                      SyntaxKind.SimpleMemberAccessExpression,
                      SyntaxKind.DictionaryAccessExpression,
@@ -47538,6 +48465,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Shared Function IsTypeOfExpressionOperatorToken(kind As SyntaxKind) As Boolean
+            Select Case kind
+                Case _
+                SyntaxKind.IsKeyword,
+                SyntaxKind.IsNotKeyword
+                    Return True
+            End Select
+            Return False
+        End Function
+
+        Public Shared Function IsTypeOfListExpression(kind As SyntaxKind) As Boolean
+            Select Case kind
+                Case _
+                SyntaxKind.TypeOfIsListExpression,
+                SyntaxKind.TypeOfIsNotListExpression
+                    Return True
+            End Select
+            Return False
+        End Function
+
+        Public Shared Function IsTypeOfListExpressionOperatorToken(kind As SyntaxKind) As Boolean
             Select Case kind
                 Case _
                 SyntaxKind.IsKeyword,

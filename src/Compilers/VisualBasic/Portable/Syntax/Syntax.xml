@@ -5628,6 +5628,63 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  TypeOfListExpression
+      ******************-->
+    <node-structure name="TypeOfListExpressionSyntax" parent="ExpressionSyntax">
+      <description>Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="TypeOfIsListExpression">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <node-kind name="TypeOfIsNotListExpression">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="TypeOfKeyword" kind="TypeOfKeyword">
+        <description>The TypeOf keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Expression" kind="@ExpressionSyntax">
+        <description>The expression being tested.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="OperatorToken">
+        <description>The Is or IsNot keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+        <kind name="IsKeyword" node-kind="TypeOfIsListExpression" />
+        <kind name="IsNotKeyword" node-kind="TypeOfIsNotListExpression" />
+      </child>
+
+      <child name="OpenBraceToken" kind="OpenBraceToken">
+        <description>The opening brace.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Types" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="@TypeSyntax">
+        <description>The types being tested against.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CloseBraceToken" kind="CloseBraceToken">
+        <description>The closing brace.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  GetXmlNamespaceExpression
       ******************-->
     <node-structure name="GetXmlNamespaceExpressionSyntax" parent="ExpressionSyntax">

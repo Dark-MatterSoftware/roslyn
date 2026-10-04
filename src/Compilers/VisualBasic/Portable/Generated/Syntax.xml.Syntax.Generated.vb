@@ -24257,6 +24257,217 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents TypeOf...Is {T1, T2} or TypeOf...IsNot {T1, T2}.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.TypeOfIsListExpression"/></description></item>
+    ''' <item><description><see cref="SyntaxKind.TypeOfIsNotListExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class TypeOfListExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _expression as ExpressionSyntax
+        Friend _types as SyntaxNode
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), typeOfKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, operatorToken As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, types As SyntaxNode, closeBraceToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfListExpressionSyntax(kind, errors, annotations, typeOfKeyword, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), operatorToken, openBraceToken, if(types IsNot Nothing, types.Green, Nothing), closeBraceToken), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The TypeOf keyword.
+        ''' </summary>
+        Public ReadOnly Property TypeOfKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfListExpressionSyntax)._typeOfKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the TypeOfKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithTypeOfKeyword(typeOfKeyword as SyntaxToken) As TypeOfListExpressionSyntax
+            return Update(Me.Kind, typeOfKeyword, Me.Expression, Me.OperatorToken, Me.OpenBraceToken, Me.Types, Me.CloseBraceToken)
+        End Function
+
+        ''' <summary>
+        ''' The expression being tested.
+        ''' </summary>
+        Public ReadOnly Property Expression As ExpressionSyntax
+            Get
+                Return GetRed(_expression, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Expression property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithExpression(expression as ExpressionSyntax) As TypeOfListExpressionSyntax
+            return Update(Me.Kind, Me.TypeOfKeyword, expression, Me.OperatorToken, Me.OpenBraceToken, Me.Types, Me.CloseBraceToken)
+        End Function
+
+        ''' <summary>
+        ''' The Is or IsNot keyword.
+        ''' </summary>
+        Public ReadOnly Property OperatorToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfListExpressionSyntax)._operatorToken, Me.GetChildPosition(2), Me.GetChildIndex(2))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OperatorToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithOperatorToken(operatorToken as SyntaxToken) As TypeOfListExpressionSyntax
+            return Update(Me.Kind, Me.TypeOfKeyword, Me.Expression, operatorToken, Me.OpenBraceToken, Me.Types, Me.CloseBraceToken)
+        End Function
+
+        ''' <summary>
+        ''' The opening brace.
+        ''' </summary>
+        Public ReadOnly Property OpenBraceToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfListExpressionSyntax)._openBraceToken, Me.GetChildPosition(3), Me.GetChildIndex(3))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenBraceToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenBraceToken(openBraceToken as SyntaxToken) As TypeOfListExpressionSyntax
+            return Update(Me.Kind, Me.TypeOfKeyword, Me.Expression, Me.OperatorToken, openBraceToken, Me.Types, Me.CloseBraceToken)
+        End Function
+
+        ''' <summary>
+        ''' The types being tested against.
+        ''' </summary>
+        Public ReadOnly Property Types As SeparatedSyntaxList(Of TypeSyntax)
+            Get
+                Dim listNode = GetRed(_types, 4)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of TypeSyntax)(listNode, Me.GetChildIndex(4))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Types property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithTypes(types as SeparatedSyntaxList(Of TypeSyntax)) As TypeOfListExpressionSyntax
+            return Update(Me.Kind, Me.TypeOfKeyword, Me.Expression, Me.OperatorToken, Me.OpenBraceToken, types, Me.CloseBraceToken)
+        End Function
+
+        Public Shadows Function AddTypes(ParamArray items As TypeSyntax()) As TypeOfListExpressionSyntax
+            Return Me.WithTypes(Me.Types.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing brace.
+        ''' </summary>
+        Public ReadOnly Property CloseBraceToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfListExpressionSyntax)._closeBraceToken, Me.GetChildPosition(5), Me.GetChildIndex(5))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseBraceToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseBraceToken(closeBraceToken as SyntaxToken) As TypeOfListExpressionSyntax
+            return Update(Me.Kind, Me.TypeOfKeyword, Me.Expression, Me.OperatorToken, Me.OpenBraceToken, Me.Types, closeBraceToken)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._expression
+                Case 4
+                    Return Me._types
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me.Expression
+                Case 4
+                    Return GetRed(_types, 4)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitTypeOfListExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitTypeOfListExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="kind">
+        ''' The new kind.
+        ''' </param>
+        ''' <param name="typeOfKeyword">
+        ''' The value for the TypeOfKeyword property.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The value for the Expression property.
+        ''' </param>
+        ''' <param name="operatorToken">
+        ''' The value for the OperatorToken property.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The value for the OpenBraceToken property.
+        ''' </param>
+        ''' <param name="types">
+        ''' The value for the Types property.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The value for the CloseBraceToken property.
+        ''' </param>
+        Public Function Update(kind As SyntaxKind, typeOfKeyword As SyntaxToken, expression As ExpressionSyntax, operatorToken As SyntaxToken, openBraceToken As SyntaxToken, types As SeparatedSyntaxList(Of TypeSyntax), closeBraceToken As SyntaxToken) As TypeOfListExpressionSyntax
+            If kind <> Me.Kind OrElse typeOfKeyword <> Me.TypeOfKeyword OrElse expression IsNot Me.Expression OrElse operatorToken <> Me.OperatorToken OrElse openBraceToken <> Me.OpenBraceToken OrElse types <> Me.Types OrElse closeBraceToken <> Me.CloseBraceToken Then
+                Dim newNode = SyntaxFactory.TypeOfListExpression(kind, typeOfKeyword, expression, operatorToken, openBraceToken, types, closeBraceToken)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a GetXmlNamespace expression.
     ''' </summary>
     ''' <remarks>
