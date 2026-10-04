@@ -536,6 +536,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ElseIf lengthOutOfLimit Then
                         Debug.Assert(value.IsBad)
                         ReportDiagnostic(diagnostics, right.Syntax, ErrorFactory.ErrorInfo(ERRID.ERR_ConstantStringTooLong))
+                    ElseIf integerOverflow AndAlso Not value.IsBad AndAlso IsInUncheckedExpression Then
+                        ' Unchecked(expression) keeps the wrapped value.
                     ElseIf (value.IsBad OrElse integerOverflow) Then
                         ' Overflows are reported regardless of the value of OptionRemoveIntegerOverflowChecks, Dev10 behavior.
                         ReportDiagnostic(diagnostics, node, ErrorFactory.ErrorInfo(ERRID.ERR_ExpressionOverflow1, operatorResultType))
@@ -1221,7 +1223,9 @@ Done:
                 constantValue = OverloadResolution.TryFoldConstantUnaryOperator(operatorKind, operand, resultType, integerOverflow)
 
                 ' Overflows are reported regardless of the value of OptionRemoveIntegerOverflowChecks, Dev10 behavior.
-                If constantValue IsNot Nothing AndAlso (constantValue.IsBad OrElse integerOverflow) Then
+                If constantValue IsNot Nothing AndAlso Not constantValue.IsBad AndAlso integerOverflow AndAlso IsInUncheckedExpression Then
+                    ' Unchecked(expression) keeps the wrapped value.
+                ElseIf constantValue IsNot Nothing AndAlso (constantValue.IsBad OrElse integerOverflow) Then
                     ReportDiagnostic(diagnostics, node, ErrorFactory.ErrorInfo(ERRID.ERR_ExpressionOverflow1, resultType))
 
                     ' there should be no constant value in case of overflows.

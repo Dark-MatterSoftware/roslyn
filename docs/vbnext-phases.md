@@ -249,8 +249,8 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb057-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 19a | VB-057 | Done. `docs/vbnext-vb057-syntax.md` locks `Unchecked(expression)`. `Unchecked` stays an identifier, and the operator applies only when that name refers to nothing in scope. The `Option` and block forms are not locked. |
-| 19b | VB-057 | On `vbnext`, `Unchecked(expression)` wraps integer overflow at run time and in constant expressions. A symbol named `Unchecked` keeps its meaning. Visual Basic 17.13 still reports that `Unchecked` is not declared. |
+| 19b | VB-057 | Done. On `vbnext`, `Unchecked(expression)` wraps integer overflow at run time and in constant expressions. A symbol named `Unchecked` keeps its meaning. Visual Basic 17.13 still reports that `Unchecked` is not declared. |
 
 ## What starts now
 
-Slice 19a locks `Unchecked(expression)`. Slice 19b implements it.
+Slice 19b is implemented. The next wave 4 item is VB-051, concise lambdas, and it still needs a spelling note before an implementation slice.

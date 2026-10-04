@@ -780,6 +780,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Property
 
         ''' <summary>
+        ''' True inside the operand of an <c>Unchecked(expression)</c> operator.
+        ''' Constant expressions that overflow there wrap instead of reporting an error.
+        ''' </summary>
+        Friend Overridable ReadOnly Property IsInUncheckedExpression As Boolean
+            Get
+                Return m_containingBinder IsNot Nothing AndAlso m_containingBinder.IsInUncheckedExpression
+            End Get
+        End Property
+
+        ''' <summary>
         ''' True if implicit variable declaration is available within this binder, and the binder
         ''' has already finished binding all possible implicit declarations inside (and is not accepting)
         ''' any more.

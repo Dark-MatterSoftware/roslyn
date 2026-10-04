@@ -184,7 +184,52 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Function
 
+        Private Function IsUncheckedOperator(node As InvocationExpressionSyntax, diagnostics As BindingDiagnosticBag) As Boolean
+            If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            Dim name = TryCast(node.Expression, IdentifierNameSyntax)
+            If name Is Nothing OrElse
+               name.Identifier.IsBracketed OrElse
+               name.Identifier.GetTypeCharacter() <> TypeCharacter.None OrElse
+               Not IdentifierComparison.Equals(name.Identifier.ValueText, "Unchecked") Then
+                Return False
+            End If
+
+            Dim arguments = node.ArgumentList
+            If arguments Is Nothing OrElse
+               arguments.Arguments.Count <> 1 OrElse
+               arguments.Arguments(0).Kind <> SyntaxKind.SimpleArgument OrElse
+               DirectCast(arguments.Arguments(0), SimpleArgumentSyntax).IsNamed Then
+                Return False
+            End If
+
+            Dim result = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Me.Lookup(result, name.Identifier.ValueText, arity:=0, options:=LookupOptions.AllMethodsOfAnyArity, useSiteInfo:=useSiteInfo)
+            Dim isOperator = Not result.HasSymbol
+            result.Free()
+
+            Return isOperator
+        End Function
+
+        Private Function BindUncheckedExpression(node As InvocationExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim operandSyntax = DirectCast(node.ArgumentList.Arguments(0), SimpleArgumentSyntax).Expression
+            Dim operand = New UncheckedBinder(Me).BindValue(operandSyntax, diagnostics)
+
+            If operand.Type Is Nothing Then
+                Return operand
+            End If
+
+            Return New BoundParenthesized(node, operand, operand.Type)
+        End Function
+
         Private Function BindInvocationExpression(node As InvocationExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+
+            If IsUncheckedOperator(node, diagnostics) Then
+                Return BindUncheckedExpression(node, diagnostics)
+            End If
 
             ' Set "IsInvocationsOrAddressOf" to prevent binding to return value variable.
             Dim target As BoundExpression
