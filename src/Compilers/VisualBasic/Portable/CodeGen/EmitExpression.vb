@@ -982,6 +982,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             [Call]
             CallVirt
             ConstrainedCallVirt
+            ConstrainedCall
         End Enum
 
         Private Sub EmitCallExpression([call] As BoundCall, useKind As UseKind)
@@ -1006,7 +1007,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             Dim tempOpt As LocalDefinition = Nothing
 
             If method.IsShared Then
-                callKind = CallKind.Call
+                ' A shared interface method called through a constrained type parameter is a constrained call.
+                If method.ContainingType.IsInterface AndAlso
+                   receiver IsNot Nothing AndAlso
+                   receiver.Type IsNot Nothing AndAlso
+                   receiver.Type.TypeKind = TypeKind.TypeParameter Then
+                    callKind = CallKind.ConstrainedCall
+                Else
+                    callKind = CallKind.Call
+                End If
             Else
                 stackBehavior = stackBehavior - 1
                 Dim receiverType = receiver.Type
@@ -1112,6 +1121,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                     _builder.EmitOpCode(ILOpCode.Constrained)
                     EmitSymbolToken(receiver.Type, receiver.Syntax)
                     _builder.EmitOpCode(ILOpCode.Callvirt, stackBehavior)
+
+                Case CallKind.ConstrainedCall
+                    _builder.EmitOpCode(ILOpCode.Constrained)
+                    EmitSymbolToken(receiver.Type, receiver.Syntax)
+                    _builder.EmitOpCode(ILOpCode.Call, stackBehavior)
 
             End Select
 

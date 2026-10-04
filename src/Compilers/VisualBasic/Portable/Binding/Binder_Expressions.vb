@@ -2935,6 +2935,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     type = DirectCast(left, BoundTypeExpression).Type
 
                     If type.TypeKind = TYPEKIND.TypeParameter Then
+                        If Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                           TryBindSharedConstraintMember(DirectCast(type, TypeParameterSymbol), rightName, rightArity, lookupResult, useSiteInfo) Then
+                            Return BindSymbolAccess(node, lookupResult, options, left, typeArguments, QualificationKind.QualifiedViaTypeName, diagnostics)
+                        End If
+
                         Return ReportDiagnosticAndProduceBadExpression(diagnostics, node, ErrorFactory.ErrorInfo(ERRID.ERR_TypeParamQualifierDisallowed), left)
                     Else
                         If String.IsNullOrEmpty(rightName) Then
@@ -3105,6 +3110,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' Bind access to a symbol, either qualified (LHS.Symbol) or unqualified (Symbol). This kind of qualification is indicated by qualKind.
         ' receiver is set to a value expression indicating the receiver that the symbol is being accessed off of.
         ' lookupResult must refer to one or more symbols. If lookupResult has a diagnostic associated with it, that diagnostic is reported.
+        Private Function TryBindSharedConstraintMember(typeParameter As TypeParameterSymbol,
+                                                        name As String,
+                                                        arity As Integer,
+                                                        lookupResult As LookupResult,
+                                                        <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+            For Each constraint In typeParameter.ConstraintTypesNoUseSiteDiagnostics
+                If constraint.TypeKind <> TYPEKIND.Interface Then
+                    Continue For
+                End If
+
+                lookupResult.Clear()
+                LookupMember(lookupResult, constraint, name, arity, LookupOptions.AllMethodsOfAnyArity Or LookupOptions.MustNotBeInstance, useSiteInfo)
+                If lookupResult.IsGood Then
+                    Return True
+                End If
+            Next
+
+            lookupResult.Clear()
+            Return False
+        End Function
+
         Private Function BindSymbolAccess(node As VisualBasicSyntaxNode,
                                           lookupResult As LookupResult,
                                           lookupOptionsUsed As LookupOptions,

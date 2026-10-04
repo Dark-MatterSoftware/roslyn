@@ -150,7 +150,7 @@ Depends on phase 3 (init-only, required) and slice 5d (deconstruction). Position
 | 9d | VB-039 | Done. On `vbnext`, an extension block may declare a parameterized property. `box(index)` calls it when the type has no default property of its own, and both the receiver and the index are passed. |
 | 9e | VB-039 | Done. On `vbnext`, an extension block may declare a `Shared` method or property. `String.Twice("hi")` and `String.Marker` call those members. The receiver parameter is not passed. |
 | 9f | VB-036 | Done. On `vbnext`, an interface may declare `Shared MustOverride Function`. A class supplies it with `Public Shared Function ... Implements`. Visual Basic 17.13 still rejects `Shared` on an interface method. |
-| 9g | VB-036 | A type parameter constrained to that interface can call the shared member. |
+| 9g | VB-036 | Done. On `vbnext`, `T.GetName()` calls a `Shared MustOverride` member when `T` is constrained to that interface. The call is emitted as `constrained.` followed by `call`. |
 
 ## Phase 10 — Nullability
 
@@ -166,4 +166,4 @@ The spelling is decided in 10a. Parser work starts only after that note. `?` on 
 
 ## What starts now
 
-Slice 9f, a `Shared MustOverride` interface member, is implemented. The next slice is 9g, a type parameter constrained to that interface can call the shared member.
+Slice 9g, a constrained call to a shared interface member, is implemented. The next slice is 10a, a design note for nullable annotations. No parser change until that note exists.

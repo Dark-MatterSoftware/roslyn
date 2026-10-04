@@ -903,7 +903,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim resolvedTypeOrValueReceiver As BoundExpression = Nothing
             If receiver IsNot Nothing AndAlso Not hasErrors Then
-                receiver = AdjustReceiverTypeOrValue(receiver, receiver.Syntax, methodOrProperty.IsShared, diagnostics, resolvedTypeOrValueReceiver)
+                ' Keep a type-parameter receiver so a shared interface method can be emitted as a constrained call.
+                Dim clearIfShared = True
+                If methodOrProperty.IsShared AndAlso
+                   methodOrProperty.ContainingType IsNot Nothing AndAlso
+                   methodOrProperty.ContainingType.IsInterface AndAlso
+                   receiver.Type IsNot Nothing AndAlso
+                   receiver.Type.TypeKind = TypeKind.TypeParameter Then
+                    clearIfShared = False
+                End If
+
+                Dim unusedQualKind As QualificationKind
+                receiver = AdjustReceiverTypeOrValue(receiver, receiver.Syntax, methodOrProperty.IsShared, clearIfShared, diagnostics, unusedQualKind, resolvedTypeOrValueReceiver)
             End If
 
             If Not suppressAbstractCallDiagnostics AndAlso receiver IsNot Nothing AndAlso (receiver.IsMyBaseReference OrElse receiver.IsMyClassReference) Then

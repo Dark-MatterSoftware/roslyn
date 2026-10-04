@@ -243,6 +243,43 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub ConstrainedTypeParameter_CallsSharedInterfaceMethod()
+            Dim compilation = CreateCompilation("
+Interface IName
+    Shared MustOverride Function GetName() As String
+End Interface
+
+Class Person
+    Implements IName
+
+    Public Shared Function GetName() As String Implements IName.GetName
+        Return ""ok""
+    End Function
+End Class
+
+Module Program
+    Public Function Show(Of T As IName)() As String
+        Return T.GetName()
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+
+            CompileAndVerify(compilation, verify:=Verification.Skipped).
+                VerifyIL("Program.Show",
+                <![CDATA[
+{
+  // Code size       12 (0xc)
+  .maxstack  1
+  IL_0000:  constrained. "T"
+  IL_0006:  call       "Function IName.GetName() As String"
+  IL_000b:  ret
+}
+]]>)
+        End Sub
+
+        <Fact>
         Public Sub InterfaceSharedMustOverride_RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Interface IName
