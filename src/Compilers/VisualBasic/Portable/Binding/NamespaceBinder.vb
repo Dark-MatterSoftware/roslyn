@@ -96,6 +96,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _nsSymbol.AppendProbableExtensionProperties(name, properties)
         End Sub
 
+        Protected Overrides Sub CollectProbableStaticExtensionMembersInSingleBinder(name As String,
+                                                                                    members As ArrayBuilder(Of Symbol),
+                                                                                    originalBinder As Binder)
+            Debug.Assert(members.Count = 0)
+            _nsSymbol.AppendProbableStaticExtensionMembers(name, members)
+        End Sub
+
         Protected Overrides Sub CollectProbableExtensionDefaultPropertiesInSingleBinder(properties As ArrayBuilder(Of PropertySymbol),
                                                                                         originalBinder As Binder)
             Debug.Assert(properties.Count = 0)

@@ -2944,6 +2944,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                         LookupMember(lookupResult, type, rightName, rightArity, options, useSiteInfo) ' overload resolution filters methods by arity.
 
+                        If Not lookupResult.HasSymbol Then
+                            lookupResult.Clear()
+                            MemberLookup.LookupForStaticExtensionMembers(lookupResult, type, rightName, rightArity, options, Me, useSiteInfo)
+                        End If
+
                         If lookupResult.HasSymbol Then
                             Return BindSymbolAccess(node, lookupResult, options, left, typeArguments, QualificationKind.QualifiedViaTypeName, diagnostics)
                         Else

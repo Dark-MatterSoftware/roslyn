@@ -129,6 +129,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim methodSym As New SourceMemberMethodSymbol(
                 container, name, flags, binder, syntax, arity, handledEvents)
 
+            Dim extendedType = binder.TryBindStaticExtensionType(syntax, diagBag)
+            If extendedType IsNot Nothing Then
+                methodSym.SetStaticExtensionType(extendedType)
+            End If
+
             If methodSym.IsPartial AndAlso methodSym.IsSub Then
                 If methodSym.IsAsync Then
                     binder.ReportDiagnostic(diagBag, syntax.Identifier, ERRID.ERR_PartialMethodsMustNotBeAsync1, name)

@@ -315,6 +315,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Next
         End Sub
 
+        Friend Overridable Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))
+            For Each member As Symbol In Me.GetMembers(name)
+                If member.Kind = SymbolKind.Method Then
+                    Dim method = DirectCast(member, MethodSymbol)
+                    If method.IsStaticExtensionMember Then
+                        members.Add(method)
+                    End If
+                ElseIf member.Kind = SymbolKind.Property Then
+                    Dim [property] = DirectCast(member, PropertySymbol)
+                    If [property].IsStaticExtensionMember Then
+                        members.Add([property])
+                    End If
+                End If
+            Next
+        End Sub
+
         Friend Overridable Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
             For Each member As Symbol In Me.GetMembers(name)
                 If member.Kind <> SymbolKind.Property Then

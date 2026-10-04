@@ -30,6 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _blockRef As SyntaxReference
         Private ReadOnly _location As Location
         Private ReadOnly _flags As SourceMemberFlags
+        Private _staticExtensionType As TypeSymbol
         Private _isRequired As Boolean
         Private _lazyType As TypeSymbol
         Private _lazyParameters As ImmutableArray(Of ParameterSymbol)
@@ -105,6 +106,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim blockRef = If(blockSyntaxOpt Is Nothing, Nothing, bodyBinder.GetSyntaxReference(blockSyntaxOpt))
 
             Dim prop = New SourcePropertySymbol(containingType, name, modifiers.AllFlags, syntaxRef, blockRef, location)
+
+            Dim extendedType = bodyBinder.TryBindStaticExtensionType(syntax, diagnostics)
+            If extendedType IsNot Nothing Then
+                prop.SetStaticExtensionType(extendedType)
+            End If
 
             bodyBinder = New LocationSpecificBinder(BindingLocation.PropertySignature, prop, bodyBinder)
 
@@ -928,10 +934,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
         End Sub
 
+        Friend Sub SetStaticExtensionType(extendedType As TypeSymbol)
+            _staticExtensionType = extendedType
+        End Sub
+
+        Friend Overrides ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return _staticExtensionType IsNot Nothing
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Return _staticExtensionType
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property IsExtensionProperty As Boolean
             Get
                 Dim decl = TryCast(DeclarationSyntax, PropertyStatementSyntax)
-                Return decl IsNot Nothing AndAlso ExtensionBlockOf(decl) IsNot Nothing
+                Return decl IsNot Nothing AndAlso
+                    Not decl.Modifiers.Any(SyntaxKind.SharedKeyword) AndAlso
+                    ExtensionBlockOf(decl) IsNot Nothing
             End Get
         End Property
 
@@ -946,6 +970,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Shared Function ExtensionReceiverList(syntax As PropertyStatementSyntax) As ParameterListSyntax
+            ' A Shared property is a static member of the extended type. It does not take the receiver.
+            If syntax.Modifiers.Any(SyntaxKind.SharedKeyword) Then
+                Return Nothing
+            End If
+
             Dim block = ExtensionBlockOf(syntax)
             If block Is Nothing Then
                 Return Nothing

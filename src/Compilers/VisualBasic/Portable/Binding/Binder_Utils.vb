@@ -1175,6 +1175,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' An array consisting of just the NotInheritable keyword.
         Private Shared ReadOnly s_notInheritableKeyword As SyntaxKind() = {SyntaxKind.NotInheritableKeyword}
 
+        Private Shared Function ExtensionBlockOfMember(memberSyntax As SyntaxNode) As ExtensionBlockSyntax
+            Dim container = memberSyntax.Parent
+            If container IsNot Nothing AndAlso container.Kind <> SyntaxKind.ExtensionBlock Then
+                container = container.Parent
+            End If
+
+            Return TryCast(container, ExtensionBlockSyntax)
+        End Function
+
+        Private Shared Function IsDeclaredSharedExtensionMember(modifierList As SyntaxTokenList) As Boolean
+            If modifierList.Count = 0 OrElse Not modifierList.Any(SyntaxKind.SharedKeyword) Then
+                Return False
+            End If
+
+            Dim memberSyntax = modifierList(0).Parent
+            Return memberSyntax IsNot Nothing AndAlso ExtensionBlockOfMember(memberSyntax) IsNot Nothing
+        End Function
+
+        ''' <summary>
+        ''' Bind the extended type of a Shared member declared inside an extension block.
+        ''' Returns Nothing when the member is not a static extension member.
+        ''' </summary>
+        Friend Function TryBindStaticExtensionType(memberSyntax As SyntaxNode, diagBag As DiagnosticBag) As TypeSymbol
+            Dim modifiers As SyntaxTokenList
+            Select Case memberSyntax.Kind
+                Case SyntaxKind.SubStatement, SyntaxKind.FunctionStatement
+                    modifiers = DirectCast(memberSyntax, MethodStatementSyntax).Modifiers
+                Case SyntaxKind.PropertyStatement
+                    modifiers = DirectCast(memberSyntax, PropertyStatementSyntax).Modifiers
+                Case Else
+                    Return Nothing
+            End Select
+
+            If Not modifiers.Any(SyntaxKind.SharedKeyword) Then
+                Return Nothing
+            End If
+
+            Dim extensionBlock = ExtensionBlockOfMember(memberSyntax)
+            If extensionBlock Is Nothing OrElse extensionBlock.ExtensionStatement.ParameterList Is Nothing OrElse
+               extensionBlock.ExtensionStatement.ParameterList.Parameters.Count = 0 Then
+                Return Nothing
+            End If
+
+            Dim asClause = extensionBlock.ExtensionStatement.ParameterList.Parameters(0).AsClause
+            If asClause Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim bindingBag = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+            Dim extendedType = BindTypeSyntax(asClause.Type, bindingBag)
+            If bindingBag.DiagnosticBag IsNot Nothing Then
+                diagBag.AddRange(bindingBag.DiagnosticBag)
+            End If
+
+            bindingBag.Free()
+            Return extendedType
+        End Function
+
         ''' <summary>
         ''' Modifier validation code shared between properties and methods.
         ''' </summary>
@@ -1201,7 +1259,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                     ' Members in module are implicitly Shared, and cannot be explicitly Shared.
-                    If (flags And SourceMemberFlags.InvalidInModule) <> 0 Then
+                    ' A Shared member inside an extension block is the exception: it is a static member of the extended type.
+                    Dim invalidInModule = SourceMemberFlags.InvalidInModule
+                    If IsDeclaredSharedExtensionMember(modifierList) Then
+                        invalidInModule = invalidInModule And Not SourceMemberFlags.Shared
+                    End If
+
+                    If (flags And invalidInModule) <> 0 Then
                         ReportModifierError(modifierList, If(isProperty, ERRID.ERR_BadFlagsOnStdModuleProperty1, ERRID.ERR_ModuleCantUseMethodSpecifier1), diagBag, InvalidModifiersInModule)
                         If (flags And SourceMemberFlags.Protected) <> 0 Then
                             flags = flags And Not SourceMemberFlags.Friend ' remove "Friend" if removing "Protected"

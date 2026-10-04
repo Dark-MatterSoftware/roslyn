@@ -21,6 +21,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case SyntaxKind.PropertyBlock
                     Add(node)
 
+                Case SyntaxKind.SubStatement, SyntaxKind.FunctionStatement
+                    ' A Shared method is a static member of the extended type. It is not an instance extension.
+                    Dim methodBase = DirectCast(node, MethodBaseSyntax)
+                    If methodBase.Modifiers.Any(SyntaxKind.SharedKeyword) AndAlso
+                       Not methodBase.Modifiers.Any(SyntaxKind.MustOverrideKeyword) Then
+
+                        If Not Parser.IsFirstStatementOnLine(node.GetFirstToken) Then
+                            node = Parser.ReportSyntaxError(node, ERRID.ERR_MethodMustBeFirstStatementOnLine)
+                            methodBase = DirectCast(node, MethodBaseSyntax)
+                        End If
+
+                        Dim methodBlockKind = If(node.Kind = SyntaxKind.SubStatement, SyntaxKind.SubBlock, SyntaxKind.FunctionBlock)
+                        Return New MethodBlockContext(methodBlockKind, methodBase, Me)
+                    End If
+
+                    node = Parser.ReportSyntaxError(node, ERRID.ERR_ExpectedDeclaration)
+                    Add(node)
+
+                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock
+                    Add(node)
+
                 Case Else
                     If Not SyntaxFacts.IsEndBlockLoopOrNextStatement(node.Kind) Then
                         node = Parser.ReportSyntaxError(node, ERRID.ERR_ExpectedDeclaration)

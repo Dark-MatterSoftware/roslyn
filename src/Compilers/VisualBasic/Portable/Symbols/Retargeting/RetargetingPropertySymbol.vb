@@ -170,6 +170,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return _underlyingProperty.IsStaticExtensionMember
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Dim underlying = _underlyingProperty.StaticExtensionType
+                If underlying Is Nothing Then
+                    Return Nothing
+                End If
+
+                Return RetargetingTranslator.Retarget(underlying, RetargetOptions.RetargetPrimitiveTypesByTypeCode)
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property Name As String
             Get
                 Return _underlyingProperty.Name

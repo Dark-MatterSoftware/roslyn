@@ -1276,6 +1276,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 methods.Free()
             End Sub
 
+            Friend Shared Sub LookupForStaticExtensionMembers(
+                lookupResult As LookupResult,
+                container As TypeSymbol,
+                name As String,
+                arity As Integer,
+                options As LookupOptions,
+                binder As Binder,
+                <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+            )
+                If Not ShouldLookupExtensionMethods(options, container) Then
+                    Return
+                End If
+
+                Dim originalBinder = binder
+                Dim currentBinder = binder
+                Dim members = ArrayBuilder(Of Symbol).GetInstance()
+
+                Do
+                    members.Clear()
+                    currentBinder.CollectProbableStaticExtensionMembersInSingleBinder(name, members, originalBinder)
+
+                    For Each candidate In members
+                        If (options And LookupOptions.IgnoreAccessibility) = 0 AndAlso
+                           Not AccessCheck.IsSymbolAccessible(candidate.ContainingType, binder.Compilation.Assembly, useSiteInfo) Then
+                            Continue For
+                        End If
+
+                        Dim extendedType As TypeSymbol
+                        If candidate.Kind = SymbolKind.Method Then
+                            extendedType = DirectCast(candidate, MethodSymbol).StaticExtensionType
+                        ElseIf candidate.Kind = SymbolKind.Property Then
+                            If arity <> 0 Then
+                                Continue For
+                            End If
+
+                            extendedType = DirectCast(candidate, PropertySymbol).StaticExtensionType
+                        Else
+                            Continue For
+                        End If
+
+                        If extendedType Is Nothing Then
+                            Continue For
+                        End If
+
+                        Dim conversion = Conversions.ClassifyConversion(container, extendedType, useSiteInfo)
+                        If Not Conversions.IsWideningConversion(conversion.Key) Then
+                            Continue For
+                        End If
+
+                        lookupResult.MergePrioritized(binder.CheckViability(candidate, arity, options, candidate.ContainingType, useSiteInfo))
+                    Next
+
+                    currentBinder = currentBinder.m_containingBinder
+                Loop While currentBinder IsNot Nothing
+
+                members.Free()
+            End Sub
+
             Private Shared Sub LookupForExtensionProperties(
                 lookupResult As LookupResult,
                 container As TypeSymbol,

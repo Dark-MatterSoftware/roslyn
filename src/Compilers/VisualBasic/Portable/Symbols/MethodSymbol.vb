@@ -467,6 +467,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public MustOverride ReadOnly Property IsExtensionMethod As Boolean
 
         ''' <summary>
+        ''' True when this method was declared Shared inside an extension block.
+        ''' It is called on the extended type and does not take the receiver.
+        ''' </summary>
+        Friend Overridable ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Returns true if this method might be a reducible extension method. This method may return true
         ''' even if the method is not an extension method, but if it returns false, it must be the
         ''' case that this is not an extension method.

@@ -79,6 +79,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
         End Sub
 
+        Protected Overrides Sub CollectProbableStaticExtensionMembersInSingleBinder(name As String,
+                                                                                    members As ArrayBuilder(Of Symbol),
+                                                                                    originalBinder As Binder)
+            Debug.Assert(members.Count = 0)
+
+            For Each importedSym In _importedSymbols
+                If importedSym.NamespaceOrType.IsNamespace Then
+                    Dim count = members.Count
+                    DirectCast(importedSym.NamespaceOrType, NamespaceSymbol).AppendProbableStaticExtensionMembers(name, members)
+                    If members.Count <> count AndAlso Not originalBinder.IsSemanticModelBinder Then
+                        Me.Compilation.MarkImportDirectiveAsUsed(Me.SyntaxTree, importedSym.ImportsClausePosition)
+                    End If
+                End If
+            Next
+        End Sub
+
         Protected Overrides Sub CollectProbableExtensionPropertiesInSingleBinder(name As String,
                                                                                  properties As ArrayBuilder(Of PropertySymbol),
                                                                                  originalBinder As Binder)

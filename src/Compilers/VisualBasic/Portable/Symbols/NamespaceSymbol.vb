@@ -474,6 +474,12 @@ Done:
             Next
         End Sub
 
+        Friend Overridable Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))
+            For Each containedType As NamedTypeSymbol In Me.TypesToCheckForExtensionMethods
+                containedType.AppendProbableStaticExtensionMembers(name, members)
+            Next
+        End Sub
+
         Friend Overridable Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
             For Each containedType As NamedTypeSymbol In Me.TypesToCheckForExtensionMethods
                 containedType.AppendProbableExtensionProperties(name, properties)

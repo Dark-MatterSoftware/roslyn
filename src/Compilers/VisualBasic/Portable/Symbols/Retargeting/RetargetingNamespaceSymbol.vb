@@ -260,6 +260,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             Next
         End Sub
 
+        Friend Overrides Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))
+            Dim oldCount = members.Count
+            For Each underlyingContainedType As NamedTypeSymbol In _underlyingNamespace.TypesToCheckForExtensionMethods
+                underlyingContainedType.AppendProbableStaticExtensionMembers(name, members)
+            Next
+
+            For i = oldCount To members.Count - 1
+                Dim member = members(i)
+                If member.Kind = SymbolKind.Method Then
+                    members(i) = RetargetingTranslator.Retarget(DirectCast(member, MethodSymbol))
+                Else
+                    members(i) = RetargetingTranslator.Retarget(DirectCast(member, PropertySymbol))
+                End If
+            Next
+        End Sub
+
         Friend Overrides Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
             Dim oldCount = properties.Count
             For Each underlyingContainedType As NamedTypeSymbol In _underlyingNamespace.TypesToCheckForExtensionMethods

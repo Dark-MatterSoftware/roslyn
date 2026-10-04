@@ -67,6 +67,34 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub ExtensionSharedMember_CalledOnExtendedType()
+            Dim compilation = CreateCompilation("
+Module StringExtensions
+    Extension(s As String)
+        Public Shared Function Twice(value As String) As String
+            Return value & value
+        End Function
+
+        Public Shared ReadOnly Property Marker As String
+            Get
+                Return ""!""
+            End Get
+        End Property
+    End Extension
+End Module
+
+Module Program
+    Sub Main()
+        System.Console.Write(String.Twice(""hi""))
+        System.Console.Write(String.Marker)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="hihi!").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub ExtensionProperty_RejectedOutsideModule()
             Dim compilation = CreateCompilation("
 Class C

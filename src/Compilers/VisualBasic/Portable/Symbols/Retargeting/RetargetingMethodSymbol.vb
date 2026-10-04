@@ -229,6 +229,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return _underlyingMethod.IsStaticExtensionMember
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Dim underlying = _underlyingMethod.StaticExtensionType
+                If underlying Is Nothing Then
+                    Return Nothing
+                End If
+
+                Return RetargetingTranslator.Retarget(underlying, RetargetOptions.RetargetPrimitiveTypesByTypeCode)
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property MayBeReducibleExtensionMethod As Boolean
             Get
                 Return _underlyingMethod.MayBeReducibleExtensionMethod

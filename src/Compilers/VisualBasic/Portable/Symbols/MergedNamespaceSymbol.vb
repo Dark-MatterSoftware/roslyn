@@ -398,6 +398,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Next
         End Sub
 
+        Friend Overrides Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))
+            For Each nsSym As NamespaceSymbol In _namespacesToMerge
+                nsSym.AppendProbableStaticExtensionMembers(name, members)
+            Next
+        End Sub
+
         Friend Overrides Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
             For Each nsSym As NamespaceSymbol In _namespacesToMerge
                 nsSym.AppendProbableExtensionProperties(name, properties)

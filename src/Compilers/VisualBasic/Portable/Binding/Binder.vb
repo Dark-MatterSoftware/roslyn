@@ -232,6 +232,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(properties.Count = 0)
         End Sub
 
+        ''' <summary>
+        ''' Collect Shared extension-block members with the given name that are in scope in this binder.
+        ''' </summary>
+        Protected Overridable Sub CollectProbableStaticExtensionMembersInSingleBinder(name As String,
+                                                                                      members As ArrayBuilder(Of Symbol),
+                                                                                      originalBinder As Binder)
+            Debug.Assert(members.Count = 0)
+        End Sub
+
         Protected Overridable Sub CollectProbableExtensionDefaultPropertiesInSingleBinder(properties As ArrayBuilder(Of PropertySymbol),
                                                                                           originalBinder As Binder)
             Debug.Assert(properties.Count = 0)

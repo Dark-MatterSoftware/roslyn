@@ -94,6 +94,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         ''' <summary>
+        ''' True when this property was declared Shared inside an extension block.
+        ''' It is called on the extended type and does not take the receiver.
+        ''' </summary>
+        Friend Overridable ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
         ''' True if the property itself Is excluded from code coverage instrumentation.
         ''' True for source properties marked with <see cref="AttributeDescription.ExcludeFromCodeCoverageAttribute"/>.
         ''' </summary>

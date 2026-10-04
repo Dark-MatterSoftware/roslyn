@@ -20,6 +20,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Inherits SourceNonPropertyAccessorMethodSymbol
 
         Private ReadOnly _name As String
+        Private _staticExtensionType As TypeSymbol
 
         ' Cache this value upon creation as it is needed for LookupSymbols and is expensive to 
         ' compute by creating the actual type parameters.
@@ -88,6 +89,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 _quickAttributes = _quickAttributes And Not QuickAttributes.Extension
             End If
         End Sub
+
+        Friend Sub SetStaticExtensionType(extendedType As TypeSymbol)
+            _staticExtensionType = extendedType
+        End Sub
+
+        Friend Overrides ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return _staticExtensionType IsNot Nothing
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Return _staticExtensionType
+            End Get
+        End Property
 
         Public Overrides ReadOnly Property Name As String
             Get
