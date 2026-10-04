@@ -22,7 +22,8 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 7. Collections and memory | 27–30 | Collection expressions, ref returns, ref structs, collection `ParamArray`. |
 | 8. Records | 31 | Record classes, then `With` copies, then record structs. |
 | 9. Interfaces | 32–34 | Default interface methods, extension blocks, static abstract members. |
-| 10. Nullability | 35 | Annotations, then flow, then metadata. Last. |
+| 10. Nullability | 35 | Annotations, then flow, then metadata. |
+| 11. List patterns | VB-004, after phase 7 | `Case Is { }` matches an array, then a list. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -164,6 +165,15 @@ The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type rem
 | 10d | VB-030 | Done. On `vbnext`, a method whose return type and parameters carry annotations emits `NullableContextAttribute` when every flag agrees, and `NullableAttribute` with one byte per return value and parameter when they differ. `1` is not annotated and `2` is annotated. Annotations off emits neither attribute. |
 | 10e | VB-030 | Done. On `vbnext`, `/nullable:annotations` stores a class-constrained `T?` as `T`. `List(Of String?)` records the type-argument annotation, `List(Of String)?` annotates the list, and `String?()` is an array of nullable strings. An overriding method keeps the annotations written on its signature. A structure-constrained `T?` stays `Nullable(Of T)`. An unconstrained `T?`, and any of these forms with annotations off, still report the structure-constraint error. |
 
+## Phase 11 — List patterns
+
+Deferred from slice 5h until collection expressions existed. The spelling is in `docs/vbnext-vb004-syntax.md`. Braces are the list pattern. Parentheses stay positional.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 11a | VB-004 | Done. On `vbnext`, `Case Is {1, 2}` matches a one-dimensional array of that length, and `Case Is {}` matches an empty array. The array is evaluated once. A value that is not a one-dimensional array is an error. Visual Basic 17.13 still reports an expected relational operator. |
+| 11b | VB-004 | `Case Is {1, 2}` matches a `List(Of T)` by its count and indexer. |
+
 ## What starts now
 
-Slice 10e is implemented. Phase 10 is complete.
+Slice 11a is implemented. The next slice is 11b, list patterns on `List(Of T)`.

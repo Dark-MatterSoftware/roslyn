@@ -5956,4 +5956,7 @@
   <data name="ERR_ExpectedEndExtension" xml:space="preserve">
     <value>'End Extension' expected.</value>
   </data>
+  <data name="ERR_ListPatternRequiresArray" xml:space="preserve">
+    <value>A list pattern requires an array.</value>
+  </data>
 </root>

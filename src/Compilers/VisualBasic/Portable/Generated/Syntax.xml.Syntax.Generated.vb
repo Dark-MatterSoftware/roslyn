@@ -18696,6 +18696,167 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' A list pattern, such as Is {1, 2}.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.ListCaseClause"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class ListCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend _arguments as SyntaxNode
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, arguments As SyntaxNode, closeBraceToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ListCaseClauseSyntax(kind, errors, annotations, isKeyword, openBraceToken, if(arguments IsNot Nothing, arguments.Green, Nothing), closeBraceToken), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Is keyword.
+        ''' </summary>
+        Public ReadOnly Property IsKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ListCaseClauseSyntax)._isKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the IsKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIsKeyword(isKeyword as SyntaxToken) As ListCaseClauseSyntax
+            return Update(isKeyword, Me.OpenBraceToken, Me.Arguments, Me.CloseBraceToken)
+        End Function
+
+        ''' <summary>
+        ''' The opening brace.
+        ''' </summary>
+        Public ReadOnly Property OpenBraceToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ListCaseClauseSyntax)._openBraceToken, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenBraceToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenBraceToken(openBraceToken as SyntaxToken) As ListCaseClauseSyntax
+            return Update(Me.IsKeyword, openBraceToken, Me.Arguments, Me.CloseBraceToken)
+        End Function
+
+        ''' <summary>
+        ''' The values compared to the array elements.
+        ''' </summary>
+        Public ReadOnly Property Arguments As SeparatedSyntaxList(Of ExpressionSyntax)
+            Get
+                Dim listNode = GetRed(_arguments, 2)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of ExpressionSyntax)(listNode, Me.GetChildIndex(2))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Arguments property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithArguments(arguments as SeparatedSyntaxList(Of ExpressionSyntax)) As ListCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.OpenBraceToken, arguments, Me.CloseBraceToken)
+        End Function
+
+        Public Shadows Function AddArguments(ParamArray items As ExpressionSyntax()) As ListCaseClauseSyntax
+            Return Me.WithArguments(Me.Arguments.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing brace.
+        ''' </summary>
+        Public ReadOnly Property CloseBraceToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ListCaseClauseSyntax)._closeBraceToken, Me.GetChildPosition(3), Me.GetChildIndex(3))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseBraceToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseBraceToken(closeBraceToken as SyntaxToken) As ListCaseClauseSyntax
+            return Update(Me.IsKeyword, Me.OpenBraceToken, Me.Arguments, closeBraceToken)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return Me._arguments
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 2
+                    Return GetRed(_arguments, 2)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitListCaseClause(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitListCaseClause(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The value for the IsKeyword property.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The value for the OpenBraceToken property.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The value for the Arguments property.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The value for the CloseBraceToken property.
+        ''' </param>
+        Public Function Update(isKeyword As SyntaxToken, openBraceToken As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeBraceToken As SyntaxToken) As ListCaseClauseSyntax
+            If isKeyword <> Me.IsKeyword OrElse openBraceToken <> Me.OpenBraceToken OrElse arguments <> Me.Arguments OrElse closeBraceToken <> Me.CloseBraceToken Then
+                Dim newNode = SyntaxFactory.ListCaseClause(isKeyword, openBraceToken, arguments, closeBraceToken)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' A Select Case expression that produces a value.
     ''' </summary>
     ''' <remarks>

@@ -13466,6 +13466,140 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' A list pattern, such as Is {1, 2}.
+    ''' </summary>
+    Friend NotInheritable Class ListCaseClauseSyntax
+        Inherits CaseClauseSyntax
+
+        Friend ReadOnly _isKeyword as KeywordSyntax
+        Friend ReadOnly _openBraceToken as PunctuationSyntax
+        Friend ReadOnly _arguments as GreenNode
+        Friend ReadOnly _closeBraceToken as PunctuationSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeBraceToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 4
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(openBraceToken)
+            Me._openBraceToken = openBraceToken
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            AdjustFlagsAndWidth(closeBraceToken)
+            Me._closeBraceToken = closeBraceToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, isKeyword As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeBraceToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 4
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(openBraceToken)
+            Me._openBraceToken = openBraceToken
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            AdjustFlagsAndWidth(closeBraceToken)
+            Me._closeBraceToken = closeBraceToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), isKeyword As InternalSyntax.KeywordSyntax, openBraceToken As InternalSyntax.PunctuationSyntax, arguments As GreenNode, closeBraceToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 4
+
+            AdjustFlagsAndWidth(isKeyword)
+            Me._isKeyword = isKeyword
+            AdjustFlagsAndWidth(openBraceToken)
+            Me._openBraceToken = openBraceToken
+            If arguments IsNot Nothing Then
+                AdjustFlagsAndWidth(arguments)
+                Me._arguments = arguments
+            End If
+            AdjustFlagsAndWidth(closeBraceToken)
+            Me._closeBraceToken = closeBraceToken
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.ListCaseClauseSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Is keyword.
+        ''' </summary>
+        Friend ReadOnly Property IsKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._isKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The opening brace.
+        ''' </summary>
+        Friend ReadOnly Property OpenBraceToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openBraceToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The values compared to the array elements.
+        ''' </summary>
+        Friend ReadOnly Property Arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of ExpressionSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of ExpressionSyntax)(Me._arguments))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing brace.
+        ''' </summary>
+        Friend ReadOnly Property CloseBraceToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeBraceToken
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._isKeyword
+                Case 1
+                    Return Me._openBraceToken
+                Case 2
+                    Return Me._arguments
+                Case 3
+                    Return Me._closeBraceToken
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new ListCaseClauseSyntax(Me.Kind, newErrors, GetAnnotations, _isKeyword, _openBraceToken, _arguments, _closeBraceToken)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new ListCaseClauseSyntax(Me.Kind, GetDiagnostics, annotations, _isKeyword, _openBraceToken, _arguments, _closeBraceToken)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitListCaseClause(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' A Select Case expression that produces a value.
     ''' </summary>
     Friend NotInheritable Class SelectCaseExpressionSyntax
@@ -30925,6 +31059,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
         End Function
+        Public Overridable Function VisitListCaseClause(ByVal node As ListCaseClauseSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitCaseClause(node)
+        End Function
         Public Overridable Function VisitSelectCaseExpression(ByVal node As SelectCaseExpressionSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
@@ -33528,6 +33666,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New PositionalCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newOpenParenToken, newArguments.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitListCaseClause(ByVal node As ListCaseClauseSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newIsKeyword = DirectCast(Visit(node.IsKeyword), KeywordSyntax)
+            If node._isKeyword IsNot newIsKeyword Then anyChanges = True
+            Dim newOpenBraceToken = DirectCast(Visit(node.OpenBraceToken), PunctuationSyntax)
+            If node._openBraceToken IsNot newOpenBraceToken Then anyChanges = True
+            Dim newArguments = VisitList(node.Arguments)
+            If node._arguments IsNot newArguments.Node Then anyChanges = True
+            Dim newCloseBraceToken = DirectCast(Visit(node.CloseBraceToken), PunctuationSyntax)
+            If node._closeBraceToken IsNot newCloseBraceToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New ListCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newOpenBraceToken, newArguments.Node, newCloseBraceToken)
             Else
                 Return node
             End If
@@ -41799,6 +41956,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken)
+        End Function
+
+
+        ''' <summary>
+        ''' A list pattern, such as Is {1, 2}.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to the array elements.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Shared Function ListCaseClause(isKeyword As KeywordSyntax, openBraceToken As PunctuationSyntax, arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As ListCaseClauseSyntax
+            Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New ListCaseClauseSyntax(SyntaxKind.ListCaseClause, isKeyword, openBraceToken, arguments.Node, closeBraceToken)
         End Function
 
 
@@ -54339,6 +54519,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' A list pattern, such as Is {1, 2}.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to the array elements.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Friend Function ListCaseClause(isKeyword As KeywordSyntax, openBraceToken As PunctuationSyntax, arguments As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeBraceToken As PunctuationSyntax) As ListCaseClauseSyntax
+            Debug.Assert(isKeyword IsNot Nothing AndAlso isKeyword.Kind = SyntaxKind.IsKeyword)
+            Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
+            Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
+            Return New ListCaseClauseSyntax(SyntaxKind.ListCaseClause, isKeyword, openBraceToken, arguments.Node, closeBraceToken, _factoryContext)
         End Function
 
 

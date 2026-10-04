@@ -344,6 +344,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitPositionalCaseClause(ByVal node As PositionalCaseClauseSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitListCaseClause(ByVal node As ListCaseClauseSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitSelectCaseExpression(ByVal node As SelectCaseExpressionSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1116,6 +1119,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitPositionalCaseClause(ByVal node As PositionalCaseClauseSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitListCaseClause(ByVal node As ListCaseClauseSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitSelectCaseExpression(ByVal node As SelectCaseExpressionSyntax)
@@ -3495,6 +3501,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New PositionalCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newOpenParenToken, newArguments.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitListCaseClause(ByVal node As ListCaseClauseSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newIsKeyword = DirectCast(VisitToken(node.IsKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.IsKeyword.Node IsNot newIsKeyword Then anyChanges = True
+            Dim newOpenBraceToken = DirectCast(VisitToken(node.OpenBraceToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OpenBraceToken.Node IsNot newOpenBraceToken Then anyChanges = True
+            Dim newArguments = VisitList(node.Arguments)
+            If node._arguments IsNot newArguments.Node Then anyChanges = True
+            Dim newCloseBraceToken = DirectCast(VisitToken(node.CloseBraceToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.CloseBraceToken.Node IsNot newCloseBraceToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New ListCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newOpenBraceToken, newArguments.Node, newCloseBraceToken)
             Else
                 Return node
             End If
@@ -18316,6 +18341,63 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
 
         ''' <summary>
+        ''' A list pattern, such as Is {1, 2}.
+        ''' </summary>
+        ''' <param name="isKeyword">
+        ''' The Is keyword.
+        ''' </param>
+        ''' <param name="openBraceToken">
+        ''' The opening brace.
+        ''' </param>
+        ''' <param name="arguments">
+        ''' The values compared to the array elements.
+        ''' </param>
+        ''' <param name="closeBraceToken">
+        ''' The closing brace.
+        ''' </param>
+        Public Shared Function ListCaseClause(isKeyword As SyntaxToken, openBraceToken As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeBraceToken As SyntaxToken) As ListCaseClauseSyntax
+            Select Case isKeyword.Kind()
+                Case SyntaxKind.IsKeyword
+                Case Else
+                    Throw new ArgumentException("isKeyword")
+            End Select
+            Select Case openBraceToken.Kind()
+                Case SyntaxKind.OpenBraceToken
+                Case Else
+                    Throw new ArgumentException("openBraceToken")
+            End Select
+            Select Case closeBraceToken.Kind()
+                Case SyntaxKind.CloseBraceToken
+                Case Else
+                    Throw new ArgumentException("closeBraceToken")
+            End Select
+            Return New ListCaseClauseSyntax(SyntaxKind.ListCaseClause, Nothing, Nothing, DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(openBraceToken.Node, InternalSyntax.PunctuationSyntax), arguments.Node, DirectCast(closeBraceToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' A list pattern, such as Is {1, 2}.
+        ''' </summary>
+        ''' <param name="arguments">
+        ''' The values compared to the array elements.
+        ''' </param>
+        Public Shared Function ListCaseClause(arguments As SeparatedSyntaxList(Of ExpressionSyntax)) As ListCaseClauseSyntax
+            Return SyntaxFactory.ListCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), arguments, SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+
+        ''' <summary>
+        ''' A list pattern, such as Is {1, 2}.
+        ''' </summary>
+        ''' <param name="arguments">
+        ''' The values compared to the array elements.
+        ''' </param>
+        Public Shared Function ListCaseClause(ParamArray arguments As ExpressionSyntax()) As ListCaseClauseSyntax
+            Return SyntaxFactory.ListCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), SyntaxFactory.SeparatedList(Of ExpressionSyntax)().AddRange(arguments), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+
+        ''' <summary>
         ''' A Select Case expression that produces a value.
         ''' </summary>
         ''' <param name="selectKeyword">
@@ -18657,6 +18739,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.CaseGreaterThanClause,
                      SyntaxKind.TypeCaseClause,
                      SyntaxKind.PositionalCaseClause,
+                     SyntaxKind.ListCaseClause,
                      SyntaxKind.PropertyCaseClause
                 Case Else
                     Throw new ArgumentException("clause")

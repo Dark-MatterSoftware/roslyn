@@ -270,6 +270,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                                 caseClause = ParseTypeCaseClause()
                             ElseIf nextKind = SyntaxKind.OpenParenToken Then
                                 caseClause = ParsePositionalCaseClause()
+                            ElseIf nextKind = SyntaxKind.OpenBraceToken Then
+                                caseClause = ParseListCaseClause()
                             Else
                                 caseClause = ParseRelationalCaseClause()
                             End If
@@ -487,6 +489,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 closeParen = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseParenToken), ERRID.ERR_ExpectedRparen)
             End If
             Dim result = SyntaxFactory.PositionalCaseClause(isKeyword, openParen, arguments.ToList(), closeParen)
+            _pool.Free(arguments)
+            Return result
+        End Function
+
+        Private Function ParseListCaseClause() As ListCaseClauseSyntax
+            Dim isKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Dim openBrace = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim arguments = _pool.AllocateSeparated(Of ExpressionSyntax)()
+            If CurrentToken.Kind <> SyntaxKind.CloseBraceToken Then
+                Do
+                    arguments.Add(ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+                    Dim comma As PunctuationSyntax = Nothing
+                    If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                        Exit Do
+                    End If
+
+                    arguments.AddSeparator(comma)
+                Loop
+            End If
+
+            Dim closeBrace As PunctuationSyntax = Nothing
+            If Not TryGetToken(SyntaxKind.CloseBraceToken, closeBrace) Then
+                closeBrace = ReportSyntaxError(InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseBraceToken), ERRID.ERR_ExpectedRbrace)
+            End If
+
+            Dim result = SyntaxFactory.ListCaseClause(isKeyword, openBrace, arguments.ToList(), closeBrace)
             _pool.Free(arguments)
             Return result
         End Function

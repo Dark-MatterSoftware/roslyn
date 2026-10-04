@@ -273,6 +273,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.PositionalCaseClause
                     Return BindPositionalCaseClause(DirectCast(node, PositionalCaseClauseSyntax), selectExpressionOpt, diagnostics)
 
+                Case SyntaxKind.ListCaseClause
+                    Return BindListCaseClause(DirectCast(node, ListCaseClauseSyntax), selectExpressionOpt, diagnostics)
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(node.Kind)
             End Select
@@ -690,6 +693,75 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 isOperandOfConditionalBranch:=False,
                 diagnostics:=diagnostics,
                 isSelectCase:=True)
+        End Function
+
+        Private Function BindListCaseClause(node As ListCaseClauseSyntax, selectExpressionOpt As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause
+            If selectExpressionOpt Is Nothing Then
+                Dim missing = BadExpression(node, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
+                Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, missing, Nothing, hasErrors:=True)
+            End If
+
+            Dim condition = BindListComparisons(node, selectExpressionOpt, diagnostics)
+            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=condition.HasErrors)
+        End Function
+
+        Private Function BindListComparisons(node As ListCaseClauseSyntax, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim booleanType = GetSpecialType(SpecialType.System_Boolean, node, diagnostics)
+            Dim arrayType = TryCast(receiver.Type, ArrayTypeSymbol)
+            If arrayType Is Nothing OrElse arrayType.Rank <> 1 Then
+                If Not receiver.HasErrors Then
+                    ReportDiagnostic(diagnostics, node, ERRID.ERR_ListPatternRequiresArray)
+                End If
+
+                Dim int32ForError = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+                Dim missingLength = BadExpression(node, int32ForError).MakeCompilerGenerated()
+                Return New BoundBinaryOperator(node, BinaryOperatorKind.Equals, missingLength, New BoundLiteral(node, ConstantValue.Create(0), int32ForError), checked:=False, constantValueOpt:=Nothing, booleanType, hasErrors:=True)
+            End If
+
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+            Dim length = New BoundArrayLength(node, CopyArrayReceiver(receiver), int32Type)
+            Dim expectedLength = New BoundLiteral(node, ConstantValue.Create(node.Arguments.Count), int32Type)
+            Dim condition = BindBinaryOperator(
+                node:=node,
+                left:=length,
+                right:=expectedLength,
+                operatorTokenKind:=SyntaxKind.EqualsToken,
+                preliminaryOperatorKind:=BinaryOperatorKind.Equals,
+                isOperandOfConditionalBranch:=False,
+                diagnostics:=diagnostics,
+                isSelectCase:=True)
+
+            For i = 0 To node.Arguments.Count - 1
+                Dim elementSyntax = node.Arguments(i)
+                Dim expected = BindValue(elementSyntax, diagnostics)
+                Dim index = New BoundLiteral(elementSyntax, ConstantValue.Create(i), int32Type)
+                Dim actual = New BoundArrayAccess(
+                    elementSyntax,
+                    CopyArrayReceiver(receiver),
+                    ImmutableArray.Create(Of BoundExpression)(index),
+                    isLValue:=False,
+                    type:=arrayType.ElementType)
+                Dim compare = BindBinaryOperator(
+                    node:=elementSyntax,
+                    left:=actual,
+                    right:=expected,
+                    operatorTokenKind:=SyntaxKind.EqualsToken,
+                    preliminaryOperatorKind:=BinaryOperatorKind.Equals,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True)
+                condition = BindBinaryOperator(
+                    node:=node,
+                    left:=condition,
+                    right:=compare,
+                    operatorTokenKind:=SyntaxKind.AndAlsoKeyword,
+                    preliminaryOperatorKind:=BinaryOperatorKind.AndAlso,
+                    isOperandOfConditionalBranch:=False,
+                    diagnostics:=diagnostics,
+                    isSelectCase:=True).MakeCompilerGenerated()
+            Next
+
+            Return condition
         End Function
 
         Private Function BindPositionalCaseClause(node As PositionalCaseClauseSyntax, selectExpressionOpt As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause

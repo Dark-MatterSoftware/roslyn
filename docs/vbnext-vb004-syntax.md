@@ -45,4 +45,13 @@ Dim label = Select Case order
             End Select
 ```
 
-`Select Case` produces a value when it appears where a value is required. That form is not part of 5e. List patterns wait until phase 7.
+`Select Case` produces a value when it appears where a value is required. That form is not part of 5e.
+
+## 11a. List patterns
+
+```vb
+Case Is {1, 2}
+Case Is {}
+```
+
+Braces are the list pattern. Parentheses stay the positional pattern from 5g, and square brackets stay escaped identifiers. `Case Is {1, 2}` matches a one-dimensional array whose length is 2 and whose elements equal those values. `Case Is {}` matches an empty array. The array is evaluated once. A value that is not a one-dimensional array is an error. A `List(Of T)` match is a later slice.

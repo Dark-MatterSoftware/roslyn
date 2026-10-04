@@ -1838,8 +1838,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ExpectedEndExtension = 37378
 
         ERR_BadNullableDirective = 37379
+        ERR_ListPatternRequiresArray = 37380
 
-        ERR_NextAvailable = 37380
+        ERR_NextAvailable = 37381
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

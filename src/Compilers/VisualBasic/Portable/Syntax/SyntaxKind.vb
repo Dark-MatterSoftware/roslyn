@@ -3311,5 +3311,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         NullableDirectiveTrivia = 814               ' NullableDirectiveTriviaSyntax : DirectiveTriviaSyntax
 
+        ''' <summary>
+        ''' Represents a list pattern, <c>Case Is {1, 2}</c>.
+        ''' </summary>
+        ListCaseClause = 815                         ' ListCaseClauseSyntax : CaseClauseSyntax
+
     End Enum
 End Namespace

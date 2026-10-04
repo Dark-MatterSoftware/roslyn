@@ -4199,6 +4199,44 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  ListCaseClause
+      ******************-->
+    <node-structure name="ListCaseClauseSyntax" parent="CaseClauseSyntax">
+      <description>A list pattern, such as Is {1, 2}.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="ListCaseClause">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="IsKeyword" kind="IsKeyword">
+        <description>The Is keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="OpenBraceToken" kind="OpenBraceToken">
+        <description>The opening brace.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Arguments" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="@ExpressionSyntax">
+        <description>The values compared to the array elements.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CloseBraceToken" kind="CloseBraceToken">
+        <description>The closing brace.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  SelectCaseExpression
       ******************-->
     <node-structure name="SelectCaseExpressionSyntax" parent="ExpressionSyntax">
