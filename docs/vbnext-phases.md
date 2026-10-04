@@ -28,6 +28,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 13. GUID literals | VB-052, pulled in from wave 4 | `&G{...}` is a `System.Guid` value. |
 | 14. For Each index | VB-055, pulled in from wave 4 | `For Each item With index In items` numbers each item. |
 | 15. Optional End Namespace | VB-059, pulled in from wave 4 | A namespace may run to the end of the file. |
+| 16. With variable | VB-053, pulled in from wave 4 | A `With` block that declares its variable. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -213,6 +214,14 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb059-syntax.md`.
 | 15a | VB-059 | Done. `docs/vbnext-vb059-syntax.md` locks a namespace that runs to the end of the file. A second `Namespace` before `End Namespace` still nests. |
 | 15b | VB-059 | Done. On `vbnext`, a namespace with no `End Namespace` runs to the end of the file. A second `Namespace` still nests. `End Namespace` remains valid. Visual Basic 17.13 still expects `End Namespace`. |
 
+## Phase 16 — With variable
+
+Pulled in from wave 4. The note is in `docs/vbnext-vb053-syntax.md`.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 16a | VB-053 | Done. `docs/vbnext-vb053-syntax.md` records that `With X = expr` stays an equality test. `With Dim`, `Into`, and `:=` were left open. No implementation until one spelling is chosen. |
+
 ## What starts now
 
-Slice 15b is implemented. The next wave 4 item is VB-053, a `With` that declares its variable, and it still needs a spelling note before an implementation slice.
+Slice 16a records that the `With` variable spelling is not locked. The next wave 4 item with a proposal spelling is VB-056, `For Each ByRef item In values`.
