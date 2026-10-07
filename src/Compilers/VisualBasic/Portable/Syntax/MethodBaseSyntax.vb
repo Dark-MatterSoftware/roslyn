@@ -61,6 +61,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Return WithSubOrFunctionKeyword(keyword)
         End Function
 
+        Public Function Update(kind As SyntaxKind, attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+            Return Update(kind, attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Me.EqualsToken)
+        End Function
+
     End Class
 
     Partial Public Class DelegateStatementSyntax
@@ -226,6 +230,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         <Obsolete("This member is obsolete. Use WithPropertyKeyword instead.", True)>
         Public Shadows Function WithKeyword(keyword As SyntaxToken) As PropertyStatementSyntax
             Return WithPropertyKeyword(keyword)
+        End Function
+
+        Public Function Update(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, propertyKeyword As SyntaxToken, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
+            Return Update(attributeLists, modifiers, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, Me.EqualsToken)
         End Function
 
     End Class

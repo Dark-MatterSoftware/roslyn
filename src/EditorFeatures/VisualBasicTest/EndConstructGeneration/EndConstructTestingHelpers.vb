@@ -64,8 +64,9 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EndConstructGenera
                 before As String,
                 beforeCaret As Integer(),
                 after As String,
-                afterCaret As Integer()) As Task
-            Using workspace = EditorTestWorkspace.CreateVisualBasic(before, composition:=EditorTestCompositions.EditorFeatures)
+                afterCaret As Integer(),
+                Optional parseOptions As ParseOptions = Nothing) As Task
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(before, parseOptions:=parseOptions, composition:=EditorTestCompositions.EditorFeatures)
                 Dim globalOptions = workspace.GetService(Of IGlobalOptionService)
                 globalOptions.SetGlobalOption(LineCommitOptionsStorage.PrettyListing, LanguageNames.VisualBasic, False)
 
@@ -116,8 +117,9 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EndConstructGenera
         Private Async Function VerifyNotAppliedAsync(
                 doFunc As Func(Of VisualBasicEndConstructService, ITextView, ITextBuffer, Task(Of Boolean)),
                 text As String,
-                caret As Integer()) As Task
-            Using workspace = EditorTestWorkspace.CreateVisualBasic(text)
+                caret As Integer(),
+                Optional parseOptions As ParseOptions = Nothing) As Task
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(text, parseOptions:=parseOptions)
                 Dim textView = workspace.Documents.First().GetTextView()
                 Dim subjectBuffer = workspace.Documents.First().GetTextBuffer()
 
@@ -147,12 +149,12 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EndConstructGenera
             End Using
         End Function
 
-        Public Function VerifyStatementEndConstructAppliedAsync(before As String, beforeCaret As Integer(), after As String, afterCaret As Integer()) As Task
-            Return VerifyAppliedAsync(Function(s, v, b) s.TryDoEndConstructForEnterKeyAsync(v, b, CancellationToken.None), before, beforeCaret, after, afterCaret)
+        Public Function VerifyStatementEndConstructAppliedAsync(before As String, beforeCaret As Integer(), after As String, afterCaret As Integer(), Optional parseOptions As ParseOptions = Nothing) As Task
+            Return VerifyAppliedAsync(Function(s, v, b) s.TryDoEndConstructForEnterKeyAsync(v, b, CancellationToken.None), before, beforeCaret, after, afterCaret, parseOptions)
         End Function
 
-        Public Function VerifyStatementEndConstructNotAppliedAsync(text As String, caret As Integer()) As Task
-            Return VerifyNotAppliedAsync(Function(s, v, b) s.TryDoEndConstructForEnterKeyAsync(v, b, CancellationToken.None), text, caret)
+        Public Function VerifyStatementEndConstructNotAppliedAsync(text As String, caret As Integer(), Optional parseOptions As ParseOptions = Nothing) As Task
+            Return VerifyNotAppliedAsync(Function(s, v, b) s.TryDoEndConstructForEnterKeyAsync(v, b, CancellationToken.None), text, caret, parseOptions)
         End Function
 
 #Disable Warning BC42356 ' This async method lacks 'Await' operators and so will run synchronously

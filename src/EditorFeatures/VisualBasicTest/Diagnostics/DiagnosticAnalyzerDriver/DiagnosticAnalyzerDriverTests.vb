@@ -30,7 +30,18 @@ Public Class DiagnosticAnalyzerDriverTests
             Await DiagnosticProviderTestUtilities.GetAllDiagnosticsAsync(workspace, document, New TextSpan(0, document.GetTextAsync().Result.Length))
             analyzer.VerifyAllAnalyzerMembersWereCalled()
             analyzer.VerifyAnalyzeSymbolCalledForAllSymbolKinds()
-            analyzer.VerifyAnalyzeNodeCalledForAllSyntaxKinds(New HashSet(Of SyntaxKind)())
+            ' These kinds parse only on vbnext, and the baseline source is parsed with the default version.
+            analyzer.VerifyAnalyzeNodeCalledForAllSyntaxKinds(New HashSet(Of SyntaxKind) From {
+                SyntaxKind.NothingCoalescingAssignmentStatement,
+                SyntaxKind.RangeExpression,
+                SyntaxKind.TupleDeconstructionStatement,
+                SyntaxKind.SelectCaseArm,
+                SyntaxKind.SelectCaseExpression,
+                SyntaxKind.CollectionExpression,
+                SyntaxKind.ExtensionStatement,
+                SyntaxKind.ExtensionBlock,
+                SyntaxKind.GuidLiteralExpression
+            })
             analyzer.VerifyOnCodeBlockCalledForAllSymbolAndMethodKinds(allowUnexpectedCalls:=True)
         End Using
     End Function

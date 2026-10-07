@@ -75,7 +75,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             If elseValue Is Nothing Then
-                ReportDiagnostic(diagnostics, node, ERRID.ERR_ExpectedEndSelect)
+                If Not node.EndKeyword.IsMissing Then
+                    ReportDiagnostic(diagnostics, node, ERRID.ERR_ExpectedEndSelect)
+                End If
                 elseValue = BadExpression(node, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
             End If
 

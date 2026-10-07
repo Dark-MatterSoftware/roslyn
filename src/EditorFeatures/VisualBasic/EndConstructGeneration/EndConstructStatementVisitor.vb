@@ -299,6 +299,31 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.EndConstructGeneration
             End If
         End Function
 
+        Public Overrides Function VisitExtensionStatement(node As ExtensionStatementSyntax) As AbstractEndConstructResult
+            Dim needsEnd = node.GetAncestorsOrThis(Of ExtensionBlockSyntax)().Any(Function(block) block.EndExtensionStatement.IsMissing)
+
+            If needsEnd Then
+                Dim aligningWhitespace = _subjectBuffer.CurrentSnapshot.GetAligningWhitespace(node.SpanStart)
+                Return New SpitLinesResult({"", aligningWhitespace & "End Extension"})
+            Else
+                Return Nothing
+            End If
+        End Function
+
+        Public Overrides Function DefaultVisit(node As SyntaxNode) As AbstractEndConstructResult
+            ' A statement that ends in "Select Case value" holds a Select Case expression.
+            Dim selectExpression = _state.TokenToLeft.GetAncestor(Of SelectCaseExpressionSyntax)()
+
+            If selectExpression IsNot Nothing AndAlso
+               selectExpression.EndKeyword.IsMissing AndAlso
+               selectExpression.Expression.GetLastToken() = _state.TokenToLeft Then
+                Dim aligningWhitespace = _subjectBuffer.CurrentSnapshot.GetAligningWhitespace(node.SpanStart)
+                Return New SpitLinesResult({"", aligningWhitespace & "End Select"})
+            Else
+                Return Nothing
+            End If
+        End Function
+
         Public Overrides Function VisitIfDirectiveTrivia(directive As IfDirectiveTriviaSyntax) As AbstractEndConstructResult
             Dim matchingDirectives = directive.GetMatchingConditionalDirectives(_cancellationToken)
             Dim needsEnd = Not matchingDirectives.Any(Function(d) d.Kind = SyntaxKind.EndIfDirectiveTrivia)

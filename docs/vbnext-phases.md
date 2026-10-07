@@ -35,6 +35,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 20. Concise lambdas | VB-051, pulled in from wave 4 | A shorter way to write a one-parameter lambda. |
 | 21. XML statement blocks | VB-060, pulled in from wave 4 | Statements inside `<%= %>`. |
 | 22. Sub chains | VB-058, pulled in from wave 4 | Calling a `Sub` again with new arguments. |
+| 23. IDE | All `vbnext` syntax | The Visual Basic editor understands the forms above. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -285,6 +286,18 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb058-syntax.md`.
 
 VB-058 is rejected. There is no implementation slice.
 
+## Phase 23 — IDE
+
+The editor work for the syntax above. Tests live under `src/EditorFeatures/VisualBasicTest/` and `src/Features/VisualBasicTest/`, with `vbnext` parse options.
+
+| Slice | Area | Done when |
+| --- | --- | --- |
+| 23a | End constructs | Done. On `vbnext`, Enter after `Extension(s As String)` inserts `End Extension`, and Enter after `Dim x = Select Case value` inserts `End Select`. `Record Class` and `Record Structure` get `End Class` and `End Structure`. A compact member gets no `End`. An unfinished Select Case expression ends at its own line instead of taking the `End` of the enclosing block. The IDE layers build against the `vbnext` syntax API. |
+| 23b | Classification | `InitOnly`, `Required`, `Record`, and `Extension` classify as keywords. GUID literals, raw strings, and UTF-8 strings classify as literals. |
+| 23c | Keyword completion | Completion offers the `vbnext` keywords only where `vbnext` parses them. Visual Basic 17.13 does not offer them. |
+| 23d | Outlining and indentation | Extension blocks and Select Case expressions collapse and indent like the blocks they resemble. |
+| 23e | Pretty listing | Committing a line leaves compact members, `Using` declarations, and XML statement blocks unchanged. |
+
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. IDE support for these forms comes next.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along. Slice 23a is done, and slice 23b starts now.

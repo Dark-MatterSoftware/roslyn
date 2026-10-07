@@ -171,6 +171,20 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub SelectCase_UnfinishedExpressionEndsAtItsLine()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim label = Select Case 1
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedEndSelect, "").WithLocation(4, 34))
+        End Sub
+
+        <Fact>
         Public Sub SelectCase_ExpressionRejectedOn17_13()
             Dim compilation = CreateCompilation("
 Class Program

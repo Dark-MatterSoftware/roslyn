@@ -110,6 +110,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.EndConstructGeneration
                     Return TypeOf statement Is LambdaHeaderSyntax
                 Case "BC31114" ' Missing End Event
                     Return True
+                Case "BC37378" ' Missing End Extension
+                    Return True
             End Select
 
             Return False

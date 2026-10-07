@@ -425,14 +425,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim expression = ParseExpressionCore()
             Dim arms = _pool.Allocate(Of SelectCaseArmSyntax)()
-            EatStatementTerminators()
 
-            Do
-                If CurrentToken.Kind = SyntaxKind.EndKeyword AndAlso PeekToken(1).Kind = SyntaxKind.SelectKeyword Then
-                    Exit Do
-                End If
-
-                If CurrentToken.Kind <> SyntaxKind.CaseKeyword Then
+            ' The line breaks before an arm or End Select belong to the expression. Without either one,
+            ' they end the enclosing statement, so an unfinished expression does not take the next line.
+            Do While TryEatTerminatorsBeforeSelectCaseArm()
+                If CurrentToken.Kind = SyntaxKind.EndKeyword Then
                     Exit Do
                 End If
 
@@ -440,22 +437,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 EatStatementTerminators()
                 Dim value = ParseExpressionCore()
                 arms.Add(SyntaxFactory.SelectCaseArm(caseStatement, value))
-                EatStatementTerminators()
             Loop
 
-            Dim endKeyword As KeywordSyntax = Nothing
-            If Not TryGetToken(SyntaxKind.EndKeyword, endKeyword) Then
+            Dim endKeyword As KeywordSyntax
+            Dim endSelectKeyword As KeywordSyntax
+            If CurrentToken.Kind = SyntaxKind.EndKeyword AndAlso PeekToken(1).Kind = SyntaxKind.SelectKeyword Then
+                endKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+                endSelectKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+            Else
                 endKeyword = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingKeyword(SyntaxKind.EndKeyword), ERRID.ERR_ExpectedEndSelect), KeywordSyntax)
-            End If
-
-            Dim endSelectKeyword As KeywordSyntax = Nothing
-            If Not TryGetToken(SyntaxKind.SelectKeyword, endSelectKeyword) Then
-                endSelectKeyword = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingKeyword(SyntaxKind.SelectKeyword), ERRID.ERR_ExpectedEndSelect), KeywordSyntax)
+                endSelectKeyword = InternalSyntaxFactory.MissingKeyword(SyntaxKind.SelectKeyword)
             End If
 
             Dim result = SyntaxFactory.SelectCaseExpression(selectKeyword, caseKeyword, expression, arms.ToList(), endKeyword, endSelectKeyword)
             _pool.Free(arms)
             Return result
+        End Function
+
+        Private Function TryEatTerminatorsBeforeSelectCaseArm() As Boolean
+            Dim offset = 0
+            While If(offset = 0, CurrentToken, PeekToken(offset)).Kind = SyntaxKind.StatementTerminatorToken
+                offset += 1
+            End While
+
+            Dim nextToken = If(offset = 0, CurrentToken, PeekToken(offset))
+            Dim continues = nextToken.Kind = SyntaxKind.CaseKeyword OrElse
+                            (nextToken.Kind = SyntaxKind.EndKeyword AndAlso PeekToken(offset + 1).Kind = SyntaxKind.SelectKeyword)
+
+            If continues Then
+                EatStatementTerminators()
+            End If
+
+            Return continues
         End Function
 
         Private Sub EatStatementTerminators()
