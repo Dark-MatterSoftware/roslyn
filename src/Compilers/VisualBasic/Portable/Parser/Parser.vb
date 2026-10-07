@@ -382,6 +382,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Function
 
+        Private Shared Function IsCompactMember(node As VisualBasicSyntaxNode) As Boolean
+            Select Case node.Kind
+                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock
+                    Return DirectCast(node, MethodBlockSyntax).SubOrFunctionStatement.EqualsToken IsNot Nothing
+                Case SyntaxKind.SubStatement, SyntaxKind.FunctionStatement
+                    Return DirectCast(node, MethodStatementSyntax).EqualsToken IsNot Nothing
+                Case SyntaxKind.PropertyBlock
+                    Return DirectCast(node, PropertyBlockSyntax).PropertyStatement.EqualsToken IsNot Nothing
+                Case SyntaxKind.PropertyStatement
+                    Return DirectCast(node, PropertyStatementSyntax).EqualsToken IsNot Nothing
+                Case Else
+                    Return False
+            End Select
+        End Function
+
         Private Function GetCurrentSyntaxNodeIfApplicable(<Out()> ByRef curSyntaxNode As VisualBasicSyntaxNode) As BlockContext
             Dim result As BlockContext.LinkResult
             Dim incrementalContext = _context
@@ -397,6 +412,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 ElseIf TypeOf curSyntaxNode Is DirectiveTriviaSyntax OrElse
                     curSyntaxNode.Kind = SyntaxKind.DocumentationCommentTrivia Then
                     ' this can be used only by preprocessor
+                    result = BlockContext.LinkResult.NotUsed
+
+                ElseIf IsCompactMember(curSyntaxNode) Then
+                    ' A compact member ends at its body, not at an End statement, so it is always reparsed.
                     result = BlockContext.LinkResult.NotUsed
 
                 Else
@@ -528,7 +547,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Private Function ParseExecutableStatementCore() As StatementSyntax
             Dim outerContext As New CompilationUnitContext(Me)
             Dim fakeBegin = SyntaxFactory.SubStatement(Nothing, Nothing, InternalSyntaxFactory.MissingKeyword(SyntaxKind.SubKeyword),
-                                                  InternalSyntaxFactory.MissingIdentifier(), Nothing, Nothing, Nothing, Nothing, Nothing)
+                                                  InternalSyntaxFactory.MissingIdentifier(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             Dim methodContext = New MethodBlockContext(SyntaxKind.SubBlock, fakeBegin, outerContext)
 
             GetNextToken()
@@ -2480,7 +2499,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim Equals As PunctuationSyntax = Nothing
 
             If newKeyword Is Nothing Then
-                If TryGetTokenAndEatNewLine(SyntaxKind.EqualsToken, Equals) Then
+                If isProperty AndAlso IsCompactMemberBodyStart() Then
+                    ' The "=" starts a compact body, which ParsePropertyDefinition parses.
+                ElseIf TryGetTokenAndEatNewLine(SyntaxKind.EqualsToken, Equals) Then
                     'Parse = Expression
 
                     ' Make the initializer expression a deferred expression
@@ -3814,7 +3835,7 @@ checkNullable:
         Private Function ParseSubStatement(
             attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
             modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
-        ) As MethodBaseSyntax
+        ) As StatementSyntax
 
             Dim subKeyword As KeywordSyntax = DirectCast(CurrentToken, KeywordSyntax)
 
@@ -3858,7 +3879,15 @@ checkNullable:
 
             'Create the Sub declaration
             If newKeyword Is Nothing Then
-                Return SyntaxFactory.SubStatement(attributes, modifiers, subKeyword, name, genericParams, parameters, Nothing, handlesClause, implementsClause)
+                Dim equalsToken As PunctuationSyntax = Nothing
+                Dim isCompact = TryGetCompactMemberEquals(modifiers, equalsToken)
+                Dim subStatement = SyntaxFactory.SubStatement(attributes, modifiers, subKeyword, name, genericParams, parameters, Nothing, handlesClause, implementsClause, equalsToken)
+
+                If isCompact Then
+                    Return ParseCompactMethodBlock(subStatement)
+                End If
+
+                Return subStatement
             Else
                 If handlesClause IsNot Nothing Then
                     newKeyword = newKeyword.AddError(ERRID.ERR_NewCannotHandleEvents) ' error should be on "New"
@@ -3979,7 +4008,7 @@ checkNullable:
         Private Function ParseFunctionStatement(
                 attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
                 modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
-            ) As MethodStatementSyntax
+            ) As StatementSyntax
 
             Dim functionKeyword As KeywordSyntax = DirectCast(CurrentToken, KeywordSyntax)
 
@@ -4017,7 +4046,13 @@ checkNullable:
             _isInIteratorMethodDeclarationHeader = save_isInIteratorMethodDeclarationHeader
 
             'Create the Sub statement.
-            Dim methodStatement = SyntaxFactory.FunctionStatement(attributes, modifiers, functionKeyword, name, genericParams, parameters, asClause, handlesClause, implementsClause)
+            Dim equalsToken As PunctuationSyntax = Nothing
+            Dim isCompact = TryGetCompactMemberEquals(modifiers, equalsToken)
+            Dim methodStatement = SyntaxFactory.FunctionStatement(attributes, modifiers, functionKeyword, name, genericParams, parameters, asClause, handlesClause, implementsClause, equalsToken)
+
+            If isCompact Then
+                Return ParseCompactMethodBlock(methodStatement)
+            End If
 
             Return methodStatement
 
@@ -4308,7 +4343,7 @@ checkNullable:
         Private Function ParsePropertyDefinition(
             attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
             modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
-        ) As PropertyStatementSyntax
+        ) As StatementSyntax
 
             Debug.Assert(CurrentToken.Kind = SyntaxKind.PropertyKeyword, "ParsePropertyDefinition called on the wrong token.")
 
@@ -4382,7 +4417,13 @@ checkNullable:
             ' Checks for expanded property (property block) have been moved into the ContextBlock.
 
             ' Build the tree for the property and do some simple semantics like making sure a regular property doesn't have an initializer, etc.
-            Dim propertyStatement As PropertyStatementSyntax = SyntaxFactory.PropertyStatement(attributes, modifiers, propertyKeyword, ident, optionalParameters, asClause, initializer, implementsClause)
+            Dim equalsToken As PunctuationSyntax = Nothing
+            Dim isCompact = initializer Is Nothing AndAlso TryGetCompactMemberEquals(modifiers, equalsToken)
+            Dim propertyStatement As PropertyStatementSyntax = SyntaxFactory.PropertyStatement(attributes, modifiers, propertyKeyword, ident, optionalParameters, asClause, initializer, implementsClause, equalsToken)
+
+            If isCompact Then
+                Return ParseCompactPropertyBlock(propertyStatement)
+            End If
 
             ' Need to look ahead to the next token, after the statement terminator, to see if this is an
             ' auto property or not.
@@ -4401,6 +4442,122 @@ checkNullable:
             End If
 
             Return propertyStatement
+        End Function
+
+        ' On vbnext "= Get", "= Return", or "= Call" after a member header starts a compact body.
+        Private Function IsCompactMemberBodyStart() As Boolean
+            If CurrentToken.Kind <> SyntaxKind.EqualsToken OrElse
+               _scanner.Options.LanguageVersion < LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            Select Case PeekToken(1).Kind
+                Case SyntaxKind.GetKeyword, SyntaxKind.ReturnKeyword, SyntaxKind.CallKeyword
+                    Return True
+                Case Else
+                    Return False
+            End Select
+        End Function
+
+        Private Function TryGetCompactMemberEquals(
+            modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax),
+            <Out> ByRef equalsToken As PunctuationSyntax
+        ) As Boolean
+            equalsToken = Nothing
+
+            If Not IsCompactMemberBodyStart() OrElse modifiers.Any(SyntaxKind.MustOverrideKeyword) Then
+                Return False
+            End If
+
+            equalsToken = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+            Return True
+        End Function
+
+        ' Each member kind has one compact keyword. Another one is skipped and reported.
+        Private Function ParseCompactMemberKeyword(expectedKind As SyntaxKind) As KeywordSyntax
+            Dim keyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            If keyword.Kind = expectedKind Then
+                Return keyword
+            End If
+
+            Return InternalSyntaxFactory.MissingKeyword(expectedKind).AddLeadingSyntax(keyword, ERRID.ERR_CompactMemberKeyword)
+        End Function
+
+        Private Function ParseCompactMemberValue() As ExpressionSyntax
+            Dim value = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+
+            If value.ContainsDiagnostics Then
+                value = ResyncAt(value)
+            End If
+
+            Return value
+        End Function
+
+        ' Function F() As T = Return expression
+        ' Sub S() = Call invocation
+        Private Function ParseCompactMethodBlock(methodStatement As MethodStatementSyntax) As MethodBlockSyntax
+            If Not IsFirstStatementOnLine(methodStatement.GetFirstToken) Then
+                methodStatement = ReportSyntaxError(methodStatement, ERRID.ERR_MethodMustBeFirstStatementOnLine)
+            End If
+
+            Dim isFunction = methodStatement.Kind = SyntaxKind.FunctionStatement
+            Dim outerContext = _context
+            Dim bodyContext = New MethodBlockContext(If(isFunction, SyntaxKind.FunctionBlock, SyntaxKind.SubBlock), methodStatement, outerContext)
+
+            ' The body is parsed in the method's context so that Await and Yield follow its modifiers.
+            _context = bodyContext
+
+            Dim body As StatementSyntax
+            If isFunction Then
+                Dim returnKeyword = ParseCompactMemberKeyword(SyntaxKind.ReturnKeyword)
+                body = SyntaxFactory.ReturnStatement(returnKeyword, ParseCompactMemberValue())
+            Else
+                Dim callKeyword = ParseCompactMemberKeyword(SyntaxKind.CallKeyword)
+                Dim invocation = MakeCallStatementExpression(ParseVariable())
+
+                If invocation.ContainsDiagnostics Then
+                    invocation = ResyncAt(invocation)
+                End If
+
+                body = SyntaxFactory.CallStatement(callKeyword, invocation)
+            End If
+
+            _context = outerContext
+            bodyContext.Add(body)
+
+            Dim endStatement = InternalSyntaxFactory.EndBlockStatement(
+                If(isFunction, SyntaxKind.EndFunctionStatement, SyntaxKind.EndSubStatement),
+                InternalSyntaxFactory.MissingKeyword(SyntaxKind.EndKeyword),
+                InternalSyntaxFactory.MissingKeyword(If(isFunction, SyntaxKind.FunctionKeyword, SyntaxKind.SubKeyword)))
+
+            Return DirectCast(bodyContext.CreateBlockSyntax(endStatement), MethodBlockSyntax)
+        End Function
+
+        ' ReadOnly Property P As T = Get expression
+        Private Function ParseCompactPropertyBlock(propertyStatement As PropertyStatementSyntax) As PropertyBlockSyntax
+            Dim getKeyword = ParseCompactMemberKeyword(SyntaxKind.GetKeyword)
+            Dim getStatement = InternalSyntaxFactory.GetAccessorStatement(Nothing, Nothing, getKeyword, Nothing)
+
+            Dim returnStatement = InternalSyntaxFactory.ReturnStatement(
+                InternalSyntaxFactory.MissingKeyword(SyntaxKind.ReturnKeyword),
+                ParseCompactMemberValue())
+
+            Dim getBlock = InternalSyntaxFactory.GetAccessorBlock(
+                getStatement,
+                New CoreInternalSyntax.SyntaxList(Of GreenNode)(returnStatement),
+                InternalSyntaxFactory.EndGetStatement(
+                    InternalSyntaxFactory.MissingKeyword(SyntaxKind.EndKeyword),
+                    InternalSyntaxFactory.MissingKeyword(SyntaxKind.GetKeyword)))
+
+            Return InternalSyntaxFactory.PropertyBlock(
+                propertyStatement,
+                New CoreInternalSyntax.SyntaxList(Of GreenNode)(getBlock),
+                InternalSyntaxFactory.EndPropertyStatement(
+                    InternalSyntaxFactory.MissingKeyword(SyntaxKind.EndKeyword),
+                    InternalSyntaxFactory.MissingKeyword(SyntaxKind.PropertyKeyword)))
         End Function
 
         ' Parse a declaration of a delegate.

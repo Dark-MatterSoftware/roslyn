@@ -4472,10 +4472,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend ReadOnly _asClause as SimpleAsClauseSyntax
         Friend ReadOnly _handlesClause as HandlesClauseSyntax
         Friend ReadOnly _implementsClause as ImplementsClauseSyntax
+        Friend ReadOnly _equalsToken as PunctuationSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax)
             MyBase.New(kind, attributeLists, modifiers, parameterList)
-            Me.SlotCount = 9
+            Me.SlotCount = 10
 
             AdjustFlagsAndWidth(subOrFunctionKeyword)
             Me._subOrFunctionKeyword = subOrFunctionKeyword
@@ -4497,12 +4498,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(implementsClause)
                 Me._implementsClause = implementsClause
             End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind, attributeLists, modifiers, parameterList)
-            Me.SlotCount = 9
+            Me.SlotCount = 10
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(subOrFunctionKeyword)
@@ -4525,12 +4530,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(implementsClause)
                 Me._implementsClause = implementsClause
             End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax)
             MyBase.New(kind, errors, annotations, attributeLists, modifiers, parameterList)
-            Me.SlotCount = 9
+            Me.SlotCount = 10
 
             AdjustFlagsAndWidth(subOrFunctionKeyword)
             Me._subOrFunctionKeyword = subOrFunctionKeyword
@@ -4551,6 +4560,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If implementsClause IsNot Nothing Then
                 AdjustFlagsAndWidth(implementsClause)
                 Me._implementsClause = implementsClause
+            End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
             End If
 
         End Sub
@@ -4628,6 +4641,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End Get
         End Property
 
+        ''' <summary>
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property EqualsToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._equalsToken
+            End Get
+        End Property
+
         Friend Overrides Function GetSlot(i as Integer) as GreenNode
             Select case i
                 Case 0
@@ -4648,6 +4675,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return Me._handlesClause
                 Case 8
                     Return Me._implementsClause
+                Case 9
+                    Return Me._equalsToken
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -4656,11 +4685,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new MethodStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _subOrFunctionKeyword, _identifier, _typeParameterList, _parameterList, _asClause, _handlesClause, _implementsClause)
+            Return new MethodStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _subOrFunctionKeyword, _identifier, _typeParameterList, _parameterList, _asClause, _handlesClause, _implementsClause, _equalsToken)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new MethodStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _subOrFunctionKeyword, _identifier, _typeParameterList, _parameterList, _asClause, _handlesClause, _implementsClause)
+            Return new MethodStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _subOrFunctionKeyword, _identifier, _typeParameterList, _parameterList, _asClause, _handlesClause, _implementsClause, _equalsToken)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -5529,10 +5558,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend ReadOnly _asClause as AsClauseSyntax
         Friend ReadOnly _initializer as EqualsValueSyntax
         Friend ReadOnly _implementsClause as ImplementsClauseSyntax
+        Friend ReadOnly _equalsToken as PunctuationSyntax
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax)
             MyBase.New(kind, attributeLists, modifiers, parameterList)
-            Me.SlotCount = 8
+            Me.SlotCount = 9
 
             AdjustFlagsAndWidth(propertyKeyword)
             Me._propertyKeyword = propertyKeyword
@@ -5550,12 +5580,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(implementsClause)
                 Me._implementsClause = implementsClause
             End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, attributeLists As GreenNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
             MyBase.New(kind, attributeLists, modifiers, parameterList)
-            Me.SlotCount = 8
+            Me.SlotCount = 9
             Me.SetFactoryContext(context)
 
             AdjustFlagsAndWidth(propertyKeyword)
@@ -5574,12 +5608,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 AdjustFlagsAndWidth(implementsClause)
                 Me._implementsClause = implementsClause
             End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
+            End If
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As GreenNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax)
             MyBase.New(kind, errors, annotations, attributeLists, modifiers, parameterList)
-            Me.SlotCount = 8
+            Me.SlotCount = 9
 
             AdjustFlagsAndWidth(propertyKeyword)
             Me._propertyKeyword = propertyKeyword
@@ -5596,6 +5634,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If implementsClause IsNot Nothing Then
                 AdjustFlagsAndWidth(implementsClause)
                 Me._implementsClause = implementsClause
+            End If
+            If equalsToken IsNot Nothing Then
+                AdjustFlagsAndWidth(equalsToken)
+                Me._equalsToken = equalsToken
             End If
 
         End Sub
@@ -5661,6 +5703,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End Get
         End Property
 
+        ''' <summary>
+        ''' If present, the "=" token that starts a compact "= Get expression" body. The
+        ''' Get accessor is the only accessor of the enclosing block, and the block has no
+        ''' End statement.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property EqualsToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._equalsToken
+            End Get
+        End Property
+
         Friend Overrides Function GetSlot(i as Integer) as GreenNode
             Select case i
                 Case 0
@@ -5679,6 +5735,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return Me._initializer
                 Case 7
                     Return Me._implementsClause
+                Case 8
+                    Return Me._equalsToken
                 Case Else
                     Debug.Assert(false, "child index out of range")
                     Return Nothing
@@ -5687,11 +5745,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new PropertyStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _propertyKeyword, _identifier, _parameterList, _asClause, _initializer, _implementsClause)
+            Return new PropertyStatementSyntax(Me.Kind, newErrors, GetAnnotations, _attributeLists, _modifiers, _propertyKeyword, _identifier, _parameterList, _asClause, _initializer, _implementsClause, _equalsToken)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new PropertyStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _propertyKeyword, _identifier, _parameterList, _asClause, _initializer, _implementsClause)
+            Return new PropertyStatementSyntax(Me.Kind, GetDiagnostics, annotations, _attributeLists, _modifiers, _propertyKeyword, _identifier, _parameterList, _asClause, _initializer, _implementsClause, _equalsToken)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -32808,9 +32866,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._handlesClause IsNot newHandlesClause Then anyChanges = True
             Dim newImplementsClause = DirectCast(Visit(node._implementsClause), ImplementsClauseSyntax)
             If node._implementsClause IsNot newImplementsClause Then anyChanges = True
+            Dim newEqualsToken = DirectCast(Visit(node.EqualsToken), PunctuationSyntax)
+            If node._equalsToken IsNot newEqualsToken Then anyChanges = True
 
             If anyChanges Then
-                Return New MethodStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newSubOrFunctionKeyword, newIdentifier, newTypeParameterList, newParameterList, newAsClause, newHandlesClause, newImplementsClause)
+                Return New MethodStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newSubOrFunctionKeyword, newIdentifier, newTypeParameterList, newParameterList, newAsClause, newHandlesClause, newImplementsClause, newEqualsToken)
             Else
                 Return node
             End If
@@ -32968,9 +33028,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._initializer IsNot newInitializer Then anyChanges = True
             Dim newImplementsClause = DirectCast(Visit(node._implementsClause), ImplementsClauseSyntax)
             If node._implementsClause IsNot newImplementsClause Then anyChanges = True
+            Dim newEqualsToken = DirectCast(Visit(node.EqualsToken), PunctuationSyntax)
+            If node._equalsToken IsNot newEqualsToken Then anyChanges = True
 
             If anyChanges Then
-                Return New PropertyStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newPropertyKeyword, newIdentifier, newParameterList, newAsClause, newInitializer, newImplementsClause)
+                Return New PropertyStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newPropertyKeyword, newIdentifier, newParameterList, newAsClause, newInitializer, newImplementsClause, newEqualsToken)
             Else
                 Return node
             End If
@@ -38844,10 +38906,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Shared Function SubStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Friend Shared Function SubStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As MethodStatementSyntax
             Debug.Assert(subOrFunctionKeyword IsNot Nothing AndAlso subOrFunctionKeyword.Kind = SyntaxKind.SubKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New MethodStatementSyntax(SyntaxKind.SubStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return New MethodStatementSyntax(SyntaxKind.SubStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken)
         End Function
 
 
@@ -38892,10 +38959,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Shared Function FunctionStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Friend Shared Function FunctionStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As MethodStatementSyntax
             Debug.Assert(subOrFunctionKeyword IsNot Nothing AndAlso subOrFunctionKeyword.Kind = SyntaxKind.FunctionKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New MethodStatementSyntax(SyntaxKind.FunctionStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return New MethodStatementSyntax(SyntaxKind.FunctionStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken)
         End Function
 
 
@@ -38944,11 +39016,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Shared Function MethodStatement(kind As SyntaxKind, attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Friend Shared Function MethodStatement(kind As SyntaxKind, attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As MethodStatementSyntax
             Debug.Assert(SyntaxFacts.IsMethodStatement(kind))
             Debug.Assert(subOrFunctionKeyword IsNot Nothing AndAlso SyntaxFacts.IsMethodStatementSubOrFunctionKeyword(subOrFunctionKeyword.Kind))
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New MethodStatementSyntax(kind, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return New MethodStatementSyntax(kind, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken)
         End Function
 
 
@@ -39407,10 +39484,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Shared Function PropertyStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), propertyKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact "= Get expression" body. The
+        ''' Get accessor is the only accessor of the enclosing block, and the block has no
+        ''' End statement.
+        ''' </param>
+        Friend Shared Function PropertyStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), propertyKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As PropertyStatementSyntax
             Debug.Assert(propertyKeyword IsNot Nothing AndAlso propertyKeyword.Kind = SyntaxKind.PropertyKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New PropertyStatementSyntax(SyntaxKind.PropertyStatement, attributeLists.Node, modifiers.Node, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause)
+            Return New PropertyStatementSyntax(SyntaxKind.PropertyStatement, attributeLists.Node, modifiers.Node, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, equalsToken)
         End Function
 
 
@@ -51567,10 +51649,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Function SubStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Friend Function SubStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As MethodStatementSyntax
             Debug.Assert(subOrFunctionKeyword IsNot Nothing AndAlso subOrFunctionKeyword.Kind = SyntaxKind.SubKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New MethodStatementSyntax(SyntaxKind.SubStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, _factoryContext)
+            Return New MethodStatementSyntax(SyntaxKind.SubStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken, _factoryContext)
         End Function
 
 
@@ -51615,10 +51702,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Function FunctionStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Friend Function FunctionStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As MethodStatementSyntax
             Debug.Assert(subOrFunctionKeyword IsNot Nothing AndAlso subOrFunctionKeyword.Kind = SyntaxKind.FunctionKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New MethodStatementSyntax(SyntaxKind.FunctionStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, _factoryContext)
+            Return New MethodStatementSyntax(SyntaxKind.FunctionStatement, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken, _factoryContext)
         End Function
 
 
@@ -51667,11 +51759,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Function MethodStatement(kind As SyntaxKind, attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Friend Function MethodStatement(kind As SyntaxKind, attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As MethodStatementSyntax
             Debug.Assert(SyntaxFacts.IsMethodStatement(kind))
             Debug.Assert(subOrFunctionKeyword IsNot Nothing AndAlso SyntaxFacts.IsMethodStatementSubOrFunctionKeyword(subOrFunctionKeyword.Kind))
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New MethodStatementSyntax(kind, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, _factoryContext)
+            Return New MethodStatementSyntax(kind, attributeLists.Node, modifiers.Node, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken, _factoryContext)
         End Function
 
 
@@ -52130,10 +52227,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Friend Function PropertyStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), propertyKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact "= Get expression" body. The
+        ''' Get accessor is the only accessor of the enclosing block, and the block has no
+        ''' End statement.
+        ''' </param>
+        Friend Function PropertyStatement(attributeLists As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), propertyKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As PunctuationSyntax) As PropertyStatementSyntax
             Debug.Assert(propertyKeyword IsNot Nothing AndAlso propertyKeyword.Kind = SyntaxKind.PropertyKeyword)
             Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
-            Return New PropertyStatementSyntax(SyntaxKind.PropertyStatement, attributeLists.Node, modifiers.Node, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, _factoryContext)
+            Return New PropertyStatementSyntax(SyntaxKind.PropertyStatement, attributeLists.Node, modifiers.Node, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, equalsToken, _factoryContext)
         End Function
 
 

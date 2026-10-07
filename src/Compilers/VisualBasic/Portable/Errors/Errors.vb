@@ -1844,8 +1844,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ForEachByRefDeclaresVariable = 37383
         ERR_CannotLiftByRefLocalLambda1 = 37384
         ERR_CannotLiftByRefLocalQuery1 = 37385
+        ERR_CompactMemberKeyword = 37386
 
-        ERR_NextAvailable = 37386
+        ERR_NextAvailable = 37387
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

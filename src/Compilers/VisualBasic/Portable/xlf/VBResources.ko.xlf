@@ -102,6 +102,11 @@
         <target state="translated">줄 연속 문자 뒤에 주석을 사용하려면 언어 버전 {0} 이상을 사용하세요.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_CompactMemberKeyword">
+        <source>A compact property body starts with '= Get', a compact Function body with '= Return', and a compact Sub body with '= Call'.</source>
+        <target state="new">A compact property body starts with '= Get', a compact Function body with '= Return', and a compact Sub body with '= Call'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_DeconstructionRequiresTuple">
         <source>Deconstruction requires a tuple with {0} elements.</source>
         <target state="new">Deconstruction requires a tuple with {0} elements.</target>

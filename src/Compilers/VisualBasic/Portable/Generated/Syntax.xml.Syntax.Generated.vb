@@ -6856,8 +6856,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.MethodStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, subOrFunctionKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing), if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing), if(asClause IsNot Nothing, DirectCast(asClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SimpleAsClauseSyntax), Nothing), if(handlesClause IsNot Nothing, DirectCast(handlesClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.HandlesClauseSyntax), Nothing), if(implementsClause IsNot Nothing, DirectCast(implementsClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ImplementsClauseSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, subOrFunctionKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.MethodStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, subOrFunctionKeyword, identifier, if(typeParameterList IsNot Nothing, DirectCast(typeParameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeParameterListSyntax), Nothing), if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing), if(asClause IsNot Nothing, DirectCast(asClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SimpleAsClauseSyntax), Nothing), if(handlesClause IsNot Nothing, DirectCast(handlesClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.HandlesClauseSyntax), Nothing), if(implementsClause IsNot Nothing, DirectCast(implementsClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ImplementsClauseSyntax), Nothing), equalsToken), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -6888,7 +6888,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithAttributeLists(attributeLists as SyntaxList(Of AttributeListSyntax)) As MethodStatementSyntax
-            return Update(Me.Kind, attributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, attributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddAttributeLists(ParamArray items As AttributeListSyntax()) As MethodStatementSyntax
@@ -6932,7 +6932,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As MethodStatementSyntax
@@ -6958,7 +6958,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithSubOrFunctionKeyword(subOrFunctionKeyword as SyntaxToken) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, subOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, subOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -6976,7 +6976,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIdentifier(identifier as SyntaxToken) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -6998,7 +6998,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithTypeParameterList(typeParameterList as TypeParameterListSyntax) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, typeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, typeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddTypeParameterListParameters(ParamArray items As TypeParameterSyntax()) As MethodStatementSyntax
@@ -7033,7 +7033,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, parameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, parameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As MethodStatementSyntax
@@ -7064,7 +7064,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithAsClause(asClause as SimpleAsClauseSyntax) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, asClause, Me.HandlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, asClause, Me.HandlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -7085,7 +7085,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithHandlesClause(handlesClause as HandlesClauseSyntax) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, handlesClause, Me.ImplementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, handlesClause, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddHandlesClauseEvents(ParamArray items As HandlesClauseItemSyntax()) As MethodStatementSyntax
@@ -7112,12 +7112,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithImplementsClause(implementsClause as ImplementsClauseSyntax) As MethodStatementSyntax
-            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, implementsClause)
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, implementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddImplementsClauseInterfaceMembers(ParamArray items As QualifiedNameSyntax()) As MethodStatementSyntax
             Dim _child = If(Me.ImplementsClause IsNot Nothing, Me.ImplementsClause, SyntaxFactory.ImplementsClause())
             Return Me.WithImplementsClause(_child.AddInterfaceMembers(items))
+        End Function
+
+        ''' <summary>
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property EqualsToken As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.MethodStatementSyntax)._equalsToken
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(9), Me.GetChildIndex(9))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the EqualsToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithEqualsToken(equalsToken as SyntaxToken) As MethodStatementSyntax
+            return Update(Me.Kind, Me.AttributeLists, Me.Modifiers, Me.SubOrFunctionKeyword, Me.Identifier, Me.TypeParameterList, Me.ParameterList, Me.AsClause, Me.HandlesClause, Me.ImplementsClause, equalsToken)
         End Function
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
@@ -7201,9 +7228,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="implementsClause">
         ''' The value for the ImplementsClause property.
         ''' </param>
-        Public Function Update(kind As SyntaxKind, attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
-            If kind <> Me.Kind OrElse attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse subOrFunctionKeyword <> Me.SubOrFunctionKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList OrElse parameterList IsNot Me.ParameterList OrElse asClause IsNot Me.AsClause OrElse handlesClause IsNot Me.HandlesClause OrElse implementsClause IsNot Me.ImplementsClause Then
-                Dim newNode = SyntaxFactory.MethodStatement(kind, attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+        ''' <param name="equalsToken">
+        ''' The value for the EqualsToken property.
+        ''' </param>
+        Public Function Update(kind As SyntaxKind, attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As SyntaxToken) As MethodStatementSyntax
+            If kind <> Me.Kind OrElse attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse subOrFunctionKeyword <> Me.SubOrFunctionKeyword OrElse identifier <> Me.Identifier OrElse typeParameterList IsNot Me.TypeParameterList OrElse parameterList IsNot Me.ParameterList OrElse asClause IsNot Me.AsClause OrElse handlesClause IsNot Me.HandlesClause OrElse implementsClause IsNot Me.ImplementsClause OrElse equalsToken <> Me.EqualsToken Then
+                Dim newNode = SyntaxFactory.MethodStatement(kind, attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, equalsToken)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)
@@ -8873,8 +8903,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, propertyKeyword, identifier, if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing), if(asClause IsNot Nothing, DirectCast(asClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.AsClauseSyntax), Nothing), if(initializer IsNot Nothing, DirectCast(initializer.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.EqualsValueSyntax), Nothing), if(implementsClause IsNot Nothing, DirectCast(implementsClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ImplementsClauseSyntax), Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), attributeLists As SyntaxNode, modifiers As GreenNode, propertyKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyStatementSyntax(kind, errors, annotations, if(attributeLists IsNot Nothing, attributeLists.Green, Nothing), modifiers, propertyKeyword, identifier, if(parameterList IsNot Nothing, DirectCast(parameterList.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ParameterListSyntax), Nothing), if(asClause IsNot Nothing, DirectCast(asClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.AsClauseSyntax), Nothing), if(initializer IsNot Nothing, DirectCast(initializer.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.EqualsValueSyntax), Nothing), if(implementsClause IsNot Nothing, DirectCast(implementsClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ImplementsClauseSyntax), Nothing), equalsToken), Nothing, 0)
         End Sub
 
         ''' <summary>
@@ -8905,7 +8935,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithAttributeLists(attributeLists as SyntaxList(Of AttributeListSyntax)) As PropertyStatementSyntax
-            return Update(attributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause)
+            return Update(attributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddAttributeLists(ParamArray items As AttributeListSyntax()) As PropertyStatementSyntax
@@ -8949,7 +8979,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause)
+            return Update(Me.AttributeLists, modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As PropertyStatementSyntax
@@ -8975,7 +9005,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithPropertyKeyword(propertyKeyword as SyntaxToken) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, propertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause)
+            return Update(Me.AttributeLists, Me.Modifiers, propertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -8993,7 +9023,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithIdentifier(identifier as SyntaxToken) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -9023,7 +9053,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithParameterList(parameterList as ParameterListSyntax) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, parameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, parameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddParameterListParameters(ParamArray items As ParameterSyntax()) As PropertyStatementSyntax
@@ -9054,7 +9084,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithAsClause(asClause as AsClauseSyntax) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, asClause, Me.Initializer, Me.ImplementsClause)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, asClause, Me.Initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -9076,7 +9106,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithInitializer(initializer as EqualsValueSyntax) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, initializer, Me.ImplementsClause)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, initializer, Me.ImplementsClause, Me.EqualsToken)
         End Function
 
         ''' <summary>
@@ -9098,12 +9128,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' the current value.
         ''' </summary>
         Public Shadows Function WithImplementsClause(implementsClause as ImplementsClauseSyntax) As PropertyStatementSyntax
-            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, implementsClause)
+            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, implementsClause, Me.EqualsToken)
         End Function
 
         Public Shadows Function AddImplementsClauseInterfaceMembers(ParamArray items As QualifiedNameSyntax()) As PropertyStatementSyntax
             Dim _child = If(Me.ImplementsClause IsNot Nothing, Me.ImplementsClause, SyntaxFactory.ImplementsClause())
             Return Me.WithImplementsClause(_child.AddInterfaceMembers(items))
+        End Function
+
+        ''' <summary>
+        ''' If present, the "=" token that starts a compact "= Get expression" body. The
+        ''' Get accessor is the only accessor of the enclosing block, and the block has no
+        ''' End statement.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property EqualsToken As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.PropertyStatementSyntax)._equalsToken
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.GetChildPosition(8), Me.GetChildIndex(8))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the EqualsToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithEqualsToken(equalsToken as SyntaxToken) As PropertyStatementSyntax
+            return Update(Me.AttributeLists, Me.Modifiers, Me.PropertyKeyword, Me.Identifier, Me.ParameterList, Me.AsClause, Me.Initializer, Me.ImplementsClause, equalsToken)
         End Function
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
@@ -9177,9 +9234,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="implementsClause">
         ''' The value for the ImplementsClause property.
         ''' </param>
-        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, propertyKeyword As SyntaxToken, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
-            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse propertyKeyword <> Me.PropertyKeyword OrElse identifier <> Me.Identifier OrElse parameterList IsNot Me.ParameterList OrElse asClause IsNot Me.AsClause OrElse initializer IsNot Me.Initializer OrElse implementsClause IsNot Me.ImplementsClause Then
-                Dim newNode = SyntaxFactory.PropertyStatement(attributeLists, modifiers, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause)
+        ''' <param name="equalsToken">
+        ''' The value for the EqualsToken property.
+        ''' </param>
+        Public Function Update(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, propertyKeyword As SyntaxToken, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As SyntaxToken) As PropertyStatementSyntax
+            If attributeLists <> Me.AttributeLists OrElse modifiers <> Me.Modifiers OrElse propertyKeyword <> Me.PropertyKeyword OrElse identifier <> Me.Identifier OrElse parameterList IsNot Me.ParameterList OrElse asClause IsNot Me.AsClause OrElse initializer IsNot Me.Initializer OrElse implementsClause IsNot Me.ImplementsClause OrElse equalsToken <> Me.EqualsToken Then
+                Dim newNode = SyntaxFactory.PropertyStatement(attributeLists, modifiers, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, equalsToken)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

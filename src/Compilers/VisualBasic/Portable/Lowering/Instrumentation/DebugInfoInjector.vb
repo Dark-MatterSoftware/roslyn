@@ -30,6 +30,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Private Shared Function MarkStatementWithSequencePoint(original As BoundStatement, rewritten As BoundStatement) As BoundStatement
+            ' A compact member has no End statement, so its implicit return gets a hidden sequence point.
+            Dim endBlock = TryCast(original.Syntax, EndBlockStatementSyntax)
+            If endBlock IsNot Nothing AndAlso endBlock.EndKeyword.IsMissing Then
+                Return New BoundSequencePoint(Nothing, rewritten)
+            End If
+
             Return New BoundSequencePoint(original.Syntax, rewritten)
         End Function
 

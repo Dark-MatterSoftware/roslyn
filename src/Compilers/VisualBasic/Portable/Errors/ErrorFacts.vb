@@ -1598,6 +1598,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ForEachByRefDeclaresVariable,
                      ERRID.ERR_CannotLiftByRefLocalLambda1,
                      ERRID.ERR_CannotLiftByRefLocalQuery1,
+                     ERRID.ERR_CompactMemberKeyword,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

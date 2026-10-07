@@ -131,7 +131,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                                                              Parser.ReportSyntaxError(beginBlockStmt.ParameterList, ERRID.ERR_AutoPropertyCantHaveParams),
                                                              beginBlockStmt.AsClause,
                                                              beginBlockStmt.Initializer,
-                                                             beginBlockStmt.ImplementsClause)
+                                                             beginBlockStmt.ImplementsClause,
+                                                             beginBlockStmt.EqualsToken)
             End If
 
             'Add auto property to Prev context. DO NOT call ProcessSyntax because that will create a PropertyContext.

@@ -245,7 +245,7 @@ Pulled in from wave 4. The note is in `docs/vbnext-vb050-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 18a | VB-050 | Done. `docs/vbnext-vb050-syntax.md` locks `= Get expression` on a read-only property, `= Return expression` on a `Function`, and `= Call invocation` on a `Sub`. `ReadOnly Property P As T = expr` stays an auto-property initializer. |
-| 18b | VB-050 | On `vbnext`, the three compact forms compile to the matching block bodies. A spelling on the wrong member kind is an error. Visual Basic 17.13 rejects the keyword after `=`. |
+| 18b | VB-050 | Done. On `vbnext`, `ReadOnly Property P As T = Get expr`, `Function F() As T = Return expr`, and `Sub S() = Call M()` compile to a `Get` block, a function body, and a sub body. The compact body comes after any `Implements` or `Handles` clause, and an `Async` function can `Await` in it. A keyword that belongs to another member kind reports BC37386. Visual Basic 17.13 still reports an expected end of statement after the header. |
 
 ## Phase 19 — Unchecked arithmetic
 
@@ -287,4 +287,4 @@ VB-058 is rejected. There is no implementation slice.
 
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b start now, in that order.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b and 18b are done. Slice 21b starts now.

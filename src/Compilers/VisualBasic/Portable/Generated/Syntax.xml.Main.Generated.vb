@@ -2232,9 +2232,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.HandlesClause IsNot newHandlesClause Then anyChanges = True
             Dim newImplementsClause = DirectCast(Visit(node.ImplementsClause), ImplementsClauseSyntax)
             If node.ImplementsClause IsNot newImplementsClause Then anyChanges = True
+            Dim newEqualsToken = DirectCast(VisitToken(node.EqualsToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.EqualsToken.Node IsNot newEqualsToken Then anyChanges = True
 
             If anyChanges Then
-                Return New MethodStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newSubOrFunctionKeyword, newIdentifier, newTypeParameterList, newParameterList, newAsClause, newHandlesClause, newImplementsClause)
+                Return New MethodStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newSubOrFunctionKeyword, newIdentifier, newTypeParameterList, newParameterList, newAsClause, newHandlesClause, newImplementsClause, newEqualsToken)
             Else
                 Return node
             End If
@@ -2392,9 +2394,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node.Initializer IsNot newInitializer Then anyChanges = True
             Dim newImplementsClause = DirectCast(Visit(node.ImplementsClause), ImplementsClauseSyntax)
             If node.ImplementsClause IsNot newImplementsClause Then anyChanges = True
+            Dim newEqualsToken = DirectCast(VisitToken(node.EqualsToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.EqualsToken.Node IsNot newEqualsToken Then anyChanges = True
 
             If anyChanges Then
-                Return New PropertyStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newPropertyKeyword, newIdentifier, newParameterList, newAsClause, newInitializer, newImplementsClause)
+                Return New PropertyStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAttributeLists.Node, newModifiers.Node, newPropertyKeyword, newIdentifier, newParameterList, newAsClause, newInitializer, newImplementsClause, newEqualsToken)
             Else
                 Return node
             End If
@@ -9709,7 +9713,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Public Shared Function SubStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Public Shared Function SubStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As SyntaxToken) As MethodStatementSyntax
             Select Case subOrFunctionKeyword.Kind()
                 Case SyntaxKind.SubKeyword :
                 Case SyntaxKind.FunctionKeyword
@@ -9721,7 +9730,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New MethodStatementSyntax(SyntaxKind.SubStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(subOrFunctionKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return New MethodStatementSyntax(SyntaxKind.SubStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(subOrFunctionKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList, asClause, handlesClause, implementsClause, DirectCast(equalsToken.Node, InternalSyntax.PunctuationSyntax))
         End Function
 
 
@@ -9764,7 +9773,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' method implements.
         ''' </param>
         Public Shared Function SubStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
-            Return SyntaxFactory.SubStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.SubKeyword), identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return SyntaxFactory.SubStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.SubKeyword), identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
         End Function
 
 
@@ -9778,7 +9787,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the method being declared.
         ''' </param>
         Public Shared Function SubStatement(identifier As SyntaxToken) As MethodStatementSyntax
-            Return SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), identifier, Nothing, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), identifier, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 
@@ -9792,7 +9801,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the method being declared.
         ''' </param>
         Public Shared Function SubStatement(identifier As String) As MethodStatementSyntax
-            Return SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 
@@ -9837,7 +9846,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Public Shared Function FunctionStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Public Shared Function FunctionStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As SyntaxToken) As MethodStatementSyntax
             Select Case subOrFunctionKeyword.Kind()
                 Case SyntaxKind.FunctionKeyword
                 Case Else
@@ -9848,7 +9862,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New MethodStatementSyntax(SyntaxKind.FunctionStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(subOrFunctionKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return New MethodStatementSyntax(SyntaxKind.FunctionStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(subOrFunctionKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList, asClause, handlesClause, implementsClause, DirectCast(equalsToken.Node, InternalSyntax.PunctuationSyntax))
         End Function
 
 
@@ -9891,7 +9905,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' method implements.
         ''' </param>
         Public Shared Function FunctionStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
-            Return SyntaxFactory.FunctionStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return SyntaxFactory.FunctionStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
         End Function
 
 
@@ -9905,7 +9919,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the method being declared.
         ''' </param>
         Public Shared Function FunctionStatement(identifier As SyntaxToken) As MethodStatementSyntax
-            Return SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), identifier, Nothing, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), identifier, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 
@@ -9919,9 +9933,85 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the method being declared.
         ''' </param>
         Public Shared Function FunctionStatement(identifier As String) As MethodStatementSyntax
-            Return SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
+
+        ''' <summary>
+        ''' The statement that declares a Sub or Function. If this method has a body, this
+        ''' statement will be the Begin of a BlockStatement with
+        ''' Kind=MethodDeclarationBlock, and the body of the method will be the Body of
+        ''' that BlockStatement.
+        ''' </summary>
+        ''' <param name="kind">
+        ''' A <see cref="SyntaxKind"/> representing the specific kind of
+        ''' MethodStatementSyntax. One of SubStatement, FunctionStatement.
+        ''' </param>
+        ''' <param name="attributeLists">
+        ''' A list of all attribute lists on this declaration. If no attributes were
+        ''' specified, Nothing is returned.
+        ''' </param>
+        ''' <param name="modifiers">
+        ''' A list of all the modifier tokens that were present on this declaration. If no
+        ''' modifiers were specified, an empty list is returned. A bitfield version of all
+        ''' the modifiers ORed together, which is in many cases easier to use, can be
+        ''' obtained with the Modifiers property.
+        ''' </param>
+        ''' <param name="subOrFunctionKeyword">
+        ''' The "Sub" or "Function" keyword that introduces this method declaration.
+        ''' </param>
+        ''' <param name="identifier">
+        ''' The name of the method being declared.
+        ''' </param>
+        ''' <param name="typeParameterList">
+        ''' If present, a type parameter list with generic type parameters for this method.
+        ''' If no generic type parameters were present, Nothing is returned.
+        ''' </param>
+        ''' <param name="parameterList">
+        ''' The method's parameter list including the parentheses. If no parameter list was
+        ''' present, Nothing is returned.
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The "As" clause that describes the return type. If no As clause was present,
+        ''' Nothing is returned.
+        ''' </param>
+        ''' <param name="handlesClause">
+        ''' If present, a Handles clause indicated the events that this method handles.
+        ''' </param>
+        ''' <param name="implementsClause">
+        ''' If present, an Implements clause indicated the interface methods that this
+        ''' method implements.
+        ''' </param>
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact body: "= Return expression" for
+        ''' a Function or "= Call invocation" for a Sub. The body is the only statement of
+        ''' the enclosing block, and the block has no End statement.
+        ''' </param>
+        Public Shared Function MethodStatement(ByVal kind As SyntaxKind, attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As SyntaxToken) As MethodStatementSyntax
+            If Not SyntaxFacts.IsMethodStatement(kind) Then
+                Throw New ArgumentException("kind")
+            End If
+            If (Not subOrFunctionKeyword.IsKind(GetMethodStatementSubOrFunctionKeywordKind(kind))) Then
+                Throw new ArgumentException("subOrFunctionKeyword")
+            End If
+            Select Case identifier.Kind()
+                Case SyntaxKind.IdentifierToken
+                Case Else
+                    Throw new ArgumentException("identifier")
+            End Select
+            Return New MethodStatementSyntax(kind, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(subOrFunctionKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList, asClause, handlesClause, implementsClause, DirectCast(equalsToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+        Private Shared Function GetMethodStatementSubOrFunctionKeywordKind(kind As SyntaxKind) As SyntaxKind
+            Select Case kind
+                Case SyntaxKind.SubStatement
+                    Return SyntaxKind.SubKeyword
+                Case SyntaxKind.FunctionStatement
+                    Return SyntaxKind.FunctionKeyword
+                Case Else
+                    Throw New ArgumentException("SubOrFunctionKeyword")
+            End Select
+        End Function
 
         ''' <summary>
         ''' The statement that declares a Sub or Function. If this method has a body, this
@@ -9969,30 +10059,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' method implements.
         ''' </param>
         Public Shared Function MethodStatement(ByVal kind As SyntaxKind, attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
-            If Not SyntaxFacts.IsMethodStatement(kind) Then
-                Throw New ArgumentException("kind")
-            End If
-            If (Not subOrFunctionKeyword.IsKind(GetMethodStatementSubOrFunctionKeywordKind(kind))) Then
-                Throw new ArgumentException("subOrFunctionKeyword")
-            End If
-            Select Case identifier.Kind()
-                Case SyntaxKind.IdentifierToken
-                Case Else
-                    Throw new ArgumentException("identifier")
-            End Select
-            Return New MethodStatementSyntax(kind, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(subOrFunctionKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), typeParameterList, parameterList, asClause, handlesClause, implementsClause)
+            Return SyntaxFactory.MethodStatement(kind, attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
         End Function
 
-        Private Shared Function GetMethodStatementSubOrFunctionKeywordKind(kind As SyntaxKind) As SyntaxKind
-            Select Case kind
-                Case SyntaxKind.SubStatement
-                    Return SyntaxKind.SubKeyword
-                Case SyntaxKind.FunctionStatement
-                    Return SyntaxKind.FunctionKeyword
-                Case Else
-                    Throw New ArgumentException("SubOrFunctionKeyword")
-            End Select
-        End Function
 
         ''' <summary>
         ''' The statement that declares a Sub or Function. If this method has a body, this
@@ -10011,7 +10080,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the method being declared.
         ''' </param>
         Public Shared Function MethodStatement(ByVal kind As SyntaxKind, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken) As MethodStatementSyntax
-            Return SyntaxFactory.MethodStatement(kind, Nothing, Nothing, subOrFunctionKeyword, identifier, Nothing, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.MethodStatement(kind, Nothing, Nothing, subOrFunctionKeyword, identifier, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 
@@ -10032,7 +10101,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the method being declared.
         ''' </param>
         Public Shared Function MethodStatement(ByVal kind As SyntaxKind, subOrFunctionKeyword As SyntaxToken, identifier As String) As MethodStatementSyntax
-            Return SyntaxFactory.MethodStatement(kind, Nothing, Nothing, subOrFunctionKeyword, SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.MethodStatement(kind, Nothing, Nothing, subOrFunctionKeyword, SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 
@@ -11238,7 +11307,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If present, an Implements clause indicated the interface methods that this
         ''' method implements.
         ''' </param>
-        Public Shared Function PropertyStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, propertyKeyword As SyntaxToken, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
+        ''' <param name="equalsToken">
+        ''' If present, the "=" token that starts a compact "= Get expression" body. The
+        ''' Get accessor is the only accessor of the enclosing block, and the block has no
+        ''' End statement.
+        ''' </param>
+        Public Shared Function PropertyStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, propertyKeyword As SyntaxToken, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax, equalsToken As SyntaxToken) As PropertyStatementSyntax
             Select Case propertyKeyword.Kind()
                 Case SyntaxKind.PropertyKeyword
                 Case Else
@@ -11249,7 +11323,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("identifier")
             End Select
-            Return New PropertyStatementSyntax(SyntaxKind.PropertyStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(propertyKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), parameterList, asClause, initializer, implementsClause)
+            Return New PropertyStatementSyntax(SyntaxKind.PropertyStatement, Nothing, Nothing, attributeLists.Node, modifiers.Node, DirectCast(propertyKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), parameterList, asClause, initializer, implementsClause, DirectCast(equalsToken.Node, InternalSyntax.PunctuationSyntax))
         End Function
 
 
@@ -11289,7 +11363,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' method implements.
         ''' </param>
         Public Shared Function PropertyStatement(attributeLists As SyntaxList(of AttributeListSyntax), modifiers As SyntaxTokenList, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
-            Return SyntaxFactory.PropertyStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), identifier, parameterList, asClause, initializer, implementsClause)
+            Return SyntaxFactory.PropertyStatement(attributeLists, modifiers, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), identifier, parameterList, asClause, initializer, implementsClause, Nothing)
         End Function
 
 
@@ -11303,7 +11377,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the property being declared.
         ''' </param>
         Public Shared Function PropertyStatement(identifier As SyntaxToken) As PropertyStatementSyntax
-            Return SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), identifier, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), identifier, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 
@@ -11317,7 +11391,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The name of the property being declared.
         ''' </param>
         Public Shared Function PropertyStatement(identifier As String) As PropertyStatementSyntax
-            Return SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), SyntaxFactory.Identifier(identifier), Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 

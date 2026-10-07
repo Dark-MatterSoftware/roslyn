@@ -29,6 +29,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' Creates a Sub statement without a compact body.
+        ''' </summary>
+        Public Shared Function SubStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+            Return SubStatement(attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
+        End Function
+
+        ''' <summary>
+        ''' Creates a Function statement without a compact body.
+        ''' </summary>
+        Public Shared Function FunctionStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+            Return FunctionStatement(attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
+        End Function
+
+        ''' <summary>
+        ''' Creates a Property statement without a compact body.
+        ''' </summary>
+        Public Shared Function PropertyStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, propertyKeyword As SyntaxToken, identifier As SyntaxToken, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
+            Return PropertyStatement(attributeLists, modifiers, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, Nothing)
+        End Function
+
+        ''' <summary>
         ''' Creates a With statement that does not declare a local.
         ''' </summary>
         Public Shared Function WithStatement(withKeyword As SyntaxToken, expression As ExpressionSyntax) As WithStatementSyntax

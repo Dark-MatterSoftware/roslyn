@@ -1581,6 +1581,13 @@ Unify Enum declarations with other block type declarations.
           If present, an Implements clause indicated the interface methods that this method implements.
         </description>
       </child>
+
+      <child name="EqualsToken" optional="true" kind="EqualsToken" order="110">
+        <description>
+          If present, the "=" token that starts a compact body: "= Return expression" for a Function or
+          "= Call invocation" for a Sub. The body is the only statement of the enclosing block, and the block has no End statement.
+        </description>
+      </child>
     </node-structure>
 
     <!--********************
@@ -1867,6 +1874,13 @@ Unify Enum declarations with other block type declarations.
       <child name="ImplementsClause" optional="true" kind="ImplementsClause" order="101">
         <description>
           If present, an Implements clause indicated the interface methods that this method implements.
+        </description>
+      </child>
+
+      <child name="EqualsToken" optional="true" kind="EqualsToken" order="110">
+        <description>
+          If present, the "=" token that starts a compact "= Get expression" body. The Get accessor is the only
+          accessor of the enclosing block, and the block has no End statement.
         </description>
       </child>
     </node-structure>

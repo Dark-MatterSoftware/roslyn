@@ -6,6 +6,7 @@ Imports System.Collections.Generic
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
+Imports CoreInternalSyntax = Microsoft.CodeAnalysis.Syntax.InternalSyntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     Partial Friend Class SyntaxFactory
@@ -29,6 +30,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Friend Shared Function WithStatement(withKeyword As KeywordSyntax, expression As ExpressionSyntax) As WithStatementSyntax
             Return WithStatement(withKeyword, Nothing, Nothing, Nothing, Nothing, expression)
+        End Function
+
+        Friend Shared Function SubStatement(attributeLists As CoreInternalSyntax.SyntaxList(Of GreenNode), modifiers As CoreInternalSyntax.SyntaxList(Of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+            Return SubStatement(attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
+        End Function
+
+        Friend Shared Function FunctionStatement(attributeLists As CoreInternalSyntax.SyntaxList(Of GreenNode), modifiers As CoreInternalSyntax.SyntaxList(Of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
+            Return FunctionStatement(attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
+        End Function
+
+        Friend Shared Function PropertyStatement(attributeLists As CoreInternalSyntax.SyntaxList(Of GreenNode), modifiers As CoreInternalSyntax.SyntaxList(Of GreenNode), propertyKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, parameterList As ParameterListSyntax, asClause As AsClauseSyntax, initializer As EqualsValueSyntax, implementsClause As ImplementsClauseSyntax) As PropertyStatementSyntax
+            Return PropertyStatement(attributeLists, modifiers, propertyKeyword, identifier, parameterList, asClause, initializer, implementsClause, Nothing)
         End Function
         Friend Shared Function EndOfLine(text As String, Optional elastic As Boolean = False) As SyntaxTrivia
 
