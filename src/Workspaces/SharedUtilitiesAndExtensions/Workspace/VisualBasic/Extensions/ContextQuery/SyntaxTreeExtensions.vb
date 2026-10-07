@@ -173,6 +173,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
                 Return True
             End If
 
+            If token.GetVbNextDeclarationModifierText() IsNot Nothing Then
+                Return True
+            End If
+
             ' eg. <Extension> |
             If token.Kind = SyntaxKind.GreaterThanToken AndAlso token.Parent.Kind = SyntaxKind.AttributeList Then
                 Return True

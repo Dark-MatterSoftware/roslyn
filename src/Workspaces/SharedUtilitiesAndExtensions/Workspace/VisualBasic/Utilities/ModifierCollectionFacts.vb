@@ -26,6 +26,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
         Private ReadOnly _customKeyword As SyntaxToken
         Private ReadOnly _dimKeyword As SyntaxToken
         Private ReadOnly _sharedKeyword As SyntaxToken
+        Private ReadOnly _requiredKeyword As SyntaxToken
+        Private ReadOnly _recordKeyword As SyntaxToken
 
         Private ReadOnly _declarationTypes As PossibleDeclarationTypes
 
@@ -43,7 +45,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
             Do While targetToken.IsModifier() OrElse
                      targetToken.Kind = SyntaxKind.DimKeyword OrElse
                      targetToken.HasMatchingText(SyntaxKind.AsyncKeyword) OrElse
-                     targetToken.HasMatchingText(SyntaxKind.IteratorKeyword)
+                     targetToken.HasMatchingText(SyntaxKind.IteratorKeyword) OrElse
+                     targetToken.GetVbNextDeclarationModifierText() IsNot Nothing
 
                 Select Case targetToken.Kind
                     Case SyntaxKind.PublicKeyword
@@ -191,7 +194,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                         _declarationTypes = _declarationTypes And defaultMethodFlags
 
                     Case Else
-                        If targetToken.HasMatchingText(SyntaxKind.AsyncKeyword) Then
+                        Dim vbNextModifierText = targetToken.GetVbNextDeclarationModifierText()
+                        If vbNextModifierText = InitOnlyModifierText Then
+                            _mutabilityOrWithEventsKeyword = targetToken
+                            _declarationTypes = _declarationTypes And defaultPropertyFlags
+                        ElseIf vbNextModifierText = RequiredModifierText Then
+                            _requiredKeyword = targetToken
+                            _declarationTypes = _declarationTypes And defaultPropertyFlags
+                        ElseIf vbNextModifierText = RecordModifierText Then
+                            _recordKeyword = targetToken
+                            _declarationTypes = _declarationTypes And (PossibleDeclarationTypes.Class Or PossibleDeclarationTypes.Structure)
+                        ElseIf targetToken.HasMatchingText(SyntaxKind.AsyncKeyword) Then
                             ' Contextual Async keyword
                             _asyncKeyword = targetToken
                             _declarationTypes = _declarationTypes And defaultMethodFlags
@@ -296,6 +309,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
         Public ReadOnly Property SharedKeyword As SyntaxToken
             Get
                 Return _sharedKeyword
+            End Get
+        End Property
+
+        Public ReadOnly Property RequiredKeyword As SyntaxToken
+            Get
+                Return _requiredKeyword
+            End Get
+        End Property
+
+        Public ReadOnly Property RecordKeyword As SyntaxToken
+            Get
+                Return _recordKeyword
             End Get
         End Property
 

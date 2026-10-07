@@ -44,6 +44,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 New KeywordRecommenders.Declarations.EndBlockKeywordRecommender(),
                 New KeywordRecommenders.Declarations.EnumKeywordRecommender(),
                 New KeywordRecommenders.Declarations.EventKeywordRecommender(),
+                New KeywordRecommenders.Declarations.ExtensionKeywordRecommender(),
                 New KeywordRecommenders.Declarations.ExternalSubFunctionKeywordRecommender(),
                 New KeywordRecommenders.Declarations.FunctionKeywordRecommender(),
                 New KeywordRecommenders.Declarations.GenericConstraintsKeywordRecommender(),

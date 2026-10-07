@@ -52,6 +52,16 @@
         <target state="translated">Alterar para 'TryCast'</target>
         <note />
       </trans-unit>
+      <trans-unit id="Declares_a_record_class_or_record_structure_that_compares_by_value">
+        <source>Declares a record class or record structure that compares by value.</source>
+        <target state="new">Declares a record class or record structure that compares by value.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Declares_an_extension_block_whose_members_extend_the_receiver_type">
+        <source>Declares an extension block whose members extend the receiver type.</source>
+        <target state="new">Declares an extension block whose members extend the receiver type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Insert_0">
         <source>Insert '{0}'.</source>
         <target state="translated">Inserir "{0}".</target>
@@ -115,6 +125,16 @@
       <trans-unit id="Shared_constructor">
         <source>Shared constructor</source>
         <target state="translated">Construtor compartilhado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Specifies_that_a_property_can_be_set_only_in_a_constructor_or_an_object_initializer">
+        <source>Specifies that a property can be set only in a constructor or an object initializer.</source>
+        <target state="new">Specifies that a property can be set only in a constructor or an object initializer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Specifies_that_a_property_must_be_set_in_an_object_initializer">
+        <source>Specifies that a property must be set in an object initializer.</source>
+        <target state="new">Specifies that a property must be set in an object initializer.</target>
         <note />
       </trans-unit>
       <trans-unit id="Type_a_name_here_to_declare_a_new_field">

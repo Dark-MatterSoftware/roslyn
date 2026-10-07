@@ -120,6 +120,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                 End If
             End If
 
+            ' Record |
+            ' InitOnly |
+            ' Required |
+            If context.IsTypeMemberDeclarationKeywordContext OrElse context.IsTypeDeclarationKeywordContext Then
+                If targetToken.GetVbNextDeclarationModifierText() IsNot Nothing Then
+                    Dim parentField = targetToken.Parent.FirstAncestorOrSelf(Of FieldDeclarationSyntax)()
+                    If parentField Is Nothing OrElse parentField.GetFirstToken() = targetToken Then
+                        Return ImmutableArray(Of RecommendedKeyword).Empty
+                    End If
+                End If
+            End If
+
             ' Dim goo |
             ' Using goo as new O, goo2 |
             Dim variableDeclarator = targetToken.GetAncestor(Of VariableDeclaratorSyntax)()

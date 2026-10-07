@@ -176,5 +176,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
                     Return False
             End Select
         End Function
+
+        ' This file also builds against upstream Microsoft.CodeAnalysis packages, which have no vbnext
+        ' syntax kinds or language version, so the keyword text and the version value are spelled out.
+        Private Const VbNextLanguageVersion As Integer = 9999
+
+        Friend Const InitOnlyModifierText As String = "InitOnly"
+        Friend Const RequiredModifierText As String = "Required"
+        Friend Const RecordModifierText As String = "Record"
+
+        ''' <summary>
+        ''' Returns "InitOnly", "Required", or "Record" when the token is that contextual keyword in front of a
+        ''' declaration on vbnext. Returns Nothing otherwise.
+        ''' </summary>
+        <Extension()>
+        Friend Function GetVbNextDeclarationModifierText(token As SyntaxToken) As String
+            If Not IsVbNext(token.SyntaxTree) Then
+                Return Nothing
+            End If
+
+            Dim text = token.ToString()
+            For Each modifierText In {InitOnlyModifierText, RequiredModifierText, RecordModifierText}
+                If String.Equals(text, modifierText, StringComparison.OrdinalIgnoreCase) Then
+                    Return modifierText
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        <Extension()>
+        Friend Function IsVbNext(syntaxTree As SyntaxTree) As Boolean
+            Dim options = TryCast(syntaxTree?.Options, VisualBasicParseOptions)
+            Return options IsNot Nothing AndAlso CInt(options.LanguageVersion) = VbNextLanguageVersion
+        End Function
     End Module
 End Namespace

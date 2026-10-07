@@ -13,7 +13,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
     Public Module RecommendationTestHelpers
         Private s_parts As IEnumerable(Of AbstractKeywordRecommender)
 
-        Private Function GetRecommendedKeywords(source As String, position As Integer, kind As SourceCodeKind) As IEnumerable(Of RecommendedKeyword)
+        Private Function GetRecommendedKeywords(source As String, position As Integer, parseOptions As VisualBasicParseOptions) As IEnumerable(Of RecommendedKeyword)
             If s_parts Is Nothing Then
                 s_parts = GetType(AbstractKeywordRecommender).Assembly.
                     GetTypes().
@@ -28,7 +28,6 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
                 Dim project = solution.AddProject("test", "test", LanguageNames.VisualBasic)
                 Dim document = project.AddDocument("test.cs", source)
 
-                Dim parseOptions = New VisualBasicParseOptions().WithKind(kind)
                 Dim tree = DirectCast(SyntaxFactory.ParseSyntaxTree(SourceText.From(source), parseOptions), VisualBasicSyntaxTree)
                 Dim comp = VisualBasicCompilation.Create("test", syntaxTrees:={tree}, references:={NetFramework.mscorlib})
                 Dim semanticModel = comp.GetSemanticModel(tree)
@@ -39,15 +38,15 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
 
         End Function
 
-        Private Function GetRecommendedKeywordStrings(source As String, position As Integer, kind As SourceCodeKind) As IEnumerable(Of String)
-            Dim keywords = GetRecommendedKeywords(source, position, kind)
+        Private Function GetRecommendedKeywordStrings(source As String, position As Integer, parseOptions As VisualBasicParseOptions) As IEnumerable(Of String)
+            Dim keywords = GetRecommendedKeywords(source, position, parseOptions)
             Return keywords.Select(Function(k) k.Keyword)
         End Function
 
         Friend Sub VerifyRecommendationsAreExactly(testSource As XElement, ParamArray recommendations As String())
             Dim source = ConvertTestSourceTag(testSource)
-            Dim sourceCodeKind = GetSourceCodeKind(testSource)
-            Dim recommendedKeywords = (GetRecommendedKeywordStrings(source.Replace("|", ""), source.IndexOf("|"c), sourceCodeKind)) _
+            Dim parseOptions = GetParseOptions(testSource)
+            Dim recommendedKeywords = (GetRecommendedKeywordStrings(source.Replace("|", ""), source.IndexOf("|"c), parseOptions)) _
                                       .OrderBy(Function(recommendation) recommendation) _
                                       .ToArray()
 
@@ -56,8 +55,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
 
         Friend Sub VerifyRecommendationDescriptionTextIs(testSource As XElement, keyword As String, text As String)
             Dim source = ConvertTestSourceTag(testSource)
-            Dim sourceCodeKind = GetSourceCodeKind(testSource)
-            Dim recommendedKeyword = (GetRecommendedKeywords(source.Replace("|", ""), source.IndexOf("|"c), sourceCodeKind)) _
+            Dim parseOptions = GetParseOptions(testSource)
+            Dim recommendedKeyword = (GetRecommendedKeywords(source.Replace("|", ""), source.IndexOf("|"c), parseOptions)) _
                                      .Single(Function(r) r.Keyword = keyword)
             Dim expectedText = text.Trim()
             Assert.Equal(expectedText, recommendedKeyword.DescriptionFactory(CancellationToken.None).GetFullText())
@@ -67,25 +66,25 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
             Assert.NotEmpty(recommendations)
 
             Dim source = ConvertTestSourceTag(testSource)
-            Dim sourceCodeKind = GetSourceCodeKind(testSource)
+            Dim parseOptions = GetParseOptions(testSource)
 
-            VerifyRecommendationsContainNothingTyped(source, sourceCodeKind, priority, recommendations)
-            VerifyRecommendationsContainPartiallyTyped(source, sourceCodeKind, priority, recommendations)
+            VerifyRecommendationsContainNothingTyped(source, parseOptions, priority, recommendations)
+            VerifyRecommendationsContainPartiallyTyped(source, parseOptions, priority, recommendations)
         End Sub
 
         Friend Sub VerifyRecommendationsContain(testSource As XElement, ParamArray recommendations As String())
             Assert.NotEmpty(recommendations)
 
             Dim source = ConvertTestSourceTag(testSource)
-            Dim kind = GetSourceCodeKind(testSource)
+            Dim parseOptions = GetParseOptions(testSource)
 
-            VerifyRecommendationsContainNothingTyped(source, kind, Nothing, recommendations)
-            VerifyRecommendationsContainPartiallyTyped(source, kind, Nothing, recommendations)
+            VerifyRecommendationsContainNothingTyped(source, parseOptions, Nothing, recommendations)
+            VerifyRecommendationsContainPartiallyTyped(source, parseOptions, Nothing, recommendations)
         End Sub
 
-        Private Sub VerifyRecommendationsContainNothingTyped(source As String, kind As SourceCodeKind, priority As Integer?, ParamArray recommendations As String())
+        Private Sub VerifyRecommendationsContainNothingTyped(source As String, parseOptions As VisualBasicParseOptions, priority As Integer?, ParamArray recommendations As String())
             ' Test with the | removed
-            Dim recommendedKeywords = GetRecommendedKeywords(source.Replace("|", ""), source.IndexOf("|"c), kind)
+            Dim recommendedKeywords = GetRecommendedKeywords(source.Replace("|", ""), source.IndexOf("|"c), parseOptions)
 
             Dim recommendedKeywordStrings = recommendedKeywords.Select(Function(k) k.Keyword)
             For Each recommendation In recommendations
@@ -105,10 +104,10 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
             Next
         End Sub
 
-        Private Sub VerifyRecommendationsContainPartiallyTyped(source As String, kind As SourceCodeKind, priority As Integer?, ParamArray recommendations As String())
+        Private Sub VerifyRecommendationsContainPartiallyTyped(source As String, parseOptions As VisualBasicParseOptions, priority As Integer?, ParamArray recommendations As String())
             ' Test with the | replaced with the first character of the keywords we expect
             For Each partiallyTypedRecommendation In recommendations.Select(Function(recommendation) recommendation(0)).Distinct()
-                Dim recommendedKeywords = (GetRecommendedKeywords(source.Replace("|"c, partiallyTypedRecommendation), source.IndexOf("|"c) + 1, kind)).ToArray()
+                Dim recommendedKeywords = (GetRecommendedKeywords(source.Replace("|"c, partiallyTypedRecommendation), source.IndexOf("|"c) + 1, parseOptions)).ToArray()
                 Dim recommendedKeywordStrings = recommendedKeywords.Select(Function(k) k.Keyword)
 
                 For Each recommendation In recommendations
@@ -127,9 +126,9 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
             Assert.NotEmpty(recommendations)
 
             Dim source = ConvertTestSourceTag(testSource)
-            Dim sourceCodeKind = GetSourceCodeKind(testSource)
+            Dim parseOptions = GetParseOptions(testSource)
 
-            Dim recommendedKeywords = (GetRecommendedKeywordStrings(source.Replace("|", ""), source.IndexOf("|"c), sourceCodeKind)) _
+            Dim recommendedKeywords = (GetRecommendedKeywordStrings(source.Replace("|", ""), source.IndexOf("|"c), parseOptions)) _
                                       .OrderBy(Function(recommendation) recommendation) _
                                       .ToArray()
 
@@ -140,17 +139,22 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations
 
         Friend Sub VerifyNoRecommendations(testSource As XElement)
             Dim source = ConvertTestSourceTag(testSource)
-            Dim sourceCodeKind = GetSourceCodeKind(testSource)
+            Dim parseOptions = GetParseOptions(testSource)
 
-            Dim recommendedKeywords = (GetRecommendedKeywordStrings(source.Replace("|", ""), source.IndexOf("|"c), sourceCodeKind)) _
+            Dim recommendedKeywords = (GetRecommendedKeywordStrings(source.Replace("|", ""), source.IndexOf("|"c), parseOptions)) _
                                       .OrderBy(Function(recommendation) recommendation) _
                                       .ToArray()
 
             Assert.Empty(recommendedKeywords)
         End Sub
 
-        Private Function GetSourceCodeKind(testSource As XElement) As SourceCodeKind
-            Return If(testSource.@Script = "True", SourceCodeKind.Script, SourceCodeKind.Regular)
+        Private Function GetParseOptions(testSource As XElement) As VisualBasicParseOptions
+            Dim parseOptions = New VisualBasicParseOptions().WithKind(If(testSource.@Script = "True", SourceCodeKind.Script, SourceCodeKind.Regular))
+            If testSource.@VbNext = "True" Then
+                parseOptions = parseOptions.WithLanguageVersion(LanguageVersion.VbNext)
+            End If
+
+            Return parseOptions
         End Function
     End Module
 End Namespace

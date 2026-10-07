@@ -21,8 +21,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
             End If
 
             Dim modifierFacts = context.ModifierCollectionFacts
+
+            ' Only Class or Structure follows Record.
+            If modifierFacts.RecordKeyword.Kind <> SyntaxKind.None Then
+                Return ImmutableArray(Of RecommendedKeyword).Empty
+            End If
+
             Dim recommendations As New List(Of RecommendedKeyword)
             Dim targetToken = context.TargetToken
+            Dim isVbNext = context.SyntaxTree.IsVbNext()
 
             Dim innermostDeclaration = GetInnermostDeclarationContext(targetToken)
             Dim innermostDeclarationKind =
@@ -73,6 +80,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                     modifierFacts.IteratorKeyword.Kind = SyntaxKind.None Then
 
                     recommendations.Add(New RecommendedKeyword("Partial", VBFeaturesResources.Indicates_that_a_method_class_or_structure_declaration_is_a_partial_definition_of_the_method_class_or_structure))
+                End If
+            End If
+
+            If isVbNext AndAlso
+               context.IsTypeDeclarationKeywordContext AndAlso
+               modifierFacts.CouldApplyToOneOf(PossibleDeclarationTypes.Class Or PossibleDeclarationTypes.Structure) AndAlso
+               modifierFacts.AsyncKeyword.Kind = SyntaxKind.None AndAlso
+               modifierFacts.IteratorKeyword.Kind = SyntaxKind.None Then
+
+                recommendations.Add(New RecommendedKeyword("Record", VBFeaturesResources.Declares_a_record_class_or_record_structure_that_compares_by_value))
+            End If
+
+            If isVbNext AndAlso modifierFacts.CouldApplyToOneOf(PossibleDeclarationTypes.Property) Then
+                If modifierFacts.MutabilityOrWithEventsKeyword.Kind = SyntaxKind.None Then
+                    recommendations.Add(New RecommendedKeyword("InitOnly", VBFeaturesResources.Specifies_that_a_property_can_be_set_only_in_a_constructor_or_an_object_initializer))
+                End If
+
+                If modifierFacts.RequiredKeyword.Kind = SyntaxKind.None AndAlso
+                   modifierFacts.SharedKeyword.Kind = SyntaxKind.None AndAlso
+                   Not context.IsInterfaceMemberDeclarationKeywordContext AndAlso
+                   (modifierFacts.MutabilityOrWithEventsKeyword.Kind = SyntaxKind.None OrElse
+                    modifierFacts.MutabilityOrWithEventsKeyword.GetVbNextDeclarationModifierText() = InitOnlyModifierText) Then
+                    recommendations.Add(New RecommendedKeyword("Required", VBFeaturesResources.Specifies_that_a_property_must_be_set_in_an_object_initializer))
                 End If
             End If
 
