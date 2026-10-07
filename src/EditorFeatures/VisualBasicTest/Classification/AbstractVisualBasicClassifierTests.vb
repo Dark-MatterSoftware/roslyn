@@ -10,8 +10,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Classification
     Public MustInherit Class AbstractVisualBasicClassifierTests
         Inherits AbstractClassifierTests
 
-        Protected Shared Function CreateWorkspace(code As String, testHost As TestHost) As TestWorkspace
-            Return TestWorkspace.CreateVisualBasic(code, composition:=EditorTestCompositions.EditorFeatures.WithTestHostParts(testHost))
+        Protected Shared Function CreateWorkspace(code As String, testHost As TestHost, Optional parseOptions As ParseOptions = Nothing) As TestWorkspace
+            Return TestWorkspace.CreateVisualBasic(code, parseOptions:=parseOptions, composition:=EditorTestCompositions.EditorFeatures.WithTestHostParts(testHost))
         End Function
 
         Protected Overrides Function DefaultTestAsync(code As String, allCode As String, testHost As TestHost, expected() As FormattedClassification) As Task

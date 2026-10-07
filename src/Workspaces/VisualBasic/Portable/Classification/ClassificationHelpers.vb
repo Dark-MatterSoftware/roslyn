@@ -28,7 +28,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Classification
                 Return ClassifyPunctuation(token)
             ElseIf token.Kind = SyntaxKind.IdentifierToken Then
                 Return GetSyntacticClassificationForIdentifier(token)
-            ElseIf token.IsNumericLiteral() Then
+            ElseIf token.IsNumericLiteral() OrElse token.Kind = SyntaxKind.GuidLiteralToken Then
                 Return ClassificationTypeNames.NumericLiteral
             ElseIf token.Kind = SyntaxKind.XmlNameToken Then
                 Return ClassificationTypeNames.XmlLiteralName
