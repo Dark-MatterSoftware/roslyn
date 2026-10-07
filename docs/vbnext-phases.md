@@ -273,7 +273,7 @@ Pulled in from wave 4. The spelling is in `docs/vbnext-vb060-syntax.md`.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 21a | VB-060 | Done. `docs/vbnext-vb060-syntax.md` locks a statement block inside `<%= %>` that starts with a statement keyword. `Return` and `Yield` are scoped to the block. `Let` and `Set` assignment forms are not locked. |
-| 21b | VB-060 | On `vbnext`, a statement block inside `<%= %>` produces the value of its `Return`, or a sequence of its `Yield` values. Visual Basic 17.13 still expects an expression. |
+| 21b | VB-060 | Done. On `vbnext`, a statement block inside `<%= %>` produces the value of its `Return`, or a sequence of its `Yield` values. Visual Basic 17.13 still expects an expression. |
 
 ## Phase 22 — Sub chains
 
@@ -287,4 +287,4 @@ VB-058 is rejected. There is no implementation slice.
 
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b and 18b are done. Slice 21b starts now.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. IDE support for these forms comes next.

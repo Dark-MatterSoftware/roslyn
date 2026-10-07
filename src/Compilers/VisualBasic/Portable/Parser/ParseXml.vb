@@ -2010,7 +2010,12 @@ TryResync:
             beginXmlEmbedded = TransitionFromXmlToVB(beginXmlEmbedded)
             TryEatNewLine(ScannerState.VB)
 
-            Dim value = ParseExpressionCore()
+            Dim value As ExpressionSyntax
+            If StartsXmlEmbeddedStatementBlock() Then
+                value = ParseXmlEmbeddedStatementBlock()
+            Else
+                value = ParseExpressionCore()
+            End If
 
             Dim endXmlEmbedded As PunctuationSyntax = Nothing
             If Not TryEatNewLineAndGetToken(SyntaxKind.PercentGreaterThanToken, endXmlEmbedded, createIfMissing:=False, state:=enclosingState) Then
@@ -2044,6 +2049,153 @@ TryResync:
             result = AdjustTriviaForMissingTokens(result)
             result = TransitionFromVBToXml(enclosingState, result)
             Return result
+        End Function
+
+        ' On vbnext, a statement keyword that cannot start an expression starts a statement block.
+        ' "If (" stays the If operator.
+        Private Function StartsXmlEmbeddedStatementBlock() As Boolean
+            If _scanner.Options.LanguageVersion < LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            Select Case CurrentToken.Kind
+                Case SyntaxKind.DimKeyword,
+                     SyntaxKind.ForKeyword,
+                     SyntaxKind.SelectKeyword,
+                     SyntaxKind.WhileKeyword,
+                     SyntaxKind.DoKeyword,
+                     SyntaxKind.TryKeyword,
+                     SyntaxKind.UsingKeyword,
+                     SyntaxKind.WithKeyword,
+                     SyntaxKind.ReturnKeyword
+                    Return True
+
+                Case SyntaxKind.IfKeyword
+                    Return PeekToken(1).Kind <> SyntaxKind.OpenParenToken
+
+                Case Else
+                    Return False
+            End Select
+        End Function
+
+        ' <%= statements %> means (Function() statements End Function)(), or the Iterator form when the
+        ' statements contain Yield. The tree is that invocation with zero-width header, End, and parentheses.
+        Private Function ParseXmlEmbeddedStatementBlock() As ExpressionSyntax
+            ' Parse as an iterator so that Yield is recognized, then drop the modifier if no Yield was found.
+            Dim header = MakeXmlEmbeddedBlockHeader(isIterator:=True)
+            Dim statementContext = _context
+            Dim lambdaContext = New LambdaContext(header, statementContext)
+            _context = lambdaContext
+            _xmlEmbeddedStatementBlockDepth += 1
+
+            Dim endStatement As StatementSyntax = Nothing
+
+            Do
+                If CurrentToken.Kind = SyntaxKind.PercentGreaterThanToken OrElse CurrentToken.IsEndOfParse() Then
+                    Exit Do
+                End If
+
+                Dim statement = AdjustTriviaForMissingTokens(_context.Parse())
+
+                If IsDeclarationStatement(statement.Kind) Then
+                    _context.Add(ReportSyntaxError(statement, ERRID.ERR_InvInsideEndsProc))
+                Else
+                    _context = _context.LinkSyntax(statement)
+
+                    If _context.Level < lambdaContext.Level Then
+                        endStatement = statement
+                        Exit Do
+                    End If
+                End If
+
+                If CurrentToken.Kind = SyntaxKind.PercentGreaterThanToken Then
+                    Exit Do
+                End If
+
+                _context = _context.ResyncAndProcessStatementTerminator(statement, lambdaContext)
+
+                If _context.Level < lambdaContext.Level Then
+                    Exit Do
+                End If
+            Loop
+
+            If _context.Level >= lambdaContext.Level Then
+                _context.RecoverFromMissingEnd(lambdaContext)
+            End If
+
+            _context = statementContext
+            _xmlEmbeddedStatementBlockDepth -= 1
+
+            If endStatement Is Nothing Then
+                endStatement = InternalSyntaxFactory.EndFunctionStatement(
+                    InternalSyntaxFactory.MissingKeyword(SyntaxKind.EndKeyword),
+                    InternalSyntaxFactory.MissingKeyword(SyntaxKind.FunctionKeyword))
+            End If
+
+            Dim lambda = DirectCast(lambdaContext.CreateBlockSyntax(endStatement), MultiLineLambdaExpressionSyntax)
+
+            If Not ContainsYieldStatement(lambda.Statements.Node) Then
+                lambda = InternalSyntaxFactory.MultiLineLambdaExpression(
+                    SyntaxKind.MultiLineFunctionLambdaExpression,
+                    MakeXmlEmbeddedBlockHeader(isIterator:=False),
+                    New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode)(lambda.Statements.Node),
+                    lambda.EndSubOrFunctionStatement)
+            End If
+
+            Dim parenthesized = InternalSyntaxFactory.ParenthesizedExpression(
+                InternalSyntaxFactory.MissingPunctuation(SyntaxKind.OpenParenToken),
+                lambda,
+                InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseParenToken))
+
+            Dim arguments = InternalSyntaxFactory.ArgumentList(
+                InternalSyntaxFactory.MissingPunctuation(SyntaxKind.OpenParenToken),
+                Nothing,
+                InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseParenToken))
+
+            Return InternalSyntaxFactory.InvocationExpression(parenthesized, arguments)
+        End Function
+
+        Private Shared Function MakeXmlEmbeddedBlockHeader(isIterator As Boolean) As LambdaHeaderSyntax
+            Dim modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode) = Nothing
+            If isIterator Then
+                modifiers = New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of GreenNode)(InternalSyntaxFactory.MissingKeyword(SyntaxKind.IteratorKeyword))
+            End If
+
+            Return InternalSyntaxFactory.LambdaHeader(
+                SyntaxKind.FunctionLambdaHeader,
+                Nothing,
+                modifiers,
+                InternalSyntaxFactory.MissingKeyword(SyntaxKind.FunctionKeyword),
+                InternalSyntaxFactory.ParameterList(
+                    InternalSyntaxFactory.MissingPunctuation(SyntaxKind.OpenParenToken),
+                    Nothing,
+                    InternalSyntaxFactory.MissingPunctuation(SyntaxKind.CloseParenToken)),
+                Nothing)
+        End Function
+
+        ' Yield inside a nested lambda belongs to that lambda.
+        Private Shared Function ContainsYieldStatement(node As GreenNode) As Boolean
+            If node Is Nothing Then
+                Return False
+            End If
+
+            Select Case node.RawKind
+                Case SyntaxKind.YieldStatement
+                    Return True
+                Case SyntaxKind.MultiLineFunctionLambdaExpression,
+                     SyntaxKind.MultiLineSubLambdaExpression,
+                     SyntaxKind.SingleLineFunctionLambdaExpression,
+                     SyntaxKind.SingleLineSubLambdaExpression
+                    Return False
+            End Select
+
+            For i = 0 To node.SlotCount - 1
+                If ContainsYieldStatement(node.GetSlot(i)) Then
+                    Return True
+                End If
+            Next
+
+            Return False
         End Function
 
     End Class

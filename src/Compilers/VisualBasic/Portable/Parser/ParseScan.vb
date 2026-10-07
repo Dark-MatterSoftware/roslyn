@@ -65,7 +65,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             ' // line, so test if this is the first token of the last read line.
 
             ' REM and XmlDocComment are now trivia so they have been removed from the test
-            Return SyntaxFacts.IsTerminator(t.Kind)
+            Return SyntaxFacts.IsTerminator(t.Kind) OrElse
+                (_xmlEmbeddedStatementBlockDepth > 0 AndAlso t.Kind = SyntaxKind.PercentGreaterThanToken)
         End Function
 
         ' // Parser::CanFollowStatement -- Can this token follow a complete statement?

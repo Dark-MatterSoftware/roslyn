@@ -108,7 +108,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Else
                 Dim asLambda = TryCast(node.Syntax, LambdaExpressionSyntax)
                 If asLambda IsNot Nothing Then
-                    previousPrologue = New BoundSequencePoint(asLambda.SubOrFunctionHeader, previousPrologue)
+                    ' A statement block inside <%= %> is a lambda whose header has no text.
+                    Dim header = asLambda.SubOrFunctionHeader
+                    previousPrologue = New BoundSequencePoint(If(header.DeclarationKeyword.IsMissing, Nothing, header), previousPrologue)
                 End If
             End If
 

@@ -49,6 +49,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Private _isInMethodDeclarationHeader As Boolean
         Private _isInAsyncMethodDeclarationHeader As Boolean
         Private _isInIteratorMethodDeclarationHeader As Boolean
+        Private _xmlEmbeddedStatementBlockDepth As Integer
 
         Friend Sub New(text As SourceText, options As VisualBasicParseOptions, Optional cancellationToken As CancellationToken = Nothing)
             MyClass.New(New Scanner(text, options))
