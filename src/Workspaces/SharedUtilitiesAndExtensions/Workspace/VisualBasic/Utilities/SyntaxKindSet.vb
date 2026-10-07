@@ -36,9 +36,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
             SyntaxKind.LessThanLessThanToken,
             SyntaxKind.GreaterThanGreaterThanToken,
             SyntaxKind.LessThanLessThanEqualsToken,
-            SyntaxKind.GreaterThanGreaterThanEqualsToken,
-            SyntaxKind.DotDotToken,
-            SyntaxKind.QuestionEqualsToken
+            SyntaxKind.GreaterThanGreaterThanEqualsToken
         }
 
     End Module

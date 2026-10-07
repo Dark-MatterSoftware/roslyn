@@ -170,7 +170,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Classification
         End Function
 
         Private Function ClassifyPunctuation(token As SyntaxToken) As String
-            If AllOperators.Contains(token.Kind) Then
+            If AllOperators.Contains(token.Kind) OrElse token.IsKind(SyntaxKind.DotDotToken, SyntaxKind.QuestionEqualsToken) Then
                 ' special cases...
                 Select Case token.Kind
                     Case SyntaxKind.LessThanToken, SyntaxKind.GreaterThanToken
