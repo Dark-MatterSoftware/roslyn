@@ -77,3 +77,7 @@ Microsoft.CodeAnalysis.VisualBasic.Syntax.CollectionExpressionSyntax.WithOpenPar
 Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.CollectionExpression() -> Microsoft.CodeAnalysis.VisualBasic.Syntax.CollectionExpressionSyntax
 Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.CollectionExpression(elements As Microsoft.CodeAnalysis.SeparatedSyntaxList(Of Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax)) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.CollectionExpressionSyntax
 Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.CollectionExpression(openParenToken As Microsoft.CodeAnalysis.SyntaxToken, elements As Microsoft.CodeAnalysis.SeparatedSyntaxList(Of Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax), closeParenToken As Microsoft.CodeAnalysis.SyntaxToken) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.CollectionExpressionSyntax
+Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions
+Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions.IncludeTypeCharacter = 1 -> Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions
+Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions.None = 0 -> Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions
+Microsoft.CodeAnalysis.VisualBasic.TypedConstantExtensions.ToVisualBasicString(constant As Microsoft.CodeAnalysis.TypedConstant, options As Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions) -> String

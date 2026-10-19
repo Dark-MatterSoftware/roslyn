@@ -3,6 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -112,7 +113,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Debug.Assert(Not inProgress.Contains(Me))
             Debug.Assert(Not inProgress.Any() OrElse inProgress.Head.ContainingSymbol Is ContainingSymbol)
 
-            If _lazyConstraintTypes.IsDefault Then
+            If RoslynImmutableInterlocked.VolatileRead(_lazyConstraintTypes).IsDefault Then
                 Dim diagnostics = BindingDiagnosticBag.GetInstance()
                 Dim constraints = GetDeclaredConstraints(diagnostics)
                 Dim reportConflicts = DirectConstraintConflictKind.DuplicateTypeConstraint Or
@@ -148,7 +149,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         Friend Overrides Sub EnsureAllConstraintsAreResolved()
-            If _lazyConstraintTypes.IsDefault Then
+            If RoslynImmutableInterlocked.VolatileRead(_lazyConstraintTypes).IsDefault Then
                 EnsureAllConstraintsAreResolved(ContainerTypeParameters)
             End If
         End Sub
@@ -383,4 +384,3 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
     End Class
 End Namespace
-

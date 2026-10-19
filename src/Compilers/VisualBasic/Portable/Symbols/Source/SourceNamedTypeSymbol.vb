@@ -1670,7 +1670,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' (For instance, checking constraints on Class B(Of T) Inherits A(Of B(Of T)).)
         ''' </summary>
         Private Sub CheckBaseConstraints()
-            If (m_lazyState And StateFlags.ReportedBaseClassConstraintsDiagnostics) <> 0 Then
+            If (Volatile.Read(m_lazyState) And StateFlags.ReportedBaseClassConstraintsDiagnostics) <> 0 Then
                 Return
             End If
 
@@ -1725,7 +1725,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' (For instance, checking constraints on Class C(Of T) Implements I(Of C(Of T)).)
         ''' </summary>
         Private Sub CheckInterfacesConstraints()
-            If (m_lazyState And StateFlags.ReportedInterfacesConstraintsDiagnostics) <> 0 Then
+            If (Volatile.Read(m_lazyState) And StateFlags.ReportedInterfacesConstraintsDiagnostics) <> 0 Then
                 Return
             End If
 
@@ -1753,7 +1753,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         Private Sub CheckEmbeddedAttributeImplementation()
-            If (m_lazyState And StateFlags.ReportedCodeAnalysisEmbeddedAttributeDiagnostics) <> 0 Then
+            If (Volatile.Read(m_lazyState) And StateFlags.ReportedCodeAnalysisEmbeddedAttributeDiagnostics) <> 0 Then
                 Return
             End If
 
@@ -1792,7 +1792,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         Private Sub CheckLayoutAttributes()
-            If (m_lazyState And StateFlags.ReportedLayoutAttributeDiagnostics) <> 0 Then
+            If (Volatile.Read(m_lazyState) And StateFlags.ReportedLayoutAttributeDiagnostics) <> 0 Then
                 Return
             End If
 
@@ -2844,4 +2844,3 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
     End Class
 End Namespace
-
