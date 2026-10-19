@@ -77,6 +77,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 Return AdjustNewLinesBetweenStatements(previousStatement, currentToken)
             End If
 
+            ' Case arms and End Select of a multi-line Select Case expression
+            If FormattingHelpers.StartsSelectCaseExpressionLine(currentToken) AndAlso ContainEndOfLine(previousToken, currentToken) Then
+                Return FormattingOperations.CreateAdjustNewLinesOperation(1, AdjustNewLinesOption.PreserveLines)
+            End If
+
             If previousToken.Kind = SyntaxKind.GreaterThanToken AndAlso previousToken.Parent IsNot Nothing AndAlso TypeOf previousToken.Parent Is AttributeListSyntax Then
 
                 ' This AttributeList is the last applied attribute

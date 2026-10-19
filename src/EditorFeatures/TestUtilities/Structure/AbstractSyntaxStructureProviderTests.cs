@@ -22,6 +22,8 @@ public abstract class AbstractSyntaxStructureProviderTests
 
     protected virtual string WorkspaceKind => CodeAnalysis.WorkspaceKind.Host;
 
+    protected virtual ParseOptions? ParseOptions => null;
+
     internal virtual BlockStructureOptions GetDefaultOptions()
         => new()
         {
@@ -39,7 +41,7 @@ public abstract class AbstractSyntaxStructureProviderTests
 
     private protected async Task VerifyBlockSpansAsync(string markupCode, BlockStructureOptions options, params RegionData[] expectedRegionData)
     {
-        using var workspace = TestWorkspace.Create(WorkspaceKind, LanguageName, compilationOptions: null, parseOptions: null, content: markupCode);
+        using var workspace = TestWorkspace.Create(WorkspaceKind, LanguageName, compilationOptions: null, parseOptions: ParseOptions, content: markupCode);
 
         var hostDocument = workspace.Documents.Single();
         Contract.ThrowIfNull(hostDocument.CursorPosition);
@@ -60,7 +62,7 @@ public abstract class AbstractSyntaxStructureProviderTests
 
     protected async Task VerifyNoBlockSpansAsync(string markupCode)
     {
-        using var workspace = TestWorkspace.Create(WorkspaceKind, LanguageName, compilationOptions: null, parseOptions: null, content: markupCode);
+        using var workspace = TestWorkspace.Create(WorkspaceKind, LanguageName, compilationOptions: null, parseOptions: ParseOptions, content: markupCode);
 
         var hostDocument = workspace.Documents.Single();
         Contract.ThrowIfNull(hostDocument.CursorPosition);

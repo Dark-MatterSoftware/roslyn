@@ -152,6 +152,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 If SyntaxFacts.IsPredefinedCastExpressionKeyword(previousToken.Kind) Then
                     Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine)
                 End If
+
+                ' Extension( case
+                If TypeOf currentToken.Parent Is ParameterListSyntax AndAlso
+                   currentToken.Parent.Parent Is previousToken.Parent AndAlso
+                   FormattingHelpers.IsExtensionBlockKeyword(previousToken) Then
+                    Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine)
+                End If
             End If
 
             ' [parent in argument list] ( case

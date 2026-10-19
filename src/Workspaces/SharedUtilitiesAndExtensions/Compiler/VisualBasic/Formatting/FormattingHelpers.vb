@@ -372,5 +372,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             Return False
         End Function
 
+        ' This file also builds against upstream Microsoft.CodeAnalysis packages, which have no vbnext
+        ' syntax types, so Select Case expressions and extension blocks are recognized by their shape.
+        Private Const ExtensionKeywordText As String = "Extension"
+
+        Friend Function IsSelectCaseExpression(node As SyntaxNode) As Boolean
+            If TypeOf node IsNot ExpressionSyntax Then
+                Return False
+            End If
+
+            Dim firstChild = node.ChildNodesAndTokens().FirstOrDefault()
+            Return firstChild.IsToken AndAlso firstChild.IsKind(SyntaxKind.SelectKeyword)
+        End Function
+
+        ''' <summary>
+        ''' True for the Case keyword of a Select Case expression arm and for the End keyword of a
+        ''' Select Case expression. Each starts its own line when the expression spans lines.
+        ''' </summary>
+        Friend Function StartsSelectCaseExpressionLine(token As SyntaxToken) As Boolean
+            If token.Kind = SyntaxKind.EndKeyword Then
+                Return IsSelectCaseExpression(token.Parent)
+            End If
+
+            If token.Kind = SyntaxKind.CaseKeyword Then
+                Dim caseStatement = TryCast(token.Parent, CaseStatementSyntax)
+                Return caseStatement IsNot Nothing AndAlso
+                    caseStatement.CaseKeyword = token AndAlso
+                    caseStatement.Parent IsNot Nothing AndAlso
+                    IsSelectCaseExpression(caseStatement.Parent.Parent)
+            End If
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' True for the Extension keyword that starts an extension block header.
+        ''' </summary>
+        Friend Function IsExtensionBlockKeyword(token As SyntaxToken) As Boolean
+            Dim header = TryCast(token.Parent, DeclarationStatementSyntax)
+            Return header IsNot Nothing AndAlso
+                header.GetFirstToken(includeZeroWidth:=True) = token AndAlso
+                String.Equals(token.ValueText, ExtensionKeywordText, StringComparison.OrdinalIgnoreCase) AndAlso
+                TypeOf header.ChildNodes().FirstOrDefault() Is ParameterListSyntax
+        End Function
+
     End Module
 End Namespace

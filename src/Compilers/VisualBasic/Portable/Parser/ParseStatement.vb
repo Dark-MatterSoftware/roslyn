@@ -457,10 +457,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         Private Function TryEatTerminatorsBeforeSelectCaseArm() As Boolean
+            ' Past a line break, a blank or comment-only line peeks as an empty token.
             Dim offset = 0
-            While If(offset = 0, CurrentToken, PeekToken(offset)).Kind = SyntaxKind.StatementTerminatorToken
+            Do
+                Dim kind = If(offset = 0, CurrentToken, PeekToken(offset)).Kind
+                If kind <> SyntaxKind.StatementTerminatorToken AndAlso
+                   Not (offset > 0 AndAlso kind = SyntaxKind.EmptyToken) Then
+                    Exit Do
+                End If
+
                 offset += 1
-            End While
+            Loop
 
             Dim nextToken = If(offset = 0, CurrentToken, PeekToken(offset))
             Dim continues = nextToken.Kind = SyntaxKind.CaseKeyword OrElse
@@ -474,8 +481,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         Private Sub EatStatementTerminators()
+            ' Blank and comment-only lines become leading trivia of the next token, as between statements.
             While CurrentToken.Kind = SyntaxKind.StatementTerminatorToken
-                GetNextToken()
+                GetNextToken(ScannerState.VBAllowLeadingMultilineTrivia)
             End While
         End Sub
 

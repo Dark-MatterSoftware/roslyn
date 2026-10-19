@@ -125,6 +125,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 Return
             End If
 
+            If FormattingHelpers.IsSelectCaseExpression(node) Then
+                AddSelectCaseExpressionIndentBlockOperations(operations, node)
+                Return
+            End If
+
+            If FormattingHelpers.IsSelectCaseExpression(node.Parent) Then
+                Dim caseStatement = TryCast(node.ChildNodes().FirstOrDefault(), CaseStatementSyntax)
+                If caseStatement IsNot Nothing Then
+                    AddIndentBlockOperation(operations,
+                                            caseStatement.GetFirstToken(includeZeroWidth:=True),
+                                            caseStatement.GetLastToken(includeZeroWidth:=True).GetNextToken(includeZeroWidth:=True),
+                                            node.GetLastToken(includeZeroWidth:=True))
+                    Return
+                End If
+            End If
+
             Dim label = TryCast(node, LabelStatementSyntax)
             If label IsNot Nothing Then
                 AddAbsolutePositionIndentBlockOperation(operations, label.LabelToken, label.LabelToken, 0, label.LabelToken.Span)
@@ -219,6 +235,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             End If
 
             Return outerBlock
+        End Function
+
+        Private Shared Sub AddSelectCaseExpressionIndentBlockOperations(operations As List(Of IndentBlockOperation), node As SyntaxNode)
+            Dim selectKeyword = node.GetFirstToken(includeZeroWidth:=True)
+            Dim lastToken = node.GetLastToken(includeZeroWidth:=True)
+
+            SetAlignmentBlockOperation(operations, selectKeyword,
+                                       selectKeyword.GetNextToken(includeZeroWidth:=True),
+                                       lastToken)
+
+            Dim selectedExpression = node.ChildNodes().FirstOrDefault()
+            Dim endKeyword = lastToken.GetPreviousToken(includeZeroWidth:=True)
+            If selectedExpression Is Nothing Then
+                Return
+            End If
+
+            Dim firstArmToken = selectedExpression.GetLastToken(includeZeroWidth:=True).GetNextToken(includeZeroWidth:=True)
+            AddIndentBlockOperation(operations, selectKeyword, firstArmToken, endKeyword.GetPreviousToken(includeZeroWidth:=True))
+        End Sub
+
+        Private Shared Function TryGetExtensionBlockMembers(node As SyntaxNode, ByRef members As ValueTuple(Of SyntaxToken, SyntaxToken)) As Boolean
+            If TypeOf node IsNot DeclarationStatementSyntax Then
+                Return False
+            End If
+
+            Dim extensionKeyword = node.GetFirstToken(includeZeroWidth:=True)
+            If Not FormattingHelpers.IsExtensionBlockKeyword(extensionKeyword) Then
+                Return False
+            End If
+
+            Dim header = TryCast(extensionKeyword.Parent, StatementSyntax)
+            Dim endBlock = TryCast(node.GetLastToken(includeZeroWidth:=True).Parent, EndBlockStatementSyntax)
+            If header Is Nothing OrElse header.Parent IsNot node OrElse endBlock Is Nothing OrElse endBlock.Parent IsNot node Then
+                Return False
+            End If
+
+            members = ValueTuple.Create(
+                header.GetLastToken().GetNextToken(includeZeroWidth:=True),
+                endBlock.GetFirstToken(includeZeroWidth:=True).GetPreviousToken(includeZeroWidth:=True))
+            Return True
         End Function
 
         Private Shared Sub AddXmlEmptyElement(operations As List(Of IndentBlockOperation),
@@ -477,6 +533,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             Dim [for] = TryCast(node, ForOrForEachBlockSyntax)
             If [for] IsNot Nothing Then
                 Return ValueTuple.Create([for].ForOrForEachStatement.GetLastToken().GetNextToken(includeZeroWidth:=True), GetEndTokenForForBlock([for]))
+            End If
+
+            Dim extensionMembers As ValueTuple(Of SyntaxToken, SyntaxToken) = Nothing
+            If TryGetExtensionBlockMembers(node, extensionMembers) Then
+                Return extensionMembers
             End If
 
             Return Nothing

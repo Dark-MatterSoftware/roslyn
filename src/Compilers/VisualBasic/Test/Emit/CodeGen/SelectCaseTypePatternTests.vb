@@ -3,6 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis.Test.Utilities
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
@@ -168,6 +169,52 @@ End Class
 ", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
 
             CompileAndVerify(compilation, expectedOutput:="positive1").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SelectCase_ExpressionAllowsBlankAndCommentLines()
+            Const source = "
+Class Program
+    Shared Sub Main()
+        Dim label = Select Case 2
+
+                        ' small values
+                        Case 1
+                            ""one""
+
+                        Case 2
+
+                            ""two""
+                        ' everything else
+                        Case Else
+                            ""other""
+
+                    End Select
+        System.Console.Write(label)
+    End Sub
+End Class
+"
+            Dim compilation = CreateCompilation(source, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            Assert.Equal(source, compilation.SyntaxTrees.Single().GetRoot().ToFullString())
+            CompileAndVerify(compilation, expectedOutput:="two").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SelectCase_EmptyExpressionAcrossBlankLine()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim label = Select Case 1
+
+                    End Select
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            Dim expression = compilation.SyntaxTrees.Single().GetRoot().DescendantNodes().OfType(Of SelectCaseExpressionSyntax)().Single()
+            Assert.False(expression.EndKeyword.IsMissing)
+            Assert.Empty(expression.Arms)
         End Sub
 
         <Fact>
