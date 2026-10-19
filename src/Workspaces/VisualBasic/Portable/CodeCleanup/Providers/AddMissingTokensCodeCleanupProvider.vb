@@ -8,6 +8,7 @@ Imports System.Diagnostics.CodeAnalysis
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.VisualBasic.Extensions
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
@@ -138,7 +139,7 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
                 Dim newNode = MyBase.VisitInvocationExpression(node)
 
                 ' make sure we are not under structured trivia
-                If _underStructuredTrivia Then
+                If _underStructuredTrivia OrElse node.IsXmlEmbeddedStatementBlock() Then
                     Return newNode
                 End If
 
@@ -214,6 +215,10 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
             End Function
 
             Public Overrides Function VisitLambdaHeader(node As LambdaHeaderSyntax) As SyntaxNode
+                If TryCast(node.Parent, MultiLineLambdaExpressionSyntax).IsXmlEmbeddedStatementBlock() Then
+                    Return MyBase.VisitLambdaHeader(node)
+                End If
+
                 Dim rewrittenLambdaHeader = DirectCast(MyBase.VisitLambdaHeader(node), LambdaHeaderSyntax)
                 rewrittenLambdaHeader = AsyncOrIteratorFunctionReturnTypeFixer.RewriteLambdaHeader(rewrittenLambdaHeader, Me._model, node, Me._cancellationToken)
                 Return AddParameterListTransform(node, rewrittenLambdaHeader, Function(n) True)

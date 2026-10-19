@@ -150,6 +150,69 @@ End Module
         End Function
 
         <Fact>
+        Public Async Function StatementsAfterUsingDeclarationStayAtItsLevel() As Task
+            Await AssertVbNextFormatAsync("
+Class C
+    Sub M()
+        Using stream = New System.IO.MemoryStream()
+            stream.WriteByte(1)
+                stream.WriteByte(2)
+    End Sub
+End Class
+", "
+Class C
+    Sub M()
+        Using stream = New System.IO.MemoryStream()
+        stream.WriteByte(1)
+        stream.WriteByte(2)
+    End Sub
+End Class
+")
+        End Function
+
+        <Fact>
+        Public Async Function NamespaceToEndOfFileDoesNotIndentMembers() As Task
+            Await AssertVbNextFormatAsync("
+Namespace N
+    Class C
+        Sub M()
+        End Sub
+    End Class
+", "
+Namespace N
+Class C
+    Sub M()
+    End Sub
+End Class
+")
+        End Function
+
+        <Fact>
+        Public Async Function XmlStatementBlockIndentsFromItsFirstStatement() As Task
+            Await AssertVbNextFormatAsync("
+Module M
+    Function Items(names As String()) As System.Xml.Linq.XElement
+        Return <ul>
+                   <%= For Each name In names
+                   Yield <li><%= name %></li>
+                   Next %>
+               </ul>
+    End Function
+End Module
+", "
+Module M
+    Function Items(names As String()) As System.Xml.Linq.XElement
+        Return <ul>
+                   <%= For Each name In names
+                           Yield <li><%= name %></li>
+                       Next %>
+               </ul>
+    End Function
+End Module
+")
+        End Function
+
+        <Fact>
         Public Async Function RecordClassIndentsLikeClass() As Task
             Await AssertVbNextFormatAsync("
 Record Class Point(X As Integer, Y As Integer)

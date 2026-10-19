@@ -5,6 +5,7 @@
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Formatting.Rules
 Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.VisualBasic.Extensions
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
@@ -110,6 +111,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             End If
 
             Dim multiLineLambda = TryCast(node, MultiLineLambdaExpressionSyntax)
+            If multiLineLambda.IsXmlEmbeddedStatementBlock() Then
+                ' The header is not in the source, so the statements align with the first one.
+                If multiLineLambda.Statements.Count > 0 Then
+                    Dim firstToken = multiLineLambda.Statements.First().GetFirstToken(includeZeroWidth:=True)
+                    SetAlignmentBlockOperation(operations, firstToken,
+                                               firstToken.GetNextToken(includeZeroWidth:=True),
+                                               multiLineLambda.GetLastToken(includeZeroWidth:=True))
+                End If
+
+                Return
+            End If
+
             If multiLineLambda IsNot Nothing Then
                 ' unlike C#, we need to consider statement terminator token when setting range for indentation
                 Dim baseToken = multiLineLambda.SubOrFunctionHeader.GetFirstToken(includeZeroWidth:=True)
@@ -144,6 +157,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             Dim label = TryCast(node, LabelStatementSyntax)
             If label IsNot Nothing Then
                 AddAbsolutePositionIndentBlockOperation(operations, label.LabelToken, label.LabelToken, 0, label.LabelToken.Span)
+                Return
+            End If
+
+            If IsBlockWithoutEnd(node) Then
                 Return
             End If
 
@@ -235,6 +252,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             End If
 
             Return outerBlock
+        End Function
+
+        ''' <summary>
+        ''' True for a Using with no End Using, and a Namespace that runs to the end of the file, where
+        ''' the language allows it. The statements that follow stay at the level of the header. Where
+        ''' the End is required, its absence is an error on the header and the block still indents.
+        ''' </summary>
+        Private Shared Function IsBlockWithoutEnd(node As SyntaxNode) As Boolean
+            Dim usingBlock = TryCast(node, UsingBlockSyntax)
+            If usingBlock IsNot Nothing Then
+                Return usingBlock.EndUsingStatement.IsMissing AndAlso Not usingBlock.UsingStatement.ContainsDiagnostics
+            End If
+
+            Dim namespaceBlock = TryCast(node, NamespaceBlockSyntax)
+            If namespaceBlock IsNot Nothing Then
+                Return namespaceBlock.EndNamespaceStatement.IsMissing AndAlso Not namespaceBlock.NamespaceStatement.ContainsDiagnostics
+            End If
+
+            Return False
         End Function
 
         Private Shared Sub AddSelectCaseExpressionIndentBlockOperations(operations As List(Of IndentBlockOperation), node As SyntaxNode)

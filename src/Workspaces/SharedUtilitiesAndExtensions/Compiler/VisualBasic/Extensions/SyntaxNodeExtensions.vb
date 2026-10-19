@@ -231,6 +231,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             Return SyntaxFacts.IsMultiLineLambdaExpression(node.Kind())
         End Function
 
+        ''' <summary>
+        ''' True for the lambda that the parser builds around a statement block inside an XML embedded
+        ''' expression, such as &lt;%= For Each x In xs ... Next %&gt;. Its header, End statement,
+        ''' and invocation parentheses are zero-width missing tokens that are not in the source.
+        ''' </summary>
+        <Extension()>
+        Friend Function IsXmlEmbeddedStatementBlock(lambda As MultiLineLambdaExpressionSyntax) As Boolean
+            Return lambda IsNot Nothing AndAlso
+                lambda.SubOrFunctionHeader.DeclarationKeyword.IsMissing AndAlso
+                TypeOf lambda.Parent Is ParenthesizedExpressionSyntax AndAlso
+                DirectCast(lambda.Parent, ParenthesizedExpressionSyntax).OpenParenToken.IsMissing
+        End Function
+
+        ''' <summary>
+        ''' True for the invocation that wraps an XML embedded statement block.
+        ''' </summary>
+        <Extension()>
+        Friend Function IsXmlEmbeddedStatementBlock(invocation As InvocationExpressionSyntax) As Boolean
+            Dim parenthesized = TryCast(invocation?.Expression, ParenthesizedExpressionSyntax)
+            Return parenthesized IsNot Nothing AndAlso
+                TryCast(parenthesized.Expression, MultiLineLambdaExpressionSyntax).IsXmlEmbeddedStatementBlock()
+        End Function
+
         <Extension()>
         Friend Function GetTypeCharacterString(type As TypeCharacter) As String
             Select Case type
