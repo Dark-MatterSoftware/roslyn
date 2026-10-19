@@ -545,8 +545,9 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                         VisualBasicSyntaxNode syntax = applyParenthesizedIfAnyVB((VisualBasicSyntaxNode)candidate.Syntax);
                         VisualBasicSyntaxNode parent = syntax.Parent;
 
+                        // With Dim name = value targets the declared name.
                         if (parent is WithStatementSyntax with &&
-                            with.Expression == syntax)
+                            (with.Expression == syntax || with.Identifier == syntax))
                         {
                             return true;
                         }
@@ -1217,6 +1218,21 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                                         return true;
                                     }
                                     break;
+
+                                // vbnext collection expressions, such as (1, 2) targeting a List(Of Integer), initialize the collection like From { }.
+                                case VisualBasic.SyntaxKind.TupleExpression:
+                                    if (((VisualBasic.Syntax.TupleExpressionSyntax)syntax).Arguments.Any())
+                                    {
+                                        return true;
+                                    }
+                                    break;
+
+                                case VisualBasic.SyntaxKind.CollectionExpression:
+                                    if (((VisualBasic.Syntax.CollectionExpressionSyntax)syntax).Elements.Any())
+                                    {
+                                        return true;
+                                    }
+                                    break;
                             }
 
                             VisualBasicSyntaxNode parent = syntax.Parent;
@@ -1258,7 +1274,9 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                                     break;
 
                                 case VisualBasic.SyntaxKind.WithStatement:
-                                    if (((VisualBasic.Syntax.WithStatementSyntax)parent).Expression == syntax)
+                                    // With Dim name = value targets the declared name.
+                                    if (((VisualBasic.Syntax.WithStatementSyntax)parent).Expression == syntax ||
+                                        ((VisualBasic.Syntax.WithStatementSyntax)parent).Identifier == syntax)
                                     {
                                         return true;
                                     }

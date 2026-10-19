@@ -1299,7 +1299,7 @@ Namespace Microsoft.CodeAnalysis.Operations
 
         Private Function CreateBoundBlockOperation(boundBlock As BoundBlock) As IBlockOperation
             Dim operations As ImmutableArray(Of IOperation) = CreateFromArray(Of BoundStatement, IOperation)(boundBlock.Statements)
-            Dim locals As ImmutableArray(Of ILocalSymbol) = boundBlock.Locals.As(Of ILocalSymbol)()
+            Dim locals As ImmutableArray(Of ILocalSymbol) = SequenceLocalsCollector.GetBlockLocals(boundBlock).As(Of ILocalSymbol)()
             Dim syntax As SyntaxNode = boundBlock.Syntax
             Dim isImplicit As Boolean = boundBlock.WasCompilerGenerated
             Return New BlockOperation(operations, locals, _semanticModel, syntax, isImplicit)

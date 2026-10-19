@@ -2642,6 +2642,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         For Each localDecl In multipleDecl.LocalDeclarations
                             DeclareLocal(locals, localDecl)
                         Next
+
+                    Case BoundKind.Block
+                        ' Dim (x, y) = value declares x and y in this statement list, like Dim x, y.
+                        ' The statement's own block keeps only its temporaries.
+                        If boundStatement.Syntax.Kind = SyntaxKind.TupleDeconstructionStatement Then
+                            boundStatements(i) = HoistDeconstructedLocals(DirectCast(boundStatement, BoundBlock), locals)
+                        End If
                 End Select
             Next i
 
@@ -2650,6 +2657,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundBlock(syntax, stmtList, locals.ToImmutableAndFree, boundStatements.AsImmutableOrNull())
+        End Function
+
+        Private Shared Function HoistDeconstructedLocals(statement As BoundBlock, ByRef locals As ArrayBuilder(Of LocalSymbol)) As BoundBlock
+            Dim temporaries = ArrayBuilder(Of LocalSymbol).GetInstance()
+            For Each local In statement.Locals
+                If local.SynthesizedKind = SynthesizedLocalKind.UserDefined Then
+                    If locals Is Nothing Then
+                        locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+                    End If
+
+                    locals.Add(local)
+                Else
+                    temporaries.Add(local)
+                End If
+            Next
+
+            Return statement.Update(statement.StatementListSyntax, temporaries.ToImmutableAndFree(), statement.Statements)
         End Function
 
         Private Shared Sub DeclareLocal(ByRef locals As ArrayBuilder(Of LocalSymbol), localDecl As BoundLocalDeclarationBase)
