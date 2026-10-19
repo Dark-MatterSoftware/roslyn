@@ -32,7 +32,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Class
 
         Private Function BindSelectCaseExpression(node As SelectCaseExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
-            Dim expression = BindValue(node.Expression, diagnostics)
+            Dim expression = BindRValue(node.Expression, diagnostics)
             Dim placeholder = New BoundRValuePlaceholder(node.Expression, If(expression.Type, ErrorTypeSymbol.UnknownResultType))
             placeholder.SetWasCompilerGenerated()
 
@@ -69,7 +69,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Next
 
                 If condition IsNot Nothing Then
-                    conditions.Add(condition)
+                    conditions.Add(condition.MakeTreeCompilerGenerated())
                     values.Add(armValue)
                 End If
             Next
@@ -87,20 +87,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             For i = values.Count - 1 To 0 Step -1
                 Dim armValue = ApplyImplicitConversion(values(i).Syntax, resultType, values(i), diagnostics)
-                result = New BoundTernaryConditionalExpression(node, conditions(i), armValue, result, Nothing, resultType)
+                result = New BoundTernaryConditionalExpression(node, conditions(i), armValue, result, Nothing, resultType).MakeCompilerGenerated()
             Next
 
             conditions.Free()
             values.Free()
 
+            ' Only the sequence stands for the Select Case expression in the operation tree.
             Dim temp As LocalSymbol = New SynthesizedLocal(ContainingMember, expression.Type, SynthesizedLocalKind.LoweringTemp)
             Dim stored = New BoundAssignmentOperator(
                 node,
-                New BoundLocal(node, temp, expression.Type),
+                New BoundLocal(node, temp, expression.Type).MakeCompilerGenerated(),
                 expression,
                 suppressObjectClone:=True,
-                type:=expression.Type)
-            Dim replacement = New BoundLocal(node, temp, expression.Type).MakeRValue()
+                type:=expression.Type).MakeCompilerGenerated()
+            Dim replacement = New BoundLocal(node, temp, expression.Type).MakeCompilerGenerated().MakeRValue()
             result = DirectCast(New PlaceholderReplacer(replacement).Visit(result), BoundExpression)
             Return New BoundSequence(node, ImmutableArray.Create(temp), ImmutableArray.Create(Of BoundExpression)(stored), result, resultType)
         End Function
@@ -641,7 +642,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 hasErrors = hasErrors OrElse condition.HasErrors
             Next
 
-            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=hasErrors)
+            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition.MakeTreeCompilerGenerated(), hasErrors:=hasErrors)
         End Function
 
         Private Function BindPropertyCaseFilter(node As PropertyCaseClauseSyntax, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -704,7 +705,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim condition = BindListComparisons(node, selectExpressionOpt, diagnostics)
-            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=condition.HasErrors)
+            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition.MakeTreeCompilerGenerated(), hasErrors:=condition.HasErrors)
         End Function
 
         Private Function BindListComparisons(node As ListCaseClauseSyntax, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -861,7 +862,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim condition = BindPositionalComparisons(node, selectExpressionOpt, node.Arguments, diagnostics)
-            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition, hasErrors:=condition.HasErrors)
+            Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition.MakeTreeCompilerGenerated(), hasErrors:=condition.HasErrors)
         End Function
 
         Private Function BindPositionalComparisons(syntax As SyntaxNode, receiver As BoundExpression, arguments As SeparatedSyntaxList(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag) As BoundExpression

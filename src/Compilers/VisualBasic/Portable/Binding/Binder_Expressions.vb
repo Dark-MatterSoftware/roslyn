@@ -850,10 +850,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim temp = New SynthesizedLocal(ContainingMember, operandType, SynthesizedLocalKind.LoweringTemp)
             Dim stored = New BoundAssignmentOperator(
                 node,
-                New BoundLocal(node, temp, operandType),
+                New BoundLocal(node, temp, operandType).MakeCompilerGenerated(),
                 operand,
                 suppressObjectClone:=True,
-                type:=operandType)
+                type:=operandType).MakeCompilerGenerated()
             Dim condition As BoundExpression = Nothing
 
             For i = 0 To node.Types.Count - 1
@@ -874,7 +874,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             Next
 
-            Return New BoundSequence(node, ImmutableArray.Create(Of LocalSymbol)(temp), ImmutableArray.Create(Of BoundExpression)(stored), condition, resultType)
+            Return New BoundSequence(node, ImmutableArray.Create(Of LocalSymbol)(temp), ImmutableArray.Create(Of BoundExpression)(stored), condition.MakeTreeCompilerGenerated(), resultType)
         End Function
 
         Private Function BindTypeOfAgainst(typeSyntax As TypeSyntax, operand As BoundExpression, rejectType As Boolean, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -4095,9 +4095,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim spillStore As BoundExpression = Nothing
             If hasFromEnd AndAlso expr.Kind <> BoundKind.Local AndAlso expr.Kind <> BoundKind.Parameter AndAlso expr.Type IsNot Nothing AndAlso ContainingMember IsNot Nothing Then
                 spillLocal = New SynthesizedLocal(ContainingMember, expr.Type, SynthesizedLocalKind.LoweringTemp)
-                Dim storeTarget = New BoundLocal(expr.Syntax, spillLocal, expr.Type)
-                spillStore = New BoundAssignmentOperator(expr.Syntax, storeTarget, expr, suppressObjectClone:=True, type:=expr.Type)
-                receiver = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeRValue()
+                Dim storeTarget = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeCompilerGenerated()
+                spillStore = New BoundAssignmentOperator(expr.Syntax, storeTarget, expr, suppressObjectClone:=True, type:=expr.Type).MakeCompilerGenerated()
+                receiver = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeCompilerGenerated().MakeRValue()
             End If
 
             Dim convertedArguments = ArrayBuilder(Of BoundExpression).GetInstance(boundArguments.Length)
@@ -4143,7 +4143,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return result
             End If
 
-            Return New BoundSequence(node, ImmutableArray.Create(spillLocal), ImmutableArray.Create(spillStore), result, result.Type)
+            Return New BoundSequence(node, ImmutableArray.Create(spillLocal), ImmutableArray.Create(spillStore), result, result.Type).MakeCompilerGenerated()
         End Function
 
         Private Function BindFromEndIndexExpression(node As UnaryExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -4292,15 +4292,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If receiver.Kind <> BoundKind.Local AndAlso receiver.Kind <> BoundKind.Parameter AndAlso ContainingMember IsNot Nothing Then
                 Dim spillLocal = New SynthesizedLocal(ContainingMember, receiver.Type, SynthesizedLocalKind.LoweringTemp)
-                Dim storeTarget = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type)
-                sideEffects.Add(New BoundAssignmentOperator(receiver.Syntax, storeTarget, receiver, suppressObjectClone:=True, type:=receiver.Type))
+                Dim storeTarget = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type).MakeCompilerGenerated()
+                sideEffects.Add(New BoundAssignmentOperator(receiver.Syntax, storeTarget, receiver, suppressObjectClone:=True, type:=receiver.Type).MakeCompilerGenerated())
                 locals.Add(spillLocal)
-                receiver = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type)
+                receiver = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type).MakeCompilerGenerated()
             End If
 
+            ' The Item or Slice call stands for the access. The length arithmetic around it is synthesized.
             Dim result As BoundExpression
             If fromEnd IsNot Nothing Then
-                Dim index = New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type)
+                Dim index = New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated()
                 result = New BoundCall(node, members.Item, Nothing, receiver, ImmutableArray.Create(Of BoundExpression)(index), Nothing, members.Item.ReturnType)
             Else
                 Dim startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
@@ -4309,10 +4310,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
                 locals.Add(startLocal)
                 locals.Add(endLocal)
-                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, isLValue:=True, type:=int32Type), startValue, suppressObjectClone:=True, type:=int32Type))
-                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, isLValue:=True, type:=int32Type), endValue, suppressObjectClone:=True, type:=int32Type))
-                Dim count = SliceLength(syntax, startLocal, endLocal, int32Type)
-                result = New BoundCall(node, members.Slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeRValue(), count), Nothing, members.Slice.ReturnType)
+                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, isLValue:=True, type:=int32Type), startValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
+                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, isLValue:=True, type:=int32Type), endValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
+                Dim count = SliceLength(syntax, startLocal, endLocal, int32Type).MakeTreeCompilerGenerated()
+                result = New BoundCall(node, members.Slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeCompilerGenerated().MakeRValue(), count), Nothing, members.Slice.ReturnType)
             End If
 
             If locals.Count = 0 Then
@@ -4321,7 +4322,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return result
             End If
 
-            Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), result, result.Type)
+            Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), result, result.Type).MakeCompilerGenerated()
         End Function
 
         Private Function SpanNormalizeBound(operand As BoundExpression, receiver As BoundExpression, members As SpanMembers, int32Type As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -4349,13 +4350,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
 
+            ' The sequence stands for the range. Everything in it except the receiver is synthesized.
             If expr.Kind <> BoundKind.Local AndAlso expr.Kind <> BoundKind.Parameter Then
                 Dim spillLocal = New SynthesizedLocal(ContainingMember, expr.Type, SynthesizedLocalKind.LoweringTemp)
-                Dim storeTarget = New BoundLocal(expr.Syntax, spillLocal, expr.Type)
-                sideEffects.Add(New BoundAssignmentOperator(expr.Syntax, storeTarget, expr, suppressObjectClone:=True, type:=expr.Type))
+                Dim storeTarget = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeCompilerGenerated()
+                sideEffects.Add(New BoundAssignmentOperator(expr.Syntax, storeTarget, expr, suppressObjectClone:=True, type:=expr.Type).MakeCompilerGenerated())
                 locals.Add(spillLocal)
-                receiver = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeRValue()
+                receiver = New BoundLocal(expr.Syntax, spillLocal, expr.Type).MakeCompilerGenerated().MakeRValue()
             End If
+            Dim synthesizedFrom = sideEffects.Count
 
             Dim startLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
             Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
@@ -4391,7 +4394,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 copyMethod.ReturnType)
             sideEffects.Add(copy)
 
-            Dim result = New BoundLocal(node, resultLocal, arrayType).MakeRValue()
+            For i = synthesizedFrom To sideEffects.Count - 1
+                sideEffects(i).MakeTreeCompilerGenerated()
+            Next
+
+            Dim result = New BoundLocal(node, resultLocal, arrayType).MakeCompilerGenerated().MakeRValue()
             Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), result, arrayType)
         End Function
 
@@ -4468,7 +4475,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function RewriteFromEndIndex(fromEnd As BoundFromEndIndexExpression, receiver As BoundExpression, dimension As Integer, int32Type As TypeSymbol) As BoundExpression
             Dim length = ArrayDimensionLength(receiver, dimension, fromEnd.Syntax, int32Type)
-            Return New BoundBinaryOperator(fromEnd.Syntax, BinaryOperatorKind.Subtract, length, fromEnd.Operand, CheckOverflow, int32Type)
+            Return New BoundBinaryOperator(fromEnd.Syntax, BinaryOperatorKind.Subtract, length, fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated()
         End Function
 
         Private Function ArrayDimensionLength(receiver As BoundExpression, dimension As Integer, syntax As SyntaxNode, int32Type As TypeSymbol) As BoundExpression

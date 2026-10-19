@@ -18,7 +18,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
 
         Private Shared ReadOnly VbNext As VisualBasicParseOptions = TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext)
 
-        <Fact(Skip:="vbnext binders reuse syntax for synthesized nodes, so the operation tree has duplicate nodes. See Phase 24 in docs/vbnext-phases.md.")>
+        <Fact>
         Public Sub SelectCaseExpressionAndPatterns()
             VerifyOperationTrees("
 Class Customer
@@ -49,7 +49,7 @@ End Class
 ")
         End Sub
 
-        <Fact(Skip:="vbnext binders reuse syntax for synthesized nodes, so the operation tree has duplicate nodes. See Phase 24 in docs/vbnext-phases.md.")>
+        <Fact>
         Public Sub IndexFromEndAndRange()
             VerifyOperationTrees("
 Class Program
@@ -63,7 +63,7 @@ End Class
 ")
         End Sub
 
-        <Fact(Skip:="vbnext binders reuse syntax for synthesized nodes, so the operation tree has duplicate nodes. See Phase 24 in docs/vbnext-phases.md.")>
+        <Fact>
         Public Sub CollectionExpressionWithSpread()
             VerifyOperationTrees("
 Imports System.Collections.Generic
@@ -76,7 +76,7 @@ End Module
 ")
         End Sub
 
-        <Fact(Skip:="vbnext binders reuse syntax for synthesized nodes, so the operation tree has duplicate nodes. See Phase 24 in docs/vbnext-phases.md.")>
+        <Fact>
         Public Sub ForEachWithIndex()
             VerifyOperationTrees("
 Class Program
@@ -90,7 +90,7 @@ End Class
 ")
         End Sub
 
-        <Fact(Skip:="vbnext binders reuse syntax for synthesized nodes, so the operation tree has duplicate nodes. See Phase 24 in docs/vbnext-phases.md.")>
+        <Fact>
         Public Sub CoalescingAndConditionalAssignment()
             VerifyOperationTrees("
 Class Box
@@ -106,7 +106,7 @@ End Class
 ")
         End Sub
 
-        <Fact(Skip:="vbnext binders reuse syntax for synthesized nodes, so the operation tree has duplicate nodes. See Phase 24 in docs/vbnext-phases.md.")>
+        <Fact>
         Public Sub RecordWith()
             VerifyOperationTrees("
 Namespace System.Runtime.CompilerServices
@@ -128,6 +128,53 @@ End Module
 ")
         End Sub
 
+        <Fact>
+        Public Sub WithDimAndTupleDeconstruction()
+            VerifyOperationTrees("
+Class Customer
+    Public Name As String
+End Class
+Class Program
+    Shared Function NextPoint() As (Integer, Integer)
+        Return (1, 2)
+    End Function
+    Shared Sub Main()
+        With Dim customer = New Customer()
+            .Name = ""Ada""
+        End With
+        Dim (x, y) = NextPoint()
+        (x, y) = NextPoint()
+        System.Console.Write(x + y)
+    End Sub
+End Class
+")
+        End Sub
+
+        <Fact>
+        Public Sub PositionalPatternAndTypeOfList()
+            VerifyOperationTrees("
+Class Point
+    Public X As Integer
+    Public Y As Integer
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X
+        y = Me.Y
+    End Sub
+End Class
+Class Program
+    Shared Function Describe(value As Object) As String
+        If TypeOf value Is {Point, String} Then
+            Select Case value
+                Case Is TypeOf Point(1, 2)
+                    Return ""origin""
+            End Select
+        End If
+        Return ""other""
+    End Function
+End Class
+")
+        End Sub
+
         Private Shared Sub VerifyOperationTrees(source As String)
             Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
             compilation.VerifyDiagnostics()
@@ -142,7 +189,10 @@ End Module
                 Assert.NotNull(operation)
                 For Each descendant In operation.DescendantsAndSelf()
                     Assert.NotNull(descendant.Syntax)
+                    Assert.Same(tree, descendant.Syntax.SyntaxTree)
                 Next
+
+                Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
             Next
         End Sub
     End Class

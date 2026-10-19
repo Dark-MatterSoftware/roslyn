@@ -45,7 +45,8 @@ dotnet run --project vbnext\samples\HelloVbNext\HelloVbNext.vbproj
 | `VbcToolPath`, `VbcToolExe` | The Vb.Next `vbc.exe` | The `Vbc` task runs this compiler. |
 | `UseSharedCompilation` | `false` | The SDK's compiler server would compile with the SDK's compiler. |
 | `UseHostCompilerIfAvailable` | `false` | Visual Studio's in-process compiler would compile with the Roslyn build inside Visual Studio. |
-| `RunAnalyzers` | `false`, unless the project sets it | Analyzers read IOperation trees, and several `vbnext` expressions do not build them correctly yet. Slice 24b in [vbnext-phases.md](vbnext-phases.md) tracks the fix. |
+
+Analyzers stay on. The sample builds with `-p:AnalysisMode=All`, which turns on every .NET analyzer.
 
 ## Visual Studio
 

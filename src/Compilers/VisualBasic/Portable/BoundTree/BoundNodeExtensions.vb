@@ -44,6 +44,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' Marks a node and every node below it as compiler generated. Use it for a tree that the binder
+        ''' synthesizes from one piece of syntax, so that the tree adds no explicit node to the operation tree.
+        ''' </summary>
+        <Extension()>
+        Public Function MakeTreeCompilerGenerated(Of T As BoundNode)(this As T) As T
+            If this IsNot Nothing Then
+                Dim marker As New CompilerGeneratedMarker()
+                marker.Visit(this)
+            End If
+
+            Return this
+        End Function
+
+        Private NotInheritable Class CompilerGeneratedMarker
+            Inherits BoundTreeWalkerWithStackGuard
+
+            Public Overrides Function Visit(node As BoundNode) As BoundNode
+                node?.SetWasCompilerGenerated()
+                Return MyBase.Visit(node)
+            End Function
+        End Class
+
+        ''' <summary>
         ''' Get the Binder from a lambda node, or return Nothing if this isn't 
         ''' a lambda node.
         ''' </summary>

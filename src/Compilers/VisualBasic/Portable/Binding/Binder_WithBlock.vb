@@ -220,6 +220,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If withStatement.Identifier IsNot Nothing Then
                     ' With Dim: the operand is the declared local, initialized before the block runs
                     declaration = Me.ContainingBinder.BindWithDimDeclaration(withStatement, diagnostics)
+                    ' A declaration that stands alone in a block is synthesized; the With statement owns the syntax.
+                    declaration.SetWasCompilerGenerated()
                     Dim local = declaration.LocalSymbol
                     boundExpression = New BoundLocal(withStatement.Identifier, local, isLValue:=True, type:=local.Type).MakeCompilerGenerated()
                 Else

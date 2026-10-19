@@ -2262,7 +2262,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Public Overrides Function VisitCall(node As BoundCall) As BoundNode
                 Dim receiver As BoundExpression = node.ReceiverOpt
-                Debug.Assert(receiver Is Nothing OrElse Not node.Method.IsShared OrElse receiver.HasErrors)
+                ' A shared interface method keeps its type-parameter receiver for a constrained call.
+                Debug.Assert(receiver Is Nothing OrElse Not node.Method.IsShared OrElse receiver.HasErrors OrElse
+                             (node.Method.ContainingType.IsInterface AndAlso receiver.Type IsNot Nothing AndAlso receiver.Type.TypeKind = TypeKind.TypeParameter))
                 Me.Visit(receiver)
 
                 Dim boundGroup As BoundMethodGroup = node.MethodGroupOpt

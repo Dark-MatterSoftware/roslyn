@@ -1115,11 +1115,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 diagnostics.Add(node, useSiteInfo)
-                Dim name = SyntaxFactory.IdentifierName(member.Name)
-                Dim target = BindRecordInitializerTarget(name, placeholder, diagnostics)
-                Dim source = MakeRValue(BindMemberAccess(name, capturedReceiver, name, False, diagnostics), diagnostics)
+                Dim target = MakeRecordCopyAccess(node, member, placeholder, forWrite:=True)
+                Dim source = MakeRecordCopyAccess(node, member, capturedReceiver, forWrite:=False)
                 Dim copy = BindAssignment(node, target, source, diagnostics)
-                copy.SetWasCompilerGenerated()
+                copy.MakeTreeCompilerGenerated()
                 assignments.Add(copy)
             Next
 
@@ -1143,17 +1142,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim store = New BoundAssignmentOperator(
                 node,
-                New BoundLocal(node, capture, recordType),
+                New BoundLocal(node, capture, recordType).MakeCompilerGenerated(),
                 receiver,
                 suppressObjectClone:=True,
                 type:=recordType).MakeCompilerGenerated()
 
+            ' The object creation stands for the With copy.
             Return New BoundSequence(
                 node,
                 ImmutableArray.Create(capture),
                 ImmutableArray.Create(Of BoundExpression)(store),
                 creation,
-                recordType)
+                recordType).MakeCompilerGenerated()
         End Function
 
         Private Function BindRecordInitializerTarget(name As SimpleNameSyntax, placeholder As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -1176,6 +1176,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return target
+        End Function
+
+        ''' <summary>
+        ''' A member that a With copy carries over. It has no syntax of its own, so it uses the syntax of
+        ''' the With expression instead of a name that is not in the tree.
+        ''' </summary>
+        Private Shared Function MakeRecordCopyAccess(syntax As SyntaxNode, member As Symbol, receiver As BoundExpression, forWrite As Boolean) As BoundExpression
+            Dim field = TryCast(member, FieldSymbol)
+            If field IsNot Nothing Then
+                Return New BoundFieldAccess(syntax, receiver, field, isLValue:=forWrite, type:=field.Type)
+            End If
+
+            Dim [property] = DirectCast(member, PropertySymbol)
+            Return New BoundPropertyAccess(syntax, [property], Nothing, If(forWrite, PropertyAccessKind.Unknown, PropertyAccessKind.Get), isWriteable:=forWrite, receiver, ImmutableArray(Of BoundExpression).Empty)
         End Function
 
         Private Shared Function IsRecordCopyMember(member As Symbol) As Boolean

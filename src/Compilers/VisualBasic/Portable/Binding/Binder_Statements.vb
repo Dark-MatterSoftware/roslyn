@@ -1053,13 +1053,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     node,
                     New BoundAssignmentOperator(
                         node,
-                        New BoundLocal(node, temp, value.Type),
+                        New BoundLocal(node, temp, value.Type).MakeCompilerGenerated(),
                         value,
                         suppressObjectClone:=True,
-                        type:=value.Type))
+                        type:=value.Type).MakeCompilerGenerated())
                 assignment.SetWasCompilerGenerated()
                 statements.Add(assignment)
-                receiver = New BoundLocal(node, temp, value.Type).MakeRValue()
+                receiver = New BoundLocal(node, temp, value.Type).MakeCompilerGenerated().MakeRValue()
             End If
 
             Dim declarations = ArrayBuilder(Of BoundLocalDeclarationBase).GetInstance()
@@ -1076,9 +1076,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Dim initializer As BoundExpression
                 If matches Then
-                    initializer = New BoundFieldAccess(name, receiver, elements(i), isLValue:=False, type:=elementType)
+                    initializer = New BoundFieldAccess(name, receiver, elements(i), isLValue:=False, type:=elementType).MakeCompilerGenerated()
                 Else
-                    initializer = BadExpression(name, value, elementType).MakeCompilerGenerated()
+                    ' Only the first element keeps the value, so the value is in the tree once.
+                    initializer = If(sawDeclaration, BadExpression(name, elementType), BadExpression(name, value, elementType)).MakeCompilerGenerated()
                 End If
 
                 Dim declaration = New BoundLocalDeclaration(name, local, initializer, Nothing, initializedByAsNew:=False)
@@ -1090,7 +1091,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 blockLocals.Add(local)
             Next
 
-            statements.Add(New BoundDimStatement(node, declarations.ToImmutableAndFree(), Nothing))
+            statements.Add(New BoundDimStatement(node, declarations.ToImmutableAndFree(), Nothing).MakeCompilerGenerated())
             Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
         End Function
 
@@ -1123,14 +1124,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     node,
                     New BoundAssignmentOperator(
                         node,
-                        New BoundLocal(node, temp, value.Type),
+                        New BoundLocal(node, temp, value.Type).MakeCompilerGenerated(),
                         value,
                         suppressObjectClone:=True,
-                        type:=value.Type))
+                        type:=value.Type).MakeCompilerGenerated())
                 stored.SetWasCompilerGenerated()
                 statements.Add(stored)
             End If
 
+            Dim sawValue = False
             For i = 0 To names.Count - 1
                 Dim name = names(i)
                 If name.Identifier.IsMissing Then
@@ -1146,9 +1148,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         elements(i),
                         isLValue:=False,
                         type:=elements(i).Type)
-                    storedValue = If(target.HasErrors, element, ApplyImplicitConversion(name, target.Type, element, diagnostics))
+                    storedValue = If(target.HasErrors, element, ApplyImplicitConversion(name, target.Type, element, diagnostics)).MakeTreeCompilerGenerated()
                 Else
-                    storedValue = BadExpression(name, value, target.Type).MakeCompilerGenerated()
+                    ' Only the first element keeps the value, so the value is in the tree once.
+                    storedValue = If(sawValue, BadExpression(name, target.Type), BadExpression(name, value, target.Type)).MakeCompilerGenerated()
+                    sawValue = True
                 End If
 
                 Dim assignment = New BoundExpressionStatement(
@@ -1158,7 +1162,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         target,
                         storedValue,
                         suppressObjectClone:=True,
-                        hasErrors:=Not matches OrElse target.HasErrors OrElse storedValue.HasErrors))
+                        hasErrors:=Not matches OrElse target.HasErrors OrElse storedValue.HasErrors).MakeCompilerGenerated())
                 assignment.SetWasCompilerGenerated()
                 statements.Add(assignment)
             Next
@@ -1233,10 +1237,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 node,
                 New BoundAssignmentOperator(
                     node,
-                    New BoundLocal(node, temp, value.Type),
+                    New BoundLocal(node, temp, value.Type).MakeCompilerGenerated(),
                     value,
                     suppressObjectClone:=True,
-                    type:=value.Type))
+                    type:=value.Type).MakeCompilerGenerated())
             stored.SetWasCompilerGenerated()
             statements.Add(stored)
 
@@ -1263,7 +1267,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Else
                         Dim slot = New SynthesizedLocal(ContainingMember, parameterType, SynthesizedLocalKind.LoweringTemp)
                         blockLocals.Add(slot)
-                        arguments.Add(New BoundLocal(name, slot, parameterType))
+                        arguments.Add(New BoundLocal(name, slot, parameterType).MakeCompilerGenerated())
                         If target.HasErrors Then
                             hasErrors = True
                         Else
@@ -1271,7 +1275,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                 name,
                                 target.Type,
                                 New BoundLocal(name, slot, parameterType).MakeRValue(),
-                                diagnostics)
+                                diagnostics).MakeTreeCompilerGenerated()
                             Dim assignment = New BoundExpressionStatement(
                                 name,
                                 New BoundAssignmentOperator(
@@ -1279,7 +1283,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                     target,
                                     storedValue,
                                     suppressObjectClone:=True,
-                                    hasErrors:=storedValue.HasErrors))
+                                    hasErrors:=storedValue.HasErrors).MakeCompilerGenerated())
                             assignment.SetWasCompilerGenerated()
                             followUps.Add(assignment)
                             hasErrors = hasErrors OrElse storedValue.HasErrors
@@ -1296,7 +1300,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 arguments.ToImmutableAndFree(),
                 Nothing,
                 method.ReturnType,
-                hasErrors:=hasErrors)
+                hasErrors:=hasErrors).MakeCompilerGenerated()
             Dim callStatement = New BoundExpressionStatement(node, invocation)
             callStatement.SetWasCompilerGenerated()
             statements.Add(callStatement)
@@ -1312,7 +1316,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function ByRefSlot(syntax As SyntaxNode, type As TypeSymbol, blockLocals As ArrayBuilder(Of LocalSymbol)) As BoundExpression
             Dim slot = New SynthesizedLocal(ContainingMember, type, SynthesizedLocalKind.LoweringTemp)
             blockLocals.Add(slot)
-            Return New BoundLocal(syntax, slot, type)
+            Return New BoundLocal(syntax, slot, type).MakeCompilerGenerated()
         End Function
 
         Private Shared Function CanPassByRef(target As BoundExpression, parameterType As TypeSymbol) As Boolean
@@ -1323,7 +1327,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Shared Function DeconstructReceiver(syntax As SyntaxNode, temp As LocalSymbol, method As MethodSymbol) As BoundExpression
-            Dim local = New BoundLocal(syntax, temp, temp.Type)
+            Dim local = New BoundLocal(syntax, temp, temp.Type).MakeCompilerGenerated()
             Dim reduced = method.CallsiteReducedFromMethod
             Dim byRefReceiver = reduced IsNot Nothing AndAlso reduced.ParameterCount > 0 AndAlso reduced.Parameters(0).IsByRef
             If byRefReceiver OrElse Not temp.Type.IsReferenceType Then
@@ -2494,6 +2498,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 assignment = BindAssignment(node, target, value, diagnostics)
             End If
 
+            ' The statement stands for the assignment. The conditional access stands for box?.Value.
+            assignment.SetWasCompilerGenerated()
             Dim voidType = GetSpecialType(SpecialType.System_Void, node, diagnostics)
             Dim conditional = New BoundConditionalAccess(accessSyntax, receiver, placeholder, assignment, voidType, hasErrors:=receiver.HasErrors OrElse assignment.HasErrors)
             Return New BoundExpressionStatement(node, conditional)
@@ -2515,6 +2521,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Else
                 value = MakeRValue(left, diagnostics)
                 isError = value.HasErrors
+            End If
+
+            ' The target stands for the left side. The read that the coalesce tests repeats it.
+            If value IsNot assignmentTarget Then
+                value.SetWasCompilerGenerated()
             End If
 
             Dim targetType As TypeSymbol = If(assignmentTarget.Type, ErrorTypeSymbol.UnknownResultType)
@@ -2548,7 +2559,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 constantValueOpt:=Nothing,
                 type:=targetType,
                 hasErrors:=isError OrElse elseExpression.HasErrors,
-                diagnostics:=diagnostics)
+                diagnostics:=diagnostics).MakeCompilerGenerated()
 
             Return BindAssignment(node, assignmentTarget, coalesced, diagnostics)
         End Function
@@ -4176,7 +4187,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return loopBody
             End If
 
-            Return New BoundBlock(loopBody.Syntax, loopBody.StatementListSyntax, loopBody.Locals.Add(indexLocal), loopBody.Statements, loopBody.HasErrors)
+            Return loopBody.Update(loopBody.StatementListSyntax, loopBody.Locals.Add(indexLocal), loopBody.Statements)
         End Function
 
         ''' <summary>

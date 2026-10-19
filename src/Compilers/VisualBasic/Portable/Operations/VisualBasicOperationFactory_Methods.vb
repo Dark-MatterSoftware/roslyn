@@ -357,6 +357,14 @@ Namespace Microsoft.CodeAnalysis.Operations
         End Function
 
         Private Shared Function GetSingleValueCaseClauseValue(clause As BoundSingleValueCaseClause) As BoundExpression
+            ' A vbnext pattern has no single value to compare with. Its whole test is the value.
+            If clause.ValueOpt Is Nothing AndAlso
+               (TypeOf clause.Syntax Is TypeCaseClauseSyntax OrElse
+                TypeOf clause.Syntax Is ListCaseClauseSyntax OrElse
+                TypeOf clause.Syntax Is PositionalCaseClauseSyntax) Then
+                Return clause.ConditionOpt
+            End If
+
             Return GetCaseClauseValue(clause.ValueOpt, clause.ConditionOpt)
         End Function
 
@@ -394,9 +402,10 @@ Namespace Microsoft.CodeAnalysis.Operations
             ' we'll end up with two IVariableDeclarators that have the same syntax node. So, we group by VariableDeclaratorSyntax
             ' to put x and y in the same IMultiVariableDeclaration
             Dim groupedDeclarations = declarations.GroupBy(Function(declaration)
+                                                               ' A vbnext With Dim or tuple deconstruction declares a local that has no declarator.
                                                                If declaration.Kind = BoundKind.LocalDeclaration AndAlso
-                                                                  declaration.Syntax.IsKind(SyntaxKind.ModifiedIdentifier) Then
-                                                                   Debug.Assert(declaration.Syntax.Parent.IsKind(SyntaxKind.VariableDeclarator))
+                                                                  declaration.Syntax.IsKind(SyntaxKind.ModifiedIdentifier) AndAlso
+                                                                  declaration.Syntax.Parent.IsKind(SyntaxKind.VariableDeclarator) Then
                                                                    Return declaration.Syntax.Parent
                                                                Else
                                                                    Return declaration.Syntax
@@ -418,12 +427,12 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Dim last = DirectCast(declarationGroup.Last(), BoundLocalDeclaration)
                     If last.DeclarationInitializerOpt IsNot Nothing Then
                         Debug.Assert(last.Syntax.IsKind(SyntaxKind.ModifiedIdentifier))
-                        Dim declaratorSyntax = DirectCast(last.Syntax.Parent, VariableDeclaratorSyntax)
-                        Dim initializerSyntax As SyntaxNode = declaratorSyntax.Initializer
+                        Dim declaratorSyntax = TryCast(last.Syntax.Parent, VariableDeclaratorSyntax)
+                        Dim initializerSyntax As SyntaxNode = declaratorSyntax?.Initializer
 
                         ' As New clauses with a single variable are bound as BoundLocalDeclarations, so adjust appropriately
                         Dim isImplicit As Boolean = False
-                        If last.InitializedByAsNew Then
+                        If last.InitializedByAsNew AndAlso declaratorSyntax IsNot Nothing Then
                             initializerSyntax = declaratorSyntax.AsClause
                         ElseIf initializerSyntax Is Nothing Then
                             ' There is no explicit syntax for the initializer, so we use the initializerValue's syntax and mark the operation as implicit.
@@ -444,12 +453,14 @@ Namespace Microsoft.CodeAnalysis.Operations
                     initializer = New VariableInitializerOperation(locals:=ImmutableArray(Of ILocalSymbol).Empty, value, _semanticModel, initializerSyntax, isImplicit:=False)
                 End If
 
+                ' Without a declarator, the declaration and its declarator share the identifier syntax.
+                Dim declarationIsImplicit = declarationGroup.Key Is first.Syntax AndAlso first.Syntax.IsKind(SyntaxKind.ModifiedIdentifier)
                 builder.Add(New VariableDeclarationOperation(declarators,
                                                              initializer,
                                                              ImmutableArray(Of IOperation).Empty,
                                                              _semanticModel,
                                                              declarationGroup.Key,
-                                                             isImplicit:=False))
+                                                             isImplicit:=declarationIsImplicit))
             Next
 
             Return builder.ToImmutableAndFree()

@@ -535,7 +535,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             result.Free()
 
-            Dim initializer = New BoundCollectionInitializerExpression(syntax, placeholder, addInvocations.ToImmutableAndFree(), named)
+            ' The creation stands for the collection. Its initializer has no syntax of its own.
+            Dim initializer = New BoundCollectionInitializerExpression(syntax, placeholder, addInvocations.ToImmutableAndFree(), named).MakeCompilerGenerated()
             Return New BoundObjectCreationExpression(syntax, constructor, ImmutableArray(Of BoundExpression).Empty, initializer, named)
         End Function
 
@@ -598,7 +599,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BadExpression(argument.Syntax, argument, arrayType)
             End If
 
-            Return BindParameterlessInstanceCall(listCreation, "ToArray", diagnostics)
+            Return BindParameterlessInstanceCall(listCreation.MakeCompilerGenerated(), "ToArray", diagnostics)
         End Function
 
         Private Shared Function HasSpreadElement(elements As ImmutableArray(Of BoundExpression)) As Boolean
