@@ -37,6 +37,11 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 22. Sub chains | VB-058, pulled in from wave 4 | Calling a `Sub` again with new arguments. |
 | 23. IDE | All `vbnext` syntax | The Visual Basic editor understands the forms above. |
 | 24. Real projects | All `vbnext` syntax | `dotnet build` compiles a project with `LangVersion` `vbnext`, with analyzers on. |
+| 25. Runtime interop | VB-064, VB-065, wave 5 | `SyncLock` uses `System.Threading.Lock`, and `$"..."` passes to an interpolated string handler. |
+| 26. Asynchronous streams | VB-061, VB-062, VB-063, wave 5 | VB releases `IAsyncDisposable` resources, iterates `IAsyncEnumerable(Of T)`, and authors one. |
+| 27. Pattern variables | VB-066, wave 5 | A type pattern names its result for the code it guards. |
+| 28. Property backing fields | VB-067, wave 5 | A property with a body stores its value without a declared field. |
+| 29. IDE for wave 5 | Phases 25 to 28 | The editor understands the forms above, as phase 23 did for earlier syntax. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -309,6 +314,50 @@ A project outside this repo compiles with the Vb.Next compiler. The steps are in
 | 24b | Analyzers and IOperation | Done. Analyzers run on `vbnext` code, and the toolset leaves them on. A sequence, a from-end index, a range, and an array length have an operation. Nodes that a binder synthesizes from the user's syntax are compiler generated, so each piece of syntax has one explicit operation. A Select Case pattern's value is its whole test. A local declared by `With Dim` or tuple deconstruction has an operation without a declarator. A record `With` copy uses only syntax from the compilation. A `For Each` index binds in a semantic model. `VbNextOperationTests.vb` builds the operation tree and the control flow graph for each construct. Every `vbnext` compiler test passes with `ROSLYN_TEST_IOPERATION` set: a block declares the temporaries of the sequences in its statements, `Dim (x, y)` declares `x` and `y` in its statement list like `Dim x, y`, and the control flow graph verifier knows a `With Dim` target and a collection expression the way it knows `With expression` and `From { }`. |
 | 24c | Editor in Visual Studio | The language service, the out-of-process analysis host, and the compiler extension built from this repo deploy into the `RoslynDev` hive, with the steps in [vbnext-toolset.md](vbnext-toolset.md). Visual Studio 2026 18.10 cannot load them, because the repo builds against Visual Studio 18.12 packages; the deployment moves to Visual Studio 2026 Insiders. Done when `HelloVbNext` opened in that instance shows no squiggles on `vbnext` syntax and its colors and completion match slices 23b and 23c. |
 
+## Phase 25 — Runtime interop
+
+Wave 5 rows 1 and 2 in [vbnext-missing-features.md](vbnext-missing-features.md#wave-5-order). Neither adds syntax. Tests use the real .NET types.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 25a | VB-064 | On `vbnext`, `SyncLock` on an expression of type `System.Threading.Lock` enters through `Lock.EnterScope` and leaves by disposing the scope, including when the body throws. An emit test checks the calls and the output. Visual Basic 17.13 still uses `Monitor`. |
+| 25b | VB-065 | On `vbnext`, an interpolated string converts to a parameter whose type has the interpolated string handler attribute. The handler is constructed with the literal length and hole count, its `AppendLiteral` and `AppendFormatted` calls run in order, and arguments named by the handler argument attribute are passed to its constructor. `String`, `FormattableString`, and `IFormattable` targets keep their meaning. Tests call a handler-typed `Debug.Assert` overload and a custom handler. |
+
+## Phase 26 — Asynchronous streams
+
+Wave 5 rows 3 to 5. The spelling comes first, because all three forms share it.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 26a | VB-061, VB-062, VB-063 | `docs/vbnext-vb061-syntax.md` records the spellings proposed for asynchronous disposal, asynchronous iteration, and async iterators, with their sources, and locks or defers each one. No code change. |
+| 26b | VB-061 | On `vbnext`, the locked disposal form awaits `DisposeAsync` on a resource that implements `IAsyncDisposable`, in a block and in a `Using` declaration, including when the body throws. Outside an `Async` method it reports an error. |
+| 26c | VB-062 | On `vbnext`, the locked iteration form iterates an `IAsyncEnumerable(Of T)`, awaits `MoveNextAsync` for each item, and awaits the enumerator's `DisposeAsync` when the loop ends, including on `Exit For` and exceptions. |
+| 26d | VB-063 | On `vbnext`, an async iterator function returning `IAsyncEnumerable(Of T)` can both `Await` and `Yield`, and the slice 26c loop consumes it. Cancellation through `EnumeratorCancellation` reaches the function. |
+
+## Phase 27 — Pattern variables
+
+Wave 5 row 6. Extends the `Select Case` patterns of phase 5 and phase 11.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 27a | VB-066 | `docs/vbnext-vb066-syntax.md` records the proposed spellings for naming the result of a type test in `Case Is TypeOf` and in `TypeOf ... Is`, and the scope of that name, and locks or defers them. No code change. |
+| 27b | VB-066 | On `vbnext`, a type test with the locked spelling declares a local of the tested type. It is definitely assigned where the test succeeded, and it is out of scope elsewhere. |
+
+## Phase 28 — Property backing fields
+
+Wave 5 row 7.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 28a | VB-067 | `docs/vbnext-vb067-syntax.md` records the proposed ways for a property body to reach automatic storage, how each relates to the existing `_Name` field of an auto-implemented property, and what happens to a member already named the same. Locks or defers. No code change. |
+| 28b | VB-067 | On `vbnext`, a property with a `Get` or `Set` body uses the locked form to read and write storage that the compiler declares. |
+
+## Phase 29 — IDE for wave 5
+
+| Slice | Area | Done when |
+| --- | --- | --- |
+| 29a | Editor | For each form locked in phases 26 to 28: Enter inserts its `End` statement where it has one, its keywords classify and complete only on `vbnext`, and formatting indents its body. |
+
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slices 24a and 24b compile a real project with the Vb.Next compiler, with analyzers on. Slice 24c is deployed and waits on a check in the `RoslynDev` instance.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slices 24a and 24b compile a real project with the Vb.Next compiler, with analyzers on. Slice 24c waits on Visual Studio 2026 Insiders, which can load the editor. Wave 5 is planned as phases 25 to 29, and slice 25a starts now.

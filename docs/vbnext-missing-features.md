@@ -52,6 +52,7 @@ Also add, from the same era, and not on that list: `Using` without a block (VB-0
 | 2 | Interop. The compiler already sees the metadata and rejects it, warns, or ignores it. | A program can declare or honor the construct and emit the same shape C# already emits. |
 | 3 | Large designs. Cross-cutting binding, metadata, and IDE work. | A design note only, until a Wave 1 feature has landed. |
 | 4 | Visual Basic-shaped proposals from vblang. Not C# clones. | A design note that says whether the idea is in scope. |
+| 5 | Modern .NET consumption. Library shapes from .NET 6 onward that VB cannot use, or uses with the wrong behavior. | A design note for any new syntax, then compiler tests against the real library types. |
 | Parked | Explicitly not in this plan. | Revisit only if the list is revised. |
 
 Status for every item below is **proposed**. Row order inside a wave is a catalog. The build sequence is [Implementation order](#implementation-order).
@@ -135,6 +136,20 @@ Visual Basic proposals that are worth a yes/no design note. They are not schedul
 | VB-059 | Optional `End Namespace` | [#532](https://github.com/dotnet/vblang/issues/532) |
 | VB-060 | XML literal enhancements | [#397](https://github.com/dotnet/vblang/issues/397). This extends a VB-only feature. |
 
+## Wave 5
+
+Checked against this tree after every wave 0 to 4 item had a slice. Each gap below is in the shape of libraries that VB programs call today. The Visual Basic compiler has no reference to `IAsyncEnumerable`, `IAsyncDisposable`, `System.Threading.Lock`, or interpolated string handlers.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-061 | Asynchronous disposal | `Using` calls `Dispose` only. A resource that implements `IAsyncDisposable` cannot be released with `Await DisposeAsync()` by the statement. EF Core contexts, streams, and ASP.NET Core services implement it. |
+| VB-062 | Asynchronous iteration | `For Each` needs `GetEnumerator`. An `IAsyncEnumerable(Of T)`, which EF Core, gRPC, and `System.Threading.Channels` return, cannot be iterated without hand-written `MoveNextAsync` loops. |
+| VB-063 | Async iterators | An `Iterator` function cannot `Await`, and an `Async` function cannot `Yield`. VB cannot author an `IAsyncEnumerable(Of T)`. Follows VB-062. |
+| VB-064 | `SyncLock` on `System.Threading.Lock` | No new syntax. `SyncLock` on a .NET 9 `Lock` object goes through `Monitor`, so it does not use the type's own lock. C# calls `Lock.EnterScope` for the same code. |
+| VB-065 | Interpolated string handlers | No new syntax. An interpolated string converts to `String`, `FormattableString`, or `IFormattable` only. A parameter of a handler type, used by .NET logging, `Debug.Assert`, and `StringBuilder.Append` overloads, cannot take `$"..."`. |
+| VB-066 | Pattern variables | `docs/vbnext-vb004-syntax.md` left this open: after `Case Is TypeOf Customer`, the case body still sees the original type. A test that names its result, in `Select Case` and in `TypeOf ... Is`, is not in this tree. |
+| VB-067 | Property bodies that use the automatic backing field | An auto-implemented property already has a `_Name` field that code can name, but a property with a `Get` or `Set` body has no automatic storage. Validation in `Set` needs a declared field. C# 14 added `field` for this. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -213,3 +228,17 @@ These stay off the main line. This is only where each would fit.
 | VB-051 | Concise lambdas | L | VB-004 |
 | VB-060 | XML literal enhancements | L | VB-001, and only if XML is in scope |
 | VB-058 | Chaining a `Sub` call | Design | A written proposal. No implementation slot until the design says what a `Sub` chain returns. |
+
+### Wave 5 order
+
+Interop with no new syntax comes first, then the asynchronous forms in dependency order, then the two designs that change how existing code reads.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-064 | `SyncLock` on `System.Threading.Lock` | S | One lowering change behind the language version. Fixes behavior without syntax. |
+| 2 | VB-065 | Interpolated string handlers | L | Binding of the handler pattern and its constructor arguments. No syntax, and the .NET logging and assertion APIs depend on it. |
+| 3 | VB-061 | Asynchronous disposal | M | The smallest new statement form. VB-062 releases its enumerator the same way. |
+| 4 | VB-062 | Asynchronous iteration | L | Builds on VB-061 for the enumerator. |
+| 5 | VB-063 | Async iterators | XL | A state machine that both awaits and yields. Needs VB-062 to be testable from VB. |
+| 6 | VB-066 | Pattern variables | L | Extends the `Select Case` patterns from VB-004. Needs a design note first, because the name it declares is visible in the case body. |
+| 7 | VB-067 | Property bodies with the automatic backing field | M | Needs a design note first. A contextual keyword can collide with a member already named the same. |
