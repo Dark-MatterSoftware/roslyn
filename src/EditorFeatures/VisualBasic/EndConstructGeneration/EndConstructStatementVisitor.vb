@@ -267,7 +267,9 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.EndConstructGeneration
         End Function
 
         Public Overrides Function VisitUsingStatement(ByVal node As UsingStatementSyntax) As AbstractEndConstructResult
-            Dim needsEnd = node.GetAncestorsOrThis(Of UsingBlockSyntax)().Any(Function(block) block.EndUsingStatement.IsMissing)
+            ' Where a Using may have no End Using, its absence is not an error, and the Using stays a declaration.
+            Dim needsEnd = node.GetAncestorsOrThis(Of UsingBlockSyntax)().Any(
+                Function(block) block.EndUsingStatement.IsMissing AndAlso block.UsingStatement.ContainsDiagnostics)
 
             If needsEnd Then
                 Dim aligningWhitespace = _subjectBuffer.CurrentSnapshot.GetAligningWhitespace(node.SpanStart)

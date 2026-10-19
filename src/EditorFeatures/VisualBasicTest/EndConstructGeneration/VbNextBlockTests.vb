@@ -124,5 +124,37 @@ End Class",
                 caret:={2, -1},
                 parseOptions:=s_vbNext)
         End Function
+
+        <WpfFact>
+        Public Async Function DoNotApplyAfterUsingDeclaration() As Task
+            Await VerifyStatementEndConstructNotAppliedAsync(
+                text:="Class C
+    Sub M()
+        Using stream = New System.IO.MemoryStream()
+    End Sub
+End Class",
+                caret:={2, -1},
+                parseOptions:=s_vbNext)
+        End Function
+
+        <WpfFact>
+        Public Async Function ApplyAfterUsingStatementOn17_13() As Task
+            Await VerifyStatementEndConstructAppliedAsync(
+                before:="Class C
+    Sub M()
+        Using stream = New System.IO.MemoryStream()
+    End Sub
+End Class",
+                beforeCaret:={2, -1},
+                after:="Class C
+    Sub M()
+        Using stream = New System.IO.MemoryStream()
+
+        End Using
+    End Sub
+End Class",
+                afterCaret:={3, -1},
+                parseOptions:=VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+        End Function
     End Class
 End Namespace
