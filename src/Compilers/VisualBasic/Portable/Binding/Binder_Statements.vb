@@ -4154,8 +4154,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return loopBody
             End If
 
+            ' A semantic model binds through an IncrementalBinder that wraps the loop binder.
+            Dim loopBinder As Binder = Me
+            While loopBinder IsNot Nothing AndAlso TypeOf loopBinder IsNot ForOrForEachBlockBinder
+                loopBinder = loopBinder.ContainingBinder
+            End While
+
+            If loopBinder Is Nothing Then
+                Return loopBody
+            End If
+
             Dim indexLocal As LocalSymbol = Nothing
-            For Each local In DirectCast(Me, ForOrForEachBlockBinder).Locals
+            For Each local In DirectCast(loopBinder, ForOrForEachBlockBinder).Locals
                 If local.IdentifierToken = index Then
                     indexLocal = local
                     Exit For

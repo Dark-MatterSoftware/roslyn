@@ -2,6 +2,7 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Immutable
 Imports System.Diagnostics
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -21,6 +22,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Protected Overrides Function MakeRValueImpl() As BoundExpression
             Return MakeRValue()
         End Function
+
+        ' vbnext binds some expressions, such as a Select Case expression, directly to a sequence.
+        Protected Overrides ReadOnly Property Children As ImmutableArray(Of BoundNode)
+            Get
+                Return StaticCast(Of BoundNode).From(SideEffects).Add(ValueOpt)
+            End Get
+        End Property
 
         Public Shadows Function MakeRValue() As BoundSequence
             If Me.IsLValue Then

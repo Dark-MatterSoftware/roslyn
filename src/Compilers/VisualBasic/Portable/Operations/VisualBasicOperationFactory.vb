@@ -308,7 +308,11 @@ Namespace Microsoft.CodeAnalysis.Operations
                      BoundKind.XmlNamespace,
                      BoundKind.XmlProcessingInstruction,
                      BoundKind.UnboundLambda,
-                     BoundKind.UnstructuredExceptionHandlingStatement
+                     BoundKind.UnstructuredExceptionHandlingStatement,
+                     BoundKind.Sequence,
+                     BoundKind.FromEndIndexExpression,
+                     BoundKind.RangeExpression,
+                     BoundKind.ArrayLength
 
                     Dim constantValue As ConstantValue = Nothing
                     Dim type As TypeSymbol = Nothing

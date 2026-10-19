@@ -220,4 +220,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
     End Class
+
+    Partial Friend Class BoundArrayLength
+        Protected Overrides ReadOnly Property Children As ImmutableArray(Of BoundNode)
+            Get
+                Return ImmutableArray.Create(Of BoundNode)(Me.Expression)
+            End Get
+        End Property
+    End Class
+
+    Partial Friend Class BoundFromEndIndexExpression
+        Protected Overrides ReadOnly Property Children As ImmutableArray(Of BoundNode)
+            Get
+                Return ImmutableArray.Create(Of BoundNode)(Me.Operand)
+            End Get
+        End Property
+    End Class
+
+    Partial Friend Class BoundRangeExpression
+        Protected Overrides ReadOnly Property Children As ImmutableArray(Of BoundNode)
+            Get
+                Return ImmutableArray.Create(Of BoundNode)(Me.LeftOperandOpt, Me.RightOperandOpt)
+            End Get
+        End Property
+    End Class
 End Namespace
