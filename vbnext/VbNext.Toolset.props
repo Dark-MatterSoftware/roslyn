@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    Compiles Visual Basic with the Vb.Next compiler built from this repo instead of the compiler in the .NET SDK.
+    Import this file from a project, or from a Directory.Build.props, and set LangVersion to vbnext.
+
+    Build the compiler first:
+      dotnet build src\Compilers\VisualBasic\vbc\AnyCpu\vbc.csproj -c Release -f net472
+
+    Set VbNextCompilerDir to use a vbc.exe from another folder.
+  -->
+  <PropertyGroup>
+    <VbNextCompilerDir Condition="'$(VbNextCompilerDir)' == ''">$(MSBuildThisFileDirectory)..\artifacts\bin\vbc\Release\net472\</VbNextCompilerDir>
+    <VbcToolPath>$(VbNextCompilerDir)</VbcToolPath>
+    <VbcToolExe>vbc.exe</VbcToolExe>
+    <!-- The SDK's compiler server, and Visual Studio's in-process compiler, would compile with their own compiler. -->
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <UseHostCompilerIfAvailable>false</UseHostCompilerIfAvailable>
+    <!-- Analyzers read IOperation trees, which several vbnext expressions do not build correctly yet. -->
+    <RunAnalyzers Condition="'$(RunAnalyzers)' == ''">false</RunAnalyzers>
+  </PropertyGroup>
+
+  <Target Name="VbNextCheckCompiler" BeforeTargets="CoreCompile" Condition="'$(Language)' == 'VB'">
+    <Error Condition="!Exists('$(VbNextCompilerDir)vbc.exe')"
+           Text="The Vb.Next compiler was not found at '$(VbNextCompilerDir)vbc.exe'. Build src\Compilers\VisualBasic\vbc\AnyCpu\vbc.csproj with -c Release -f net472, or set VbNextCompilerDir." />
+  </Target>
+</Project>

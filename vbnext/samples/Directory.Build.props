@@ -1,0 +1,4 @@
+<Project>
+  <!-- The samples build on their own. They do not use the Roslyn repo's build settings. -->
+  <Import Project="..\VbNext.Toolset.props" />
+</Project>

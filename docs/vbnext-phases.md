@@ -36,6 +36,7 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 21. XML statement blocks | VB-060, pulled in from wave 4 | Statements inside `<%= %>`. |
 | 22. Sub chains | VB-058, pulled in from wave 4 | Calling a `Sub` again with new arguments. |
 | 23. IDE | All `vbnext` syntax | The Visual Basic editor understands the forms above. |
+| 24. Real projects | All `vbnext` syntax | `dotnet build` compiles a project with `LangVersion` `vbnext`, with analyzers on. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -298,6 +299,15 @@ The editor work for the syntax above. Tests live under `src/EditorFeatures/Visua
 | 23d | Outlining and indentation | Done. On `vbnext`, extension blocks and Select Case expressions collapse like the blocks they resemble. Formatting indents extension members one level and lays out a Select Case expression like a Select Case statement, with `End Select` under `Select`. Enter inside either block indents to the member, arm, or arm value level. A Select Case expression keeps blank and comment lines between its arms instead of ending at the first one. |
 | 23e | Pretty listing | Done. On `vbnext`, committing a line pretty lists compact members like other members. Statements after a `Using` with no `End Using`, and members of a namespace that runs to the end of the file, stay at the level of the header. Visual Basic 17.13 still indents after a `Using` with no `End Using`. Inside an XML statement block, committing a line keeps the statements and adds no parentheses, and the block's body indents from its first statement. |
 
+## Phase 24 — Real projects
+
+A project outside this repo compiles with the Vb.Next compiler. The steps are in [vbnext-toolset.md](vbnext-toolset.md).
+
+| Slice | Area | Done when |
+| --- | --- | --- |
+| 24a | Toolset | Done. `vbnext/VbNext.Toolset.props` points the SDK's `Vbc` task at the `vbc.exe` built from this repo. `vbnext/samples/HelloVbNext` builds with `dotnet build` and runs a record, an extension property, a compact member, a Select Case expression, an XML statement block, and a `Using` declaration. The props file turns analyzers off until 24b is done. |
+| 24b | Analyzers and IOperation | Every `vbnext` compiler test passes with `ROSLYN_TEST_IOPERATION` set, the tests in `VbNextOperationTests.vb` run instead of being skipped, and the toolset leaves analyzers on. Started: a sequence, a from-end index, a range, and an array length now have an operation, and a `For Each` index binds in a semantic model. Left: several binders reuse the user's syntax for nodes they synthesize, so the operation tree has two nodes for one piece of syntax, and a Release compiler fails when an analyzer reads it. That covers Select Case expressions and patterns, from-end indexes and ranges, collection expressions and collection `ParamArray`, `?=`, null-conditional assignment, records and `With` copies, tuple deconstruction, `TypeOf` lists, `With Dim`, and `For Each` indexes. |
+
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Every phase on this line is done.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slice 24a compiles a real project with the Vb.Next compiler, and slice 24b starts now.
