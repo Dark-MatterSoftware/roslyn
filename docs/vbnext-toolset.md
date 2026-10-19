@@ -50,4 +50,29 @@ Analyzers stay on. The sample builds with `-p:AnalysisMode=All`, which turns on 
 
 ## Visual Studio
 
-A build in Visual Studio goes through the same MSBuild targets, so it should use the Vb.Next compiler too. That has not been tried yet; `dotnet build` is the tested path. The editor does not use it: IntelliSense, colorization, and live errors come from the Roslyn build inside Visual Studio, which does not know `vbnext`. Expect squiggles on `vbnext` syntax in the editor even when the build succeeds.
+A build in Visual Studio goes through the same MSBuild targets, so it should use the Vb.Next compiler too. `dotnet build` is the tested path.
+
+The editor in a normal Visual Studio does not use it: IntelliSense, colorization, and live errors come from the Roslyn build inside Visual Studio, which does not know `vbnext`, so `vbnext` syntax shows squiggles there.
+
+### Editor support in an experimental instance
+
+Deploy this repo's Roslyn into the `RoslynDev` hive. It is a separate Visual Studio instance with its own settings and extensions, so the normal instance is not changed. From the repo root, with the Vb.Next SDK on `DOTNET_INSTALL_DIR`:
+
+```powershell
+$env:DOTNET_INSTALL_DIR = "$env:LOCALAPPDATA\dotnet-vbnext"
+foreach ($project in "src\Compilers\Extension\Roslyn.Compilers.Extension.csproj",
+                     "src\VisualStudio\Setup.ServiceHub\x64\Roslyn.VisualStudio.ServiceHub.Setup.x64.csproj",
+                     "src\VisualStudio\Setup\Roslyn.VisualStudio.Setup.csproj") {
+    .\eng\build.ps1 -restore -build -configuration Release -deployExtensions -skipDocumentation -solution $project /p:SkipRuntimesInstall=true
+}
+```
+
+Then start the instance and open a `vbnext` project, such as the sample:
+
+```powershell
+devenv /rootSuffix RoslynDev vbnext\samples\HelloVbNext\HelloVbNext.vbproj
+```
+
+The three extensions are the compiler for builds, the out-of-process analysis host, and the language service. Redeploy after pulling editor or compiler changes.
+
+The repo path on this machine has a space in it, and two build steps do not quote paths. `/p:SkipRuntimesInstall=true` skips installing the .NET 10 test runtime, which the extensions do not need. The debugger's expression evaluator (`src\Deployment\RoslynDeployment.csproj` deploys it with the rest) fails in `VSDConfigTool`, so it is left out; the Watch and Immediate windows keep the installed evaluator.
