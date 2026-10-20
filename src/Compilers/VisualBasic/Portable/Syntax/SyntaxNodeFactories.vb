@@ -56,6 +56,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return WithStatement(withKeyword, Nothing, Nothing, Nothing, Nothing, expression)
         End Function
 
+        ''' <summary>
+        ''' Creates a Using statement without the Async keyword.
+        ''' </summary>
+        Public Shared Function UsingStatement(usingKeyword As SyntaxToken, expression As ExpressionSyntax, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
+            Return UsingStatement(Nothing, usingKeyword, expression, variables)
+        End Function
+
 #Region "ParseMethods"
 
         ' direct access to parsing for common grammar areas

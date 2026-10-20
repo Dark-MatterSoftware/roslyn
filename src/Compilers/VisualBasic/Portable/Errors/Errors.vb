@@ -1847,8 +1847,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_CompactMemberKeyword = 37386
         ERR_InterpolatedStringHandlerArgument = 37387
         ERR_DeconstructionRequiresOptionInfer = 37388
+        ERR_AsyncUsingNotInAsyncMethod = 37389
+        ERR_AsyncUsingRequiresAsyncDisposable = 37390
 
-        ERR_NextAvailable = 37389
+        ERR_NextAvailable = 37391
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2185,5 +2187,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_PartialConstructor
         FEATURE_PrimaryConstructor
         FEATURE_CollectionExpression
+        FEATURE_AsyncUsing
     End Enum
 End Namespace

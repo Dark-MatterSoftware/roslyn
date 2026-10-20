@@ -9,7 +9,18 @@ Imports System.Text
 Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     Friend NotInheritable Class SyntaxBindingUtilities
         Public Shared Function BindsToResumableStateMachineState(node As SyntaxNode) As Boolean
-            Return node.IsKind(SyntaxKind.YieldStatement) OrElse node.IsKind(SyntaxKind.AwaitExpression)
+            Return node.IsKind(SyntaxKind.YieldStatement) OrElse
+                   node.IsKind(SyntaxKind.AwaitExpression) OrElse
+                   node.IsKind(SyntaxKind.ModifiedIdentifier) AndAlso node.Parent.IsKind(SyntaxKind.VariableDeclarator) AndAlso IsAsyncUsing(node.Parent.Parent) OrElse
+                   IsAsyncUsing(node) AndAlso DirectCast(node, UsingStatementSyntax).Expression IsNot Nothing
+        End Function
+
+        ''' <summary>
+        ''' Async Using awaits DisposeAsync for each resource, with the syntax of the resource name, or of the
+        ''' statement when the resource is an expression.
+        ''' </summary>
+        Private Shared Function IsAsyncUsing(node As SyntaxNode) As Boolean
+            Return node.IsKind(SyntaxKind.UsingStatement) AndAlso DirectCast(node, UsingStatementSyntax).AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword)
         End Function
 
         Public Shared Function BindsToTryStatement(node As SyntaxNode) As Boolean

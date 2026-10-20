@@ -3820,6 +3820,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitUsingStatement(ByVal node As UsingStatementSyntax) As SyntaxNode
             Dim anyChanges As Boolean = False
 
+            Dim newAsyncKeyword = DirectCast(VisitToken(node.AsyncKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.AsyncKeyword.Node IsNot newAsyncKeyword Then anyChanges = True
             Dim newUsingKeyword = DirectCast(VisitToken(node.UsingKeyword).Node, InternalSyntax.KeywordSyntax)
             If node.UsingKeyword.Node IsNot newUsingKeyword Then anyChanges = True
             Dim newExpression = DirectCast(Visit(node.Expression), ExpressionSyntax)
@@ -3828,7 +3830,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node._variables IsNot newVariables.Node Then anyChanges = True
 
             If anyChanges Then
-                Return New UsingStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newUsingKeyword, newExpression, newVariables.Node)
+                Return New UsingStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAsyncKeyword, newUsingKeyword, newExpression, newVariables.Node)
             Else
                 Return node
             End If
@@ -21720,6 +21722,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' the Begin of a UsingBlock, and the body of the Using is the Body of that
         ''' UsingBlock.
         ''' </summary>
+        ''' <param name="asyncKeyword">
+        ''' The optional "Async" keyword. The resource is released with an awaited
+        ''' DisposeAsync.
+        ''' </param>
         ''' <param name="usingKeyword">
         ''' The "Using" keyword.
         ''' </param>
@@ -21731,13 +21737,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the Using statement is of a form that declares one or more new variables,
         ''' this is the list of variable declarations. Otherwise, Nothing is returned.
         ''' </param>
-        Public Shared Function UsingStatement(usingKeyword As SyntaxToken, expression As ExpressionSyntax, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
+        Public Shared Function UsingStatement(asyncKeyword As SyntaxToken, usingKeyword As SyntaxToken, expression As ExpressionSyntax, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
             Select Case usingKeyword.Kind()
                 Case SyntaxKind.UsingKeyword
                 Case Else
                     Throw new ArgumentException("usingKeyword")
             End Select
-            Return New UsingStatementSyntax(SyntaxKind.UsingStatement, Nothing, Nothing, DirectCast(usingKeyword.Node, InternalSyntax.KeywordSyntax), expression, variables.Node)
+            Return New UsingStatementSyntax(SyntaxKind.UsingStatement, Nothing, Nothing, DirectCast(asyncKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(usingKeyword.Node, InternalSyntax.KeywordSyntax), expression, variables.Node)
         End Function
 
 
@@ -21755,7 +21761,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' this is the list of variable declarations. Otherwise, Nothing is returned.
         ''' </param>
         Public Shared Function UsingStatement(expression As ExpressionSyntax, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
-            Return SyntaxFactory.UsingStatement(SyntaxFactory.Token(SyntaxKind.UsingKeyword), expression, variables)
+            Return SyntaxFactory.UsingStatement(Nothing, SyntaxFactory.Token(SyntaxKind.UsingKeyword), expression, variables)
         End Function
 
 
@@ -21765,7 +21771,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' UsingBlock.
         ''' </summary>
         Public Shared Function UsingStatement() As UsingStatementSyntax
-            Return SyntaxFactory.UsingStatement(SyntaxFactory.Token(SyntaxKind.UsingKeyword), Nothing, Nothing)
+            Return SyntaxFactory.UsingStatement(Nothing, SyntaxFactory.Token(SyntaxKind.UsingKeyword), Nothing, Nothing)
         End Function
 
 

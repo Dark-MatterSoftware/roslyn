@@ -643,6 +643,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return MyBase.VisitAwaitOperator(node)
             End Function
 
+            Public Overrides Function VisitUsingStatement(node As BoundUsingStatement) As BoundNode
+                ' Async Using awaits DisposeAsync where the block ends.
+                If node.UsingInfo.IsAsynchronous Then
+                    _containsAwait = True
+
+                    If _isInCatchFinallyOrSyncLock Then
+                        ReportDiagnostic(_diagnostics, node.UsingInfo.UsingStatementSyntax.UsingStatement.AsyncKeyword, ERRID.ERR_BadAwaitInTryHandler)
+                    End If
+                End If
+
+                Return MyBase.VisitUsingStatement(node)
+            End Function
+
             Public Overrides Function VisitLambda(node As BoundLambda) As BoundNode
                 ' Do not dive into the lambdas.
                 Return Nothing

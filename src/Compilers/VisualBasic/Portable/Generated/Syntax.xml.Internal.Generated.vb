@@ -15651,14 +15651,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     Friend NotInheritable Class UsingStatementSyntax
         Inherits StatementSyntax
 
+        Friend ReadOnly _asyncKeyword as KeywordSyntax
         Friend ReadOnly _usingKeyword as KeywordSyntax
         Friend ReadOnly _expression as ExpressionSyntax
         Friend ReadOnly _variables as GreenNode
 
-        Friend Sub New(ByVal kind As SyntaxKind, usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As GreenNode)
+        Friend Sub New(ByVal kind As SyntaxKind, asyncKeyword As InternalSyntax.KeywordSyntax, usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As GreenNode)
             MyBase.New(kind)
-            Me.SlotCount = 3
+            Me.SlotCount = 4
 
+            If asyncKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(asyncKeyword)
+                Me._asyncKeyword = asyncKeyword
+            End If
             AdjustFlagsAndWidth(usingKeyword)
             Me._usingKeyword = usingKeyword
             If expression IsNot Nothing Then
@@ -15672,11 +15677,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As GreenNode, context As ISyntaxFactoryContext)
+        Friend Sub New(ByVal kind As SyntaxKind, asyncKeyword As InternalSyntax.KeywordSyntax, usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As GreenNode, context As ISyntaxFactoryContext)
             MyBase.New(kind)
-            Me.SlotCount = 3
+            Me.SlotCount = 4
             Me.SetFactoryContext(context)
 
+            If asyncKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(asyncKeyword)
+                Me._asyncKeyword = asyncKeyword
+            End If
             AdjustFlagsAndWidth(usingKeyword)
             Me._usingKeyword = usingKeyword
             If expression IsNot Nothing Then
@@ -15690,10 +15699,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As GreenNode)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), asyncKeyword As InternalSyntax.KeywordSyntax, usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As GreenNode)
             MyBase.New(kind, errors, annotations)
-            Me.SlotCount = 3
+            Me.SlotCount = 4
 
+            If asyncKeyword IsNot Nothing Then
+                AdjustFlagsAndWidth(asyncKeyword)
+                Me._asyncKeyword = asyncKeyword
+            End If
             AdjustFlagsAndWidth(usingKeyword)
             Me._usingKeyword = usingKeyword
             If expression IsNot Nothing Then
@@ -15710,6 +15723,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
             Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.UsingStatementSyntax(Me, parent, startLocation)
         End Function
+
+        ''' <summary>
+        ''' The optional "Async" keyword. The resource is released with an awaited
+        ''' DisposeAsync.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property AsyncKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._asyncKeyword
+            End Get
+        End Property
 
         ''' <summary>
         ''' The "Using" keyword.
@@ -15749,10 +15775,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Friend Overrides Function GetSlot(i as Integer) as GreenNode
             Select case i
                 Case 0
-                    Return Me._usingKeyword
+                    Return Me._asyncKeyword
                 Case 1
-                    Return Me._expression
+                    Return Me._usingKeyword
                 Case 2
+                    Return Me._expression
+                Case 3
                     Return Me._variables
                 Case Else
                     Debug.Assert(false, "child index out of range")
@@ -15762,11 +15790,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
 
         Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
-            Return new UsingStatementSyntax(Me.Kind, newErrors, GetAnnotations, _usingKeyword, _expression, _variables)
+            Return new UsingStatementSyntax(Me.Kind, newErrors, GetAnnotations, _asyncKeyword, _usingKeyword, _expression, _variables)
         End Function
 
         Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
-            Return new UsingStatementSyntax(Me.Kind, GetDiagnostics, annotations, _usingKeyword, _expression, _variables)
+            Return new UsingStatementSyntax(Me.Kind, GetDiagnostics, annotations, _asyncKeyword, _usingKeyword, _expression, _variables)
         End Function
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
@@ -34454,6 +34482,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Public Overrides Function VisitUsingStatement(ByVal node As UsingStatementSyntax) As VisualBasicSyntaxNode
             Dim anyChanges As Boolean = False
 
+            Dim newAsyncKeyword = DirectCast(Visit(node.AsyncKeyword), KeywordSyntax)
+            If node._asyncKeyword IsNot newAsyncKeyword Then anyChanges = True
             Dim newUsingKeyword = DirectCast(Visit(node.UsingKeyword), KeywordSyntax)
             If node._usingKeyword IsNot newUsingKeyword Then anyChanges = True
             Dim newExpression = DirectCast(Visit(node._expression), ExpressionSyntax)
@@ -34462,7 +34492,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If node._variables IsNot newVariables.Node Then anyChanges = True
 
             If anyChanges Then
-                Return New UsingStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newUsingKeyword, newExpression, newVariables.Node)
+                Return New UsingStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAsyncKeyword, newUsingKeyword, newExpression, newVariables.Node)
             Else
                 Return node
             End If
@@ -43437,6 +43467,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' the Begin of a UsingBlock, and the body of the Using is the Body of that
         ''' UsingBlock.
         ''' </summary>
+        ''' <param name="asyncKeyword">
+        ''' The optional "Async" keyword. The resource is released with an awaited
+        ''' DisposeAsync.
+        ''' </param>
         ''' <param name="usingKeyword">
         ''' The "Using" keyword.
         ''' </param>
@@ -43448,21 +43482,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the Using statement is of a form that declares one or more new variables,
         ''' this is the list of variable declarations. Otherwise, Nothing is returned.
         ''' </param>
-        Friend Shared Function UsingStatement(usingKeyword As KeywordSyntax, expression As ExpressionSyntax, variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)) As UsingStatementSyntax
+        Friend Shared Function UsingStatement(asyncKeyword As KeywordSyntax, usingKeyword As KeywordSyntax, expression As ExpressionSyntax, variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)) As UsingStatementSyntax
             Debug.Assert(usingKeyword IsNot Nothing AndAlso usingKeyword.Kind = SyntaxKind.UsingKeyword)
-
-            Dim hash As Integer
-            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.UsingStatement, usingKeyword, expression, variables.Node, hash)
-            If cached IsNot Nothing Then
-                Return DirectCast(cached, UsingStatementSyntax)
-            End If
-
-            Dim result = New UsingStatementSyntax(SyntaxKind.UsingStatement, usingKeyword, expression, variables.Node)
-            If hash >= 0 Then
-                SyntaxNodeCache.AddNode(result, hash)
-            End If
-
-            Return result
+            Return New UsingStatementSyntax(SyntaxKind.UsingStatement, asyncKeyword, usingKeyword, expression, variables.Node)
         End Function
 
 
@@ -56180,6 +56202,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' the Begin of a UsingBlock, and the body of the Using is the Body of that
         ''' UsingBlock.
         ''' </summary>
+        ''' <param name="asyncKeyword">
+        ''' The optional "Async" keyword. The resource is released with an awaited
+        ''' DisposeAsync.
+        ''' </param>
         ''' <param name="usingKeyword">
         ''' The "Using" keyword.
         ''' </param>
@@ -56191,21 +56217,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the Using statement is of a form that declares one or more new variables,
         ''' this is the list of variable declarations. Otherwise, Nothing is returned.
         ''' </param>
-        Friend Function UsingStatement(usingKeyword As KeywordSyntax, expression As ExpressionSyntax, variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)) As UsingStatementSyntax
+        Friend Function UsingStatement(asyncKeyword As KeywordSyntax, usingKeyword As KeywordSyntax, expression As ExpressionSyntax, variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)) As UsingStatementSyntax
             Debug.Assert(usingKeyword IsNot Nothing AndAlso usingKeyword.Kind = SyntaxKind.UsingKeyword)
-
-            Dim hash As Integer
-            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.UsingStatement, usingKeyword, expression, variables.Node, _factoryContext, hash)
-            If cached IsNot Nothing Then
-                Return DirectCast(cached, UsingStatementSyntax)
-            End If
-
-            Dim result = New UsingStatementSyntax(SyntaxKind.UsingStatement, usingKeyword, expression, variables.Node, _factoryContext)
-            If hash >= 0 Then
-                SyntaxNodeCache.AddNode(result, hash)
-            End If
-
-            Return result
+            Return New UsingStatementSyntax(SyntaxKind.UsingStatement, asyncKeyword, usingKeyword, expression, variables.Node, _factoryContext)
         End Function
 
 

@@ -1470,7 +1470,7 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim locals As ImmutableArray(Of ILocalSymbol) = ImmutableArray(Of ILocalSymbol).CastUp(boundUsingStatement.Locals)
             Dim syntax As SyntaxNode = boundUsingStatement.Syntax
             Dim isImplicit As Boolean = boundUsingStatement.WasCompilerGenerated
-            Return New UsingOperation(resources, body, locals, isAsynchronous:=False, disposeInfo:=Nothing, _semanticModel, syntax, isImplicit)
+            Return New UsingOperation(resources, body, locals, isAsynchronous:=boundUsingStatement.UsingInfo.IsAsynchronous, disposeInfo:=Nothing, _semanticModel, syntax, isImplicit)
         End Function
 
         Private Function CreateBoundExpressionStatementOperation(boundExpressionStatement As BoundExpressionStatement) As IExpressionStatementOperation

@@ -2097,7 +2097,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return statement
         End Function
 
-        Private Function ParseUsingStatement() As UsingStatementSyntax
+        Private Function ParseUsingStatement(Optional asyncKeyword As KeywordSyntax = Nothing) As UsingStatementSyntax
             Debug.Assert(CurrentToken.Kind = SyntaxKind.UsingKeyword, "ParseUsingStatement called on wrong token")
 
             Dim usingKeyword As KeywordSyntax = DirectCast(CurrentToken, KeywordSyntax)
@@ -2123,9 +2123,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             'No need to resync on error.  This will be handled by GetStatementTerminator
 
-            Dim statement = SyntaxFactory.UsingStatement(usingKeyword, optionalExpression, variables)
+            Dim statement = SyntaxFactory.UsingStatement(asyncKeyword, usingKeyword, optionalExpression, variables)
 
             Return statement
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, Async before Using starts a Using whose resources are released with an awaited DisposeAsync.
+        ''' An identifier followed by Using is not a statement otherwise, so this does not change existing code.
+        ''' </summary>
+        Private Function ParseAsyncUsingStatement() As UsingStatementSyntax
+            Debug.Assert(PeekToken(1).Kind = SyntaxKind.UsingKeyword)
+
+            Dim asyncKeyword = _scanner.MakeKeyword(DirectCast(CurrentToken, IdentifierTokenSyntax))
+            asyncKeyword = CheckFeatureAvailability(Feature.AsyncUsing, asyncKeyword)
+            GetNextToken()
+
+            Return ParseUsingStatement(asyncKeyword)
         End Function
 
         Private Function ParseAwaitStatement() As ExpressionStatementSyntax

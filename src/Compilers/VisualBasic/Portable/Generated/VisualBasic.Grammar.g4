@@ -1183,7 +1183,7 @@ using_block
   ;
 
 using_statement
-  : 'Using' expression? (variable_declarator (',' variable_declarator)*)?
+  : 'Async'? 'Using' expression? (variable_declarator (',' variable_declarator)*)?
   ;
 
 while_block

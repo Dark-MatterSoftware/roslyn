@@ -1143,6 +1143,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ElseIf contextualKind = SyntaxKind.CustomKeyword AndAlso PeekToken(1).Kind = SyntaxKind.EventKeyword Then ' BeginsEvent
                             Return ParseSpecifierDeclaration()
 
+                        ElseIf contextualKind = SyntaxKind.AsyncKeyword AndAlso PeekToken(1).Kind = SyntaxKind.UsingKeyword Then
+                            Return ParseAsyncUsingStatement()
+
                         ElseIf contextualKind = SyntaxKind.AsyncKeyword OrElse contextualKind = SyntaxKind.IteratorKeyword OrElse contextualKind = SyntaxKind.InitOnlyKeyword OrElse contextualKind = SyntaxKind.RequiredKeyword OrElse
                                (contextualKind = SyntaxKind.RecordKeyword AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext) Then
 

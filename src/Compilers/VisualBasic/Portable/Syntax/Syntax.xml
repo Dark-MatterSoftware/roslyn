@@ -4875,6 +4875,12 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="Statements.Opcodes.Using" />
       </node-kind>
 
+      <child name="AsyncKeyword" optional="true" kind="AsyncKeyword">
+        <description>The optional "Async" keyword. The resource is released with an awaited DisposeAsync.</description>
+        <lm-equiv name="AsyncKeyword"></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
       <child name="UsingKeyword" kind="UsingKeyword">
         <description>The "Using" keyword.</description>
         <lm-equiv name="UsingKeyword"></lm-equiv>

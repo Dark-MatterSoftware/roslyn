@@ -7,6 +7,16 @@
         <target state="translated">Solo un inicializador de miembro de objeto puede asignar la propiedad de solo inicio "{0}", o bien en "Me", "MyClass" o "MyBase" en un constructor de instancia.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AsyncUsingNotInAsyncMethod">
+        <source>'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</source>
+        <target state="new">'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_AsyncUsingRequiresAsyncDisposable">
+        <source>'Async Using' operand of type '{0}' must implement 'System.IAsyncDisposable'.</source>
+        <target state="new">'Async Using' operand of type '{0}' must implement 'System.IAsyncDisposable'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_AttributeCannotBeAppliedManually">
         <source>'{0}' cannot be applied manually.</source>
         <target state="translated">“{0}” no se puede aplicar manualmente.</target>
@@ -445,6 +455,11 @@
       <trans-unit id="FEATURE_AsyncMain">
         <source>async entry points</source>
         <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_AsyncUsing">
+        <source>'Async Using'</source>
+        <target state="new">'Async Using'</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">

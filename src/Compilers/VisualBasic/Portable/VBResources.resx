@@ -5980,6 +5980,15 @@
   <data name="ERR_InterpolatedStringHandlerArgument" xml:space="preserve">
     <value>The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</value>
   </data>
+  <data name="FEATURE_AsyncUsing" xml:space="preserve">
+    <value>'Async Using'</value>
+  </data>
+  <data name="ERR_AsyncUsingNotInAsyncMethod" xml:space="preserve">
+    <value>'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</value>
+  </data>
+  <data name="ERR_AsyncUsingRequiresAsyncDisposable" xml:space="preserve">
+    <value>'Async Using' operand of type '{0}' must implement 'System.IAsyncDisposable'.</value>
+  </data>
   <data name="ERR_DeconstructionRequiresOptionInfer" xml:space="preserve">
     <value>'Dim (...)' infers the type of each variable, which requires 'Option Infer On'. Declare the variables with 'As' clauses, then assign them with '(...) = value'.</value>
   </data>

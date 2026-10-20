@@ -21,6 +21,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public ReadOnly PlaceholderInfo As Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression))
 
         ''' <summary>
+        ''' For Async Using, the awaited DisposeAsync call on the placeholder of each declared resource. Each await
+        ''' has the syntax of its resource, so each one is its own state of the state machine.
+        ''' </summary>
+        Public ReadOnly DisposeAwaitInfo As Dictionary(Of LocalSymbol, BoundExpression)
+
+        ''' <summary>
+        ''' For Async Using with an expression resource, the awaited DisposeAsync call on its placeholder.
+        ''' </summary>
+        Public ReadOnly DisposeAwaitForExpressionOpt As BoundExpression
+
+        ''' <summary>
         ''' Syntax node for the using block.
         ''' </summary>
         Public ReadOnly UsingStatementSyntax As UsingBlockSyntax
@@ -33,10 +44,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' a condition if placeholder IsNot nothing per type.</param>
         Public Sub New(
             usingStatementSyntax As UsingBlockSyntax,
-            placeholderInfo As Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression))
+            placeholderInfo As Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)),
+            Optional disposeAwaitInfo As Dictionary(Of LocalSymbol, BoundExpression) = Nothing,
+            Optional disposeAwaitForExpressionOpt As BoundExpression = Nothing
         )
             Me.PlaceholderInfo = placeholderInfo
+            Me.DisposeAwaitInfo = disposeAwaitInfo
+            Me.DisposeAwaitForExpressionOpt = disposeAwaitForExpressionOpt
             Me.UsingStatementSyntax = usingStatementSyntax
         End Sub
+
+        ''' <summary>
+        ''' True for Async Using, which releases each resource with an awaited DisposeAsync.
+        ''' </summary>
+        Public ReadOnly Property IsAsynchronous As Boolean
+            Get
+                Return DisposeAwaitInfo IsNot Nothing
+            End Get
+        End Property
     End Class
 End Namespace

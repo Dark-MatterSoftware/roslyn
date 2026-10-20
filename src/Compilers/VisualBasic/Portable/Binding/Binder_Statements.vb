@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -607,6 +607,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Public Overrides Function VisitUsingStatement(node As BoundUsingStatement) As BoundNode
                 Debug.Assert(Not node.WasCompilerGenerated)
+
+                ' Async Using awaits DisposeAsync where the block ends.
+                If node.UsingInfo.IsAsynchronous Then
+                    _containsAwait = True
+
+                    If _isInCatchFinallyOrSyncLock Then
+                        ReportDiagnostic(_diagnostics, node.UsingInfo.UsingStatementSyntax.UsingStatement.AsyncKeyword, ERRID.ERR_BadAwaitInTryHandler)
+                        _reportedAnError = True
+                    End If
+                End If
+
                 Dim save = _enclosingSyncLockOrUsing
                 _enclosingSyncLockOrUsing = node
                 MyBase.VisitUsingStatement(node)
@@ -5115,9 +5126,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim usingVariableDeclarations = usingStatement.Variables
             Dim usingVariableDeclarationCount = usingVariableDeclarations.Count
 
-            Dim iDisposable = GetSpecialType(SpecialType.System_IDisposable,
+            ' Async Using releases each resource through IAsyncDisposable, with an awaited DisposeAsync.
+            Dim iDisposable As TypeSymbol
+            Dim disposeAwaitInfo As Dictionary(Of LocalSymbol, BoundExpression) = Nothing
+            Dim disposeAwaitForExpression As BoundExpression = Nothing
+            If usingStatement.AsyncKeyword.Kind = SyntaxKind.AsyncKeyword Then
+                iDisposable = GetWellKnownType(WellKnownType.System_IAsyncDisposable, usingStatement, diagnostics)
+                disposeAwaitInfo = New Dictionary(Of LocalSymbol, BoundExpression)()
+
+                If Not IsInAsyncContext() Then
+                    ReportDiagnostic(diagnostics, usingStatement.AsyncKeyword, ERRID.ERR_AsyncUsingNotInAsyncMethod)
+                End If
+            Else
+                iDisposable = GetSpecialType(SpecialType.System_IDisposable,
                                              node,
                                              diagnostics)
+            End If
 
             Dim placeholderInfo = New Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression))()
 
@@ -5166,6 +5190,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                         boundLocalDeclaration.LocalSymbol,
                                                                         iDisposable,
                                                                         placeholderInfo,
+                                                                        disposeAwaitInfo,
                                                                         diagnostics)
                     Else
                         Dim boundAsNewDeclarations = DirectCast(localDeclarations, BoundAsNewLocalDeclarations)
@@ -5178,6 +5203,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                             localDeclaration.LocalSymbol,
                                                                             iDisposable,
                                                                             placeholderInfo,
+                                                                            disposeAwaitInfo,
                                                                             diagnostics)
                         Next
                     End If
@@ -5196,13 +5222,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                             resourceExpression.Type,
                                             placeholderInfo,
                                             iDisposable,
+                                            disposeAwaitInfo,
                                             diagnostics)
+
+                    If disposeAwaitInfo IsNot Nothing Then
+                        disposeAwaitForExpression = BindResourceDisposeAsyncAwait(usingStatement, resourceExpressionType, placeholderInfo, diagnostics)
+                    End If
                 End If
             End If
 
             ' Bind the body of the using statement.
             Dim usingBody As BoundBlock = BindBlock(node, node.Statements, diagnostics).MakeCompilerGenerated()
-            Dim usingInfo As New UsingInfo(node, placeholderInfo)
+            Dim usingInfo As New UsingInfo(node, placeholderInfo, disposeAwaitInfo, disposeAwaitForExpression)
             Dim locals As ImmutableArray(Of LocalSymbol) = GetUsingBlockLocals(usingBinder)
 
             Return New BoundUsingStatement(node, resourceList, resourceExpression, usingBody, usingInfo, locals)
@@ -5230,6 +5261,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             localSymbol As LocalSymbol,
             iDisposable As TypeSymbol,
             placeholderInfo As Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)),
+            disposeAwaitInfo As Dictionary(Of LocalSymbol, BoundExpression),
             diagnostics As BindingDiagnosticBag
         )
             Dim declarationType As TypeSymbol = localSymbol.Type
@@ -5248,7 +5280,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                         declarationType,
                                         placeholderInfo,
                                         iDisposable,
+                                        disposeAwaitInfo,
                                         diagnostics)
+
+                If disposeAwaitInfo IsNot Nothing Then
+                    Dim disposeAwait = BindResourceDisposeAsyncAwait(localSymbol.IdentifierToken.Parent, declarationType, placeholderInfo, diagnostics)
+                    If disposeAwait IsNot Nothing Then
+                        disposeAwaitInfo(localSymbol) = disposeAwait
+                    End If
+                End If
 
                 ' TODO: Dev10 shows the error on the symbol name, not the whole declaration. See bug 10720
 
@@ -5266,6 +5306,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             resourceType As TypeSymbol,
             placeholderInfo As Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)),
             iDisposable As TypeSymbol,
+            disposeAwaitInfo As Dictionary(Of LocalSymbol, BoundExpression),
             diagnostics As BindingDiagnosticBag
         )
             If Not placeholderInfo.ContainsKey(resourceType) Then
@@ -5279,9 +5320,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Dim isValidDispose = Conversions.IsWideningConversion(conversionKind)
+                Dim isAsync = disposeAwaitInfo IsNot Nothing
 
                 If isValidDispose OrElse
-                   (resourceType.IsObjectType() AndAlso OptionStrict <> OptionStrict.On) Then
+                   (Not isAsync AndAlso resourceType.IsObjectType() AndAlso OptionStrict <> OptionStrict.On) Then
                     Dim resourcePlaceholder = New BoundRValuePlaceholder(syntaxNode, resourceType)
                     Dim disposeConversion As BoundExpression = Nothing
                     Dim disposeCondition As BoundExpression = Nothing
@@ -5292,6 +5334,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         disposeCondition = BindIsExpression(resourcePlaceholder,
                                                             New BoundLiteral(syntaxNode, ConstantValue.Nothing, Nothing),
                                                             syntaxNode, True, diagnostics)
+                    ElseIf isAsync Then
+                        ' Async Using calls DisposeAsync through the interface for a structure too.
+                        disposeConversion = ApplyImplicitConversion(syntaxNode, iDisposable, resourcePlaceholder, diagnostics)
                     End If
 
                     placeholderInfo.Add(resourceType,
@@ -5302,10 +5347,45 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Else
                     ReportDiagnostic(diagnostics,
                                      syntaxNode,
-                                     ErrorFactory.ErrorInfo(ERRID.ERR_UsingRequiresDisposePattern, resourceType))
+                                     ErrorFactory.ErrorInfo(If(isAsync, ERRID.ERR_AsyncUsingRequiresAsyncDisposable, ERRID.ERR_UsingRequiresDisposePattern), resourceType))
                 End If
             End If
         End Sub
+
+        ''' <summary>
+        ''' Await resource.DisposeAsync() for one Async Using resource, or Nothing when the resource type is not valid.
+        ''' The await has the syntax of the resource, which is how the state machine tells the resources apart.
+        ''' </summary>
+        Private Function BindResourceDisposeAsyncAwait(
+            awaitSyntax As SyntaxNode,
+            resourceType As TypeSymbol,
+            placeholderInfo As Dictionary(Of TypeSymbol, ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)),
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+            Dim info As ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression) = Nothing
+            If Not placeholderInfo.TryGetValue(resourceType, info) OrElse info.Item2 Is Nothing Then
+                Return Nothing
+            End If
+
+            Return BindDisposeAsyncAwait(awaitSyntax, info.Item2, diagnostics)
+        End Function
+
+        ''' <summary>
+        ''' Await resource.DisposeAsync() for Async Using, where the resource is already converted to IAsyncDisposable.
+        ''' </summary>
+        Private Function BindDisposeAsyncAwait(syntaxNode As SyntaxNode, asyncDisposable As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim disposeAsync = TryCast(GetWellKnownTypeMember(WellKnownMember.System_IAsyncDisposable__DisposeAsync, syntaxNode, diagnostics), MethodSymbol)
+            If disposeAsync Is Nothing Then
+                Return BadExpression(syntaxNode, asyncDisposable, ErrorTypeSymbol.UnknownResultType).MakeCompilerGenerated()
+            End If
+
+            Dim disposeCall = New BoundCall(syntaxNode, disposeAsync, Nothing, asyncDisposable, ImmutableArray(Of BoundExpression).Empty, Nothing,
+                                            disposeAsync.ReturnType, suppressObjectClone:=True).MakeCompilerGenerated()
+
+            ' Outside an Async method the error is the one already reported on Async Using.
+            Dim awaitDiagnostics = If(IsInAsyncContext(), diagnostics, BindingDiagnosticBag.Discarded)
+            Return BindAwait(DirectCast(syntaxNode, VisualBasicSyntaxNode), disposeCall, awaitDiagnostics, bindAsStatement:=True).MakeCompilerGenerated()
+        End Function
 
         ''' <summary>Check the given type of and report WRN_MutableGenericStructureInUsing if needed.</summary>
         ''' <remarks>This function should only be called for a type of a using variable.</remarks>

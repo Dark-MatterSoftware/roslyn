@@ -30,7 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' The awaiter temp facilitates EnC method remapping and thus have to be long-lived.
                 ' It transfers the awaiter objects from the old version of the MoveNext method to the New one.
-                Debug.Assert(node.Syntax.IsKind(SyntaxKind.AwaitExpression))
+                Debug.Assert(SyntaxBindingUtilities.BindsToResumableStateMachineState(node.Syntax))
                 Dim awaiterType As TypeSymbol = node.GetAwaiter.Type.InternalSubstituteTypeParameters(Me.TypeMap).Type
                 Dim awaiterTemp As LocalSymbol = Me.F.SynthesizedLocal(awaiterType, kind:=SynthesizedLocalKind.Awaiter, syntax:=node.Syntax)
                 builder.AddLocal(awaiterTemp)

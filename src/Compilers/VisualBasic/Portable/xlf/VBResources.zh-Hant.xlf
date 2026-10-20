@@ -7,6 +7,16 @@
         <target state="translated">只有物件成員初始設定式，或在執行個體建構函式中的 'Me'、'MyClass' 或 'MyBase'，才可指派僅限初始化的屬性 '{0}'。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AsyncUsingNotInAsyncMethod">
+        <source>'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</source>
+        <target state="new">'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_AsyncUsingRequiresAsyncDisposable">
+        <source>'Async Using' operand of type '{0}' must implement 'System.IAsyncDisposable'.</source>
+        <target state="new">'Async Using' operand of type '{0}' must implement 'System.IAsyncDisposable'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_AttributeCannotBeAppliedManually">
         <source>'{0}' cannot be applied manually.</source>
         <target state="translated">無法手動套用 '{0}'。</target>
@@ -445,6 +455,11 @@
       <trans-unit id="FEATURE_AsyncMain">
         <source>async entry points</source>
         <target state="new">async entry points</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_AsyncUsing">
+        <source>'Async Using'</source>
+        <target state="new">'Async Using'</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">

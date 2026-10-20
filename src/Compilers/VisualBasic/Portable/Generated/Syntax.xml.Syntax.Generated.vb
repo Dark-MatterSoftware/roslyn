@@ -21591,16 +21591,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
             Debug.Assert(startLocation >= 0)
         End Sub
 
-        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As SyntaxNode)
-            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.UsingStatementSyntax(kind, errors, annotations, usingKeyword, if(expression IsNot Nothing, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), Nothing), if(variables IsNot Nothing, variables.Green, Nothing)), Nothing, 0)
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), asyncKeyword As InternalSyntax.KeywordSyntax, usingKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, variables As SyntaxNode)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.UsingStatementSyntax(kind, errors, annotations, asyncKeyword, usingKeyword, if(expression IsNot Nothing, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), Nothing), if(variables IsNot Nothing, variables.Green, Nothing)), Nothing, 0)
         End Sub
+
+        ''' <summary>
+        ''' The optional "Async" keyword. The resource is released with an awaited
+        ''' DisposeAsync.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property AsyncKeyword As SyntaxToken
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.UsingStatementSyntax)._asyncKeyword
+                If slot IsNot Nothing
+                    return new SyntaxToken(Me, slot, Me.Position, 0)
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the AsyncKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithAsyncKeyword(asyncKeyword as SyntaxToken) As UsingStatementSyntax
+            return Update(asyncKeyword, Me.UsingKeyword, Me.Expression, Me.Variables)
+        End Function
 
         ''' <summary>
         ''' The "Using" keyword.
         ''' </summary>
         Public ReadOnly Property UsingKeyword As SyntaxToken
             Get
-                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.UsingStatementSyntax)._usingKeyword, Me.Position, 0)
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.UsingStatementSyntax)._usingKeyword, Me.GetChildPosition(1), Me.GetChildIndex(1))
             End Get
         End Property
 
@@ -21610,7 +21636,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithUsingKeyword(usingKeyword as SyntaxToken) As UsingStatementSyntax
-            return Update(usingKeyword, Me.Expression, Me.Variables)
+            return Update(Me.AsyncKeyword, usingKeyword, Me.Expression, Me.Variables)
         End Function
 
         ''' <summary>
@@ -21622,7 +21648,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' </remarks>
         Public ReadOnly Property Expression As ExpressionSyntax
             Get
-                Return GetRed(_expression, 1)
+                Return GetRed(_expression, 2)
             End Get
         End Property
 
@@ -21632,7 +21658,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithExpression(expression as ExpressionSyntax) As UsingStatementSyntax
-            return Update(Me.UsingKeyword, expression, Me.Variables)
+            return Update(Me.AsyncKeyword, Me.UsingKeyword, expression, Me.Variables)
         End Function
 
         ''' <summary>
@@ -21644,9 +21670,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' </remarks>
         Public ReadOnly Property Variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)
             Get
-                Dim listNode = GetRed(_variables, 2)
+                Dim listNode = GetRed(_variables, 3)
                 If listNode IsNot Nothing
-                    Return new SeparatedSyntaxList(Of VariableDeclaratorSyntax)(listNode, Me.GetChildIndex(2))
+                    Return new SeparatedSyntaxList(Of VariableDeclaratorSyntax)(listNode, Me.GetChildIndex(3))
                 End If
                 Return Nothing
             End Get
@@ -21658,7 +21684,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' value.
         ''' </summary>
         Public Shadows Function WithVariables(variables as SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
-            return Update(Me.UsingKeyword, Me.Expression, variables)
+            return Update(Me.AsyncKeyword, Me.UsingKeyword, Me.Expression, variables)
         End Function
 
         Public Shadows Function AddVariables(ParamArray items As VariableDeclaratorSyntax()) As UsingStatementSyntax
@@ -21667,9 +21693,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
 
         Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
             Select case i
-                Case 1
-                    Return Me._expression
                 Case 2
+                    Return Me._expression
+                Case 3
                     Return Me._variables
                 Case Else
                     Return Nothing
@@ -21678,10 +21704,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
 
         Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
             Select case i
-                Case 1
-                    Return Me.Expression
                 Case 2
-                    Return GetRed(_variables, 2)
+                    Return Me.Expression
+                Case 3
+                    Return GetRed(_variables, 3)
                 Case Else
                     Return Nothing
             End Select
@@ -21700,6 +21726,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' Returns a copy of this with the specified changes. Returns this instance if
         ''' there are no actual changes.
         ''' </summary>
+        ''' <param name="asyncKeyword">
+        ''' The value for the AsyncKeyword property.
+        ''' </param>
         ''' <param name="usingKeyword">
         ''' The value for the UsingKeyword property.
         ''' </param>
@@ -21709,9 +21738,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="variables">
         ''' The value for the Variables property.
         ''' </param>
-        Public Function Update(usingKeyword As SyntaxToken, expression As ExpressionSyntax, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
-            If usingKeyword <> Me.UsingKeyword OrElse expression IsNot Me.Expression OrElse variables <> Me.Variables Then
-                Dim newNode = SyntaxFactory.UsingStatement(usingKeyword, expression, variables)
+        Public Function Update(asyncKeyword As SyntaxToken, usingKeyword As SyntaxToken, expression As ExpressionSyntax, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
+            If asyncKeyword <> Me.AsyncKeyword OrElse usingKeyword <> Me.UsingKeyword OrElse expression IsNot Me.Expression OrElse variables <> Me.Variables Then
+                Dim newNode = SyntaxFactory.UsingStatement(asyncKeyword, usingKeyword, expression, variables)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

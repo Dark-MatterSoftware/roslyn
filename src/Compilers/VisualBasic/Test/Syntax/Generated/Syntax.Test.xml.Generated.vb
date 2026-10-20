@@ -809,7 +809,7 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenUsingStatement() As InternalSyntax.UsingStatementSyntax
-            return InternalSyntax.SyntaxFactory.UsingStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.UsingKeyword, String.Empty, Nothing, Nothing), Nothing, Nothing)
+            return InternalSyntax.SyntaxFactory.UsingStatement(Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.UsingKeyword, String.Empty, Nothing, Nothing), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenThrowStatement() As InternalSyntax.ThrowStatementSyntax
@@ -14288,14 +14288,14 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedUsingStatement() As UsingStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.UsingStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing)
+            SyntaxFactory.UsingStatement(Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.UsingStatement(SyntaxFactory.Token(SyntaxKind.UsingKeyword), Nothing, Nothing)
+            return SyntaxFactory.UsingStatement(Nothing, SyntaxFactory.Token(SyntaxKind.UsingKeyword), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedThrowStatement() As ThrowStatementSyntax
@@ -21328,7 +21328,7 @@ Partial Public Class GeneratedTests
         Public Sub TestRedUsingStatement()
             dim objectUnderTest = GenerateRedUsingStatement()
             Assert.NotNull(objectUnderTest.usingKeyword)
-            Dim withObj = objectUnderTest.WithUsingKeyword(objectUnderTest.UsingKeyword).WithExpression(objectUnderTest.Expression).WithVariables(objectUnderTest.Variables)
+            Dim withObj = objectUnderTest.WithAsyncKeyword(objectUnderTest.AsyncKeyword).WithUsingKeyword(objectUnderTest.UsingKeyword).WithExpression(objectUnderTest.Expression).WithVariables(objectUnderTest.Variables)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 

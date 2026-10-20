@@ -152,7 +152,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             currentBody = New BoundBlock(node.Syntax,
                                          currentBody.StatementListSyntax,
-                                         locals,
+                                         locals.AddRange(currentBody.Locals),
                                          statements)
 
             Dim prologue As BoundStatement = Nothing
@@ -197,6 +197,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ByRef placeholderInfo As ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression),
             currentBody As BoundBlock
         ) As BoundBlock
+            If node.UsingInfo.IsAsynchronous Then
+                Dim disposeAwait As BoundExpression = Nothing
+                If Not node.UsingInfo.DisposeAwaitInfo.TryGetValue(localSymbol, disposeAwait) Then
+                    disposeAwait = node.UsingInfo.DisposeAwaitForExpressionOpt
+                End If
+
+                Return RewriteSingleUsingToAsyncDispose(resourceSyntax, localSymbol, initializationExpression, placeholderInfo, disposeAwait, currentBody)
+            End If
+
             Dim resourceType = localSymbol.Type
             Dim boundResourceLocal As BoundLocal = New BoundLocal(resourceSyntax, localSymbol, isLValue:=True, type:=resourceType)
 

@@ -32,6 +32,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Return WithStatement(withKeyword, Nothing, Nothing, Nothing, Nothing, expression)
         End Function
 
+        Friend Shared Function UsingStatement(usingKeyword As KeywordSyntax, expression As ExpressionSyntax, variables As CoreInternalSyntax.SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As UsingStatementSyntax
+            Return UsingStatement(Nothing, usingKeyword, expression, variables)
+        End Function
+
         Friend Shared Function SubStatement(attributeLists As CoreInternalSyntax.SyntaxList(Of GreenNode), modifiers As CoreInternalSyntax.SyntaxList(Of GreenNode), subOrFunctionKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax
             Return SubStatement(attributeLists, modifiers, subOrFunctionKeyword, identifier, typeParameterList, parameterList, asClause, handlesClause, implementsClause, Nothing)
         End Function

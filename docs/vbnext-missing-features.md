@@ -142,7 +142,7 @@ Checked against this tree after every wave 0 to 4 item had a slice. Each gap bel
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-061 | Asynchronous disposal | `Using` calls `Dispose` only. A resource that implements `IAsyncDisposable` cannot be released with `Await DisposeAsync()` by the statement. EF Core contexts, streams, and ASP.NET Core services implement it. |
+| VB-061 | Asynchronous disposal | Before slice 26b, `Using` called `Dispose` only, so a resource that implements `IAsyncDisposable` could not be released with `Await DisposeAsync()` by the statement. EF Core contexts, streams, and ASP.NET Core services implement it. On `vbnext`, `Async Using` releases it. |
 | VB-062 | Asynchronous iteration | `For Each` needs `GetEnumerator`. An `IAsyncEnumerable(Of T)`, which EF Core, gRPC, and `System.Threading.Channels` return, cannot be iterated without hand-written `MoveNextAsync` loops. |
 | VB-063 | Async iterators | An `Iterator` function cannot `Await`, and an `Async` function cannot `Yield`. VB cannot author an `IAsyncEnumerable(Of T)`. Follows VB-062. |
 | VB-064 | `SyncLock` on `System.Threading.Lock` | No new syntax. `SyncLock` on a .NET 9 `Lock` object reports BC37329, so VB can lock one only by converting it, which warns with BC42508 and goes through `Monitor`. C# calls `Lock.EnterScope` for the same code. |
