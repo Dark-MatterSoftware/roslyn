@@ -112,6 +112,8 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Return CreateBoundTernaryConditionalExpressionOperation(DirectCast(boundNode, BoundTernaryConditionalExpression))
                 Case BoundKind.TypeOf
                     Return CreateBoundTypeOfOperation(DirectCast(boundNode, BoundTypeOf))
+                Case BoundKind.TypeOfDeclaration
+                    Return CreateBoundTypeOfDeclarationOperation(DirectCast(boundNode, BoundTypeOfDeclaration))
                 Case BoundKind.GetType
                     Return CreateBoundGetTypeOperation(DirectCast(boundNode, BoundGetType))
                 Case BoundKind.ObjectCreationExpression
@@ -800,6 +802,16 @@ Namespace Microsoft.CodeAnalysis.Operations
             Return New IsTypeOperation(valueOperand, typeOperand, isNegated, _semanticModel, syntax, type, isImplicit)
         End Function
 
+        Private Function CreateBoundTypeOfDeclarationOperation(boundTypeOfDeclaration As BoundTypeOfDeclaration) As IIsPatternOperation
+            Dim value = Create(boundTypeOfDeclaration.Operand)
+            Dim local As ILocalSymbol = boundTypeOfDeclaration.Local
+            Dim inputType As ITypeSymbol = If(boundTypeOfDeclaration.Operand.Type, boundTypeOfDeclaration.Local.Type)
+            Dim syntax As SyntaxNode = boundTypeOfDeclaration.Syntax
+            Dim isImplicit As Boolean = boundTypeOfDeclaration.WasCompilerGenerated
+            Dim pattern = New DeclarationPatternOperation(local.Type, matchesNull:=False, local, inputType, local.Type, _semanticModel, syntax, isImplicit:=True)
+            Return New IsPatternOperation(value, pattern, _semanticModel, syntax, boundTypeOfDeclaration.Type, isImplicit)
+        End Function
+
         Private Function CreateBoundGetTypeOperation(boundGetType As BoundGetType) As ITypeOfOperation
             Dim typeOperand As ITypeSymbol = boundGetType.SourceType.Type
             Dim syntax As SyntaxNode = boundGetType.Syntax
@@ -1114,7 +1126,8 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim syntax As SyntaxNode = boundCaseBlock.Syntax
             Dim isImplicit As Boolean = boundCaseBlock.WasCompilerGenerated
 
-            Return New SwitchCaseOperation(clauses, body, ImmutableArray(Of ILocalSymbol).Empty, condition, _semanticModel, syntax, isImplicit)
+            Dim locals = PatternVariableCollector.Collect(boundCaseBlock.CaseStatement).SelectAsArray(Function(l) DirectCast(l, ILocalSymbol))
+            Return New SwitchCaseOperation(clauses, body, locals, condition, _semanticModel, syntax, isImplicit)
         End Function
 
         Private Function CreateBoundSimpleCaseClauseOperation(boundSimpleCaseClause As BoundSimpleCaseClause) As ISingleValueCaseClauseOperation

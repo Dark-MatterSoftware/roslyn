@@ -12,8 +12,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If conditionOpt IsNot Nothing Then
                 Select Case conditionOpt.Kind
-                    Case BoundKind.TypeOf
-                        ' Case Is TypeOf T carries the type test itself.
+                    Case BoundKind.TypeOf, BoundKind.TypeOfDeclaration
+                        ' Case Is TypeOf T carries the type test itself, and Into names its result.
 
                     Case BoundKind.BinaryOperator
                         Dim binaryOp As BoundBinaryOperator = DirectCast(conditionOpt, BoundBinaryOperator)

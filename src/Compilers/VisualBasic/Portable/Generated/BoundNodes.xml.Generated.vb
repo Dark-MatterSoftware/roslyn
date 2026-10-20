@@ -65,6 +65,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         [DirectCast]
         [TryCast]
         [TypeOf]
+        TypeOfDeclaration
         SequencePoint
         SequencePointExpression
         SequencePointWithSpan
@@ -2605,6 +2606,58 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(operand As BoundExpression, isTypeOfIsNotExpression As Boolean, targetType As TypeSymbol, type As TypeSymbol) As BoundTypeOf
             If operand IsNot Me.Operand OrElse isTypeOfIsNotExpression <> Me.IsTypeOfIsNotExpression OrElse targetType IsNot Me.TargetType OrElse type IsNot Me.Type Then
                 Dim result = New BoundTypeOf(Me.Syntax, operand, isTypeOfIsNotExpression, targetType, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundTypeOfDeclaration
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, operand As BoundExpression, local As LocalSymbol, conversion As ConversionKind, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.TypeOfDeclaration, syntax, type, hasErrors OrElse operand.NonNullAndHasErrors())
+
+            Debug.Assert(operand IsNot Nothing, "Field 'operand' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(local IsNot Nothing, "Field 'local' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._Operand = operand
+            Me._Local = local
+            Me._Conversion = conversion
+        End Sub
+
+
+        Private ReadOnly _Operand As BoundExpression
+        Public ReadOnly Property Operand As BoundExpression
+            Get
+                Return _Operand
+            End Get
+        End Property
+
+        Private ReadOnly _Local As LocalSymbol
+        Public ReadOnly Property Local As LocalSymbol
+            Get
+                Return _Local
+            End Get
+        End Property
+
+        Private ReadOnly _Conversion As ConversionKind
+        Public ReadOnly Property Conversion As ConversionKind
+            Get
+                Return _Conversion
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitTypeOfDeclaration(Me)
+        End Function
+
+        Public Function Update(operand As BoundExpression, local As LocalSymbol, conversion As ConversionKind, type As TypeSymbol) As BoundTypeOfDeclaration
+            If operand IsNot Me.Operand OrElse local IsNot Me.Local OrElse conversion <> Me.Conversion OrElse type IsNot Me.Type Then
+                Dim result = New BoundTypeOfDeclaration(Me.Syntax, operand, local, conversion, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9600,6 +9653,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitTryCast(CType(node, BoundTryCast), arg)
                 Case BoundKind.[TypeOf]
                     Return VisitTypeOf(CType(node, BoundTypeOf), arg)
+                Case BoundKind.TypeOfDeclaration
+                    Return VisitTypeOfDeclaration(CType(node, BoundTypeOfDeclaration), arg)
                 Case BoundKind.SequencePoint
                     Return VisitSequencePoint(CType(node, BoundSequencePoint), arg)
                 Case BoundKind.SequencePointExpression
@@ -10058,6 +10113,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitTypeOf(node As BoundTypeOf, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10777,6 +10836,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitTypeOf(node As BoundTypeOf) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11543,6 +11606,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Function VisitTypeOf(node As BoundTypeOf) As BoundNode
+            Me.Visit(node.Operand)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration) As BoundNode
             Me.Visit(node.Operand)
             Return Nothing
         End Function
@@ -12562,6 +12630,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim targetType as TypeSymbol = Me.VisitType(node.TargetType)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(operand, node.IsTypeOfIsNotExpression, targetType, type)
+        End Function
+
+        Public Overrides Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration) As BoundNode
+            Dim operand As BoundExpression = DirectCast(Me.Visit(node.Operand), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(operand, node.Local, node.Conversion, type)
         End Function
 
         Public Overrides Function VisitSequencePoint(node As BoundSequencePoint) As BoundNode
@@ -13774,6 +13848,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 New TreeDumperNode("operand", Nothing, new TreeDumperNode() {Visit(node.Operand, Nothing)}),
                 New TreeDumperNode("isTypeOfIsNotExpression", node.IsTypeOfIsNotExpression, Nothing),
                 New TreeDumperNode("targetType", node.TargetType, Nothing),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("typeOfDeclaration", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("operand", Nothing, new TreeDumperNode() {Visit(node.Operand, Nothing)}),
+                New TreeDumperNode("local", node.Local, Nothing),
+                New TreeDumperNode("conversion", node.Conversion, Nothing),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

@@ -392,6 +392,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 End If
             End If
 
+            Dim intoKeyword As KeywordSyntax = Nothing
+            Dim identifier As IdentifierTokenSyntax = Nothing
+            If CurrentToken.Kind = SyntaxKind.IdentifierToken AndAlso TryTokenAsContextualKeyword(CurrentToken, SyntaxKind.IntoKeyword, intoKeyword) Then
+                GetNextToken()
+                intoKeyword = CheckFeatureAvailability(Feature.PatternVariables, intoKeyword)
+                identifier = ParseIdentifier()
+            End If
+
             Dim filters = _pool.Allocate(Of CaseFilterSyntax)()
 
             Do
@@ -410,7 +418,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 filters.Add(SyntaxFactory.CaseFilter(andAlsoKeyword, clause))
             Loop
 
-            Dim result = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, openParen, arguments.ToList(), closeParen, filters.ToList())
+            Dim result = SyntaxFactory.TypeCaseClause(isKeyword, typeOfKeyword, typeName, openParen, arguments.ToList(), closeParen, intoKeyword, identifier, filters.ToList())
             _pool.Free(arguments)
             _pool.Free(filters)
             Return result

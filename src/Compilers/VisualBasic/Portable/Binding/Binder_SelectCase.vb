@@ -216,7 +216,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             diagnostics As BindingDiagnosticBag
         ) As BoundCaseBlock
 
-            Dim caseStatement As BoundCaseStatement = BindCaseStatement(node.CaseStatement, selectExpression, convertCaseElements, diagnostics)
+            ' A Case whose type test names its result with Into has a binder that declares the name.
+            Dim caseBinder = If(GetBinder(DirectCast(node, VisualBasicSyntaxNode)), Me)
+            Dim caseStatement As BoundCaseStatement = caseBinder.BindCaseStatement(node.CaseStatement, selectExpression, convertCaseElements, diagnostics)
 
             Dim statementsSyntax As SyntaxList(Of StatementSyntax) = node.Statements
             Dim bodyBinder = GetBinder(statementsSyntax)
@@ -596,9 +598,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
-            Dim typeTest As BoundExpression = New BoundTypeOf(node, selectExpressionOpt, isTypeOfIsNotExpression:=False, targetType, booleanType, hasErrors:=hasErrors)
-            Dim condition As BoundExpression = typeTest
-
             ' The tests after the type test read the Select expression as the tested type.
             Dim typedConversion = ConversionKind.NarrowingReference
             If Not hasErrors AndAlso operandType IsNot Nothing AndAlso Not operandType.IsErrorType() Then
@@ -609,9 +608,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            Dim patternLocal As LocalSymbol = Nothing
+            If node.IntoKeyword.Kind = SyntaxKind.IntoKeyword AndAlso Not node.Identifier.IsMissing Then
+                patternLocal = BindPatternVariable(node.Identifier, diagnostics)
+                If patternLocal Is Nothing Then
+                    hasErrors = True
+                ElseIf DirectCast(node.Parent, CaseStatementSyntax).Cases.Count > 1 Then
+                    ReportDiagnostic(diagnostics, node, ERRID.ERR_PatternVariableNotOnlyClause)
+                    hasErrors = True
+                End If
+            End If
+
+            Dim typeTest As BoundExpression
+            If patternLocal IsNot Nothing Then
+                typeTest = New BoundTypeOfDeclaration(node, selectExpressionOpt, patternLocal, typedConversion, booleanType, hasErrors:=hasErrors)
+            Else
+                typeTest = New BoundTypeOf(node, selectExpressionOpt, isTypeOfIsNotExpression:=False, targetType, booleanType, hasErrors:=hasErrors)
+            End If
+
+            Dim condition As BoundExpression = typeTest
+
             Dim typedReceiver As BoundExpression = Nothing
             If node.Arguments.Count > 0 OrElse node.Filters.Count > 0 Then
-                typedReceiver = New BoundDirectCast(node, selectExpressionOpt, typedConversion, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
+                If patternLocal IsNot Nothing Then
+                    typedReceiver = New BoundLocal(node, patternLocal, isLValue:=False, type:=patternLocal.Type).MakeCompilerGenerated()
+                Else
+                    typedReceiver = New BoundDirectCast(node, selectExpressionOpt, typedConversion, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
+                End If
             End If
 
             If node.Arguments.Count > 0 Then

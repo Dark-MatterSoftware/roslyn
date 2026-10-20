@@ -148,6 +148,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 statementBuilder.Add(epilogue)
             End If
 
+            ' A Case that names its type test with Into assigns the local in its condition, before its body.
+            For Each caseBlock In caseBlocks
+                Dim patternLocals = PatternVariableCollector.Collect(caseBlock.CaseStatement)
+                If Not patternLocals.IsEmpty Then
+                    tempLocals = If(tempLocals.IsDefault, patternLocals, tempLocals.AddRange(patternLocals))
+                End If
+            Next
+
             Return New BoundBlock(syntaxNode, Nothing, tempLocals, statementBuilder.ToImmutableAndFree()).MakeCompilerGenerated()
         End Function
 

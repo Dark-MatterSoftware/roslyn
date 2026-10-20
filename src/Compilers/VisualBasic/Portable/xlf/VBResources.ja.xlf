@@ -297,6 +297,16 @@
         <target state="new">Partial property '{0}' must have the same type in both declarations.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_PatternVariableNotAllowedHere">
+        <source>'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.</source>
+        <target state="new">'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_PatternVariableNotOnlyClause">
+        <source>A 'Case' whose type test names its result with 'Into' cannot have other clauses.</source>
+        <target state="new">A 'Case' whose type test names its result with 'Into' cannot have other clauses.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RangeRequiresArray">
         <source>A range can only be used to slice a one-dimensional array.</source>
         <target state="new">A range can only be used to slice a one-dimensional array.</target>
@@ -570,6 +580,11 @@
       <trans-unit id="FEATURE_PartialProperty">
         <source>partial properties</source>
         <target state="new">partial properties</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_PatternVariables">
+        <source>'Into' after a type test</source>
+        <target state="new">'Into' after a type test</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_PrimaryConstructor">

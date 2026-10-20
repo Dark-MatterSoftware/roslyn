@@ -697,7 +697,7 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenTypeCaseClause() As InternalSyntax.TypeCaseClauseSyntax
-            return InternalSyntax.SyntaxFactory.TypeCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenTupleType(), Nothing, Nothing, Nothing, Nothing)
+            return InternalSyntax.SyntaxFactory.TypeCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenTupleType(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenPositionalCaseClause() As InternalSyntax.PositionalCaseClauseSyntax
@@ -13636,7 +13636,7 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedTypeCaseClause() As TypeCaseClauseSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentNullException
             exceptionTest = true
             End Try
@@ -13644,7 +13644,7 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -13652,14 +13652,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing)
+            return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedPositionalCaseClause() As PositionalCaseClauseSyntax
@@ -21086,7 +21086,7 @@ Partial Public Class GeneratedTests
             Assert.NotNull(objectUnderTest.isKeyword)
             Assert.NotNull(objectUnderTest.typeOfKeyword)
             Assert.NotNull(objectUnderTest.type)
-            Dim withObj = objectUnderTest.WithIsKeyword(objectUnderTest.IsKeyword).WithTypeOfKeyword(objectUnderTest.TypeOfKeyword).WithType(objectUnderTest.Type).WithOpenParenToken(objectUnderTest.OpenParenToken).WithArguments(objectUnderTest.Arguments).WithCloseParenToken(objectUnderTest.CloseParenToken).WithFilters(objectUnderTest.Filters)
+            Dim withObj = objectUnderTest.WithIsKeyword(objectUnderTest.IsKeyword).WithTypeOfKeyword(objectUnderTest.TypeOfKeyword).WithType(objectUnderTest.Type).WithOpenParenToken(objectUnderTest.OpenParenToken).WithArguments(objectUnderTest.Arguments).WithCloseParenToken(objectUnderTest.CloseParenToken).WithIntoKeyword(objectUnderTest.IntoKeyword).WithIdentifier(objectUnderTest.Identifier).WithFilters(objectUnderTest.Filters)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 

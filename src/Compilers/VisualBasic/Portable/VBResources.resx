@@ -5992,6 +5992,9 @@
   <data name="FEATURE_AwaitEach" xml:space="preserve">
     <value>'Await Each'</value>
   </data>
+  <data name="FEATURE_PatternVariables" xml:space="preserve">
+    <value>'Into' after a type test</value>
+  </data>
   <data name="ERR_AwaitEachNotInAsyncMethod" xml:space="preserve">
     <value>'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</value>
   </data>
@@ -6000,6 +6003,12 @@
   </data>
   <data name="ERR_BadAsyncIteratorReturn" xml:space="preserve">
     <value>An 'Async Iterator' function must return 'IAsyncEnumerable(Of T)' or 'IAsyncEnumerator(Of T)'.</value>
+  </data>
+  <data name="ERR_PatternVariableNotOnlyClause" xml:space="preserve">
+    <value>A 'Case' whose type test names its result with 'Into' cannot have other clauses.</value>
+  </data>
+  <data name="ERR_PatternVariableNotAllowedHere" xml:space="preserve">
+    <value>'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.</value>
   </data>
   <data name="ERR_DeconstructionRequiresOptionInfer" xml:space="preserve">
     <value>'Dim (...)' infers the type of each variable, which requires 'Option Infer On'. Declare the variables with 'As' clauses, then assign them with '(...) = value'.</value>

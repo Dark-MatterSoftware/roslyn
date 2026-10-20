@@ -1436,7 +1436,12 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 (operation.Syntax as CSharp.Syntax.DeclarationPatternSyntax)?.Designation ??
                 (operation.Syntax as CSharp.Syntax.VarPatternSyntax)?.Designation ??
                 (operation.Syntax as CSharp.Syntax.VariableDesignationSyntax);
-            if (designation.IsKind(CSharp.SyntaxKind.SingleVariableDesignation))
+            if (operation.Language == LanguageNames.VisualBasic)
+            {
+                // A Visual Basic type test with Into always declares its name.
+                Assert.NotNull(operation.DeclaredSymbol);
+            }
+            else if (designation.IsKind(CSharp.SyntaxKind.SingleVariableDesignation))
             {
                 Assert.NotNull(operation.DeclaredSymbol);
             }

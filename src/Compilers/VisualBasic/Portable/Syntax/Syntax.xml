@@ -4167,6 +4167,18 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name=""></native-equiv>
       </child>
 
+      <child name="IntoKeyword" kind="IntoKeyword" optional="true">
+        <description>The Into keyword that names the tested value.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Identifier" kind="IdentifierToken" optional="true">
+        <description>The name of the local that holds the tested value as the tested type.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
       <child name="Filters" optional="true" list="true" kind="@CaseFilterSyntax">
         <description>The AndAlso tests that follow the type test.</description>
         <lm-equiv name=""></lm-equiv>

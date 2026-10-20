@@ -176,7 +176,7 @@ simple_case_clause
   ;
 
 type_case_clause
-  : 'Is' 'TypeOf' type '('? (expression (',' expression)*)? ')'? case_filter*
+  : 'Is' 'TypeOf' type '('? (expression (',' expression)*)? ')'? 'Into'? identifier_token? case_filter*
   ;
 
 case_filter

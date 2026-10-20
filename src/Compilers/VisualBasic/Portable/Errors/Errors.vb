@@ -1853,8 +1853,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_AwaitEachRequiresAsyncEnumerable = 37392
         ERR_BadAsyncIteratorReturn = 37393
         ' 37394 was the temporary error for Async Iterator functions before their lowering existed.
+        ERR_PatternVariableNotOnlyClause = 37395
+        ERR_PatternVariableNotAllowedHere = 37396
 
-        ERR_NextAvailable = 37395
+        ERR_NextAvailable = 37397
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2193,5 +2195,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_CollectionExpression
         FEATURE_AsyncUsing
         FEATURE_AwaitEach
+        FEATURE_PatternVariables
     End Enum
 End Namespace

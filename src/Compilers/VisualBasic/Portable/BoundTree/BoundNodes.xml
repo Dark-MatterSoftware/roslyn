@@ -564,6 +564,19 @@
       <Field Name="TargetType" Type="TypeSymbol"/>
     </Node>
 
+    <!--
+    A type test that names its result with Into, as in TypeOf value Is T Into name or Case Is TypeOf T Into name.
+    It is True when Operand has the type of Local, and then Local holds Operand converted with Conversion.
+    -->
+    <Node Name="BoundTypeOfDeclaration" Base="BoundExpression">
+      <!-- Non-null type is required for this node kind -->
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+
+      <Field Name="Operand" Type="BoundExpression"/>
+      <Field Name="Local" Type="LocalSymbol"/>
+      <Field Name="Conversion" Type="ConversionKind"/>
+    </Node>
+
     <AbstractNode Name="BoundStatement" Base="BoundNode"/>
 
     <Node Name="BoundSequencePoint" Base="BoundStatement">

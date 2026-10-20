@@ -1348,6 +1348,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' Note write if the local has an initializer or if it is part of an as-new.
                     If assigned AndAlso (value IsNot Nothing OrElse local.InitializedByAsNew) Then NoteWrite(symbol, value)
 
+                Case BoundKind.TypeOfDeclaration
+                    Dim symbol = DirectCast(node, BoundTypeOfDeclaration).Local
+                    Dim slot As Integer = GetOrCreateSlot(symbol)
+                    SetSlotState(slot, assigned)
+                    If assigned Then
+                        NoteWrite(symbol, value)
+                    End If
+
                 Case BoundKind.ForToStatement,
                     BoundKind.ForEachStatement
                     Dim forStatement = DirectCast(node, BoundForStatement)
@@ -1601,6 +1609,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Not Me.State.Reachable OrElse
                    initiallyAssignedVariables IsNot Nothing AndAlso initiallyAssignedVariables.Contains(variable)
         End Function
+
+        Protected Overrides Sub AssignPatternVariable(node As BoundTypeOfDeclaration)
+            Assign(node, node.Operand)
+        End Sub
 
         Public Overrides Function VisitLocalDeclaration(node As BoundLocalDeclaration) As BoundNode
             Dim placeholder As BoundValuePlaceholderBase = Nothing

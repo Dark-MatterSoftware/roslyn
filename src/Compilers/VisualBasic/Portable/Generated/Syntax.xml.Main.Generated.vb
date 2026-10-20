@@ -3487,11 +3487,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If node._arguments IsNot newArguments.Node Then anyChanges = True
             Dim newCloseParenToken = DirectCast(VisitToken(node.CloseParenToken).Node, InternalSyntax.PunctuationSyntax)
             If node.CloseParenToken.Node IsNot newCloseParenToken Then anyChanges = True
+            Dim newIntoKeyword = DirectCast(VisitToken(node.IntoKeyword).Node, InternalSyntax.KeywordSyntax)
+            If node.IntoKeyword.Node IsNot newIntoKeyword Then anyChanges = True
+            Dim newIdentifier = DirectCast(VisitToken(node.Identifier).Node, InternalSyntax.IdentifierTokenSyntax)
+            If node.Identifier.Node IsNot newIdentifier Then anyChanges = True
             Dim newFilters = VisitList(node.Filters)
             If node._filters IsNot newFilters.Node Then anyChanges = True
 
             If anyChanges Then
-                Return New TypeCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newOpenParenToken, newArguments.Node, newCloseParenToken, newFilters.Node)
+                Return New TypeCaseClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newIsKeyword, newTypeOfKeyword, newType, newOpenParenToken, newArguments.Node, newCloseParenToken, newIntoKeyword, newIdentifier, newFilters.Node)
             Else
                 Return node
             End If
@@ -18400,10 +18404,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="closeParenToken">
         ''' The closing parenthesis of a positional test.
         ''' </param>
+        ''' <param name="intoKeyword">
+        ''' The Into keyword that names the tested value.
+        ''' </param>
+        ''' <param name="identifier">
+        ''' The name of the local that holds the tested value as the tested type.
+        ''' </param>
         ''' <param name="filters">
         ''' The AndAlso tests that follow the type test.
         ''' </param>
-        Public Shared Function TypeCaseClause(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, openParenToken As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
+        Public Shared Function TypeCaseClause(isKeyword As SyntaxToken, typeOfKeyword As SyntaxToken, type As TypeSyntax, openParenToken As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeParenToken As SyntaxToken, intoKeyword As SyntaxToken, identifier As SyntaxToken, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
             Select Case isKeyword.Kind()
                 Case SyntaxKind.IsKeyword
                 Case Else
@@ -18431,7 +18441,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case Else
                     Throw new ArgumentException("type")
             End Select
-            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, Nothing, Nothing, DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), type, DirectCast(openParenToken.Node, InternalSyntax.PunctuationSyntax), arguments.Node, DirectCast(closeParenToken.Node, InternalSyntax.PunctuationSyntax), filters.Node)
+            Return New TypeCaseClauseSyntax(SyntaxKind.TypeCaseClause, Nothing, Nothing, DirectCast(isKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(typeOfKeyword.Node, InternalSyntax.KeywordSyntax), type, DirectCast(openParenToken.Node, InternalSyntax.PunctuationSyntax), arguments.Node, DirectCast(closeParenToken.Node, InternalSyntax.PunctuationSyntax), DirectCast(intoKeyword.Node, InternalSyntax.KeywordSyntax), DirectCast(identifier.Node, InternalSyntax.IdentifierTokenSyntax), filters.Node)
         End Function
 
 
@@ -18445,11 +18455,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="arguments">
         ''' The values compared to Deconstruct results.
         ''' </param>
+        ''' <param name="identifier">
+        ''' The name of the local that holds the tested value as the tested type.
+        ''' </param>
         ''' <param name="filters">
         ''' The AndAlso tests that follow the type test.
         ''' </param>
-        Public Shared Function TypeCaseClause(type As TypeSyntax, arguments As SeparatedSyntaxList(Of ExpressionSyntax), filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
-            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, arguments, Nothing, filters)
+        Public Shared Function TypeCaseClause(type As TypeSyntax, arguments As SeparatedSyntaxList(Of ExpressionSyntax), identifier As SyntaxToken, filters As SyntaxList(of CaseFilterSyntax)) As TypeCaseClauseSyntax
+            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, arguments, Nothing, Nothing, identifier, filters)
         End Function
 
 
@@ -18461,7 +18474,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' The type being tested.
         ''' </param>
         Public Shared Function TypeCaseClause(type As TypeSyntax) As TypeCaseClauseSyntax
-            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, Nothing, Nothing, Nothing)
+            Return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), type, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
 

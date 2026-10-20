@@ -298,6 +298,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitCaseBlock(node As CaseBlockSyntax)
+            Dim declarations = PatternVariableBinder.GetDeclarations(node.CaseStatement)
+            If Not declarations.IsEmpty Then
+                _containingBinder = New PatternVariableBinder(_containingBinder, declarations)
+                RememberBinder(node, _containingBinder)
+            End If
+
             CreateBinderFromStatementList(node.Statements, _containingBinder)
         End Sub
 

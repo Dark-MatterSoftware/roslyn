@@ -50,6 +50,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             MyBase.VisitForStatementVariableDeclaration(node)
         End Sub
 
+        Public Overrides Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration) As BoundNode
+            If IsInside Then
+                _variablesDeclared.Add(node.Local)
+            End If
+            Return MyBase.VisitTypeOfDeclaration(node)
+        End Function
+
         Public Overrides Function VisitLambda(node As BoundLambda) As BoundNode
             If IsInside Then
                 For Each parameter In node.LambdaSymbol.Parameters

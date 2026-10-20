@@ -1817,11 +1817,16 @@ lUnsplitAndFinish:
 
                 ' Case statement might have a non-null conditionOpt for the condition expression.
                 ' However, conditionOpt cannot be a compile time constant expression.
-                ' VisitCaseStatement must have unsplit the states into a non-conditional state for this scenario.
-                Debug.Assert(Not Me.IsConditionalState)
-
-                ' save the current state for next case block.
-                Dim savedState As LocalState = Me.State.Clone()
+                ' VisitCaseStatement leaves a conditional state only for a type test that names its result with Into:
+                ' the body runs when the test succeeds, and the next case block when it fails.
+                Dim savedState As LocalState
+                If Me.IsConditionalState Then
+                    savedState = Me.StateWhenFalse.Clone()
+                    Me.SetState(Me.StateWhenTrue)
+                Else
+                    ' save the current state for next case block.
+                    savedState = Me.State.Clone()
+                End If
 
                 ' Visit case block body
                 VisitStatement(caseBlock.Body)
@@ -1853,6 +1858,11 @@ lUnsplitAndFinish:
         End Function
 
         Public Overrides Function VisitCaseStatement(node As BoundCaseStatement) As BoundNode
+            If DeclaresPatternVariable(node) Then
+                VisitCondition(If(node.ConditionOpt, DirectCast(node.CaseClauses(0), BoundRelationalCaseClause).ConditionOpt))
+                Return Nothing
+            End If
+
             If node.ConditionOpt IsNot Nothing Then
                 ' Case clause expressions cannot be constant expression.
                 Debug.Assert(node.ConditionOpt.ConstantValueOpt Is Nothing)
@@ -2391,6 +2401,35 @@ EnteredRegion:
             Next
             Return Nothing
         End Function
+
+        ''' <summary>
+        ''' A Case with a single type test that names its result with Into, as in Case Is TypeOf T Into name.
+        ''' </summary>
+        Private Shared Function DeclaresPatternVariable(node As BoundCaseStatement) As Boolean
+            If node.CaseClauses.Length <> 1 Then
+                Return False
+            End If
+
+            Dim clauseSyntax = TryCast(node.CaseClauses(0).Syntax, Syntax.TypeCaseClauseSyntax)
+            Return clauseSyntax IsNot Nothing AndAlso clauseSyntax.IntoKeyword.Kind = SyntaxKind.IntoKeyword AndAlso
+                   node.CaseClauses(0).Kind = BoundKind.RelationalCaseClause AndAlso
+                   DirectCast(node.CaseClauses(0), BoundRelationalCaseClause).ConditionOpt IsNot Nothing
+        End Function
+
+        Public Overrides Function VisitTypeOfDeclaration(node As BoundTypeOfDeclaration) As BoundNode
+            VisitRvalue(node.Operand)
+
+            ' The local is assigned only where the test succeeds.
+            Split()
+            Dim whenFalse = Me.StateWhenFalse
+            Me.SetState(Me.StateWhenTrue)
+            AssignPatternVariable(node)
+            SetConditionalState(Me.State, whenFalse)
+            Return Nothing
+        End Function
+
+        Protected Overridable Sub AssignPatternVariable(node As BoundTypeOfDeclaration)
+        End Sub
 
         Public Overrides Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope) As BoundNode
             VisitStatement(node.Statement)
