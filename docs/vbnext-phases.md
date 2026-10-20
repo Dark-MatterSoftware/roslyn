@@ -320,7 +320,7 @@ Wave 5 rows 1 and 2 in [vbnext-missing-features.md](vbnext-missing-features.md#w
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 25a | VB-064 | On `vbnext`, `SyncLock` on an expression of type `System.Threading.Lock` enters through `Lock.EnterScope` and leaves by disposing the scope, including when the body throws. An emit test checks the calls and the output. Visual Basic 17.13 still uses `Monitor`. |
+| 25a | VB-064 | Done. On `vbnext`, `SyncLock` on a `System.Threading.Lock` enters through `Lock.EnterScope` and leaves by disposing the scope, on normal exit, on `Exit Sub`, and when the body throws. The IL matches the C# `lock` statement. A `Yield` inside such a block reports BC37052, because the scope cannot cross it, and a Debug build of an `Async` method does not hoist the scope. A `Lock` without the expected members, and Visual Basic 17.13, still report BC37329. Converting a `Lock` to `Object` still warns with BC42508. |
 | 25b | VB-065 | On `vbnext`, an interpolated string converts to a parameter whose type has the interpolated string handler attribute. The handler is constructed with the literal length and hole count, its `AppendLiteral` and `AppendFormatted` calls run in order, and arguments named by the handler argument attribute are passed to its constructor. `String`, `FormattableString`, and `IFormattable` targets keep their meaning. Tests call a handler-typed `Debug.Assert` overload and a custom handler. |
 
 ## Phase 26 — Asynchronous streams
@@ -360,4 +360,4 @@ Wave 5 row 7.
 
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slices 24a and 24b compile a real project with the Vb.Next compiler, with analyzers on. Slice 24c waits on Visual Studio 2026 Insiders, which can load the editor. Wave 5 is planned as phases 25 to 29, and slice 25a starts now.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slices 24a and 24b compile a real project with the Vb.Next compiler, with analyzers on. Slice 24c waits on Visual Studio 2026 Insiders, which can load the editor. Wave 5 is planned as phases 25 to 29. Slice 25a is done, and slice 25b starts now.

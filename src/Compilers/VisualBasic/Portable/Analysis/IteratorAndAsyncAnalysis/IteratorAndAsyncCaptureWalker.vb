@@ -113,8 +113,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return Not local.Type.IsRestrictedType() AndAlso Not local.Type.IsRefLikeOrAllowsRefLikeType()
                 End If
 
-                ' hoist all synthesized variables that have to survive state machine suspension
-                Return local.SynthesizedKind <> SynthesizedLocalKind.ConditionalBranchDiscriminator
+                ' hoist all synthesized variables that have to survive state machine suspension,
+                ' except a ref-like one, such as the scope of a SyncLock on a System.Threading.Lock
+                Return local.SynthesizedKind <> SynthesizedLocalKind.ConditionalBranchDiscriminator AndAlso
+                    Not local.Type.IsRefLikeOrAllowsRefLikeType()
             End If
 
             Return False
@@ -131,8 +133,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub CaptureVariable(variable As Symbol, syntax As SyntaxNode)
             Dim type As TypeSymbol = If(variable.Kind = SymbolKind.Local, TryCast(variable, LocalSymbol).Type, TryCast(variable, ParameterSymbol).Type)
             If type.IsRestrictedType() OrElse type.IsRefLikeOrAllowsRefLikeType() Then
-                ' Error has already been reported:
-                If TypeOf variable Is SynthesizedLocal Then
+                ' Error has already been reported, except for the scope of a SyncLock on a System.Threading.Lock,
+                ' which the binder cannot see crossing a Yield:
+                If TypeOf variable Is SynthesizedLocal AndAlso DirectCast(variable, LocalSymbol).SynthesizedKind <> SynthesizedLocalKind.Lock Then
                     Return
                 End If
 

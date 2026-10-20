@@ -15,6 +15,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend NotInheritable Class LocalRewriter
 
         Public Overrides Function VisitSyncLockStatement(node As BoundSyncLockStatement) As BoundNode
+            ' The binder only accepts SyncLock on a System.Threading.Lock on vbnext, when these members exist.
+            Dim enterScopeMethod As MethodSymbol = Nothing
+            Dim scopeDisposeMethod As MethodSymbol = Nothing
+            Dim lockType = node.LockExpression.Type
+            If lockType IsNot Nothing AndAlso lockType.IsWellKnownTypeLock() AndAlso
+               lockType.TryFindLockTypeInfo(enterScopeMethod, scopeDisposeMethod) Then
+                Return RewriteLockObjectSyncLock(node, enterScopeMethod, scopeDisposeMethod)
+            End If
+
             Dim statements = ArrayBuilder(Of BoundStatement).GetInstance
             Dim syntaxNode = DirectCast(node.Syntax, SyncLockBlockSyntax)
 
@@ -159,6 +168,105 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundBlock(syntaxNode,
                                   Nothing,
                                   locals,
+                                  statements.ToImmutableAndFree)
+        End Function
+
+        ''' <summary>
+        ''' SyncLock lockObject
+        '''     body
+        ''' End SyncLock
+        ''' 
+        ''' becomes
+        ''' 
+        ''' Dim scope = lockObject.EnterScope()
+        ''' Try
+        '''     body
+        ''' Finally
+        '''     scope.Dispose()
+        ''' End Try
+        ''' </summary>
+        Private Function RewriteLockObjectSyncLock(node As BoundSyncLockStatement, enterScopeMethod As MethodSymbol, scopeDisposeMethod As MethodSymbol) As BoundNode
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance
+            Dim syntaxNode = DirectCast(node.Syntax, SyncLockBlockSyntax)
+            Dim visitedLockExpression = VisitExpressionNode(node.LockExpression)
+            Dim scopeType = enterScopeMethod.ReturnType
+
+            Dim scopeLocal As LocalSymbol = New SynthesizedLocal(Me._currentMethodOrLambda, scopeType, SynthesizedLocalKind.Lock, syntaxNode.SyncLockStatement)
+            Dim boundScopeLocal = New BoundLocal(syntaxNode, scopeLocal, scopeType)
+
+            Dim instrument As Boolean = Me.Instrument(node)
+            If instrument Then
+                Dim prologue = _instrumenterOpt.CreateSyncLockStatementPrologue(node)
+                If prologue IsNot Nothing Then
+                    statements.Add(prologue)
+                End If
+            End If
+
+            Dim enterScopeCall = New BoundCall(node.LockExpression.Syntax,
+                                               enterScopeMethod,
+                                               Nothing,
+                                               visitedLockExpression,
+                                               ImmutableArray(Of BoundExpression).Empty,
+                                               Nothing,
+                                               scopeType,
+                                               suppressObjectClone:=True)
+            Dim scopeAssignment As BoundStatement = New BoundAssignmentOperator(syntaxNode,
+                                                                                 boundScopeLocal,
+                                                                                 enterScopeCall,
+                                                                                 suppressObjectClone:=True,
+                                                                                 type:=scopeType).ToStatement
+
+            If ShouldGenerateUnstructuredExceptionHandlingResumeCode(node) Then
+                scopeAssignment = RegisterUnstructuredExceptionHandlingResumeTarget(syntaxNode, scopeAssignment, canThrow:=True)
+            End If
+
+            Dim saveState As UnstructuredExceptionHandlingContext = LeaveUnstructuredExceptionHandlingContext(node)
+
+            If instrument Then
+                scopeAssignment = _instrumenterOpt.InstrumentSyncLockObjectCapture(node, scopeAssignment)
+            End If
+
+            statements.Add(scopeAssignment)
+
+            Dim tryBody As BoundBlock = New BoundBlock(syntaxNode,
+                                                       Nothing,
+                                                       ImmutableArray(Of LocalSymbol).Empty,
+                                                       ImmutableArray.Create(Of BoundStatement)(DirectCast(Visit(node.Body), BoundBlock)))
+
+            Dim disposeCall = New BoundCall(syntaxNode,
+                                            scopeDisposeMethod,
+                                            Nothing,
+                                            boundScopeLocal,
+                                            ImmutableArray(Of BoundExpression).Empty,
+                                            Nothing,
+                                            scopeDisposeMethod.ReturnType,
+                                            suppressObjectClone:=True)
+            Dim disposeStatement = disposeCall.ToStatement
+            disposeStatement.SetWasCompilerGenerated() ' used to not create sequence points
+
+            Dim finallyBody As BoundBlock = New BoundBlock(syntaxNode,
+                                                           Nothing,
+                                                           ImmutableArray(Of LocalSymbol).Empty,
+                                                           ImmutableArray.Create(Of BoundStatement)(disposeStatement))
+
+            If instrument Then
+                finallyBody = DirectCast(Concat(finallyBody, _instrumenterOpt.CreateSyncLockExitDueToExceptionEpilogue(node)), BoundBlock)
+            End If
+
+            statements.Add(RewriteTryStatement(syntaxNode, tryBody, ImmutableArray(Of BoundCatchBlock).Empty, finallyBody, Nothing))
+
+            If instrument Then
+                Dim epilogue = _instrumenterOpt.CreateSyncLockExitNormallyEpilogue(node)
+                If epilogue IsNot Nothing Then
+                    statements.Add(epilogue)
+                End If
+            End If
+
+            RestoreUnstructuredExceptionHandlingContext(node, saveState)
+
+            Return New BoundBlock(syntaxNode,
+                                  Nothing,
+                                  ImmutableArray.Create(scopeLocal),
                                   statements.ToImmutableAndFree)
         End Function
 

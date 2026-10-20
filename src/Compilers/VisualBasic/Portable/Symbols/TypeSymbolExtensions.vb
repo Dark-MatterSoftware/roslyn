@@ -1315,6 +1315,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 namedTypeSymbol.IsContainedInNamespace(NameOf(System), NameOf(System.Threading))
         End Function
 
+        ''' <summary>
+        ''' The members a SyncLock on a System.Threading.Lock uses: a public EnterScope that returns the nested
+        ''' public Scope structure, and the structure's public Dispose. Keep consistent with C# LockBinder.TryFindLockTypeInfo.
+        ''' </summary>
+        <Extension>
+        Friend Function TryFindLockTypeInfo(lockType As TypeSymbol, <Out> ByRef enterScopeMethod As MethodSymbol, <Out> ByRef scopeDisposeMethod As MethodSymbol) As Boolean
+            enterScopeMethod = TryFindPublicParameterlessInstanceMethod(lockType, WellKnownMemberNames.EnterScopeMethodName)
+            scopeDisposeMethod = Nothing
+            If enterScopeMethod Is Nothing OrElse enterScopeMethod.IsSub OrElse enterScopeMethod.ReturnsByRef Then
+                Return False
+            End If
+
+            Dim scopeType = TryCast(enterScopeMethod.ReturnType, NamedTypeSymbol)
+            If scopeType Is Nothing OrElse
+               scopeType.Name <> WellKnownMemberNames.LockScopeTypeName OrElse
+               scopeType.Arity <> 0 OrElse
+               Not scopeType.IsValueType OrElse
+               scopeType.DeclaredAccessibility <> Accessibility.Public OrElse
+               Not TypeSymbol.Equals(scopeType.ContainingType, lockType, TypeCompareKind.ConsiderEverything) Then
+                Return False
+            End If
+
+            scopeDisposeMethod = TryFindPublicParameterlessInstanceMethod(scopeType, WellKnownMemberNames.DisposeMethodName)
+            Return scopeDisposeMethod IsNot Nothing AndAlso scopeDisposeMethod.IsSub
+        End Function
+
+        Private Function TryFindPublicParameterlessInstanceMethod(type As TypeSymbol, name As String) As MethodSymbol
+            Dim result As MethodSymbol = Nothing
+            For Each member In type.GetMembers(name)
+                Dim method = TryCast(member, MethodSymbol)
+                If method IsNot Nothing AndAlso
+                   method.ParameterCount = 0 AndAlso
+                   method.Arity = 0 AndAlso
+                   Not method.IsShared AndAlso
+                   method.DeclaredAccessibility = Accessibility.Public AndAlso
+                   method.MethodKind = MethodKind.Ordinary Then
+                    If result IsNot Nothing Then
+                        Return Nothing
+                    End If
+
+                    result = method
+                End If
+            Next
+
+            Return result
+        End Function
+
         ' Keep in sync with C# equivalent.
         <Extension>
         Friend Function IsWellKnownTypeUnmanagedType(typeSymbol As TypeSymbol) As Boolean

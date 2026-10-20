@@ -5397,7 +5397,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                      lockExpression.Syntax,
                                      ErrorFactory.ErrorInfo(ERRID.ERR_SyncLockRequiresReferenceType1, lockExpressionType))
                 ElseIf lockExpressionType.IsWellKnownTypeLock() Then
-                    ReportDiagnostic(diagnostics, lockExpression.Syntax, ERRID.ERR_LockTypeUnsupported)
+                    ' On vbnext, SyncLock enters a System.Threading.Lock through its EnterScope.
+                    Dim enterScopeMethod As MethodSymbol = Nothing
+                    Dim scopeDisposeMethod As MethodSymbol = Nothing
+                    If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse
+                       Not lockExpressionType.TryFindLockTypeInfo(enterScopeMethod, scopeDisposeMethod) Then
+                        ReportDiagnostic(diagnostics, lockExpression.Syntax, ERRID.ERR_LockTypeUnsupported)
+                    Else
+                        ReportUseSite(diagnostics, lockExpression.Syntax, enterScopeMethod)
+                        ReportUseSite(diagnostics, lockExpression.Syntax, scopeDisposeMethod)
+                    End If
                 End If
             End If
 
