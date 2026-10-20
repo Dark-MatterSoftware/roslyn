@@ -56,7 +56,7 @@ The editor in a normal Visual Studio does not use it: IntelliSense, colorization
 
 ### Editor support in an experimental instance
 
-The editor needs a Visual Studio at least as new as the Visual Studio packages this repo builds against, which is 18.12 (`VisualStudioEditorPackagesVersion` in `eng/Packages.props`). In an older Visual Studio, the language service fails to load parts that need 18.12 assemblies, and Solution Explorer reports that `RoslynVisualStudioWorkspace` could not be created. Visual Studio 2026 Insiders installs side by side with the release.
+The editor needs a Visual Studio at least as new as the Visual Studio packages this repo builds against, which is 18.12 (`VisualStudioEditorPackagesVersion` in `eng/Packages.props`). In an older Visual Studio, the language service fails to load parts that need 18.12 assemblies, and Solution Explorer reports that `RoslynVisualStudioWorkspace` could not be created. Visual Studio 2026 Insiders installs side by side with the release. The build deploys into the newest Visual Studio, preview builds included, so with Insiders 18.12 installed the extensions go to its `RoslynDev` hive.
 
 Deploy this repo's Roslyn into the `RoslynDev` hive. It is a separate Visual Studio instance with its own settings and extensions, so the normal instance is not changed. From the repo root, with the Vb.Next SDK on `DOTNET_INSTALL_DIR`:
 
