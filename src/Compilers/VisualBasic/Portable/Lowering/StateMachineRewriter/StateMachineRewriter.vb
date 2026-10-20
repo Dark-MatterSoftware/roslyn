@@ -424,6 +424,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return OpenMethodImplementation(methodToImplement, name, accessibility, hasMethodBodyDependency, associatedProperty)
         End Function
 
+        Friend Function OpenMethodImplementation(interfaceType As NamedTypeSymbol, interfaceMethod As WellKnownMember, name As String, accessibility As Accessibility, Optional hasMethodBodyDependency As Boolean = False, Optional associatedProperty As PropertySymbol = Nothing) As SynthesizedMethod
+            Dim methodToImplement As MethodSymbol = Me.F.WellKnownMember(Of MethodSymbol)(interfaceMethod).AsMember(interfaceType)
+
+            Return OpenMethodImplementation(methodToImplement, name, accessibility, hasMethodBodyDependency, associatedProperty)
+        End Function
+
+        Friend Function OpenPropertyImplementation(interfaceType As NamedTypeSymbol, interfacePropertyGetter As WellKnownMember, name As String, accessibility As Accessibility) As MethodSymbol
+            Dim getterToImplement As MethodSymbol = Me.F.WellKnownMember(Of MethodSymbol)(interfacePropertyGetter).AsMember(interfaceType)
+
+            Return OpenPropertyImplementation(getterToImplement, name, accessibility)
+        End Function
+
         Friend Function OpenMethodImplementation(interfaceType As NamedTypeSymbol, interfaceMethod As SpecialMember, name As String, accessibility As Accessibility, Optional hasMethodBodyDependency As Boolean = False, Optional associatedProperty As PropertySymbol = Nothing) As SynthesizedMethod
             Dim methodToImplement As MethodSymbol = DirectCast(Me.F.SpecialMember(interfaceMethod), MethodSymbol).AsMember(interfaceType)
 

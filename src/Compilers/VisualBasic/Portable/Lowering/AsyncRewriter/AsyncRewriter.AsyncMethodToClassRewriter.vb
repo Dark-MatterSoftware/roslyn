@@ -87,6 +87,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Me._nextAwaiterId = If(slotAllocatorOpt IsNot Nothing, slotAllocatorOpt.PreviousAwaiterSlotCount, 0)
+
+                If Me._asyncMethodKind = AsyncMethodKind.AsyncIterator Then
+                    InitializeAsyncIterator(slotAllocatorOpt)
+                End If
             End Sub
 
             Protected Overrides ReadOnly Property FirstIncreasingResumableState As StateMachineState
@@ -128,10 +132,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend Sub GenerateMoveNext(body As BoundStatement, moveNextMethod As MethodSymbol)
                 Me.F.CurrentMethod = moveNextMethod
 
+                Dim initialStateResumeLabel As GeneratedLabelSymbol = Nothing
+                If IsAsyncIterator Then
+                    AddState(StateMachineState.InitialAsyncIteratorState, initialStateResumeLabel)
+                End If
+
                 Dim rewrittenBody As BoundStatement = DirectCast(Visit(body), BoundStatement)
 
                 Dim rootScopeHoistedLocals As ImmutableArray(Of FieldSymbol) = Nothing
                 TryUnwrapBoundStateMachineScope(rewrittenBody, rootScopeHoistedLocals)
+
+                If IsAsyncIterator Then
+                    rewrittenBody = WrapAsyncIteratorBody(initialStateResumeLabel, rewrittenBody)
+                End If
 
                 Dim bodyBuilder = ArrayBuilder(Of BoundStatement).GetInstance()
 
@@ -179,12 +192,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                 Me.F.Block(
                                     SyntheticBoundNodeFactory.HiddenSequencePoint(),
                                     Me.F.Assignment(Me.F.Field(Me.F.Me(), Me.StateField, True), Me.F.Literal(StateMachineState.FinishedState)),
-                                    Me.F.ExpressionStatement(
-                                        Me._owner.GenerateMethodCall(
-                                            Me.F.Field(Me.F.Me(), Me._builder, False),
-                                            Me._owner._builderType,
-                                            "SetException",
-                                            Me.F.Local(exceptionLocal, False))),
+                                    If(IsAsyncIterator,
+                                       GenerateAsyncIteratorCompletion(
+                                           GeneratePromiseCompletion(WellKnownMember.System_Threading_Tasks_Sources_ManualResetValueTaskSourceCore_T__SetException, Me.F.Local(exceptionLocal, False))),
+                                       Me.F.ExpressionStatement(
+                                           Me._owner.GenerateMethodCall(
+                                               Me.F.Field(Me.F.Me(), Me._builder, False),
+                                               Me._owner._builderType,
+                                               "SetException",
+                                               Me.F.Local(exceptionLocal, False)))),
                                     Me.F.Goto(Me._exitLabel)),
                                 isSynthesizedAsyncCatchAll:=True))))
 
@@ -203,19 +219,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     bodyBuilder.Add(SyntheticBoundNodeFactory.HiddenSequencePoint())
                 End If
 
-                ' STMT: builder.SetResult([RetVal])
-                bodyBuilder.Add(
-                    Me.F.ExpressionStatement(
-                        Me._owner.GenerateMethodCall(
-                            Me.F.Field(Me.F.Me(), Me._builder, False),
-                            Me._owner._builderType,
-                            "SetResult",
-                            If(Me._asyncMethodKind = AsyncMethodKind.GenericTaskFunction,
-                               {Me.F.Local(Me._exprRetValue, False)}, Array.Empty(Of BoundExpression)()))))
+                If IsAsyncIterator Then
+                    ' STMT: builder.Complete(): promise.SetResult(False)
+                    bodyBuilder.Add(
+                        GenerateAsyncIteratorCompletion(
+                            GeneratePromiseCompletion(WellKnownMember.System_Threading_Tasks_Sources_ManualResetValueTaskSourceCore_T__SetResult, Me.F.Literal(False))))
+                Else
+                    ' STMT: builder.SetResult([RetVal])
+                    bodyBuilder.Add(
+                        Me.F.ExpressionStatement(
+                            Me._owner.GenerateMethodCall(
+                                Me.F.Field(Me.F.Me(), Me._builder, False),
+                                Me._owner._builderType,
+                                "SetResult",
+                                If(Me._asyncMethodKind = AsyncMethodKind.GenericTaskFunction,
+                                   {Me.F.Local(Me._exprRetValue, False)}, Array.Empty(Of BoundExpression)()))))
+                End If
 
                 ' STMT:   ReturnLabel: ' for the forced exit from the method, such as return from catch block above
                 bodyBuilder.Add(Me.F.Label(Me._exitLabel))
                 bodyBuilder.Add(Me.F.Return())
+
+                If IsAsyncIterator Then
+                    ' STMT:   yieldReturn: ' a Yield suspends with the promise completed as True
+                    ' STMT:   promise.SetResult(True)
+                    ' STMT:   Return
+                    bodyBuilder.Add(Me.F.Label(Me._exprReturnLabelTrue))
+                    bodyBuilder.Add(SyntheticBoundNodeFactory.HiddenSequencePoint())
+                    bodyBuilder.Add(Me.F.ExpressionStatement(GeneratePromiseCompletion(WellKnownMember.System_Threading_Tasks_Sources_ManualResetValueTaskSourceCore_T__SetResult, Me.F.Literal(True))))
+                    bodyBuilder.Add(Me.F.Return())
+                End If
 
                 Dim newStatements As ImmutableArray(Of BoundStatement) = bodyBuilder.ToImmutableAndFree()
                 Dim newBody = Me.F.Block(

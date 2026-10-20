@@ -20,6 +20,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Inherits StateMachineMethodToClassRewriter
 
             Public Overrides Function VisitReturnStatement(node As BoundReturnStatement) As BoundNode
+                If IsAsyncIterator Then
+                    Debug.Assert(node.ExpressionOpt Is Nothing)
+                    Return RewriteAsyncIteratorReturn()
+                End If
+
                 Dim rewritten = DirectCast(MyBase.VisitReturnStatement(node), BoundReturnStatement)
                 Dim expression As BoundExpression = rewritten.ExpressionOpt
 

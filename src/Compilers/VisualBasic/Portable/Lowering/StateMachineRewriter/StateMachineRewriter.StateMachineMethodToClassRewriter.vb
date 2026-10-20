@@ -158,9 +158,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Structure
 
             Protected Sub AddResumableState(awaitOrYieldReturnSyntax As SyntaxNode, <Out> ByRef state As StateMachineState, <Out> ByRef resumeLabel As GeneratedLabelSymbol)
-                state = _resumableStateAllocator.AllocateState(awaitOrYieldReturnSyntax)
+                AddResumableState(_resumableStateAllocator, awaitOrYieldReturnSyntax, state, resumeLabel)
+            End Sub
 
-                If _tryBlockSyntaxForNextFinalizerState IsNot Nothing Then
+            ''' <summary>
+            ''' Allocates a resumable state from the given allocator. An async iterator numbers its Yield states
+            ''' with a second allocator, decreasing from <see cref="StateMachineState.FirstResumableAsyncIteratorState"/>.
+            ''' </summary>
+            Protected Sub AddResumableState(allocator As ResumableStateMachineStateAllocator, awaitOrYieldReturnSyntax As SyntaxNode, <Out> ByRef state As StateMachineState, <Out> ByRef resumeLabel As GeneratedLabelSymbol)
+                state = allocator.AllocateState(awaitOrYieldReturnSyntax)
+
+                If _tryBlockSyntaxForNextFinalizerState IsNot Nothing AndAlso UseFinalizerBookkeeping Then
                     If SlotAllocatorOpt Is Nothing OrElse
                        Not SlotAllocatorOpt.TryGetPreviousStateMachineState(_tryBlockSyntaxForNextFinalizerState, awaitId:=Nothing, _currentFinalizerState) Then
                         _currentFinalizerState = _nextFinalizerState
@@ -222,8 +230,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return result
             End Function
 
-            Private Function GenerateMissingStateDispatch() As BoundStatement
+            ''' <summary>
+            ''' Whether Try blocks that contain resumable states get finalizer states, which an iterator's Dispose
+            ''' dispatches to. An async iterator disposes through its dispose mode instead, and its Yield states
+            ''' share the negative range that finalizer states use.
+            ''' </summary>
+            Protected Overridable ReadOnly Property UseFinalizerBookkeeping As Boolean
+                Get
+                    Return True
+                End Get
+            End Property
+
+            Protected Overridable Function GenerateMissingStateDispatch() As BoundStatement
                 Return _resumableStateAllocator.GenerateThrowMissingStateDispatch(F, F.Local(CachedState, isLValue:=False), EncMissingStateErrorCode)
+            End Function
+
+            ''' <summary>
+            ''' The condition for running a Finally block on the way out of MoveNext. The default skips it while
+            ''' the state machine is suspended on a resumable state, which is 0 and up.
+            ''' </summary>
+            Protected Overridable Function ShouldEnterFinallyBlock() As BoundExpression
+                Return Me.F.IntLessThan(Me.F.Local(Me.CachedState, False), Me.F.Literal(StateMachineState.FirstUnusedState))
+            End Function
+
+            Protected Overridable Function VisitFinallyBlock(finallyBlock As BoundBlock) As BoundBlock
+                Return DirectCast(Me.Visit(finallyBlock), BoundBlock)
             End Function
 
 #Region "Visitors"
@@ -387,10 +418,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                        Me.F.Block(
                                                            SyntheticBoundNodeFactory.HiddenSequencePoint(),
                                                            Me.F.If(
-                                                               condition:=Me.F.IntLessThan(
-                                                                   Me.F.Local(Me.CachedState, False),
-                                                                   Me.F.Literal(StateMachineState.FirstUnusedState)),
-                                                               thenClause:=DirectCast(Me.Visit(node.FinallyBlockOpt), BoundBlock)),
+                                                               condition:=ShouldEnterFinallyBlock(),
+                                                               thenClause:=VisitFinallyBlock(node.FinallyBlockOpt)),
                                                            SyntheticBoundNodeFactory.HiddenSequencePoint()))
 
                 Dim result As BoundStatement = node.Update(tryBlock, catchBlocks, finallyBlockOpt, node.ExitLabelOpt)

@@ -53,7 +53,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                  diagnostics As BindingDiagnosticBag,
                                                  <Out> ByRef stateMachineType As IteratorStateMachine) As BoundBlock
 
-            If body.HasErrors Or Not method.IsIterator Then
+            If body.HasErrors Or Not method.IsIterator OrElse method.IsAsync Then
                 Return body
             End If
 

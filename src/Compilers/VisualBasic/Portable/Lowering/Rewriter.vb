@@ -135,12 +135,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Debug.Assert(compilationState.ModuleBuilderOpt IsNot Nothing)
 
-            If method.IsAsync AndAlso method.IsIterator Then
-                diagnostics.Add(ERRID.ERR_AsyncIteratorNotAvailableYet, method.GetFirstLocation())
-                stateMachineTypeOpt = Nothing
-                Return New BoundBlock(bodyWithoutLambdas.Syntax, bodyWithoutLambdas.StatementListSyntax, bodyWithoutLambdas.Locals, bodyWithoutLambdas.Statements, hasErrors:=True)
-            End If
-
             Dim iteratorStateMachine As IteratorStateMachine = Nothing
             Dim bodyWithoutIterators = IteratorRewriter.Rewrite(bodyWithoutLambdas,
                                                                 method,

@@ -48,8 +48,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim params(Me._interfaceMethod.ParameterCount - 1) As ParameterSymbol
             For i = 0 To params.Length - 1
                 Dim curParam = Me._interfaceMethod.Parameters(i)
-                Debug.Assert(Not curParam.IsOptional)
-                Debug.Assert(Not curParam.HasExplicitDefaultValue)
                 params(i) = SynthesizedMethod.WithNewContainerAndType(Me, curParam.Type, curParam)
             Next
             Me._parameters = params.AsImmutableOrNull()

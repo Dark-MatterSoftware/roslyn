@@ -61,6 +61,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Me._resultType = DirectCast(Me.Method.ReturnType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics().Single().InternalSubstituteTypeParameters(Me.TypeMap).Type
                     Me._builderType = Me.F.WellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncTaskMethodBuilder_T).Construct(Me._resultType)
 
+                Case AsyncMethodKind.AsyncIterator
+                    Me._resultType = Me.F.SpecialType(SpecialType.System_Void)
+                    Me._builderType = Me.F.WellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncIteratorMethodBuilder)
+                    InitializeAsyncIterator()
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(Me._asyncMethodKind)
             End Select
@@ -90,7 +95,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' The CLR doesn't support adding fields to structs, so in order to enable EnC in an async method we need to generate a class.
             Dim kind = If(compilationState.Compilation.Options.EnableEditAndContinue, TypeKind.Class, TypeKind.Struct)
 
-            stateMachineType = New AsyncStateMachine(slotAllocatorOpt, compilationState, method, methodOrdinal, kind)
+            If asyncMethodKind = AsyncMethodKind.AsyncIterator Then
+                Dim returnType = DirectCast(method.ReturnType, NamedTypeSymbol)
+                Dim isEnumerable = TypeSymbol.Equals(returnType.OriginalDefinition,
+                                                     compilationState.Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T),
+                                                     TypeCompareKind.ConsiderEverything)
+                stateMachineType = New AsyncStateMachine(slotAllocatorOpt, compilationState, method, methodOrdinal, TypeKind.Class,
+                                                         returnType.TypeArgumentsNoUseSiteDiagnostics(0), isEnumerable)
+            Else
+                stateMachineType = New AsyncStateMachine(slotAllocatorOpt, compilationState, method, methodOrdinal, kind)
+            End If
 
             compilationState.ModuleBuilderOpt.CompilationState.SetStateMachineType(method, stateMachineType)
 
@@ -135,10 +149,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' The fields are initialized from async method, so they need to be public:
             Me.StateField = Me.F.StateMachineField(Me.F.SpecialType(SpecialType.System_Int32), Me.Method, GeneratedNames.MakeStateMachineStateFieldName(), Accessibility.Public)
             Me._builderField = Me.F.StateMachineField(Me._builderType, Me.Method, GeneratedNames.MakeStateMachineBuilderFieldName(), Accessibility.Public)
+
+            If Me._asyncMethodKind = AsyncMethodKind.AsyncIterator Then
+                GenerateAsyncIteratorControlFields()
+            End If
         End Sub
 
         Protected Overrides Sub InitializeStateMachine(bodyBuilder As ArrayBuilder(Of BoundStatement), frameType As NamedTypeSymbol, stateMachineLocal As LocalSymbol)
-            If frameType.TypeKind = TypeKind.Class Then
+            If Me._asyncMethodKind = AsyncMethodKind.AsyncIterator Then
+                InitializeAsyncIteratorStateMachine(bodyBuilder, frameType, stateMachineLocal)
+            ElseIf frameType.TypeKind = TypeKind.Class Then
                 ' Dim stateMachineLocal = new AsyncImplementationClass()
                 bodyBuilder.Add(
                     Me.F.Assignment(
@@ -155,7 +175,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Protected Overrides ReadOnly Property PreserveInitialParameterValues As Boolean
             Get
-                Return False
+                Return Me._asyncMethodKind = AsyncMethodKind.AsyncIterator AndAlso Me._isEnumerable
             End Get
         End Property
 
@@ -197,7 +217,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             ' Constructor
-            If StateMachineType.TypeKind = TypeKind.Class Then
+            If Me._asyncMethodKind = AsyncMethodKind.AsyncIterator Then
+                GenerateAsyncIteratorConstructor()
+                GenerateAsyncIteratorMethodImplementations()
+            ElseIf StateMachineType.TypeKind = TypeKind.Class Then
                 Me.F.CurrentMethod = StateMachineType.Constructor
                 Me.F.CloseMethod(F.Block(ImmutableArray.Create(F.BaseInitialization(), F.Return())))
             End If
@@ -205,6 +228,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Protected Overrides Function GenerateStateMachineCreation(stateMachineVariable As LocalSymbol, frameType As NamedTypeSymbol) As BoundStatement
+            If Me._asyncMethodKind = AsyncMethodKind.AsyncIterator Then
+                ' STAT:   Return localStateMachine
+                Return Me.F.Return(Me.F.Local(stateMachineVariable, False))
+            End If
+
             Dim bodyBuilder = ArrayBuilder(Of BoundStatement).GetInstance()
 
             ' STAT:   localStateMachine.$stateField = NotStartedStateMachine
@@ -333,6 +361,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     EnsureWellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncTaskMethodBuilder, bag)
                 Case AsyncMethodKind.[Sub]
                     EnsureWellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncVoidMethodBuilder, bag)
+                Case AsyncMethodKind.AsyncIterator
+                    EnsureAsyncIteratorSymbols(bag)
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(Me._asyncMethodKind)
             End Select
@@ -356,6 +386,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             [Sub]
             TaskFunction
             GenericTaskFunction
+            AsyncIterator
         End Enum
 
         ''' <summary>
@@ -375,6 +406,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(compilation IsNot Nothing)
 
             Dim returnType As TypeSymbol = method.ReturnType
+            If method.IsIterator Then
+                Return If(returnType.IsAsyncIteratorReturnType(compilation), AsyncMethodKind.AsyncIterator, AsyncMethodKind.None)
+            End If
+
             If TypeSymbol.Equals(returnType, compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task), TypeCompareKind.ConsiderEverything) Then
                 Return AsyncMethodKind.TaskFunction
             End If

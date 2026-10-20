@@ -1852,7 +1852,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_AwaitEachNotInAsyncMethod = 37391
         ERR_AwaitEachRequiresAsyncEnumerable = 37392
         ERR_BadAsyncIteratorReturn = 37393
-        ERR_AsyncIteratorNotAvailableYet = 37394
+        ' 37394 was the temporary error for Async Iterator functions before their lowering existed.
 
         ERR_NextAvailable = 37395
 

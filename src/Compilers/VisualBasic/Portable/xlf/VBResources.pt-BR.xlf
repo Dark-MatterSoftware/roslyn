@@ -7,11 +7,6 @@
         <target state="translated">A propriedade apenas para inicialização '{0}' só pode ser atribuída por um inicializador de membro de objeto ou em 'Me', 'MyClass` ou 'MyBase' em um construtor de instância.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ERR_AsyncIteratorNotAvailableYet">
-        <source>This build of the compiler cannot compile 'Async Iterator' functions yet.</source>
-        <target state="new">This build of the compiler cannot compile 'Async Iterator' functions yet.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ERR_AsyncUsingNotInAsyncMethod">
         <source>'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</source>
         <target state="new">'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</target>

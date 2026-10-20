@@ -7,11 +7,6 @@
         <target state="translated">초기값 전용 속성 '{0}'은(는) 개체 멤버 이니셜라이저에 의해서나 인스턴스 생성자의 'Me', 'MyClass` 또는 'MyBase'에만 할당할 수 있습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ERR_AsyncIteratorNotAvailableYet">
-        <source>This build of the compiler cannot compile 'Async Iterator' functions yet.</source>
-        <target state="new">This build of the compiler cannot compile 'Async Iterator' functions yet.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ERR_AsyncUsingNotInAsyncMethod">
         <source>'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</source>
         <target state="new">'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</target>

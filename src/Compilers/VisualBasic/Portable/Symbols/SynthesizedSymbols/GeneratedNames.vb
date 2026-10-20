@@ -189,6 +189,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return GeneratedNameConstants.IteratorInitialThreadIdName
         End Function
 
+        Public Shared Function MakeAsyncIteratorPromiseOfValueOrEndFieldName() As String
+            Return "$PromiseOfValueOrEnd"
+        End Function
+
+        Public Shared Function MakeAsyncIteratorDisposeModeFieldName() As String
+            Return "$DisposeMode"
+        End Function
+
         ''' <summary>
         ''' Generates the name of a state machine field name for captured me reference
         ''' </summary>
