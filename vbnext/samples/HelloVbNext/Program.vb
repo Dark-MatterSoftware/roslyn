@@ -1,3 +1,7 @@
+﻿Option Strict On
+Option Explicit On
+Option Infer Off
+
 Imports System.Xml.Linq
 
 Record Class Point(X As Integer, Y As Integer)
@@ -31,32 +35,34 @@ Module Program
     Function Area(width As Integer, height As Integer) As Integer = Return width * height
 
     Function Describe(count As Integer) As String
-        Dim label = Select Case count
-                        Case 0
-                            "none"
-                        Case 1
-                            "one"
-                        Case Else
-                            "many"
-                    End Select
+        Dim label As String = Select Case count
+                                  Case 0
+                                      "none"
+                                  Case 1
+                                      "one"
+                                  Case Else
+                                      "many"
+                              End Select
         Return label
     End Function
 
     Function Items(names As String()) As XElement
         Return <ul>
-                   <%= For Each name In names
+                   <%= For Each name As String In names
                            Yield <li><%= name %></li>
                        Next %>
                </ul>
     End Function
 
     Sub Main()
-        Using resource = New Resource("sample")
+        Using resource As Resource = New Resource("sample")
 
         Dim a As New Point(1, 2)
         Dim b As New Point(1, 2)
+        Dim c As Point = a With {.Y = 5}
         Console.WriteLine(a)
         Console.WriteLine(a.Equals(b))
+        Console.WriteLine(c)
         Console.WriteLine(Area(3, 4))
         Console.WriteLine(Describe(5))
         Console.WriteLine("modern visual basic".WordCount)
