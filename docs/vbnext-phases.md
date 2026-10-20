@@ -329,10 +329,10 @@ Wave 5 rows 3 to 5. The spelling comes first, because all three forms share it.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 26a | VB-061, VB-062, VB-063 | `docs/vbnext-vb061-syntax.md` records the spellings proposed for asynchronous disposal, asynchronous iteration, and async iterators, with their sources, and locks or defers each one. No code change. |
-| 26b | VB-061 | On `vbnext`, the locked disposal form awaits `DisposeAsync` on a resource that implements `IAsyncDisposable`, in a block and in a `Using` declaration, including when the body throws. Outside an `Async` method it reports an error. |
-| 26c | VB-062 | On `vbnext`, the locked iteration form iterates an `IAsyncEnumerable(Of T)`, awaits `MoveNextAsync` for each item, and awaits the enumerator's `DisposeAsync` when the loop ends, including on `Exit For` and exceptions. |
-| 26d | VB-063 | On `vbnext`, an async iterator function returning `IAsyncEnumerable(Of T)` can both `Await` and `Yield`, and the slice 26c loop consumes it. Cancellation through `EnumeratorCancellation` reaches the function. |
+| 26a | VB-061, VB-062, VB-063 | Done. [vbnext-vb061-syntax.md](vbnext-vb061-syntax.md) locks `Async Using` for asynchronous disposal, `Await Each ... Next` for asynchronous iteration, with `Exit For` and `Continue For`, and `Async Iterator Function` for async iterators. `Await Using` and `Await For Each` are not adopted. No code change. |
+| 26b | VB-061 | On `vbnext`, `Async Using` awaits `DisposeAsync` on a resource that implements `IAsyncDisposable`, in a block and in a `Using` declaration, including when the body throws. Outside an `Async` method it reports an error. |
+| 26c | VB-062 | On `vbnext`, `Await Each ... Next` iterates an `IAsyncEnumerable(Of T)`, awaits `MoveNextAsync` for each item, and awaits the enumerator's `DisposeAsync` when the loop ends, including on `Exit For` and exceptions. |
+| 26d | VB-063 | On `vbnext`, an `Async Iterator Function` returning `IAsyncEnumerable(Of T)` can both `Await` and `Yield`, and the slice 26c loop consumes it. Cancellation through `EnumeratorCancellation` reaches the function. |
 
 ## Phase 27 — Pattern variables
 
@@ -360,4 +360,4 @@ Wave 5 row 7.
 
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slices 24a and 24b compile a real project with the Vb.Next compiler, with analyzers on. Slice 24c waits on Visual Studio 2026 Insiders, which can load the editor. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 starts with slice 26a, the spelling note for asynchronous streams.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Slices 24a and 24b compile a real project with the Vb.Next compiler, with analyzers on. Slice 24c waits on Visual Studio 2026 Insiders, which can load the editor. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Slice 26a locks the asynchronous stream spellings, and slice 26b starts now.
