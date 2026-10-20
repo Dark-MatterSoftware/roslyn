@@ -2148,14 +2148,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
         End Function
 
         Friend Shared Function GetStateMachineInfo(body As SyntaxNode) As StateMachineInfo
-            ' In VB declaration and body are represented by the same node for both lambdas and methods (unlike C#)
-            If SyntaxUtilities.IsAsyncMethodOrLambda(body) Then
-                Return New StateMachineInfo(IsAsync:=True, IsIterator:=False, HasSuspensionPoints:=SyntaxUtilities.GetAwaitExpressions(body).Any())
-            ElseIf SyntaxUtilities.IsIteratorMethodOrLambda(body) Then
-                Return New StateMachineInfo(IsAsync:=False, IsIterator:=True, HasSuspensionPoints:=SyntaxUtilities.GetYieldStatements(body).Any())
-            Else
+            ' In VB declaration and body are represented by the same node for both lambdas and methods (unlike C#).
+            ' An Async Iterator Function is both.
+            Dim isAsync = SyntaxUtilities.IsAsyncMethodOrLambda(body)
+            Dim isIterator = SyntaxUtilities.IsIteratorMethodOrLambda(body)
+            If Not isAsync AndAlso Not isIterator Then
                 Return StateMachineInfo.None
             End If
+
+            Return New StateMachineInfo(IsAsync:=isAsync, IsIterator:=isIterator, HasSuspensionPoints:=SyntaxUtilities.GetSuspensionPoints(body).Any())
         End Function
 
         Friend Overrides Sub ReportStateMachineSuspensionPointRudeEdits(diagnosticContext As DiagnosticContext, oldNode As SyntaxNode, newNode As SyntaxNode)

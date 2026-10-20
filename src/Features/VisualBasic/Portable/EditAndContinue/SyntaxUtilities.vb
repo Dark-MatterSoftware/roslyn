@@ -227,6 +227,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
                 Where(Function(n) n.IsKind(SyntaxKind.AwaitExpression)))
         End Function
 
+        ''' <summary>
+        ''' The nodes that the state machine resumes at: Await expressions, Yield statements, and the awaited release
+        ''' and iteration of Async Using and Await Each. Lambda bodies are skipped.
+        ''' </summary>
+        Public Shared Function GetSuspensionPoints(body As SyntaxNode) As IEnumerable(Of SyntaxNode)
+            Return body.DescendantNodes(AddressOf LambdaUtilities.IsNotLambda).Where(AddressOf SyntaxBindingUtilities.BindsToResumableStateMachineState)
+        End Function
+
         Public Shared Function GetYieldStatements(body As SyntaxNode) As ImmutableArray(Of SyntaxNode)
             ' enumerate statements:
             Return ImmutableArray.CreateRange(body.DescendantNodes(Function(n) TypeOf n IsNot ExpressionSyntax).

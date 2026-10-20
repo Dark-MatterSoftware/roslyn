@@ -191,16 +191,16 @@ End Namespace
             Return Path.Combine(TempRoot.Root, documentIndex.ToString() & ".vb")
         End Function
 
-        Private Shared Function ParseSource(markedSource As String, Optional documentIndex As Integer = 0) As SyntaxTree
+        Private Shared Function ParseSource(markedSource As String, Optional documentIndex As Integer = 0, Optional parseOptions As VisualBasicParseOptions = Nothing) As SyntaxTree
             Return SyntaxFactory.ParseSyntaxTree(
                 SourceMarkers.Clear(markedSource),
-                VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest),
+                If(parseOptions, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest)),
                 path:=GetDocumentFilePath(documentIndex))
         End Function
 
-        Friend Shared Function GetTopEdits(src1 As String, src2 As String, Optional documentIndex As Integer = 0) As EditScriptDescription
-            Dim tree1 = ParseSource(src1, documentIndex)
-            Dim tree2 = ParseSource(src2, documentIndex)
+        Friend Shared Function GetTopEdits(src1 As String, src2 As String, Optional documentIndex As Integer = 0, Optional parseOptions As VisualBasicParseOptions = Nothing) As EditScriptDescription
+            Dim tree1 = ParseSource(src1, documentIndex, parseOptions)
+            Dim tree2 = ParseSource(src2, documentIndex, parseOptions)
 
             tree1.GetDiagnostics().Verify()
             tree2.GetDiagnostics().Verify()
