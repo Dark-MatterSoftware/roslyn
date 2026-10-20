@@ -4680,8 +4680,8 @@ Unify Enum declarations with other block type declarations.
     <node-structure name="ForOrForEachStatementSyntax" abstract="true" parent="StatementSyntax">
       <description>Represents a For or For Each statement.</description>
 
-      <child name="ForKeyword" kind="ForKeyword" order="10">
-        <description>The "For" keyword.</description>
+      <child name="ForKeyword" kind="ForKeyword|AwaitKeyword" order="10">
+        <description>The "For" keyword, or the "Await" keyword that begins an Await Each statement.</description>
         <lm-equiv name="ForKeyword"></lm-equiv>
         <native-equiv name="ForStatement.ControlVariable"></native-equiv>
       </child>

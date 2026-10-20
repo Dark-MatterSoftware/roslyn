@@ -20717,7 +20717,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' the outermost For statement that is being ended.
         ''' </summary>
         ''' <param name="forKeyword">
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
@@ -20742,7 +20742,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function ForStatement(forKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, equalsToken As SyntaxToken, fromValue As ExpressionSyntax, toKeyword As SyntaxToken, toValue As ExpressionSyntax, stepClause As ForStepClauseSyntax) As ForStatementSyntax
             Select Case forKeyword.Kind()
-                Case SyntaxKind.ForKeyword
+                Case SyntaxKind.ForKeyword :
+                Case SyntaxKind.AwaitKeyword
                 Case Else
                     Throw new ArgumentException("forKeyword")
             End Select
@@ -21129,6 +21130,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' statements will have End set to Nothing, and the Next statement is the End of
         ''' the outermost For statement that is being ended.
         ''' </summary>
+        ''' <param name="forKeyword">
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -21144,8 +21148,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="stepClause">
         ''' The optional Step clause.
         ''' </param>
-        Public Shared Function ForStatement(controlVariable As VisualBasicSyntaxNode, fromValue As ExpressionSyntax, toValue As ExpressionSyntax, stepClause As ForStepClauseSyntax) As ForStatementSyntax
-            Return SyntaxFactory.ForStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), controlVariable, SyntaxFactory.Token(SyntaxKind.EqualsToken), fromValue, SyntaxFactory.Token(SyntaxKind.ToKeyword), toValue, stepClause)
+        Public Shared Function ForStatement(forKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, fromValue As ExpressionSyntax, toValue As ExpressionSyntax, stepClause As ForStepClauseSyntax) As ForStatementSyntax
+            Return SyntaxFactory.ForStatement(forKeyword, controlVariable, SyntaxFactory.Token(SyntaxKind.EqualsToken), fromValue, SyntaxFactory.Token(SyntaxKind.ToKeyword), toValue, stepClause)
         End Function
 
 
@@ -21157,6 +21161,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' statements will have End set to Nothing, and the Next statement is the End of
         ''' the outermost For statement that is being ended.
         ''' </summary>
+        ''' <param name="forKeyword">
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -21169,8 +21176,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="toValue">
         ''' The expression denoting the final value of the iteration.
         ''' </param>
-        Public Shared Function ForStatement(controlVariable As VisualBasicSyntaxNode, fromValue As ExpressionSyntax, toValue As ExpressionSyntax) As ForStatementSyntax
-            Return SyntaxFactory.ForStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), controlVariable, SyntaxFactory.Token(SyntaxKind.EqualsToken), fromValue, SyntaxFactory.Token(SyntaxKind.ToKeyword), toValue, Nothing)
+        Public Shared Function ForStatement(forKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, fromValue As ExpressionSyntax, toValue As ExpressionSyntax) As ForStatementSyntax
+            Return SyntaxFactory.ForStatement(forKeyword, controlVariable, SyntaxFactory.Token(SyntaxKind.EqualsToken), fromValue, SyntaxFactory.Token(SyntaxKind.ToKeyword), toValue, Nothing)
         End Function
 
 
@@ -21334,7 +21341,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' the outermost For statement that is being ended.
         ''' </summary>
         ''' <param name="forKeyword">
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </param>
         ''' <param name="eachKeyword">
         ''' The "Each" keyword.
@@ -21362,7 +21369,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function ForEachStatement(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, byRefKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, withKeyword As SyntaxToken, index As SyntaxToken, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
             Select Case forKeyword.Kind()
-                Case SyntaxKind.ForKeyword
+                Case SyntaxKind.ForKeyword :
+                Case SyntaxKind.AwaitKeyword
                 Case Else
                     Throw new ArgumentException("forKeyword")
             End Select
@@ -21630,6 +21638,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' statements will have End set to Nothing, and the Next statement is the End of
         ''' the outermost For statement that is being ended.
         ''' </summary>
+        ''' <param name="forKeyword">
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -21642,8 +21653,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
-        Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, index As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, index, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
+        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, index As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+            Return SyntaxFactory.ForEachStatement(forKeyword, SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, index, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
         End Function
 
 
@@ -21656,6 +21667,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' statements will have End set to Nothing, and the Next statement is the End of
         ''' the outermost For statement that is being ended.
         ''' </summary>
+        ''' <param name="forKeyword">
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
+        ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
@@ -21665,8 +21679,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
-        Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
+        Public Shared Function ForEachStatement(forKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, expression As ExpressionSyntax) As ForEachStatementSyntax
+            Return SyntaxFactory.ForEachStatement(forKeyword, SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
         End Function
 
 
@@ -48757,6 +48771,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case _
                 SyntaxKind.WhileKeyword,
                 SyntaxKind.UntilKeyword
+                    Return True
+            End Select
+            Return False
+        End Function
+
+        Public Shared Function IsForStatementForKeyword(kind As SyntaxKind) As Boolean
+            Select Case kind
+                Case _
+                SyntaxKind.ForKeyword,
+                SyntaxKind.AwaitKeyword
+                    Return True
+            End Select
+            Return False
+        End Function
+
+        Public Shared Function IsForEachStatementForKeyword(kind As SyntaxKind) As Boolean
+            Select Case kind
+                Case _
+                SyntaxKind.ForKeyword,
+                SyntaxKind.AwaitKeyword
                     Return True
             End Select
             Return False

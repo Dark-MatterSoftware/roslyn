@@ -1849,8 +1849,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_DeconstructionRequiresOptionInfer = 37388
         ERR_AsyncUsingNotInAsyncMethod = 37389
         ERR_AsyncUsingRequiresAsyncDisposable = 37390
+        ERR_AwaitEachNotInAsyncMethod = 37391
+        ERR_AwaitEachRequiresAsyncEnumerable = 37392
 
-        ERR_NextAvailable = 37391
+        ERR_NextAvailable = 37393
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2188,5 +2190,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_PrimaryConstructor
         FEATURE_CollectionExpression
         FEATURE_AsyncUsing
+        FEATURE_AwaitEach
     End Enum
 End Namespace

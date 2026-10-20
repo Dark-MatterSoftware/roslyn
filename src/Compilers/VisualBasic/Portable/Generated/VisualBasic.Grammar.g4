@@ -982,7 +982,8 @@ for_block
   ;
 
 for_statement
-  : 'For' (expression | variable_declarator) '=' expression 'To' expression for_step_clause?
+  : 'Await' (expression | variable_declarator) '=' expression 'To' expression for_step_clause?
+  | 'For' (expression | variable_declarator) '=' expression 'To' expression for_step_clause?
   ;
 
 for_step_clause
@@ -998,7 +999,8 @@ for_each_block
   ;
 
 for_each_statement
-  : 'For' 'Each' 'ByRef'? (expression | variable_declarator) 'With'? identifier_token? 'In' expression
+  : 'Await' 'Each' 'ByRef'? (expression | variable_declarator) 'With'? identifier_token? 'In' expression
+  | 'For' 'Each' 'ByRef'? (expression | variable_declarator) 'With'? identifier_token? 'In' expression
   ;
 
 go_to_statement

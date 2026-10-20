@@ -14188,6 +14188,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
+            SyntaxFactory.ForStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.EqualsToken), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ToKeyword), GenerateRedKeywordEventContainer(), Nothing)
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
             SyntaxFactory.ForStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ToKeyword), GenerateRedKeywordEventContainer(), Nothing)
             catch e as ArgumentException
             exceptionTest = true
@@ -14240,6 +14248,14 @@ Partial Public Class GeneratedTests
             Try
             SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), Nothing)
             catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)

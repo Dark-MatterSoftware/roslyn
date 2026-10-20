@@ -755,9 +755,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 getEnumeratorDefaultArguments = getEnumeratorCall.DefaultArguments
             End If
 
+            ' Await Each awaits MoveNextAsync.
+            Dim moveNextExpression = enumeratorInfo.MoveNext
+            If moveNextExpression IsNot Nothing AndAlso moveNextExpression.Kind = BoundKind.AwaitOperator Then
+                moveNextExpression = DirectCast(moveNextExpression, BoundAwaitOperator).Operand
+            End If
+
             Dim moveNext As MethodSymbol = Nothing
-            If enumeratorInfo.MoveNext IsNot Nothing AndAlso enumeratorInfo.MoveNext.Kind = BoundKind.Call Then
-                Dim moveNextCall As BoundCall = DirectCast(enumeratorInfo.MoveNext, BoundCall)
+            If moveNextExpression IsNot Nothing AndAlso moveNextExpression.Kind = BoundKind.Call Then
+                Dim moveNextCall As BoundCall = DirectCast(moveNextExpression, BoundCall)
                 moveNext = moveNextCall.Method
                 moveNextArguments = moveNextCall.Arguments
                 moveNextDefaultArguments = moveNextCall.DefaultArguments
@@ -799,12 +805,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            Dim disposeMethod As MethodSymbol = Nothing
+            If enumeratorInfo.IsAsynchronous Then
+                disposeMethod = TryCast(compilation.GetWellKnownTypeMember(WellKnownMember.System_IAsyncDisposable__DisposeAsync), MethodSymbol)
+            ElseIf enumeratorInfo.NeedToDispose OrElse (originalCollection.Type IsNot Nothing AndAlso originalCollection.Type.IsArrayType()) Then
+                disposeMethod = DirectCast(compilation.GetSpecialTypeMember(SpecialMember.System_IDisposable__Dispose), MethodSymbol)
+            End If
+
             Return New ForEachStatementInfo(getEnumerator,
                                             moveNext,
                                             current,
-                                            If(enumeratorInfo.NeedToDispose OrElse (originalCollection.Type IsNot Nothing AndAlso originalCollection.Type.IsArrayType()),
-                                               DirectCast(compilation.GetSpecialTypeMember(SpecialMember.System_IDisposable__Dispose), MethodSymbol),
-                                               Nothing),
+                                            disposeMethod,
                                             elementType,
                                             elementConversion,
                                             currentConversion)

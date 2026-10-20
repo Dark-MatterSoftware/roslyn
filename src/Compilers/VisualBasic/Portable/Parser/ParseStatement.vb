@@ -832,6 +832,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
         End Function
 
+        ''' <summary>
+        ''' On vbnext, Await Each starts a For Each block over an IAsyncEnumerable(Of T). The Await keyword takes the
+        ''' place of For. Each is a reserved word, so Await Each cannot start an Await expression.
+        ''' </summary>
+        Private Function ParseAwaitEachStatement() As ForEachStatementSyntax
+            Debug.Assert(PeekToken(1).Kind = SyntaxKind.EachKeyword)
+
+            Dim awaitKeyword = _scanner.MakeKeyword(DirectCast(CurrentToken, IdentifierTokenSyntax))
+            awaitKeyword = CheckFeatureAvailability(Feature.AwaitEach, awaitKeyword)
+            GetNextToken()
+
+            Dim eachKeyword = DirectCast(CurrentToken, KeywordSyntax)
+            GetNextToken()
+
+            Return ParseForEachStatement(awaitKeyword, eachKeyword)
+        End Function
+
         Private Function ParseForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax) As ForEachStatementSyntax
 
             Dim byRefKeyword As KeywordSyntax = Nothing

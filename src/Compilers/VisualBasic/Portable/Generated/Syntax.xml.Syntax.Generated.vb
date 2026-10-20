@@ -20739,7 +20739,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Sub
 
         ''' <summary>
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </summary>
         Public ReadOnly Property ForKeyword As SyntaxToken
             Get
@@ -20821,7 +20821,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Sub
 
         ''' <summary>
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </summary>
         Public Shadows ReadOnly Property ForKeyword As SyntaxToken
             Get
@@ -21188,7 +21188,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Sub
 
         ''' <summary>
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </summary>
         Public Shadows ReadOnly Property ForKeyword As SyntaxToken
             Get

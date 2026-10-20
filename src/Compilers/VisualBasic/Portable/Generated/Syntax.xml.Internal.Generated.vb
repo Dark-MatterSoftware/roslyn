@@ -15060,7 +15060,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Sub
 
         ''' <summary>
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </summary>
         Friend ReadOnly Property ForKeyword As InternalSyntax.KeywordSyntax
             Get
@@ -43324,7 +43324,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' the outermost For statement that is being ended.
         ''' </summary>
         ''' <param name="forKeyword">
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
@@ -43348,7 +43348,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' The optional Step clause.
         ''' </param>
         Friend Shared Function ForStatement(forKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, equalsToken As PunctuationSyntax, fromValue As ExpressionSyntax, toKeyword As KeywordSyntax, toValue As ExpressionSyntax, stepClause As ForStepClauseSyntax) As ForStatementSyntax
-            Debug.Assert(forKeyword IsNot Nothing AndAlso forKeyword.Kind = SyntaxKind.ForKeyword)
+            Debug.Assert(forKeyword IsNot Nothing AndAlso SyntaxFacts.IsForStatementForKeyword(forKeyword.Kind))
             Debug.Assert(controlVariable IsNot Nothing)
             Debug.Assert(equalsToken IsNot Nothing AndAlso equalsToken.Kind = SyntaxKind.EqualsToken)
             Debug.Assert(fromValue IsNot Nothing)
@@ -43396,7 +43396,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' the outermost For statement that is being ended.
         ''' </summary>
         ''' <param name="forKeyword">
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </param>
         ''' <param name="eachKeyword">
         ''' The "Each" keyword.
@@ -43423,7 +43423,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' The expression denoting the collection to iterate over.
         ''' </param>
         Friend Shared Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, byRefKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As KeywordSyntax, index As IdentifierTokenSyntax, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Debug.Assert(forKeyword IsNot Nothing AndAlso forKeyword.Kind = SyntaxKind.ForKeyword)
+            Debug.Assert(forKeyword IsNot Nothing AndAlso SyntaxFacts.IsForEachStatementForKeyword(forKeyword.Kind))
             Debug.Assert(eachKeyword IsNot Nothing AndAlso eachKeyword.Kind = SyntaxKind.EachKeyword)
             Debug.Assert(controlVariable IsNot Nothing)
             Debug.Assert(inKeyword IsNot Nothing AndAlso inKeyword.Kind = SyntaxKind.InKeyword)
@@ -56059,7 +56059,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' the outermost For statement that is being ended.
         ''' </summary>
         ''' <param name="forKeyword">
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </param>
         ''' <param name="controlVariable">
         ''' If the For or For Each statement is of a form that does not declare a new loop
@@ -56083,7 +56083,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' The optional Step clause.
         ''' </param>
         Friend Function ForStatement(forKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, equalsToken As PunctuationSyntax, fromValue As ExpressionSyntax, toKeyword As KeywordSyntax, toValue As ExpressionSyntax, stepClause As ForStepClauseSyntax) As ForStatementSyntax
-            Debug.Assert(forKeyword IsNot Nothing AndAlso forKeyword.Kind = SyntaxKind.ForKeyword)
+            Debug.Assert(forKeyword IsNot Nothing AndAlso SyntaxFacts.IsForStatementForKeyword(forKeyword.Kind))
             Debug.Assert(controlVariable IsNot Nothing)
             Debug.Assert(equalsToken IsNot Nothing AndAlso equalsToken.Kind = SyntaxKind.EqualsToken)
             Debug.Assert(fromValue IsNot Nothing)
@@ -56131,7 +56131,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' the outermost For statement that is being ended.
         ''' </summary>
         ''' <param name="forKeyword">
-        ''' The "For" keyword.
+        ''' The "For" keyword, or the "Await" keyword that begins an Await Each statement.
         ''' </param>
         ''' <param name="eachKeyword">
         ''' The "Each" keyword.
@@ -56158,7 +56158,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' The expression denoting the collection to iterate over.
         ''' </param>
         Friend Function ForEachStatement(forKeyword As KeywordSyntax, eachKeyword As KeywordSyntax, byRefKeyword As KeywordSyntax, controlVariable As VisualBasicSyntaxNode, withKeyword As KeywordSyntax, index As IdentifierTokenSyntax, inKeyword As KeywordSyntax, expression As ExpressionSyntax) As ForEachStatementSyntax
-            Debug.Assert(forKeyword IsNot Nothing AndAlso forKeyword.Kind = SyntaxKind.ForKeyword)
+            Debug.Assert(forKeyword IsNot Nothing AndAlso SyntaxFacts.IsForEachStatementForKeyword(forKeyword.Kind))
             Debug.Assert(eachKeyword IsNot Nothing AndAlso eachKeyword.Kind = SyntaxKind.EachKeyword)
             Debug.Assert(controlVariable IsNot Nothing)
             Debug.Assert(inKeyword IsNot Nothing AndAlso inKeyword.Kind = SyntaxKind.InKeyword)

@@ -27,6 +27,16 @@
         <target state="new">Auto-implemented instance properties in a ReadOnly structure must be ReadOnly.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AwaitEachNotInAsyncMethod">
+        <source>'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</source>
+        <target state="new">'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_AwaitEachRequiresAsyncEnumerable">
+        <source>'Await Each' requires a collection that implements 'System.Collections.Generic.IAsyncEnumerable(Of T)', but '{0}' does not.</source>
+        <target state="new">'Await Each' requires a collection that implements 'System.Collections.Generic.IAsyncEnumerable(Of T)', but '{0}' does not.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadAbstractStaticMemberAccess">
         <source>A shared abstract or virtual interface member cannot be accessed.</source>
         <target state="translated">無法存取共用摘要或虛擬介面成員。</target>
@@ -460,6 +470,11 @@
       <trans-unit id="FEATURE_AsyncUsing">
         <source>'Async Using'</source>
         <target state="new">'Async Using'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_AwaitEach">
+        <source>'Await Each'</source>
+        <target state="new">'Await Each'</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_CallerArgumentExpression">

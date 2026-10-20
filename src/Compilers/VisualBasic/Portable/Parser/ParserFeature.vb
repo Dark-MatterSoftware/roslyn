@@ -73,6 +73,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         PrimaryConstructor
         CollectionExpression
         AsyncUsing
+        AwaitEach
     End Enum
 
     Friend Module FeatureExtensions
@@ -171,7 +172,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.PartialConstructor,
                      Feature.PrimaryConstructor,
                      Feature.CollectionExpression,
-                     Feature.AsyncUsing
+                     Feature.AsyncUsing,
+                     Feature.AwaitEach
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -311,6 +313,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_CollectionExpression
                 Case Feature.AsyncUsing
                     Return ERRID.FEATURE_AsyncUsing
+                Case Feature.AwaitEach
+                    Return ERRID.FEATURE_AwaitEach
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

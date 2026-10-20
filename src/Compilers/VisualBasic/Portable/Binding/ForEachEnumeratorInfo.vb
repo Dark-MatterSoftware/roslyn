@@ -90,6 +90,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public ReadOnly CollectionPlaceholder As BoundRValuePlaceholder
 
         ''' <summary>
+        ''' True for Await Each, where MoveNext is an awaited MoveNextAsync.
+        ''' </summary>
+        Public ReadOnly IsAsynchronous As Boolean
+
+        ''' <summary>
+        ''' For Await Each, the awaited DisposeAsync call on the enumerator (contains a placeholder).
+        ''' </summary>
+        Public ReadOnly DisposeAwaitOpt As BoundExpression
+
+        ''' <summary>
         ''' Initializes a new instance of the <see cref="ForEachEnumeratorInfo" /> class.
         ''' </summary>
         ''' <param name="getEnumerator">A bound call to the GetEnumerator method.</param>
@@ -116,7 +126,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             currentConversion As BoundExpression,
             enumeratorPlaceholder As BoundLValuePlaceholder,
             currentPlaceholder As BoundRValuePlaceholder,
-            collectionPlaceholder As BoundRValuePlaceholder
+            collectionPlaceholder As BoundRValuePlaceholder,
+            Optional isAsynchronous As Boolean = False,
+            Optional disposeAwaitOpt As BoundExpression = Nothing
         )
             Me.GetEnumerator = getEnumerator
             Me.MoveNext = moveNext
@@ -130,6 +142,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.EnumeratorPlaceholder = enumeratorPlaceholder
             Me.CurrentPlaceholder = currentPlaceholder
             Me.CollectionPlaceholder = collectionPlaceholder
+            Me.IsAsynchronous = isAsynchronous
+            Me.DisposeAwaitOpt = disposeAwaitOpt
         End Sub
     End Class
 End Namespace

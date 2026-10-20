@@ -29,6 +29,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' Creates a For Each statement that starts with the For keyword.
+        ''' </summary>
+        Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, index As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
+            Return ForEachStatement(Token(SyntaxKind.ForKeyword), Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, index, Token(SyntaxKind.InKeyword), expression)
+        End Function
+
+        ''' <summary>
+        ''' Creates a For Each statement that starts with the For keyword.
+        ''' </summary>
+        Public Shared Function ForEachStatement(controlVariable As VisualBasicSyntaxNode, expression As ExpressionSyntax) As ForEachStatementSyntax
+            Return ForEachStatement(Token(SyntaxKind.ForKeyword), Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, Nothing, Token(SyntaxKind.InKeyword), expression)
+        End Function
+
+        ''' <summary>
+        ''' Creates a For statement with a Step clause.
+        ''' </summary>
+        Public Shared Function ForStatement(controlVariable As VisualBasicSyntaxNode, fromValue As ExpressionSyntax, toValue As ExpressionSyntax, stepClause As ForStepClauseSyntax) As ForStatementSyntax
+            Return ForStatement(Token(SyntaxKind.ForKeyword), controlVariable, Token(SyntaxKind.EqualsToken), fromValue, Token(SyntaxKind.ToKeyword), toValue, stepClause)
+        End Function
+
+        ''' <summary>
+        ''' Creates a For statement without a Step clause.
+        ''' </summary>
+        Public Shared Function ForStatement(controlVariable As VisualBasicSyntaxNode, fromValue As ExpressionSyntax, toValue As ExpressionSyntax) As ForStatementSyntax
+            Return ForStatement(Token(SyntaxKind.ForKeyword), controlVariable, Token(SyntaxKind.EqualsToken), fromValue, Token(SyntaxKind.ToKeyword), toValue, Nothing)
+        End Function
+
+        ''' <summary>
         ''' Creates a Sub statement without a compact body.
         ''' </summary>
         Public Shared Function SubStatement(attributeLists As SyntaxList(Of AttributeListSyntax), modifiers As SyntaxTokenList, subOrFunctionKeyword As SyntaxToken, identifier As SyntaxToken, typeParameterList As TypeParameterListSyntax, parameterList As ParameterListSyntax, asClause As SimpleAsClauseSyntax, handlesClause As HandlesClauseSyntax, implementsClause As ImplementsClauseSyntax) As MethodStatementSyntax

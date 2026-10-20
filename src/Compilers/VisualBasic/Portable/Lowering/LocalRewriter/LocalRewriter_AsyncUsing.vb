@@ -44,14 +44,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim disposeCondition As BoundExpression = placeholderInfo.Item3
             AddPlaceholderReplacement(resourcePlaceholder, boundResourceLocal.MakeRValue())
 
+            Dim initialization = New BoundAssignmentOperator(resourceSyntax,
+                                                             boundResourceLocal,
+                                                             VisitAndGenerateObjectCloneIfNeeded(initializationExpression, suppressObjectClone:=True),
+                                                             suppressObjectClone:=True,
+                                                             type:=resourceType).ToStatement()
+
+            Dim dispose As BoundStatement = factory.ExpressionStatement(VisitExpression(disposeAwait))
+            If disposeCondition IsNot Nothing Then
+                dispose = factory.If(VisitExpression(disposeCondition), dispose)
+            End If
+
+            RemovePlaceholderReplacement(resourcePlaceholder)
+
+            Return RewriteWithAsyncDispose(resourceSyntax, initialization, currentBody, dispose)
+        End Function
+
+        ''' <summary>
+        ''' Runs the prologue, then the lowered body inside Try, and runs the awaited release after the Try whether
+        ''' the body completes, throws, or jumps out. Async Using and Await Each share it.
+        ''' </summary>
+        Private Function RewriteWithAsyncDispose(syntax As SyntaxNode, prologue As BoundStatement, currentBody As BoundBlock, dispose As BoundStatement) As BoundBlock
+            Dim factory As New SyntheticBoundNodeFactory(_topMethod, _currentMethodOrLambda, syntax, _compilationState, _diagnostics)
             Dim int32Type = GetSpecialType(SpecialType.System_Int32)
             Dim exceptionType = Compilation.GetWellKnownType(WellKnownType.System_Exception)
             ' These live across the awaited DisposeAsync, so they are long-lived kinds that a state machine hoists.
-            Dim pendingBranch = factory.SynthesizedLocal(int32Type, SynthesizedLocalKind.TryAwaitPendingBranch, resourceSyntax)
-            Dim pendingException = factory.SynthesizedLocal(exceptionType, SynthesizedLocalKind.TryAwaitPendingException, resourceSyntax)
+            Dim pendingBranch = factory.SynthesizedLocal(int32Type, SynthesizedLocalKind.TryAwaitPendingBranch, syntax)
+            Dim pendingException = factory.SynthesizedLocal(exceptionType, SynthesizedLocalKind.TryAwaitPendingException, syntax)
             ' The catch block declares its own variable.
             Dim caught = factory.SynthesizedLocal(exceptionType)
-            Dim afterTry = factory.GenerateLabel("asyncUsing")
+            Dim afterTry = factory.GenerateLabel("asyncDispose")
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             locals.Add(pendingBranch)
             locals.Add(pendingException)
@@ -63,29 +85,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
             statements.Add(factory.Assignment(factory.Local(pendingBranch, isLValue:=True), factory.Literal(0)))
             statements.Add(factory.Assignment(factory.Local(pendingException, isLValue:=True), factory.Null(exceptionType)))
-            statements.Add(New BoundAssignmentOperator(resourceSyntax,
-                                                       boundResourceLocal,
-                                                       VisitAndGenerateObjectCloneIfNeeded(initializationExpression, suppressObjectClone:=True),
-                                                       suppressObjectClone:=True,
-                                                       type:=resourceType).ToStatement())
+            statements.Add(prologue)
 
             Dim catchBody = factory.Block(factory.Assignment(factory.Local(pendingException, isLValue:=True), factory.Local(caught, isLValue:=False)))
-            Dim catchBlock = New BoundCatchBlock(resourceSyntax, caught, factory.Local(caught, isLValue:=False), Nothing, Nothing, catchBody, isSynthesizedAsyncCatchAll:=False)
+            Dim catchBlock = New BoundCatchBlock(syntax, caught, factory.Local(caught, isLValue:=False), Nothing, Nothing, catchBody, isSynthesizedAsyncCatchAll:=False)
             statements.Add(factory.Try(body, ImmutableArray.Create(catchBlock)))
             statements.Add(factory.Label(afterTry))
-
-            Dim dispose As BoundStatement = factory.ExpressionStatement(VisitExpression(disposeAwait))
-            If disposeCondition IsNot Nothing Then
-                dispose = factory.If(VisitExpression(disposeCondition), dispose)
-            End If
-
             statements.Add(dispose)
             statements.Add(factory.If(factory.ReferenceIsNotNothing(factory.Local(pendingException, isLValue:=False)), RethrowPendingException(factory, pendingException)))
             exits.AddDispatch(statements)
 
-            RemovePlaceholderReplacement(resourcePlaceholder)
-
-            Return New BoundBlock(resourceSyntax, Nothing, locals.ToImmutableAndFree(), statements.ToImmutableAndFree())
+            Return New BoundBlock(syntax, Nothing, locals.ToImmutableAndFree(), statements.ToImmutableAndFree())
         End Function
 
         ''' <summary>

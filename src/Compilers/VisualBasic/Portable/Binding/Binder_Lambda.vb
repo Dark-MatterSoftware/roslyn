@@ -656,6 +656,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return MyBase.VisitUsingStatement(node)
             End Function
 
+            Public Overrides Function VisitForEachStatement(node As BoundForEachStatement) As BoundNode
+                ' Await Each awaits MoveNextAsync for each item and DisposeAsync when the loop ends.
+                If node.EnumeratorInfo.IsAsynchronous Then
+                    _containsAwait = True
+
+                    If _isInCatchFinallyOrSyncLock Then
+                        ReportDiagnostic(_diagnostics, DirectCast(node.Syntax, ForEachBlockSyntax).ForEachStatement.ForKeyword, ERRID.ERR_BadAwaitInTryHandler)
+                    End If
+                End If
+
+                Return MyBase.VisitForEachStatement(node)
+            End Function
+
             Public Overrides Function VisitLambda(node As BoundLambda) As BoundNode
                 ' Do not dive into the lambdas.
                 Return Nothing

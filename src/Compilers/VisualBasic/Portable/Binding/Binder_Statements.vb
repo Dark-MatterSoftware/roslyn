@@ -625,6 +625,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End Function
 
+            Public Overrides Function VisitForEachStatement(node As BoundForEachStatement) As BoundNode
+                ' Await Each awaits MoveNextAsync for each item and DisposeAsync when the loop ends.
+                If node.EnumeratorInfo.IsAsynchronous Then
+                    _containsAwait = True
+
+                    If _isInCatchFinallyOrSyncLock Then
+                        ReportDiagnostic(_diagnostics, DirectCast(node.Syntax, ForEachBlockSyntax).ForEachStatement.ForKeyword, ERRID.ERR_BadAwaitInTryHandler)
+                        _reportedAnError = True
+                    End If
+                End If
+
+                Return MyBase.VisitForEachStatement(node)
+            End Function
+
             Public Overrides Function VisitAwaitOperator(node As BoundAwaitOperator) As BoundNode
                 Debug.Assert(_binder.IsInAsyncContext())
 
@@ -4075,10 +4089,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            Dim isAwaitEach = forEachStatement.ForKeyword.Kind = SyntaxKind.AwaitKeyword
+            Dim disposeAwait As BoundExpression = Nothing
+            If isAwaitEach AndAlso Not IsInAsyncContext() Then
+                ReportDiagnostic(diagnostics, forEachStatement.ForKeyword, ERRID.ERR_AwaitEachNotInAsyncMethod)
+            End If
+
             ' in case the enumerator needs to be possibly disposed, create the bound nodes for the condition that checks
             ' if Dispose() needs to be called. This bound expression will contain a placeholder for the enumerator that gets
             ' replaced in the local rewriting.
-            If needToDispose Then
+            If needToDispose AndAlso isAwaitEach Then
+                ' Await Each releases the enumerator with an awaited DisposeAsync, as Async Using does.
+                Dim asyncDisposable = GetWellKnownType(WellKnownType.System_IAsyncDisposable, collectionSyntax, diagnostics)
+                boundDisposeCondition = BindIsExpression(boundEnumeratorPlaceholder,
+                                                         New BoundLiteral(collectionSyntax, ConstantValue.Nothing, Nothing),
+                                                         collectionSyntax, True, diagnostics)
+                boundDisposeCast = ApplyConversion(collectionSyntax, asyncDisposable, boundEnumeratorPlaceholder, isExplicit:=True, diagnostics:=diagnostics)
+                disposeAwait = BindDisposeAsyncAwait(node, boundDisposeCast, diagnostics)
+
+            ElseIf needToDispose Then
                 ' no need to report use site errors here, this was already done in InterpretForEachStatementCollection
                 Dim idisposableType = Compilation.GetSpecialType(SpecialType.System_IDisposable)
 
@@ -4154,7 +4183,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                            boundCurrentConversion,
                                                            boundEnumeratorPlaceholder,
                                                            boundCurrentPlaceholder,
-                                                           collectionPlaceholder)
+                                                           collectionPlaceholder,
+                                                           isAsynchronous:=isAwaitEach,
+                                                           disposeAwaitOpt:=disposeAwait)
 
             Return New BoundForEachStatement(node,
                                              collection,
@@ -4162,6 +4193,97 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                              declaredOrInferredLocalOpt, controlVariableOpt, loopBody, nextVariables,
                                              continueLabel:=GetContinueLabel(SyntaxKind.ContinueForStatement),
                                              exitLabel:=GetExitLabel(SyntaxKind.ExitForStatement))
+        End Function
+
+        ''' <summary>
+        ''' The Await Each statement whose collection this is, or Nothing for any other expression.
+        ''' </summary>
+        Private Shared Function GetAwaitEachStatement(collectionSyntax As SyntaxNode) As ForEachStatementSyntax
+            Dim statement = TryCast(collectionSyntax?.Parent, ForEachStatementSyntax)
+            If statement Is Nothing OrElse statement.Expression IsNot collectionSyntax OrElse statement.ForKeyword.Kind <> SyntaxKind.AwaitKeyword Then
+                Return Nothing
+            End If
+
+            Return statement
+        End Function
+
+        ''' <summary>
+        ''' Await Each iterates an IAsyncEnumerable(Of T): the enumerator is collection.GetAsyncEnumerator(), each step
+        ''' is Await enumerator.MoveNextAsync(), and each element is enumerator.Current.
+        ''' </summary>
+        Private Function InterpretAwaitEachCollection(
+            statement As ForEachStatementSyntax,
+            collection As BoundExpression,
+            <Out()> ByRef currentType As TypeSymbol,
+            <Out()> ByRef elementType As TypeSymbol,
+            <Out()> ByRef isEnumerable As Boolean,
+            <Out()> ByRef boundGetEnumeratorCall As BoundExpression,
+            <Out()> ByRef boundEnumeratorPlaceholder As BoundLValuePlaceholder,
+            <Out()> ByRef boundMoveNextCall As BoundExpression,
+            <Out()> ByRef boundCurrentAccess As BoundExpression,
+            <Out()> ByRef collectionPlaceholder As BoundRValuePlaceholder,
+            <Out()> ByRef needToDispose As Boolean,
+            <Out()> ByRef isOrInheritsFromOrImplementsIDisposable As Boolean,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim collectionSyntax = collection.Syntax
+            Dim asyncEnumerable = GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T, collectionSyntax, diagnostics)
+            If asyncEnumerable.IsErrorType() Then
+                Return collection
+            End If
+
+            Dim matchingInterfaces As New HashSet(Of NamedTypeSymbol)(EqualsIgnoringComparer.InstanceIgnoringTupleNames)
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            If collection.IsNothingLiteral OrElse
+               Not IsOrInheritsFromOrImplementsInterface(collection.Type, asyncEnumerable, useSiteInfo, matchingInterfaces) OrElse
+               matchingInterfaces.Count <> 1 Then
+                diagnostics.Add(collectionSyntax, useSiteInfo)
+                ReportDiagnostic(diagnostics, collectionSyntax, ERRID.ERR_AwaitEachRequiresAsyncEnumerable, If(collection.Type, DirectCast(asyncEnumerable, Object)))
+                Return New BoundBadExpression(collectionSyntax, LookupResultKind.Empty, ImmutableArray(Of Symbol).Empty, ImmutableArray.Create(collection), collection.Type, hasErrors:=True)
+            End If
+
+            diagnostics.Add(collectionSyntax, useSiteInfo)
+
+            Dim getAsyncEnumerator = TryCast(GetWellKnownTypeMember(WellKnownMember.System_Collections_Generic_IAsyncEnumerable_T__GetAsyncEnumerator, collectionSyntax, diagnostics), MethodSymbol)
+            Dim moveNextAsync = TryCast(GetWellKnownTypeMember(WellKnownMember.System_Collections_Generic_IAsyncEnumerator_T__MoveNextAsync, collectionSyntax, diagnostics), MethodSymbol)
+            Dim getCurrent = TryCast(GetWellKnownTypeMember(WellKnownMember.System_Collections_Generic_IAsyncEnumerator_T__get_Current, collectionSyntax, diagnostics), MethodSymbol)
+            Dim currentProperty = TryCast(getCurrent?.AssociatedSymbol, PropertySymbol)
+            If getAsyncEnumerator Is Nothing OrElse moveNextAsync Is Nothing OrElse currentProperty Is Nothing Then
+                Return New BoundBadExpression(collectionSyntax, LookupResultKind.Empty, ImmutableArray(Of Symbol).Empty, ImmutableArray.Create(collection), collection.Type, hasErrors:=True)
+            End If
+
+            Dim enumerableType = matchingInterfaces.First()
+            collection = ApplyImplicitConversion(collectionSyntax, enumerableType, collection, diagnostics)
+            collectionPlaceholder = New BoundRValuePlaceholder(collectionSyntax, enumerableType)
+
+            Dim getEnumeratorMember = getAsyncEnumerator.AsMember(enumerableType)
+            Dim cancellationToken = ApplyImplicitConversion(collectionSyntax, getEnumeratorMember.Parameters(0).Type,
+                                                            New BoundLiteral(collectionSyntax, ConstantValue.Nothing, Nothing).MakeCompilerGenerated(), diagnostics)
+            boundGetEnumeratorCall = New BoundCall(collectionSyntax, getEnumeratorMember, Nothing, collectionPlaceholder,
+                                                   ImmutableArray.Create(cancellationToken), Nothing, getEnumeratorMember.ReturnType, suppressObjectClone:=True).MakeCompilerGenerated()
+
+            Dim enumeratorType = DirectCast(getEnumeratorMember.ReturnType, NamedTypeSymbol)
+            boundEnumeratorPlaceholder = New BoundLValuePlaceholder(collectionSyntax, enumeratorType)
+
+            Dim moveNextMember = moveNextAsync.AsMember(enumeratorType)
+            Dim moveNextCall = New BoundCall(collectionSyntax, moveNextMember, Nothing, boundEnumeratorPlaceholder, ImmutableArray(Of BoundExpression).Empty, Nothing,
+                                             moveNextMember.ReturnType, suppressObjectClone:=True).MakeCompilerGenerated()
+
+            ' Outside an Async method the error is the one reported on Await Each.
+            Dim awaitDiagnostics = If(IsInAsyncContext(), diagnostics, BindingDiagnosticBag.Discarded)
+            boundMoveNextCall = BindAwait(statement, moveNextCall, awaitDiagnostics, bindAsStatement:=False).MakeCompilerGenerated()
+
+            Dim currentMember = currentProperty.AsMember(enumeratorType)
+            boundCurrentAccess = New BoundPropertyAccess(collectionSyntax, currentMember, Nothing, PropertyAccessKind.Get, isWriteable:=False,
+                                                         boundEnumeratorPlaceholder, ImmutableArray(Of BoundExpression).Empty).MakeCompilerGenerated()
+
+            currentType = currentMember.Type
+            elementType = currentType
+            isEnumerable = True
+            needToDispose = True
+            isOrInheritsFromOrImplementsIDisposable = True
+            Return collection
         End Function
 
         Private Sub ReportDuplicateIterationIndex(statement As ForEachStatementSyntax, diagnostics As BindingDiagnosticBag)
@@ -4415,6 +4537,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If collection.HasErrors Then
                 Return collection
+            End If
+
+            Dim awaitEachStatement = GetAwaitEachStatement(collection.Syntax)
+            If awaitEachStatement IsNot Nothing Then
+                Return InterpretAwaitEachCollection(awaitEachStatement,
+                                                    collection,
+                                                    currentType,
+                                                    elementType,
+                                                    isEnumerable,
+                                                    boundGetEnumeratorCall,
+                                                    boundEnumeratorPlaceholder,
+                                                    boundMoveNextCall,
+                                                    boundCurrentAccess,
+                                                    collectionPlaceholder,
+                                                    needToDispose,
+                                                    isOrInheritsFromOrImplementsIDisposable,
+                                                    diagnostics)
             End If
 
             Dim collectionType As TypeSymbol = collection.Type

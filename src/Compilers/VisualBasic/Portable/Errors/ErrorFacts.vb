@@ -1603,6 +1603,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_DeconstructionRequiresOptionInfer,
                      ERRID.ERR_AsyncUsingNotInAsyncMethod,
                      ERRID.ERR_AsyncUsingRequiresAsyncDisposable,
+                     ERRID.ERR_AwaitEachNotInAsyncMethod,
+                     ERRID.ERR_AwaitEachRequiresAsyncEnumerable,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

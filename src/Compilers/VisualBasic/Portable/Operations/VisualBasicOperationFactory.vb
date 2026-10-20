@@ -1209,7 +1209,7 @@ Namespace Microsoft.CodeAnalysis.Operations
                                                      statementInfo.GetEnumeratorMethod,
                                                      statementInfo.CurrentProperty,
                                                      statementInfo.MoveNextMethod,
-                                                     isAsynchronous:=False,
+                                                     isAsynchronous:=boundForEachStatement.EnumeratorInfo.IsAsynchronous,
                                                      inlineArrayConversion:=Nothing,
                                                      collectionIsInlineArrayValue:=False,
                                                      boundForEachStatement.EnumeratorInfo.NeedToDispose,
@@ -1253,7 +1253,7 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim exitLabel As ILabelSymbol = boundForEachStatement.ExitLabel
             Dim syntax As SyntaxNode = boundForEachStatement.Syntax
             Dim isImplicit As Boolean = boundForEachStatement.WasCompilerGenerated
-            Return New ForEachLoopOperation(controlVariable, collection, nextVariables, info, isAsynchronous:=False, body, locals, continueLabel, exitLabel, _semanticModel, syntax, isImplicit)
+            Return New ForEachLoopOperation(controlVariable, collection, nextVariables, info, isAsynchronous:=boundForEachStatement.EnumeratorInfo.IsAsynchronous, body, locals, continueLabel, exitLabel, _semanticModel, syntax, isImplicit)
         End Function
 
         Friend Function CreateBoundControlVariableOperation(boundForStatement As BoundForStatement) As IOperation
