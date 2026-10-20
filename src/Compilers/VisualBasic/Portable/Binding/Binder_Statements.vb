@@ -349,6 +349,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ReportDiagnostic(diagnostics, DirectCast(methodBlock.BlockStatement, MethodStatementSyntax).Identifier, ERRID.WRN_AsyncLacksAwaits)
                 End If
 
+                If methodSymbol.IsAsync AndAlso methodSymbol.IsIterator AndAlso TypeOf methodBlock.BlockStatement Is MethodStatementSyntax Then
+                    ReportEnumeratorCancellationDiagnostics(methodSymbol, DirectCast(methodBlock.BlockStatement, MethodStatementSyntax).Identifier, diagnostics)
+                End If
+
                 If Not reportedAnError AndAlso
                    (containsOnError OrElse containsResume OrElse (containsCatch AndAlso containsLineNumberLabel)) Then
                     ' This method uses Unstructured Exception-Handling or needs to track line number
@@ -2695,6 +2699,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return New BoundBlock(syntax, stmtList, locals.ToImmutableAndFree, boundStatements.AsImmutableOrNull())
         End Function
+
+        ''' <summary>
+        ''' An Async Iterator Function that returns IAsyncEnumerable(Of T) passes the token from GetAsyncEnumerator to at
+        ''' most one parameter, the one marked EnumeratorCancellation.
+        ''' </summary>
+        Private Sub ReportEnumeratorCancellationDiagnostics(method As MethodSymbol, identifier As SyntaxToken, diagnostics As BindingDiagnosticBag)
+            If Not TypeSymbol.Equals(method.ReturnType.OriginalDefinition, Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T), TypeCompareKind.ConsiderEverything) Then
+                Return
+            End If
+
+            Dim cancellationTokenType = Compilation.GetWellKnownType(WellKnownType.System_Threading_CancellationToken)
+            Dim marked = 0
+            Dim hasToken = False
+            For Each parameter In method.Parameters
+                If parameter.GetAttributes().Any(Function(a) a.IsTargetAttribute(AttributeDescription.EnumeratorCancellationAttribute)) Then
+                    marked += 1
+                End If
+
+                hasToken = hasToken OrElse TypeSymbol.Equals(parameter.Type, cancellationTokenType, TypeCompareKind.ConsiderEverything)
+            Next
+
+            If marked > 1 Then
+                ReportDiagnostic(diagnostics, identifier, ERRID.ERR_MultipleEnumeratorCancellationAttributes)
+            ElseIf marked = 0 AndAlso hasToken Then
+                ReportDiagnostic(diagnostics, identifier, ERRID.WRN_UndecoratedCancellationTokenParameter, method.Name)
+            End If
+        End Sub
 
         Private Shared Sub DeclarePatternVariables(ByRef locals As ArrayBuilder(Of LocalSymbol), ifStatement As BoundIfStatement)
             Dim current = ifStatement

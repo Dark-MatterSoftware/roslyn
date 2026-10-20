@@ -374,10 +374,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 ElseIf index = -1 Then
                     DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.WRN_CallerArgumentExpressionAttributeHasInvalidParameterName, arguments.AttributeSyntaxOpt.Location, Me.Name)
                 End If
+            ElseIf attrData.IsTargetAttribute(AttributeDescription.EnumeratorCancellationAttribute) Then
+                If Not IsConsumedEnumeratorCancellationParameter() Then
+                    DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage, arguments.AttributeSyntaxOpt.Location, Me.Name)
+                End If
             End If
 
             MyBase.DecodeWellKnownAttribute(arguments)
         End Sub
+
+        ''' <summary>
+        ''' EnumeratorCancellation is used on a CancellationToken parameter of an Async Iterator Function
+        ''' that returns IAsyncEnumerable(Of T), where GetAsyncEnumerator passes its token to the parameter.
+        ''' </summary>
+        Private Function IsConsumedEnumeratorCancellationParameter() As Boolean
+            Dim method = TryCast(ContainingSymbol, MethodSymbol)
+            If method Is Nothing OrElse Not method.IsAsync OrElse Not method.IsIterator Then
+                Return False
+            End If
+
+            Dim compilation = DeclaringCompilation
+            Return TypeSymbol.Equals(method.ReturnType.OriginalDefinition, compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T), TypeCompareKind.ConsiderEverything) AndAlso
+                   TypeSymbol.Equals(Type, compilation.GetWellKnownType(WellKnownType.System_Threading_CancellationToken), TypeCompareKind.ConsiderEverything)
+        End Function
 
         Private Sub DecodeDefaultParameterValueAttribute(description As AttributeDescription, ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation))
             Dim attribute = arguments.Attribute

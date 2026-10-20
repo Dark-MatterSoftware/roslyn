@@ -1856,8 +1856,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_PatternVariableNotOnlyClause = 37395
         ERR_PatternVariableNotAllowedHere = 37396
         ERR_FieldInPropertyWithParameters = 37397
+        ERR_MultipleEnumeratorCancellationAttributes = 37398
 
-        ERR_NextAvailable = 37398
+        ERR_NextAvailable = 37399
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2098,6 +2099,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_PossibleNullReturn = 42511
         WRN_PossibleNullReference = 42512
         WRN_PossibleNullArgument = 42513
+        WRN_UndecoratedCancellationTokenParameter = 42514
+        WRN_UnconsumedEnumeratorCancellationAttributeUsage = 42515
 
         ' // AVAILABLE                             42600 - 49998
         WRN_NextAvailable = 42600

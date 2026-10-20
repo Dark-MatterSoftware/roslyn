@@ -262,6 +262,11 @@
         <target state="new">Module initializer '{0}' must not be generic and must not be contained in a generic type.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_MultipleEnumeratorCancellationAttributes">
+        <source>'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.</source>
+        <target state="new">'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_PartialConstructorDeclarationMismatch">
         <source>Partial constructor must have one defining declaration and one implementing declaration.</source>
         <target state="new">Partial constructor must have one defining declaration and one implementing declaration.</target>
@@ -1229,6 +1234,26 @@
       <trans-unit id="WRN_PossibleNullReturn_Title">
         <source>This function may return Nothing.</source>
         <target state="new">This function may return Nothing.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UnconsumedEnumeratorCancellationAttributeUsage">
+        <source>'EnumeratorCancellation' on parameter '{0}' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.</source>
+        <target state="new">'EnumeratorCancellation' on parameter '{0}' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UnconsumedEnumeratorCancellationAttributeUsage_Title">
+        <source>'EnumeratorCancellation' has no effect on this parameter.</source>
+        <target state="new">'EnumeratorCancellation' has no effect on this parameter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UndecoratedCancellationTokenParameter">
+        <source>'Async Iterator' function '{0}' has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation', so the token passed to 'GetAsyncEnumerator' is not used.</source>
+        <target state="new">'Async Iterator' function '{0}' has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation', so the token passed to 'GetAsyncEnumerator' is not used.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UndecoratedCancellationTokenParameter_Title">
+        <source>'Async Iterator' function has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation'.</source>
+        <target state="new">'Async Iterator' function has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation'.</target>
         <note />
       </trans-unit>
       <trans-unit id="WrongNumberOfTypeArguments">

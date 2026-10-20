@@ -122,6 +122,51 @@ End Class
             CompileAndVerify(compilation, verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
 
+        <Fact>
+        Public Sub AsyncIterator_EnumeratorCancellationDiagnostics()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Imports System.Runtime.CompilerServices
+Imports System.Threading
+
+Module Program
+    Async Iterator Function Two(<EnumeratorCancellation> a As CancellationToken, <EnumeratorCancellation> b As CancellationToken) As IAsyncEnumerable(Of Integer)
+        Yield 1
+    End Function
+
+    Async Iterator Function Undecorated(token As CancellationToken) As IAsyncEnumerable(Of Integer)
+        Yield 1
+    End Function
+
+    Async Iterator Function Enumerator(<EnumeratorCancellation> token As CancellationToken) As IAsyncEnumerator(Of Integer)
+        Yield 1
+    End Function
+
+    Sub NotAnIterator(<EnumeratorCancellation> token As CancellationToken)
+    End Sub
+
+    Async Iterator Function Fine(<EnumeratorCancellation> token As CancellationToken, other As Integer) As IAsyncEnumerable(Of Integer)
+        Yield other
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37398: 'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.
+    Async Iterator Function Two(<EnumeratorCancellation> a As CancellationToken, <EnumeratorCancellation> b As CancellationToken) As IAsyncEnumerable(Of Integer)
+                            ~~~
+BC42514: 'Async Iterator' function 'Undecorated' has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation', so the token passed to 'GetAsyncEnumerator' is not used.
+    Async Iterator Function Undecorated(token As CancellationToken) As IAsyncEnumerable(Of Integer)
+                            ~~~~~~~~~~~
+BC42515: 'EnumeratorCancellation' on parameter 'token' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.
+    Async Iterator Function Enumerator(<EnumeratorCancellation> token As CancellationToken) As IAsyncEnumerator(Of Integer)
+                                        ~~~~~~~~~~~~~~~~~~~~~~
+BC42515: 'EnumeratorCancellation' on parameter 'token' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.
+    Sub NotAnIterator(<EnumeratorCancellation> token As CancellationToken)
+                       ~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
         Private Function RunAsyncIterator(body As String, expectedOutput As String) As CompilationVerifier
             Dim compilation = CreateCompilation("
 Imports System

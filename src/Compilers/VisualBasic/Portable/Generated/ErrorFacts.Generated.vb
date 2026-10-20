@@ -182,7 +182,9 @@
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,
-                     ERRID.WRN_PossibleNullArgument
+                     ERRID.WRN_PossibleNullArgument,
+                     ERRID.WRN_UndecoratedCancellationTokenParameter,
+                     ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage
                     Return True
                 Case Else
                     Return False

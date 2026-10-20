@@ -6007,6 +6007,21 @@
   <data name="ERR_PatternVariableNotOnlyClause" xml:space="preserve">
     <value>A 'Case' whose type test names its result with 'Into' cannot have other clauses.</value>
   </data>
+  <data name="ERR_MultipleEnumeratorCancellationAttributes" xml:space="preserve">
+    <value>'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.</value>
+  </data>
+  <data name="WRN_UndecoratedCancellationTokenParameter" xml:space="preserve">
+    <value>'Async Iterator' function '{0}' has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation', so the token passed to 'GetAsyncEnumerator' is not used.</value>
+  </data>
+  <data name="WRN_UndecoratedCancellationTokenParameter_Title" xml:space="preserve">
+    <value>'Async Iterator' function has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation'.</value>
+  </data>
+  <data name="WRN_UnconsumedEnumeratorCancellationAttributeUsage" xml:space="preserve">
+    <value>'EnumeratorCancellation' on parameter '{0}' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.</value>
+  </data>
+  <data name="WRN_UnconsumedEnumeratorCancellationAttributeUsage_Title" xml:space="preserve">
+    <value>'EnumeratorCancellation' has no effect on this parameter.</value>
+  </data>
   <data name="ERR_FieldInPropertyWithParameters" xml:space="preserve">
     <value>'Field' cannot be used in a property with parameters, because the property would need storage for each argument.</value>
   </data>
