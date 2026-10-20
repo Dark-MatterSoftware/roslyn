@@ -573,6 +573,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                          LocalDeclarationKind.Using,
                          LocalDeclarationKind.Static
                         node = _identifierToken.Parent
+                        If node.IsKind(SyntaxKind.ForEachStatement) Then
+                            ' The index of For Each ... With index is a token of the statement, and the control variable
+                            ' may already use the statement, so the index uses the collection expression.
+                            Return DirectCast(node, ForEachStatementSyntax).Expression
+                        End If
+
                         Debug.Assert(TypeOf node Is ModifiedIdentifierSyntax)
 
                     Case LocalDeclarationKind.ImplicitVariable

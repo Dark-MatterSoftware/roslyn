@@ -35,6 +35,27 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub ForEach_IndexLivesAcrossAnAwait()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Async Function Run() As System.Threading.Tasks.Task
+        For Each item With index In {""a"", ""b""}
+            Await System.Threading.Tasks.Task.Yield()
+            System.Console.Write(index)
+            System.Console.Write(item)
+        Next
+    End Function
+
+    Shared Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Class
+", options:=TestOptions.DebugExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="0a1b").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub ForEach_ContinueForStillAdvancesTheIndex()
             Dim compilation = CreateCompilation("
 Class Program
