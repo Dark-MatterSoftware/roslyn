@@ -148,7 +148,7 @@ Checked against this tree after every wave 0 to 4 item had a slice. Each gap bel
 | VB-064 | `SyncLock` on `System.Threading.Lock` | No new syntax. `SyncLock` on a .NET 9 `Lock` object reports BC37329, so VB can lock one only by converting it, which warns with BC42508 and goes through `Monitor`. C# calls `Lock.EnterScope` for the same code. |
 | VB-065 | Interpolated string handlers | No new syntax. Before slice 25b, an interpolated string converted to `String`, `FormattableString`, or `IFormattable` only, so a parameter of a handler type, used by .NET logging, `Debug.Assert`, and `StringBuilder.Append` overloads, could not take `$"..."`. On `vbnext` it can. |
 | VB-066 | Pattern variables | `docs/vbnext-vb004-syntax.md` left this open: after `Case Is TypeOf Customer`, the case body still sees the original type. Before slice 27b, a test that named its result, in `Select Case` and in `TypeOf ... Is`, was not in this tree. On `vbnext`, `Case Is TypeOf Customer Into c` and `If TypeOf value Is Customer Into c Then` declare it, with the spelling from `docs/vbnext-vb066-syntax.md`. |
-| VB-067 | Property bodies that use the automatic backing field | An auto-implemented property already has a `_Name` field that code can name, but a property with a `Get` or `Set` body has no automatic storage. Validation in `Set` needs a declared field. C# 14 added `field` for this. |
+| VB-067 | Property bodies that use the automatic backing field | An auto-implemented property already has a `_Name` field that code can name, but a property with a `Get` or `Set` body has no automatic storage. Validation in `Set` needs a declared field. C# 14 added `field` for this. `docs/vbnext-vb067-syntax.md` locks `Field` for it. |
 
 ## Parked
 

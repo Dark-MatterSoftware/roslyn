@@ -349,7 +349,7 @@ Wave 5 row 7.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 28a | VB-067 | `docs/vbnext-vb067-syntax.md` records the proposed ways for a property body to reach automatic storage, how each relates to the existing `_Name` field of an auto-implemented property, and what happens to a member already named the same. Locks or defers. No code change. |
+| 28a | VB-067 | Done. [vbnext-vb067-syntax.md](vbnext-vb067-syntax.md) locks `Field` for storage that the compiler declares for a property with a `Get` or `Set` body, as in `Set : Field = Value : End Set`. An existing local, parameter, member, or type named `Field` keeps its meaning, so code that compiles today does not change. The storage has a name that code cannot write, so it is not the `_Name` field of an auto-implemented property and never conflicts with a member. The implicit `_Name` of vblang #196, `WithBacking _name`, and the property's own name are not adopted. No code change. |
 | 28b | VB-067 | On `vbnext`, a property with a `Get` or `Set` body uses the locked form to read and write storage that the compiler declares. |
 
 ## Phase 29 — IDE for wave 5
@@ -360,4 +360,4 @@ Wave 5 row 7.
 
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Slice 28a, the property backing field design note, starts now.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Slice 28a locks `Field` for property backing storage, and slice 28b starts now.
