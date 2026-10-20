@@ -43,7 +43,7 @@ The test cannot appear under `Not`, under `OrElse`, or inside another expression
 
 `Into` is a contextual keyword. After a complete type in `TypeOf ... Is`, an identifier is a syntax error today, so the form does not change existing code. Inside a query expression, `Into` keeps its query meaning: in `Aggregate o In list Where TypeOf o Is Customer Into Count()`, `Into` still ends the `Aggregate` clause.
 
-Visual Basic 17.13 reports that the form is not available.
+Visual Basic 17.13 reports that the form is not available. Slice 27b implements both forms on `vbnext`.
 
 ### Sources
 
