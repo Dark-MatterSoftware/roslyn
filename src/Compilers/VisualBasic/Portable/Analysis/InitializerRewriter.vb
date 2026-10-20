@@ -41,6 +41,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return block
             End If
 
+            ' A record copy constructor copies every field from the original, so field initializers do not run.
+            If TypeOf constructorMethod Is SynthesizedRecordCopyConstructorSymbol Then
+                Return block
+            End If
+
             ' rewrite initializers just once, statements will be reused when emitting all constructors with field initializers:
             If processedInitializers.InitializerStatements.IsDefault Then
                 processedInitializers.InitializerStatements = processedInitializers.BoundInitializers.SelectAsArray(AddressOf RewriteInitializerAsStatement)

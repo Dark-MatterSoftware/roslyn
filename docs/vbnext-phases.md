@@ -155,7 +155,7 @@ Depends on phase 3 (init-only, required) and slice 5d (deconstruction). Position
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 8a | VB-031 | Done. On `vbnext`, `Record Class Point` with public properties emits value equality, `GetHashCode`, and `ToString` of the form `Point { X = 1, Y = 2 }`. Visual Basic 17.13 still rejects `Record` before `Class`. |
-| 8b | VB-031 | Done. On `vbnext`, `a With { .Y = 3 }` copies record `a` and assigns the listed members. An init-only property can be set on the copy, and the original record is unchanged. Visual Basic 17.13 still rejects `With` after an expression. |
+| 8b | VB-031 | Done. On `vbnext`, `a With { .Y = 3 }` copies record `a` and assigns the listed members. An init-only property can be set on the copy, and the original record is unchanged. A record class has a `Protected` copy constructor that copies every field without running field initializers, and a public `<Clone>$` method that calls it, the names C# uses. `With` calls `<Clone>$`, so it works on a positional record, copies private state from outside the class, and keeps the runtime type of a derived record. Visual Basic 17.13 still rejects `With` after an expression. |
 | 8c | VB-031 | Done. On `vbnext`, `Record Class Point(X As Integer, Y As Integer)` stores each parameter in an init-only property. `New Point(1, 2)` constructs it, and `Dim (x, y) = point` deconstructs it. |
 | 8d | VB-031 | Done. On `vbnext`, `Record Structure Point` emits value equality, `GetHashCode`, and `ToString` of the form `Point { X = 1, Y = 2 }`. `a With { .Y = 3 }` copies it and can assign an init-only property. Visual Basic 17.13 still rejects `Record` before `Structure`. |
 

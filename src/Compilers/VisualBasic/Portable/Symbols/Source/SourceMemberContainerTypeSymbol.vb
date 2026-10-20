@@ -3108,6 +3108,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
         End Sub
 
+        ''' <summary>
+        ''' A record class gets a copy constructor and a public clone method that calls it, so a With copy
+        ''' made outside the class copies private state too. Skipped when the record declares its own
+        ''' copy constructor, or when the base class has neither a copy constructor nor one without parameters.
+        ''' Runs after the default and primary constructors are added, which only happens while a class has no constructor.
+        ''' </summary>
+        Private Sub AddRecordCopyMembersIfNeeded(members As MembersAndInitializersBuilder, diagnostics As BindingDiagnosticBag)
+            If Not IsRecord OrElse SyntaxReferences.IsEmpty OrElse TypeKind <> TypeKind.Class OrElse
+               HasRecordMethod(members, WellKnownMemberNames.InstanceConstructorName, 1, Me) OrElse
+               HasRecordMethod(members, SynthesizedRecordMethodSymbol.CloneMethodName, 0, Nothing) Then
+                Return
+            End If
+
+            Dim baseType = BaseTypeNoUseSiteDiagnostics
+            If baseType Is Nothing OrElse baseType.IsErrorType() Then
+                Return
+            End If
+
+            Dim baseCopyConstructor As MethodSymbol = Nothing
+            Dim baseParameterlessConstructor As MethodSymbol = Nothing
+            For Each candidate In baseType.InstanceConstructors
+                If candidate.DeclaredAccessibility = Accessibility.Private Then
+                    Continue For
+                End If
+
+                If candidate.ParameterCount = 0 Then
+                    baseParameterlessConstructor = If(baseParameterlessConstructor, candidate)
+                ElseIf baseType.IsRecord AndAlso candidate.ParameterCount = 1 AndAlso Not candidate.Parameters(0).IsByRef AndAlso
+                       TypeSymbol.Equals(candidate.Parameters(0).Type, baseType, TypeCompareKind.ConsiderEverything) Then
+                    baseCopyConstructor = If(baseCopyConstructor, candidate)
+                End If
+            Next
+
+            Dim baseConstructor = If(baseCopyConstructor, baseParameterlessConstructor)
+            If baseConstructor Is Nothing Then
+                Return
+            End If
+
+            Dim syntaxRef = SyntaxReferences.First()
+            Dim syntax = DirectCast(syntaxRef.GetSyntax(), VisualBasicSyntaxNode)
+            Dim binder = BinderBuilder.CreateBinderForType(m_containingModule, syntaxRef.SyntaxTree, Me)
+            AddMember(New SynthesizedRecordCopyConstructorSymbol(syntaxRef, Me, baseConstructor, binder, diagnostics), binder, members, omitDiagnostics:=False)
+
+            Dim baseClone As MethodSymbol = Nothing
+            For Each candidate In baseType.GetMembers(SynthesizedRecordMethodSymbol.CloneMethodName)
+                Dim method = TryCast(candidate, MethodSymbol)
+                If method IsNot Nothing AndAlso method.ParameterCount = 0 AndAlso Not method.IsShared AndAlso Not method.IsNotOverridable AndAlso
+                   (method.IsOverridable OrElse method.IsOverrides OrElse method.IsMustOverride) Then
+                    baseClone = method
+                    Exit For
+                End If
+            Next
+
+            Dim cloneReturnType As TypeSymbol = If(baseClone IsNot Nothing, baseClone.ReturnType, DirectCast(Me, TypeSymbol))
+            AddRecordMethod(members, binder, syntax, SynthesizedRecordMethodSymbol.CloneMethodName, cloneReturnType, SynthesizedRecordMethodSymbol.RecordMethodKind.Clone, baseClone,
+                            Function(method) ImmutableArray(Of ParameterSymbol).Empty)
+        End Sub
+
         Private Sub AddPositionalRecordMembersIfNeeded(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode, diagnostics As BindingDiagnosticBag)
             Dim typeBlock = TryCast(syntax, TypeBlockSyntax)
             Dim parameterList = TryCast(typeBlock?.BlockStatement, TypeStatementSyntax)?.ParameterList
@@ -3226,6 +3284,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             ' Add the default constructor, if needed.
             AddDefaultConstructorIfNeeded(membersBuilder, False, membersBuilder.InstanceInitializers, diagnostics)
+            AddRecordCopyMembersIfNeeded(membersBuilder, diagnostics)
 
             ' If there is a shared field, a shared constructor must be synthesized and added to the member list.
             ' Const fields of type Date or Decimal also require a synthesized shared constructor, but there was a decision

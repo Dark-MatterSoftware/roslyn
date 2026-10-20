@@ -20,7 +20,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             GetHashCode
             Print
             Deconstruct
+            Clone
         End Enum
+
+        ''' <summary>
+        ''' The name C# also gives the method that a With copy calls, so each language can copy the other's records.
+        ''' </summary>
+        Friend Const CloneMethodName As String = "<Clone>$"
 
         Private ReadOnly _kind As RecordMethodKind
         Private ReadOnly _returnType As TypeSymbol
@@ -57,6 +63,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsOverridable As Boolean
             Get
+                If _kind = RecordMethodKind.Clone Then
+                    Return _overriddenMethod Is Nothing AndAlso Not ContainingType.IsNotInheritable
+                End If
+
                 Return _overriddenMethod IsNot Nothing
             End Get
         End Property
@@ -127,9 +137,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return HashCodeBody(factory)
                 Case RecordMethodKind.Deconstruct
                     Return DeconstructBody(factory)
+                Case RecordMethodKind.Clone
+                    Return CloneBody(factory)
                 Case Else
                     Return PrintBody(factory)
             End Select
+        End Function
+
+        Private Function CloneBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim copyConstructor = ContainingType.InstanceConstructors.OfType(Of SynthesizedRecordCopyConstructorSymbol)().Single()
+            Dim copy As BoundExpression = New BoundObjectCreationExpression(m_SyntaxNode, copyConstructor, Nothing,
+                                                                           ImmutableArray.Create(Of BoundExpression)(factory.Me()),
+                                                                           BitVector.Null, Nothing, ContainingType).MakeCompilerGenerated()
+            If Not TypeSymbol.Equals(_returnType, ContainingType, TypeCompareKind.ConsiderEverything) Then
+                copy = New BoundConversion(m_SyntaxNode, copy, ConversionKind.WideningReference, False, False, Nothing, _returnType, Nothing).MakeCompilerGenerated()
+            End If
+
+            Return factory.Block(factory.Return(copy))
         End Function
 
         Private Function DeconstructBody(factory As SyntheticBoundNodeFactory) As BoundBlock

@@ -35,6 +35,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     result = GenerateSequenceValueSideEffects(_currentMethodOrLambda, result, StaticCast(Of LocalSymbol).From(temporaries), copyBack)
                 End If
 
+                ' A With copy of a record class calls the public clone method, because the copy constructor is
+                ' Protected, and so that a derived record is copied as itself. The clone method's own body
+                ' creates the copy with the constructor, and it has the syntax of the record, not of a With.
+                If TypeOf ctor Is SynthesizedRecordCopyConstructorSymbol AndAlso node.Syntax.Kind = SyntaxKind.WithExpression AndAlso
+                   result.Kind = BoundKind.ObjectCreationExpression Then
+                    Dim clone = FindRecordCloneMethod(ctor.ContainingType)
+                    If clone IsNot Nothing Then
+                        Dim original = DirectCast(result, BoundObjectCreationExpression).Arguments(0)
+                        result = New BoundCall(node.Syntax, clone, Nothing, original, ImmutableArray(Of BoundExpression).Empty, Nothing,
+                                               isLValue:=False, suppressObjectClone:=True, type:=clone.ReturnType)
+                        If Not TypeSymbol.Equals(clone.ReturnType, ctor.ContainingType, TypeCompareKind.ConsiderEverything) Then
+                            result = New BoundDirectCast(node.Syntax, result, ConversionKind.NarrowingReference, ctor.ContainingType, Nothing)
+                        End If
+                    End If
+                End If
+
                 ' If a coclass was instantiated, convert the class to the interface type.
                 If node.Type.IsInterfaceType() Then
                     Debug.Assert(result.Type.Equals(DirectCast(node.Type, NamedTypeSymbol).CoClassType))
@@ -54,6 +70,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return result
+        End Function
+
+        Private Shared Function FindRecordCloneMethod(recordType As NamedTypeSymbol) As MethodSymbol
+            For Each member In recordType.GetMembers(SynthesizedRecordMethodSymbol.CloneMethodName)
+                Dim method = TryCast(member, MethodSymbol)
+                If method IsNot Nothing AndAlso method.ParameterCount = 0 AndAlso Not method.IsShared Then
+                    Return method
+                End If
+            Next
+
+            Return Nothing
         End Function
 
         Public Overrides Function VisitNoPiaObjectCreationExpression(node As BoundNoPiaObjectCreationExpression) As BoundNode

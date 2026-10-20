@@ -1058,6 +1058,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BadExpression(node, receiver, If(recordType, ErrorTypeSymbol.UnknownResultType))
             End If
 
+            For Each candidate In recordType.InstanceConstructors
+                Dim copyConstructor = TryCast(candidate, SynthesizedRecordCopyConstructorSymbol)
+                If copyConstructor IsNot Nothing Then
+                    Return BindRecordWithCopyConstructor(node, receiver, recordType, copyConstructor, diagnostics)
+                End If
+            Next
+
             Dim constructor As MethodSymbol = Nothing
             For Each candidate In recordType.InstanceConstructors
                 If candidate.ParameterCount <> 0 Then
@@ -1154,6 +1161,59 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ImmutableArray.Create(Of BoundExpression)(store),
                 creation,
                 recordType).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' A With copy of a record class: the copy constructor copies every field of the original, then the
+        ''' listed members are assigned on the copy. Lowering calls the record's clone method for the copy.
+        ''' </summary>
+        Private Function BindRecordWithCopyConstructor(
+            node As WithExpressionSyntax,
+            receiver As BoundExpression,
+            recordType As NamedTypeSymbol,
+            copyConstructor As MethodSymbol,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim placeholder = New BoundWithLValueExpressionPlaceholder(node, recordType)
+            placeholder.SetWasCompilerGenerated()
+            Dim initializerBinder = New ObjectInitializerBinder(Me, placeholder)
+            Dim mentioned = New HashSet(Of String)(CaseInsensitiveComparison.Comparer)
+            Dim assignments = ArrayBuilder(Of BoundExpression).GetInstance()
+
+            For Each initializer In node.Initializer.Initializers
+                Dim named = TryCast(initializer, NamedFieldInitializerSyntax)
+                If named Is Nothing Then
+                    Continue For
+                End If
+
+                Dim target = BindRecordInitializerTarget(named.Name, placeholder, diagnostics)
+                If target.Kind = BoundKind.FieldAccess OrElse target.Kind = BoundKind.PropertyAccess Then
+                    Dim identifierName = named.Name.Identifier.ValueText
+                    If Not mentioned.Add(identifierName) Then
+                        ReportDiagnostic(diagnostics, named.Name, ErrorFactory.ErrorInfo(ERRID.ERR_DuplicateAggrMemberInit1, identifierName))
+                    End If
+                End If
+
+                Dim value = initializerBinder.BindValue(named.Expression, diagnostics)
+                assignments.Add(BindAssignment(named, target, value, diagnostics))
+            Next
+
+            Dim initializerExpression = New BoundObjectInitializerExpression(
+                node.Initializer,
+                createTemporaryLocalForInitialization:=True,
+                placeholder,
+                assignments.ToImmutableAndFree(),
+                recordType)
+
+            Return New BoundObjectCreationExpression(
+                node,
+                copyConstructor,
+                Nothing,
+                ImmutableArray.Create(receiver),
+                BitVector.Null,
+                initializerExpression,
+                recordType)
         End Function
 
         Private Function BindRecordInitializerTarget(name As SimpleNameSyntax, placeholder As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
