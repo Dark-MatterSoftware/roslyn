@@ -1600,6 +1600,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_CannotLiftByRefLocalQuery1,
                      ERRID.ERR_CompactMemberKeyword,
                      ERRID.ERR_InterpolatedStringHandlerArgument,
+                     ERRID.ERR_DeconstructionRequiresOptionInfer,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

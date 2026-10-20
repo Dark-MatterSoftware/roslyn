@@ -118,6 +118,49 @@ End Class
                 Diagnostic(ERRID.ERR_DeconstructionRequiresTuple, "= 1").WithArguments("2").WithLocation(4, 20))
         End Sub
 
+        <Theory>
+        <InlineData(OptionStrict.Off)>
+        <InlineData(OptionStrict.On)>
+        Public Sub TupleDeconstruction_RequiresOptionInfer(strict As OptionStrict)
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim point As (Integer, Integer) = (10, 20)
+        Dim (x, y) = point
+    End Sub
+End Class
+", options:=TestOptions.ReleaseDll.WithOptionInfer(False).WithOptionStrict(strict), parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DeconstructionRequiresOptionInfer, "(x, y)").WithLocation(5, 13))
+        End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_WorksUnderOptionInferOff()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Point(X As Integer, Y As Integer)
+End Class
+
+Class Program
+    Shared Sub Main()
+        Dim pair As (Integer, String) = (1, ""one"")
+        Dim number As Integer, name As String
+        (number, name) = pair
+        Dim x As Integer, y As Integer
+        (x, y) = New Point(2, 3)
+        System.Console.Write(number & name & x & y)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe.WithOptionInfer(False).WithOptionStrict(OptionStrict.On).WithOptionExplicit(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1one23").VerifyDiagnostics()
+        End Sub
+
         <Fact>
         Public Sub TupleDeconstruction_RejectedOn17_13()
             Dim compilation = CreateCompilation("

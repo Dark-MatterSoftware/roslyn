@@ -5,6 +5,7 @@
 Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.PooledObjects
+Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -1025,6 +1026,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Private Function BindTupleDeconstruction(node As TupleDeconstructionStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
+            If Not OptionInfer Then
+                ReportDiagnostic(diagnostics,
+                                 node.SyntaxTree.GetLocation(TextSpan.FromBounds(node.OpenParenToken.SpanStart, node.CloseParenToken.Span.End)),
+                                 ERRID.ERR_DeconstructionRequiresOptionInfer)
+            End If
+
             Dim value = BindValue(node.Initializer.Value, diagnostics).MakeRValue()
             Dim names = node.Names
             Dim elements = GetDeconstructionElements(value, names.Count)

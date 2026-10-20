@@ -107,6 +107,11 @@
         <target state="new">A compact property body starts with '= Get', a compact Function body with '= Return', and a compact Sub body with '= Call'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_DeconstructionRequiresOptionInfer">
+        <source>'Dim (...)' infers the type of each variable, which requires 'Option Infer On'. Declare the variables with 'As' clauses, then assign them with '(...) = value'.</source>
+        <target state="new">'Dim (...)' infers the type of each variable, which requires 'Option Infer On'. Declare the variables with 'As' clauses, then assign them with '(...) = value'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_DeconstructionRequiresTuple">
         <source>Deconstruction requires a tuple with {0} elements.</source>
         <target state="new">Deconstruction requires a tuple with {0} elements.</target>

@@ -5980,4 +5980,7 @@
   <data name="ERR_InterpolatedStringHandlerArgument" xml:space="preserve">
     <value>The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</value>
   </data>
+  <data name="ERR_DeconstructionRequiresOptionInfer" xml:space="preserve">
+    <value>'Dim (...)' infers the type of each variable, which requires 'Option Infer On'. Declare the variables with 'As' clauses, then assign them with '(...) = value'.</value>
+  </data>
 </root>
