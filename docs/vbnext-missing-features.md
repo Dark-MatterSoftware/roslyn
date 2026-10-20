@@ -150,6 +150,18 @@ Checked against this tree after every wave 0 to 4 item had a slice. Each gap bel
 | VB-066 | Pattern variables | `docs/vbnext-vb004-syntax.md` left this open: after `Case Is TypeOf Customer`, the case body still sees the original type. Before slice 27b, a test that named its result, in `Select Case` and in `TypeOf ... Is`, was not in this tree. On `vbnext`, `Case Is TypeOf Customer Into c` and `If TypeOf value Is Customer Into c Then` declare it, with the spelling from `docs/vbnext-vb066-syntax.md`. |
 | VB-067 | Property bodies that use the automatic backing field | An auto-implemented property already has a `_Name` field that code can name, but before slice 28b a property with a `Get` or `Set` body had no automatic storage, so validation in `Set` needed a declared field. C# 14 added `field` for this. On `vbnext`, `Field` in the property body is that storage, with the spelling from `docs/vbnext-vb067-syntax.md`. |
 
+## Wave 6
+
+Checked against this tree after wave 5, by compiling the library shapes that wave 5 code meets next. Each gap below reports an error on `vbnext` today.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-068 | Configured asynchronous streams | No new syntax. `Await Each` requires `IAsyncEnumerable(Of T)`, so `Await Each n In source.WithCancellation(token)` and `source.ConfigureAwait(False)` report BC37392: `ConfiguredCancelableAsyncEnumerable(Of T)` is a structure with the same members but not the interface. `Async Using` has the same limit for `ConfigureAwait` on `IAsyncDisposable`. C# binds both by pattern. |
+| VB-069 | `Await` in `Catch` and `Finally` | No new syntax. `Await` there reports BC36943, so cleanup that is itself asynchronous, such as logging, rolling back, or `DisposeAsync`, cannot be awaited where it belongs. [vblang #37](https://github.com/dotnet/vblang/issues/37) was approved in principle by the VB language design meeting on 2017-08-09, which decided that `GoTo` from a `Catch` back into its `Try` keeps working. C# has allowed it since C# 6. |
+| VB-070 | Task-like `Async` return types | No new syntax. `Async Function F() As ValueTask(Of Integer)` reports BC36945, so an `IAsyncDisposable.DisposeAsync` or `IAsyncEnumerator(Of T).MoveNextAsync` implementation cannot be `Async`. [dotnet/roslyn #72241](https://github.com/dotnet/roslyn/issues/72241) was closed as by design in 2024. C# 7 added `ValueTask` and `AsyncMethodBuilder` types, and C# 10 the method-level builder attribute. |
+| VB-071 | Async iterator lambdas | `docs/vbnext-vb061-syntax.md` left this open. A lambda cannot be both `Async` and `Iterator`, so an `IAsyncEnumerable(Of T)` argument needs a separate function. |
+| VB-072 | A type test that guards the rest of a block | `docs/vbnext-vb066-syntax.md` left `If TypeOf value IsNot T Into name Then Return` open: `IsNot` with `Into` reports BC37396, and a name declared in an `If` condition is out of scope after `End If`. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -242,3 +254,15 @@ Interop with no new syntax comes first, then the asynchronous forms in dependenc
 | 5 | VB-063 | Async iterators | XL | A state machine that both awaits and yields. Needs VB-062 to be testable from VB. |
 | 6 | VB-066 | Pattern variables | L | Extends the `Select Case` patterns from VB-004. Needs a design note first, because the name it declares is visible in the case body. |
 | 7 | VB-067 | Property bodies with the automatic backing field | M | Needs a design note first. A contextual keyword can collide with a member already named the same. |
+
+### Wave 6 order
+
+The three gaps with no new syntax come first, smallest first, then the two designs that wave 5 left open.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-068 | Configured asynchronous streams | M | Binds the members that VB-061 and VB-062 already call by pattern instead of by interface. Fixes the most common wave 5 failure. |
+| 2 | VB-069 | `Await` in `Catch` and `Finally` | L | A lowering change in the async rewriter, like the one slice 26b uses for `Async Using`, plus `GoTo` from `Catch` into `Try`. |
+| 3 | VB-070 | Task-like `Async` return types | L | A builder chosen from the return type instead of the three fixed builders. Follows VB-069 so both state machine changes are tested together. |
+| 4 | VB-071 | Async iterator lambdas | M | Needs a design note first. Reuses the slice 26d lowering. |
+| 5 | VB-072 | A type test that guards the rest of a block | M | Needs a design note first, because it changes where a name from an `If` condition is in scope. |

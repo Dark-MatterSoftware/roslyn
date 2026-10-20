@@ -42,6 +42,11 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 27. Pattern variables | VB-066, wave 5 | A type pattern names its result for the code it guards. |
 | 28. Property backing fields | VB-067, wave 5 | A property with a body stores its value without a declared field. |
 | 29. IDE for wave 5 | Phases 25 to 28 | The editor understands the forms above, as phase 23 did for earlier syntax. |
+| 30. Configured asynchronous streams | VB-068, wave 6 | `Await Each` and `Async Using` take `WithCancellation` and `ConfigureAwait`. |
+| 31. Await in Catch and Finally | VB-069, wave 6 | An `Async` method awaits in `Catch` and `Finally`. |
+| 32. Task-like returns | VB-070, wave 6 | An `Async Function` returns `ValueTask`, `ValueTask(Of T)`, or a type with a method builder. |
+| 33. Async lambdas and guards | VB-071, VB-072, wave 6 | Design notes for async iterator lambdas and for a type test that guards the rest of a block, then the locked forms. |
+| 34. IDE for wave 6 | Phases 30 to 33 | The editor understands any syntax that phase 33 locks. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -358,6 +363,50 @@ Wave 5 row 7.
 | --- | --- | --- |
 | 29a | Editor | Done. On `vbnext`, Enter after `Await Each item In source` inserts `Next`, and after `Async Iterator Function` inserts `End Function`. Enter after `Async Using` inserts no `End Using`, because the statement is a declaration, as `Using` is from slice 23a. `Async`, `Await`, `Each`, and `Into` classify as keywords, and `Field` in a property body classifies as a keyword. Completion offers `Each` after an `Await` that starts a statement, `Using` after an `Async` that starts a statement, `Iterator` after `Async` and `Async` after `Iterator`, `Into` after the type of `Case Is TypeOf` and of a `TypeOf ... Is` that names its result in an `If` or `ElseIf` condition, and `Field` in the `Get` and `Set` bodies of a property without parameters. Visual Basic 17.13 does not offer them. Formatting and smart indentation indent the bodies of `Async Using` and `Await Each` and the `Case` and `Then` blocks that use `Into`. |
 
+## Phase 30 — Configured asynchronous streams
+
+Wave 6 row 1. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 30a | VB-068 | On `vbnext`, `Await Each` iterates a collection by pattern: a `GetAsyncEnumerator` method whose result has an awaitable `MoveNextAsync` returning `Boolean` and a `Current` property, as `ConfiguredCancelableAsyncEnumerable(Of T)` does. `Await Each n In source.WithCancellation(token)` passes the token to `GetAsyncEnumerator`, and `source.ConfigureAwait(False)` resumes without the captured context. A type that implements `IAsyncEnumerable(Of T)` is unchanged. |
+| 30b | VB-068 | On `vbnext`, `Async Using` releases a resource by pattern: an awaitable `DisposeAsync` method, as `ConfiguredAsyncDisposable` from `ConfigureAwait(False)` has. A resource that implements `IAsyncDisposable` is unchanged. |
+
+## Phase 31 — Await in Catch and Finally
+
+Wave 6 row 2. No new syntax. [vblang #37](https://github.com/dotnet/vblang/issues/37).
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 31a | VB-069 | On `vbnext`, `Await` in a `Catch` block of an `Async` method or lambda awaits, and the exception variable keeps its value across the `Await`. `GoTo` from the `Catch` back into its `Try` still works. `Await` in a `When` filter still reports BC36943. Visual Basic 17.13 still reports BC36943. |
+| 31b | VB-069 | On `vbnext`, `Await` in a `Finally` block awaits, and the `Finally` still runs when the `Try` completes, throws, or leaves through `Exit`, `Return`, or `GoTo`. `Await` in `SyncLock` still reports BC36943. |
+
+## Phase 32 — Task-like returns
+
+Wave 6 row 3. No new syntax. [dotnet/roslyn #72241](https://github.com/dotnet/roslyn/issues/72241).
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 32a | VB-070 | On `vbnext`, an `Async Function` returns `ValueTask` or `ValueTask(Of T)` and builds the result with `AsyncValueTaskMethodBuilder`, so it can implement `IAsyncDisposable.DisposeAsync`. Visual Basic 17.13 still reports BC36945. |
+| 32b | VB-070 | On `vbnext`, an `Async Function` returns any type that names its builder with `AsyncMethodBuilderAttribute`, and the attribute on the method chooses another builder for that method. |
+
+## Phase 33 — Async lambdas and guards
+
+Wave 6 rows 4 and 5.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 33a | VB-071 | `docs/vbnext-vb071-syntax.md` records the proposed spellings for an async iterator lambda and locks or defers them. No code change. |
+| 33b | VB-072 | `docs/vbnext-vb072-syntax.md` records the proposed forms of a type test that guards the rest of a block, such as `If TypeOf value IsNot T Into name Then Return`, and where the name is in scope, and locks or defers them. No code change. |
+| 33c | VB-071 | On `vbnext`, the form locked in 33a is a lambda that both awaits and yields, using the slice 26d lowering. |
+| 33d | VB-072 | On `vbnext`, the form locked in 33b declares a name that is definitely assigned where the test guards it. |
+
+## Phase 34 — IDE for wave 6
+
+| Slice | Area | Done when |
+| --- | --- | --- |
+| 34a | Editor | For each form locked in phase 33: Enter inserts its `End` statement where it has one, its keywords classify and complete only on `vbnext`, and formatting indents its body. |
+
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Phase 28 is done: slice 28a locks `Field` for property backing storage, and slice 28b implements it. Phase 29 is done: slice 29a brings the editor along for the wave 5 forms. Wave 5 is done, and the next wave is not planned yet.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Phase 28 is done: slice 28a locks `Field` for property backing storage, and slice 28b implements it. Phase 29 is done: slice 29a brings the editor along for the wave 5 forms. Wave 5 is done. Wave 6 is planned as phases 30 to 34, from the gaps that wave 5 code meets next, and slice 30a starts now.
