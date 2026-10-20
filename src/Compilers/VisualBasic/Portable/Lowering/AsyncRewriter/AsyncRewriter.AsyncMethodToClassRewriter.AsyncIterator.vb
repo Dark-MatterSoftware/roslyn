@@ -81,6 +81,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ''' </summary>
             Private Function GenerateAsyncIteratorCompletion(promiseCompletion As BoundExpression) As BoundStatement
                 Return Me.F.Block(
+                    Me._owner.GenerateCombinedTokensDisposal(),
                     Me.F.Assignment(Me.F.Field(Me.F.Me(), Me._owner._currentField, True), Me.F.Null(Me._owner._currentField.Type)),
                     Me.F.ExpressionStatement(
                         Me._owner.GenerateMethodCall(Me.F.Field(Me.F.Me(), Me._builder, False), Me._owner._builderType, "Complete")),

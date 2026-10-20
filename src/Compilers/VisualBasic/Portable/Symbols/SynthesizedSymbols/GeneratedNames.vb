@@ -197,6 +197,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return "$DisposeMode"
         End Function
 
+        Public Shared Function MakeAsyncIteratorCombinedTokensFieldName() As String
+            Return "$CombinedTokens"
+        End Function
+
         ''' <summary>
         ''' Generates the name of a state machine field name for captured me reference
         ''' </summary>

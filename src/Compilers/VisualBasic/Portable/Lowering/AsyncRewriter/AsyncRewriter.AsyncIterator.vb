@@ -24,12 +24,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private _disposeModeField As FieldSymbol
         Private _initialThreadIdField As FieldSymbol
 
+        ''' <summary>
+        ''' The CancellationToken parameter marked with EnumeratorCancellationAttribute, whose value
+        ''' GetAsyncEnumerator combines with the token it is given. Only enumerables have one.
+        ''' </summary>
+        Private _enumeratorCancellationParameter As ParameterSymbol
+        Private _combinedTokensField As FieldSymbol
+
         Private Sub InitializeAsyncIterator()
             Dim returnType = DirectCast(Me.Method.ReturnType, NamedTypeSymbol)
             Me._isEnumerable = TypeSymbol.Equals(returnType.OriginalDefinition,
                                                  Me.F.Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T),
                                                  TypeCompareKind.ConsiderEverything)
             Me._elementType = returnType.TypeArgumentsNoUseSiteDiagnostics(0).InternalSubstituteTypeParameters(Me.TypeMap).Type
+
+            If Me._isEnumerable Then
+                Dim cancellationTokenType = Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_CancellationToken)
+                Me._enumeratorCancellationParameter = Me.Method.Parameters.FirstOrDefault(
+                    Function(p) TypeSymbol.Equals(p.Type, cancellationTokenType, TypeCompareKind.ConsiderEverything) AndAlso
+                                p.GetAttributes().Any(Function(a) a.IsTargetAttribute(AttributeDescription.EnumeratorCancellationAttribute)))
+            End If
         End Sub
 
         Private Sub EnsureAsyncIteratorSymbols(bag As BindingDiagnosticBag)
@@ -65,6 +79,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             EnsureWellKnownMember(WellKnownMember.System_Threading_Tasks_ValueTask_T__ctorValue, bag)
             EnsureWellKnownMember(WellKnownMember.System_Threading_Tasks_ValueTask__ctor, bag)
             EnsureWellKnownType(WellKnownType.System_NotSupportedException, bag)
+
+            If Me._enumeratorCancellationParameter IsNot Nothing Then
+                EnsureWellKnownMember(WellKnownMember.System_Threading_CancellationToken__Equals, bag)
+                EnsureWellKnownMember(WellKnownMember.System_Threading_CancellationTokenSource__CreateLinkedTokenSource, bag)
+                EnsureWellKnownMember(WellKnownMember.System_Threading_CancellationTokenSource__Token, bag)
+                EnsureWellKnownMember(WellKnownMember.System_Threading_CancellationTokenSource__Dispose, bag)
+            End If
         End Sub
 
         Private Sub GenerateAsyncIteratorControlFields()
@@ -75,6 +96,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me._initialThreadIdField = If(Me._isEnumerable,
                                           Me.F.StateMachineField(Me.F.SpecialType(SpecialType.System_Int32), Me.Method, GeneratedNames.MakeIteratorInitialThreadIdName(), Accessibility.Public),
                                           Nothing)
+            Me._combinedTokensField = If(Me._enumeratorCancellationParameter IsNot Nothing,
+                                         Me.F.StateMachineField(Me.F.WellKnownType(WellKnownType.System_Threading_CancellationTokenSource), Me.Method, GeneratedNames.MakeAsyncIteratorCombinedTokensFieldName(), Accessibility.Public),
+                                         Nothing)
         End Sub
 
         Private Sub InitializeAsyncIteratorStateMachine(bodyBuilder As ArrayBuilder(Of BoundStatement), frameType As NamedTypeSymbol, stateMachineLocal As LocalSymbol)
@@ -227,11 +251,72 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim destination = DirectCast(proxy, CapturedParameterSymbol).Field
             Dim source = DirectCast(Me.InitialParameters(parameter), CapturedParameterSymbol).Field
+
+            If parameter Is Me._enumeratorCancellationParameter Then
+                bodyBuilder.Add(GenerateCombinedTokenCopy(resultVariable, destination, source))
+                Return
+            End If
+
             bodyBuilder.Add(
                 Me.F.Assignment(
                     Me.F.Field(Me.F.Local(resultVariable, True), destination, True),
                     Me.F.Field(Me.F.Me(), source, False)))
         End Sub
+
+        ''' <summary>
+        ''' Gives the enumerator the token passed to the iterator, the token passed to GetAsyncEnumerator, or both:
+        ''' <code>
+        ''' If Me.$I_token.Equals(Nothing) Then
+        '''     result.$token = token
+        ''' ElseIf token.Equals(Me.$I_token) OrElse token.Equals(Nothing) Then
+        '''     result.$token = Me.$I_token
+        ''' Else
+        '''     result.$CombinedTokens = CancellationTokenSource.CreateLinkedTokenSource(Me.$I_token, token)
+        '''     result.$token = result.$CombinedTokens.Token
+        ''' End If
+        ''' </code>
+        ''' </summary>
+        Private Function GenerateCombinedTokenCopy(resultVariable As LocalSymbol, destination As FieldSymbol, source As FieldSymbol) As BoundStatement
+            Dim tokenType = source.Type
+            Dim equalsMethod = Me.F.WellKnownMember(Of MethodSymbol)(WellKnownMember.System_Threading_CancellationToken__Equals)
+            Dim createLinked = Me.F.WellKnownMember(Of MethodSymbol)(WellKnownMember.System_Threading_CancellationTokenSource__CreateLinkedTokenSource)
+            Dim tokenProperty = Me.F.WellKnownMember(Of PropertySymbol)(WellKnownMember.System_Threading_CancellationTokenSource__Token)
+
+            Dim tokenParameter = Me.F.CurrentMethod.Parameters(0)
+            Dim enumeratorToken = Function() Me.F.Parameter(tokenParameter)
+            Dim initialToken = Function() Me.F.Field(Me.F.Me(), source, False)
+            Dim resultToken = Function() Me.F.Field(Me.F.Local(resultVariable, True), destination, True)
+            Dim resultCombined = Function(isLValue As Boolean) Me.F.Field(Me.F.Local(resultVariable, True), Me._combinedTokensField, isLValue)
+
+            Return Me.F.If(
+                condition:=Me.F.Call(initialToken(), equalsMethod, Me.F.Null(tokenType)),
+                thenClause:=Me.F.Assignment(resultToken(), enumeratorToken().MakeRValue()),
+                elseClause:=Me.F.If(
+                    condition:=Me.F.LogicalOrElse(
+                        Me.F.Call(enumeratorToken(), equalsMethod, initialToken()),
+                        Me.F.Call(enumeratorToken(), equalsMethod, Me.F.Null(tokenType))),
+                    thenClause:=Me.F.Assignment(resultToken(), initialToken()),
+                    elseClause:=Me.F.Block(
+                        Me.F.Assignment(resultCombined(True), Me.F.Call(Nothing, createLinked, initialToken(), enumeratorToken().MakeRValue())),
+                        Me.F.Assignment(resultToken(), Me.F.Call(resultCombined(False), tokenProperty.GetMethod)))))
+        End Function
+
+        ''' <summary>
+        ''' Disposes the CancellationTokenSource that GetAsyncEnumerator created, when the iteration ends.
+        ''' </summary>
+        Friend Function GenerateCombinedTokensDisposal() As BoundStatement
+            If Me._combinedTokensField Is Nothing Then
+                Return Me.F.StatementList()
+            End If
+
+            ' If Me.$CombinedTokens IsNot Nothing Then Me.$CombinedTokens.Dispose() : Me.$CombinedTokens = Nothing
+            Dim disposeMethod = Me.F.WellKnownMember(Of MethodSymbol)(WellKnownMember.System_Threading_CancellationTokenSource__Dispose)
+            Return Me.F.If(
+                Me.F.ReferenceIsNotNothing(Me.F.Field(Me.F.Me(), Me._combinedTokensField, False)),
+                Me.F.Block(
+                    Me.F.ExpressionStatement(Me.F.Call(Me.F.Field(Me.F.Me(), Me._combinedTokensField, False), disposeMethod)),
+                    Me.F.Assignment(Me.F.Field(Me.F.Me(), Me._combinedTokensField, True), Me.F.Null(Me._combinedTokensField.Type))))
+        End Function
 
         Private Sub GenerateMoveNextAsyncOrDisposeAsync(isDispose As Boolean)
             Dim bodyBuilder = ArrayBuilder(Of BoundStatement).GetInstance()

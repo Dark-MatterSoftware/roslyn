@@ -377,6 +377,49 @@ End Module
         End Sub
 
         <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub AsyncIterator_EnumeratorCancellationCombinesTokens()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Runtime.CompilerServices
+Imports System.Threading
+Imports System.Threading.Tasks
+
+Module Program
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+
+    Async Iterator Function Tokens(<EnumeratorCancellation> token As CancellationToken) As IAsyncEnumerable(Of String)
+        Await Task.Yield()
+        Yield If(token.CanBeCanceled, If(token.IsCancellationRequested, ""cancelled"", ""live""), ""none"")
+    End Function
+
+    Async Function First(source As IAsyncEnumerable(Of String), token As CancellationToken) As Task(Of String)
+        Dim e As IAsyncEnumerator(Of String) = source.GetAsyncEnumerator(token)
+        Await e.MoveNextAsync()
+        Dim value As String = e.Current
+        Await e.DisposeAsync()
+        Return value
+    End Function
+
+    Async Function Run() As Task
+        Dim a As New CancellationTokenSource()
+        Dim b As New CancellationTokenSource()
+        Console.Write(Await First(Tokens(Nothing), Nothing) & "" "")
+        Console.Write(Await First(Tokens(a.Token), Nothing) & "" "")
+        Console.Write(Await First(Tokens(Nothing), b.Token) & "" "")
+        b.Cancel()
+        Console.Write(Await First(Tokens(a.Token), b.Token) & "" "")
+        Console.Write(Await First(Tokens(a.Token), a.Token))
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="none live live cancelled live", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub AsyncIterator_GenericInstanceAndYieldAwait()
             Dim compilation = CreateCompilation("
 Imports System
