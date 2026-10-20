@@ -1028,6 +1028,17 @@
         <Field Name="Statement" Type="BoundStatement" Null="disallow"/>
     </Node>
 
+    <!--
+    BoundAsyncDisposalScope marks the lowered Try and the awaited DisposeAsync of an Async Using or an
+    Await Each in an async iterator. When the iterator is disposed while it is suspended in the scope,
+    execution continues at DisposalLabel, which releases the resource, and then leaves the scope for
+    the enclosing disposal target. The async rewriter removes the node.
+    -->
+    <Node Name="BoundAsyncDisposalScope" Base="BoundStatement">
+        <Field Name="Statement" Type="BoundStatement" Null="disallow"/>
+        <Field Name="DisposalLabel" Type="LabelSymbol" Null="disallow"/>
+    </Node>
+
     <!-- An abstract base class so that BoundLocalDeclaration and BoundAsNewLocalDeclarations 
         can be in the LocalDeclarations of a BoundMultipleLocalDeclarations.
     -->

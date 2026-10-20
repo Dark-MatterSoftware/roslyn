@@ -89,10 +89,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim catchBody = factory.Block(factory.Assignment(factory.Local(pendingException, isLValue:=True), factory.Local(caught, isLValue:=False)))
             Dim catchBlock = New BoundCatchBlock(syntax, caught, factory.Local(caught, isLValue:=False), Nothing, Nothing, catchBody, isSynthesizedAsyncCatchAll:=False)
-            statements.Add(factory.Try(body, ImmutableArray.Create(catchBlock)))
-            statements.Add(factory.Label(afterTry))
-            statements.Add(dispose)
-            statements.Add(factory.If(factory.ReferenceIsNotNothing(factory.Local(pendingException, isLValue:=False)), RethrowPendingException(factory, pendingException)))
+            Dim release = New BoundStatementList(syntax, ImmutableArray.Create(
+                factory.Try(body, ImmutableArray.Create(catchBlock)),
+                factory.Label(afterTry),
+                dispose,
+                factory.If(factory.ReferenceIsNotNothing(factory.Local(pendingException, isLValue:=False)), RethrowPendingException(factory, pendingException))))
+
+            If _currentMethodOrLambda.IsAsync AndAlso _currentMethodOrLambda.IsIterator Then
+                ' Disposing the iterator while it is suspended in the body releases the resource on the way out.
+                statements.Add(New BoundAsyncDisposalScope(syntax, release, afterTry))
+            Else
+                statements.Add(release)
+            End If
+
             exits.AddDispatch(statements)
 
             Return New BoundBlock(syntax, Nothing, locals.ToImmutableAndFree(), statements.ToImmutableAndFree())

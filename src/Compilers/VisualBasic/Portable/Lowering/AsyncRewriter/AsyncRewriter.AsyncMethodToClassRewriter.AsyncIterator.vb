@@ -153,6 +153,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Me.F.Block(result, Me.F.Label(afterFinally), GenerateJumpToCurrentDisposalLabel())
             End Function
 
+            Public Overrides Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope) As BoundNode
+                ' Disposal inside the scope goes to its release, and the release then continues the disposal:
+                '     [Try ... afterTry: release]
+                '     If Me.$DisposeMode Then GoTo <enclosing_disposal_label>
+                Dim savedDisposalLabel = Me._currentDisposalLabel
+                Me._currentDisposalLabel = node.DisposalLabel
+
+                Dim statement = DirectCast(Visit(node.Statement), BoundStatement)
+
+                Me._currentDisposalLabel = savedDisposalLabel
+                Return Me.F.Block(statement, GenerateJumpToCurrentDisposalLabel())
+            End Function
+
             Protected Overrides Function VisitFinallyBlock(finallyBlock As BoundBlock) As BoundBlock
                 If Not IsAsyncIterator Then
                     Return MyBase.VisitFinallyBlock(finallyBlock)

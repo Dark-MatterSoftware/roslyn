@@ -101,6 +101,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         EventAccess
         Block
         StateMachineScope
+        AsyncDisposalScope
         LocalDeclaration
         AsNewLocalDeclarations
         DimStatement
@@ -4545,6 +4546,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(fields As ImmutableArray(Of FieldSymbol), statement As BoundStatement) As BoundStateMachineScope
             If fields <> Me.Fields OrElse statement IsNot Me.Statement Then
                 Dim result = New BoundStateMachineScope(Me.Syntax, fields, statement, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundAsyncDisposalScope
+        Inherits BoundStatement
+
+        Public Sub New(syntax As SyntaxNode, statement As BoundStatement, disposalLabel As LabelSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.AsyncDisposalScope, syntax, hasErrors OrElse statement.NonNullAndHasErrors())
+
+            Debug.Assert(statement IsNot Nothing, "Field 'statement' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(disposalLabel IsNot Nothing, "Field 'disposalLabel' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._Statement = statement
+            Me._DisposalLabel = disposalLabel
+        End Sub
+
+
+        Private ReadOnly _Statement As BoundStatement
+        Public ReadOnly Property Statement As BoundStatement
+            Get
+                Return _Statement
+            End Get
+        End Property
+
+        Private ReadOnly _DisposalLabel As LabelSymbol
+        Public ReadOnly Property DisposalLabel As LabelSymbol
+            Get
+                Return _DisposalLabel
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitAsyncDisposalScope(Me)
+        End Function
+
+        Public Function Update(statement As BoundStatement, disposalLabel As LabelSymbol) As BoundAsyncDisposalScope
+            If statement IsNot Me.Statement OrElse disposalLabel IsNot Me.DisposalLabel Then
+                Dim result = New BoundAsyncDisposalScope(Me.Syntax, statement, disposalLabel, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9628,6 +9672,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitBlock(CType(node, BoundBlock), arg)
                 Case BoundKind.StateMachineScope
                     Return VisitStateMachineScope(CType(node, BoundStateMachineScope), arg)
+                Case BoundKind.AsyncDisposalScope
+                    Return VisitAsyncDisposalScope(CType(node, BoundAsyncDisposalScope), arg)
                 Case BoundKind.LocalDeclaration
                     Return VisitLocalDeclaration(CType(node, BoundLocalDeclaration), arg)
                 Case BoundKind.AsNewLocalDeclarations
@@ -10156,6 +10202,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitStateMachineScope(node As BoundStateMachineScope, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10871,6 +10921,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitStateMachineScope(node As BoundStateMachineScope) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11682,6 +11736,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Function VisitStateMachineScope(node As BoundStateMachineScope) As BoundNode
+            Me.Visit(node.Statement)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope) As BoundNode
             Me.Visit(node.Statement)
             Return Nothing
         End Function
@@ -12729,6 +12788,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitStateMachineScope(node As BoundStateMachineScope) As BoundNode
             Dim statement As BoundStatement = DirectCast(Me.Visit(node.Statement), BoundStatement)
             Return node.Update(node.Fields, statement)
+        End Function
+
+        Public Overrides Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope) As BoundNode
+            Dim statement As BoundStatement = DirectCast(Me.Visit(node.Statement), BoundStatement)
+            Return node.Update(statement, node.DisposalLabel)
         End Function
 
         Public Overrides Function VisitLocalDeclaration(node As BoundLocalDeclaration) As BoundNode
@@ -14030,6 +14094,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New TreeDumperNode("stateMachineScope", Nothing, New TreeDumperNode() {
                 New TreeDumperNode("fields", node.Fields, Nothing),
                 New TreeDumperNode("statement", Nothing, new TreeDumperNode() {Visit(node.Statement, Nothing)})
+            })
+        End Function
+
+        Public Overrides Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("asyncDisposalScope", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("statement", Nothing, new TreeDumperNode() {Visit(node.Statement, Nothing)}),
+                New TreeDumperNode("disposalLabel", node.DisposalLabel, Nothing)
             })
         End Function
 

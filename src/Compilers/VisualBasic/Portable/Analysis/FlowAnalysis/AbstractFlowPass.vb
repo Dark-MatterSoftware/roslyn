@@ -2392,6 +2392,11 @@ EnteredRegion:
             Return Nothing
         End Function
 
+        Public Overrides Function VisitAsyncDisposalScope(node As BoundAsyncDisposalScope) As BoundNode
+            VisitStatement(node.Statement)
+            Return Nothing
+        End Function
+
         Public Overrides Function VisitSyncLockStatement(node As BoundSyncLockStatement) As BoundNode
             ' visit SyncLock expression
             VisitRvalue(node.LockExpression)

@@ -310,6 +310,73 @@ End Module
         End Sub
 
         <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub AsyncIterator_AsyncUsingReleasesOnExitFor()
+            RunAsyncIterator("
+    Class Resource
+        Implements IAsyncDisposable
+
+        Public Function DisposeAsync() As ValueTask Implements IAsyncDisposable.DisposeAsync
+            Console.Write(""disposed "")
+            Return New ValueTask(Task.Delay(1))
+        End Function
+    End Class
+
+    Async Iterator Function Numbers() As IAsyncEnumerable(Of Integer)
+        Async Using r As New Resource()
+            Yield 1
+            Yield 2
+        End Using
+        Console.Write(""end "")
+    End Function
+
+    Async Function Run() As Task
+        Await Each n In Numbers()
+            Console.Write(n & "" "")
+            Exit For
+        Next
+        Console.Write(""| "")
+        Await Each n In Numbers()
+            Console.Write(n & "" "")
+        Next
+        Console.Write(""after"")
+    End Function
+", "1 disposed | 1 2 disposed end after")
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub AsyncIterator_AwaitEachDisposesTheInnerIterator()
+            RunAsyncIterator("
+    Async Iterator Function Inner() As IAsyncEnumerable(Of Integer)
+        Try
+            Yield 1
+            Yield 2
+            Yield 3
+        Finally
+            Console.Write(""inner-finally "")
+        End Try
+    End Function
+
+    Async Iterator Function Outer() As IAsyncEnumerable(Of Integer)
+        Try
+            Await Each n In Inner()
+                Yield n * 10
+            Next
+        Finally
+            Console.Write(""outer-finally "")
+        End Try
+    End Function
+
+    Async Function Run() As Task
+        Await Each n In Outer()
+            Console.Write(n & "" "")
+            If n = 20 Then Exit For
+        Next
+        Console.Write(""after"")
+    End Function
+", "10 20 inner-finally outer-finally after")
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub AsyncIterator_GenericInstanceAndYieldAwait()
             Dim compilation = CreateCompilation("
 Imports System
