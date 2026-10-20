@@ -5750,6 +5750,38 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  TypeOfIntoExpression
+      ******************-->
+    <node-structure name="TypeOfIntoExpressionSyntax" parent="ExpressionSyntax">
+      <description>Represents a type test that names its result, such as TypeOf value Is Customer Into c.</description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="TypeOfIntoExpression">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="TypeOfExpression" kind="@ExpressionSyntax">
+        <description>The TypeOf ... Is test.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="IntoKeyword" kind="IntoKeyword">
+        <description>The Into keyword.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Identifier" kind="IdentifierToken">
+        <description>The name of the local that holds the tested value as the tested type.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  GetXmlNamespaceExpression
       ******************-->
     <node-structure name="GetXmlNamespaceExpressionSyntax" parent="ExpressionSyntax">

@@ -579,7 +579,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                             Return DirectCast(node, ForEachStatementSyntax).Expression
                         End If
 
-                        If node.IsKind(SyntaxKind.TypeCaseClause) Then
+                        If node.IsKind(SyntaxKind.TypeCaseClause) OrElse node.IsKind(SyntaxKind.TypeOfIntoExpression) Then
                             ' A name declared with Into is a token of its type test.
                             Return node
                         End If

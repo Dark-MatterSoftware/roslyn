@@ -988,6 +988,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.TypeOfIsNotListExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.IsNotKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenBraceToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseBraceToken, String.Empty, Nothing, Nothing))
         End Function
 
+        Private Shared Function GenerateGreenTypeOfIntoExpression() As InternalSyntax.TypeOfIntoExpressionSyntax
+            return InternalSyntax.SyntaxFactory.TypeOfIntoExpression(GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.IntoKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken())
+        End Function
+
         Private Shared Function GenerateGreenGetXmlNamespaceExpression() As InternalSyntax.GetXmlNamespaceExpressionSyntax
             return InternalSyntax.SyntaxFactory.GetXmlNamespaceExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.GetXmlNamespaceKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
         End Function
@@ -3090,6 +3094,12 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenTypeOfIsNotListExpression()
             dim objectUnderTest = GenerateGreenTypeOfIsNotListExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeOfIntoExpression()
+            dim objectUnderTest = GenerateGreenTypeOfIntoExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -6007,6 +6017,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeOfIntoExpressionRewriter()
+            dim oldNode = GenerateGreenTypeOfIntoExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenGetXmlNamespaceExpressionRewriter()
             dim oldNode = GenerateGreenGetXmlNamespaceExpression()
             Dim rewriter = New GreenIdentityRewriter()
@@ -8850,6 +8868,13 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenTypeOfIsNotListExpressionVisitor()
             Dim oldNode = GenerateGreenTypeOfIsNotListExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeOfIntoExpressionVisitor()
+            Dim oldNode = GenerateGreenTypeOfIntoExpression()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -15502,6 +15527,35 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
         End Function
 
+        Private Shared Function GenerateRedTypeOfIntoExpression() As TypeOfIntoExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.TypeOfIntoExpression(Nothing, SyntaxFactory.Token(SyntaxKind.IntoKeyword), GenerateRedIdentifierToken())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIntoExpression(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIntoExpression(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IntoKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.TypeOfIntoExpression(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IntoKeyword), GenerateRedIdentifierToken())
+        End Function
+
         Private Shared Function GenerateRedGetXmlNamespaceExpression() As GetXmlNamespaceExpressionSyntax
             Dim exceptionTest as boolean = false
             Try
@@ -21764,6 +21818,16 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTypeOfIntoExpression()
+            dim objectUnderTest = GenerateRedTypeOfIntoExpression()
+            Assert.NotNull(objectUnderTest.typeOfExpression)
+            Assert.NotNull(objectUnderTest.intoKeyword)
+            Assert.NotNull(objectUnderTest.identifier)
+            Dim withObj = objectUnderTest.WithTypeOfExpression(objectUnderTest.TypeOfExpression).WithIntoKeyword(objectUnderTest.IntoKeyword).WithIdentifier(objectUnderTest.Identifier)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedGetXmlNamespaceExpression()
             dim objectUnderTest = GenerateRedGetXmlNamespaceExpression()
             Assert.NotNull(objectUnderTest.getXmlNamespaceKeyword)
@@ -25168,6 +25232,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedTypeOfIsNotListExpressionRewriter()
             dim oldNode = GenerateRedTypeOfIsNotListExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedTypeOfIntoExpressionRewriter()
+            dim oldNode = GenerateRedTypeOfIntoExpression()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

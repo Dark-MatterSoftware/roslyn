@@ -232,8 +232,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             CreateBinderFromStatementList(node.Statements, _containingBinder)
         End Sub
 
+        ''' <summary>
+        ''' A binder for an If or ElseIf condition that names type tests with Into, and for its Then block.
+        ''' </summary>
+        Private Function MakeConditionBinder(condition As ExpressionSyntax) As Binder
+            Dim declarations = PatternVariableBinder.GetDeclarations(condition)
+            If declarations.IsEmpty Then
+                Return _containingBinder
+            End If
+
+            Dim binder = New PatternVariableBinder(_containingBinder, declarations)
+            RememberBinder(condition, binder)
+            Return binder
+        End Function
+
         Public Overrides Sub VisitSingleLineIfStatement(node As SingleLineIfStatementSyntax)
-            CreateBinderFromStatementList(node.Statements, _containingBinder)
+            CreateBinderFromStatementList(node.Statements, MakeConditionBinder(node.Condition))
             MakeBinder(node.ElseClause, _containingBinder)
         End Sub
 
@@ -242,7 +256,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitMultiLineIfBlock(node As MultiLineIfBlockSyntax)
-            CreateBinderFromStatementList(node.Statements, _containingBinder)
+            CreateBinderFromStatementList(node.Statements, MakeConditionBinder(node.IfStatement.Condition))
 
             For Each elseifBlock In node.ElseIfBlocks
                 MakeBinder(elseifBlock, _containingBinder)
@@ -256,7 +270,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitElseIfBlock(node As ElseIfBlockSyntax)
-            CreateBinderFromStatementList(node.Statements, _containingBinder)
+            CreateBinderFromStatementList(node.Statements, MakeConditionBinder(node.ElseIfStatement.Condition))
         End Sub
 
         Public Overrides Sub VisitTryBlock(node As TryBlockSyntax)

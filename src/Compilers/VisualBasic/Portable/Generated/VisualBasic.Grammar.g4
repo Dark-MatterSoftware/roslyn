@@ -1244,6 +1244,7 @@ expression
   | tuple_expression
   | type
   | type_of_expression
+  | type_of_into_expression
   | type_of_list_expression
   | unary_expression
   | with_expression
@@ -1708,6 +1709,10 @@ type_of_is_expression
 
 type_of_is_not_expression
   : 'TypeOf' expression 'IsNot' type
+  ;
+
+type_of_into_expression
+  : expression 'Into' identifier_token
   ;
 
 type_of_list_expression

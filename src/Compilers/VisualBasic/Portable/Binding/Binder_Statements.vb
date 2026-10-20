@@ -2681,6 +2681,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         If boundStatement.Syntax.Kind = SyntaxKind.TupleDeconstructionStatement Then
                             boundStatements(i) = HoistDeconstructedLocals(DirectCast(boundStatement, BoundBlock), locals)
                         End If
+
+                    Case BoundKind.IfStatement
+                        ' A name declared with Into in an If or ElseIf condition is assigned in the condition, so this
+                        ' statement list holds it. Only the condition and its Then block can refer to it.
+                        DeclarePatternVariables(locals, DirectCast(boundStatement, BoundIfStatement))
                 End Select
             Next i
 
@@ -2690,6 +2695,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return New BoundBlock(syntax, stmtList, locals.ToImmutableAndFree, boundStatements.AsImmutableOrNull())
         End Function
+
+        Private Shared Sub DeclarePatternVariables(ByRef locals As ArrayBuilder(Of LocalSymbol), ifStatement As BoundIfStatement)
+            Dim current = ifStatement
+            Do
+                Dim patternLocals = PatternVariableCollector.Collect(current.Condition)
+                If Not patternLocals.IsEmpty Then
+                    If locals Is Nothing Then
+                        locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+                    End If
+
+                    locals.AddRange(patternLocals)
+                End If
+
+                current = TryCast(current.AlternativeOpt, BoundIfStatement)
+            Loop While current IsNot Nothing
+        End Sub
 
         Private Shared Function HoistDeconstructedLocals(statement As BoundBlock, ByRef locals As ArrayBuilder(Of LocalSymbol)) As BoundBlock
             Dim temporaries = ArrayBuilder(Of LocalSymbol).GetInstance()
@@ -3370,7 +3391,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim consequence As BoundBlock
             Dim alternative As BoundStatement = Nothing
 
-            condition = BindBooleanExpression(node.Condition, diagnostics)
+            condition = BindIfCondition(node.Condition, diagnostics)
             consequence = BindBlock(node, node.Statements, diagnostics).MakeCompilerGenerated()
             If node.ElseClause IsNot Nothing Then
                 alternative = BindBlock(node.ElseClause, node.ElseClause.Statements, diagnostics)
@@ -3388,12 +3409,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim blocks As ArrayBuilder(Of BoundStatement) = ArrayBuilder(Of BoundStatement).GetInstance()
             Dim conditions As ArrayBuilder(Of BoundExpression) = ArrayBuilder(Of BoundExpression).GetInstance()
 
-            conditions.Add(BindBooleanExpression(node.IfStatement.Condition, diagnostics))
+            conditions.Add(BindIfCondition(node.IfStatement.Condition, diagnostics))
             blocks.Add(BindBlock(node, node.Statements, diagnostics).MakeCompilerGenerated())
 
             For i = 0 To node.ElseIfBlocks.Count - 1
                 Dim elseIfBlock = node.ElseIfBlocks(i)
-                conditions.Add(BindBooleanExpression(elseIfBlock.ElseIfStatement.Condition, diagnostics))
+                conditions.Add(BindIfCondition(elseIfBlock.ElseIfStatement.Condition, diagnostics))
                 blocks.Add(BindBlock(elseIfBlock, elseIfBlock.Statements, diagnostics).MakeCompilerGenerated())
             Next
 

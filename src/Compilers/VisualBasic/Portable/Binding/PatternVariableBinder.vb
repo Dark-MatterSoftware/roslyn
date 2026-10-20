@@ -44,6 +44,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return builder.ToImmutableAndFree()
         End Function
 
+        ''' <summary>
+        ''' The names that an If or ElseIf condition declares with Into: the condition itself, or an operand of
+        ''' the AndAlso chain that forms it, through parentheses. A test anywhere else declares nothing.
+        ''' </summary>
+        Public Shared Function GetDeclarations(condition As ExpressionSyntax) As ImmutableArray(Of (Identifier As SyntaxToken, Type As TypeSyntax))
+            Dim builder = ArrayBuilder(Of (Identifier As SyntaxToken, Type As TypeSyntax)).GetInstance()
+            AddConditionDeclarations(condition, builder)
+            Return builder.ToImmutableAndFree()
+        End Function
+
+        Private Shared Sub AddConditionDeclarations(expression As ExpressionSyntax, builder As ArrayBuilder(Of (Identifier As SyntaxToken, Type As TypeSyntax)))
+            If expression Is Nothing Then
+                Return
+            End If
+
+            Select Case expression.Kind
+                Case SyntaxKind.TypeOfIntoExpression
+                    Dim typeOfInto = DirectCast(expression, TypeOfIntoExpressionSyntax)
+                    If typeOfInto.TypeOfExpression.Kind = SyntaxKind.TypeOfIsExpression AndAlso
+                       Not typeOfInto.Identifier.IsMissing Then
+                        builder.Add((typeOfInto.Identifier, DirectCast(typeOfInto.TypeOfExpression, TypeOfExpressionSyntax).Type))
+                    End If
+
+                Case SyntaxKind.AndAlsoExpression
+                    Dim andAlsoExpression = DirectCast(expression, BinaryExpressionSyntax)
+                    AddConditionDeclarations(andAlsoExpression.Left, builder)
+                    AddConditionDeclarations(andAlsoExpression.Right, builder)
+
+                Case SyntaxKind.ParenthesizedExpression
+                    AddConditionDeclarations(DirectCast(expression, ParenthesizedExpressionSyntax).Expression, builder)
+            End Select
+        End Sub
+
         Friend Overrides ReadOnly Property Locals As ImmutableArray(Of LocalSymbol)
             Get
                 If _locals.IsDefault Then

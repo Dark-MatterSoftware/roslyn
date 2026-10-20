@@ -1099,7 +1099,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             If CurrentToken.Kind = SyntaxKind.OpenBraceToken AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
-                Return ParseTypeOfList([typeOf], exp, operatorToken)
+                Return ParseTypeOfInto(ParseTypeOfList([typeOf], exp, operatorToken))
             End If
 
             Dim typeName = ParseGeneralType()
@@ -1108,7 +1108,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                                         SyntaxKind.TypeOfIsNotExpression,
                                         SyntaxKind.TypeOfIsExpression)
 
-            Return SyntaxFactory.TypeOfExpression(kind, [typeOf], exp, operatorToken, typeName)
+            Return ParseTypeOfInto(SyntaxFactory.TypeOfExpression(kind, [typeOf], exp, operatorToken, typeName))
+        End Function
+
+        ''' <summary>
+        ''' TypeOf ... Is T Into name, in the condition of an If or ElseIf.
+        ''' </summary>
+        Private Function ParseTypeOfInto(typeOfExpression As ExpressionSyntax) As ExpressionSyntax
+            Dim intoKeyword As KeywordSyntax = Nothing
+            If Not _typeOfIntoAllowed OrElse
+               CurrentToken.Kind <> SyntaxKind.IdentifierToken OrElse
+               Not TryTokenAsContextualKeyword(CurrentToken, SyntaxKind.IntoKeyword, intoKeyword) Then
+                Return typeOfExpression
+            End If
+
+            GetNextToken()
+            intoKeyword = CheckFeatureAvailability(Feature.PatternVariables, intoKeyword)
+            Dim identifier = ParseIdentifier()
+            Return SyntaxFactory.TypeOfIntoExpression(typeOfExpression, intoKeyword, identifier)
         End Function
 
         Private Function ParseTypeOfList(typeOfKeyword As KeywordSyntax, expression As ExpressionSyntax, operatorToken As KeywordSyntax) As TypeOfListExpressionSyntax

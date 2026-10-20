@@ -649,6 +649,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ' ExpressionBlockStatement* .Parser::ParseIfConstruct( [ ParseTree::IfStatement* IfContainingElseIf ] [ _Out_ bool* IsLineIf ] [ _Inout_ bool& ErrorInConstruct ] )
 
         'davidsch - Renamed ParseIfStatement from ParseIfConstruct
+        ''' <summary>
+        ''' True while parsing the condition of an If or ElseIf, where TypeOf ... Is T can name its result
+        ''' with Into. Elsewhere, and in a query inside the condition, Into keeps its query meaning.
+        ''' </summary>
+        Private _typeOfIntoAllowed As Boolean
+
+        Private Function ParseIfOrElseIfCondition() As ExpressionSyntax
+            Dim saved = _typeOfIntoAllowed
+            _typeOfIntoAllowed = True
+            Dim condition = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+            _typeOfIntoAllowed = saved
+            Return condition
+        End Function
+
         Private Function ParseIfStatement() As IfStatementSyntax
 
             Debug.Assert(CurrentToken.Kind = SyntaxKind.IfKeyword, "ParseIfConstruct called on wrong token.")
@@ -656,7 +670,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim ifKeyword As KeywordSyntax = DirectCast(CurrentToken, KeywordSyntax)
             GetNextToken()
 
-            Dim condition = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+            Dim condition = ParseIfOrElseIfCondition()
 
             If condition.ContainsDiagnostics Then
                 condition = ResyncAt(condition, SyntaxKind.ThenKeyword)
@@ -714,7 +728,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 elseIfKeyword = New KeywordSyntax(SyntaxKind.ElseIfKeyword, MergeTokenText(elseKeyword, ifKeyword), elseKeyword.GetLeadingTrivia(), ifKeyword.GetTrailingTrivia())
             End If
 
-            Dim condition = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+            Dim condition = ParseIfOrElseIfCondition()
 
             If condition.ContainsDiagnostics Then
                 condition = ResyncAt(condition, SyntaxKind.ThenKeyword)

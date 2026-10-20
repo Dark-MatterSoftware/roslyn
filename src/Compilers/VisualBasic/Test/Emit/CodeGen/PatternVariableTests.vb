@@ -229,6 +229,183 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub If_IntoInIfElseIfAndAndAlso()
+            CompileAndRun("
+Module Program
+    Function Describe(value As Object) As String
+        If TypeOf value Is Square Into s AndAlso s.Side > 10 Then
+            Return ""big square "" & s.Side.ToString()
+        ElseIf TypeOf value Is Circle Into c Then
+            Return ""circle "" & c.Radius.ToString()
+        ElseIf TypeOf value Is Square Into s Then
+            Return ""square "" & s.Side.ToString()
+        Else
+            Return ""other""
+        End If
+    End Function
+
+    Sub Main()
+        System.Console.Write(Describe(New Square(20)) & "", "")
+        System.Console.Write(Describe(New Square(5)) & "", "")
+        System.Console.Write(Describe(New Circle(1)) & "", "")
+        System.Console.Write(Describe(""text""))
+    End Sub
+End Module
+", "big square 20, square 5, circle 1, other")
+        End Sub
+
+        <Fact>
+        Public Sub If_IntoOnASingleLineAndInLoops()
+            CompileAndRun("
+Module Program
+    Sub Main()
+        Dim values As Object() = {New Circle(1), ""x"", New Circle(3)}
+        For Each value As Object In values
+            If TypeOf value Is Circle Into c Then System.Console.Write(c.Radius.ToString() & "" "") Else System.Console.Write(""- "")
+        Next
+    End Sub
+End Module
+", "1 - 3 ")
+        End Sub
+
+        <Fact>
+        Public Sub If_IntoEvaluatesTheValueOnceAndUnboxes()
+            CompileAndRun("
+Module Program
+    Private _calls As Integer
+
+    Function NextValue() As Object
+        _calls += 1
+        Return 41
+    End Function
+
+    Sub Main()
+        If TypeOf NextValue() Is Integer Into n AndAlso n > 40 Then
+            System.Console.Write((n + 1).ToString() & "" "" & _calls.ToString())
+        End If
+    End Sub
+End Module
+", "42 1")
+        End Sub
+
+        <Fact>
+        Public Sub If_IntoCapturedByALambdaAndQueryIntoKeepsItsMeaning()
+            CompileAndRun("
+Module Program
+    Sub Main()
+        Dim shapes As Object() = {New Circle(2), New Square(1), New Circle(5)}
+        Dim value As Object = shapes(2)
+        If TypeOf value Is Circle Into c AndAlso (Aggregate o In shapes Where TypeOf o Is Circle Into Count()) = 2 Then
+            Dim area As System.Func(Of Double) = Function() c.Radius * c.Radius
+            System.Console.Write(area().ToString())
+        End If
+    End Sub
+End Module
+", "25", StrictOptions.WithGlobalImports(GlobalImport.Parse("System.Linq")))
+        End Sub
+
+        <Fact>
+        Public Sub If_IntoErrors()
+            Dim compilation = CreateCompilation(Shapes & "
+Module Program
+    Sub M(value As Object, other As Object)
+        If TypeOf value Is Circle Into c Then
+        Else
+            System.Console.Write(c)
+        End If
+        System.Console.Write(c)
+
+        If TypeOf value IsNot Circle Into a Then
+        End If
+        If TypeOf value Is {Circle, Square} Into b Then
+        End If
+        If Not TypeOf value Is Circle Into d Then
+        End If
+        If TypeOf value Is Circle Into e OrElse True Then
+        End If
+        If TypeOf value Is Circle Into x AndAlso TypeOf other Is Square Into x Then
+        End If
+        If y.Radius > 0 AndAlso TypeOf value Is Circle Into y Then
+        End If
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30451: 'c' is not declared. It may be inaccessible due to its protection level.
+            System.Console.Write(c)
+                                 ~
+BC30451: 'c' is not declared. It may be inaccessible due to its protection level.
+        System.Console.Write(c)
+                             ~
+BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
+        If TypeOf value IsNot Circle Into a Then
+                                          ~
+BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
+        If TypeOf value Is {Circle, Square} Into b Then
+                                                 ~
+BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
+        If Not TypeOf value Is Circle Into d Then
+                                           ~
+BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
+        If TypeOf value Is Circle Into e OrElse True Then
+                                       ~
+BC30288: Local variable 'x' is already declared in the current block.
+        If TypeOf value Is Circle Into x AndAlso TypeOf other Is Square Into x Then
+                                                                             ~
+BC32000: Local variable 'y' cannot be referred to before it is declared.
+        If y.Radius > 0 AndAlso TypeOf value Is Circle Into y Then
+           ~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub If_IntoSemanticModel()
+            Dim compilation = CreateCompilation(Shapes & "
+Module Program
+    Function Radius(value As Object) As Double
+        If TypeOf value Is Circle Into c AndAlso c.Radius > 0 Then
+            Return c.Radius
+        End If
+        Return 0
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim usages = tree.GetRoot().DescendantNodes().OfType(Of Syntax.IdentifierNameSyntax)().Where(Function(n) n.Identifier.ValueText = "c").ToArray()
+            Assert.Equal(2, usages.Length)
+            Dim declaration = tree.GetRoot().DescendantNodes().OfType(Of Syntax.TypeOfIntoExpressionSyntax)().Single()
+            For Each usage In usages
+                Dim local = DirectCast(model.GetSymbolInfo(usage).Symbol, ILocalSymbol)
+                Assert.Equal("Circle", local.Type.ToTestDisplayString())
+                Assert.Equal(declaration.Identifier.SpanStart, local.Locations.Single().SourceSpan.Start)
+            Next
+
+            Assert.Equal("System.Boolean", model.GetTypeInfo(declaration).Type.ToTestDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub If_IntoNotAvailableInVisualBasic17_13()
+            Dim compilation = CreateCompilation(Shapes & "
+Module Program
+    Sub M(value As Object)
+        If TypeOf value Is Circle Into c Then
+        End If
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=Vb17_13)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC36716: Visual Basic 17.13 does not support 'Into' after a type test.
+        If TypeOf value Is Circle Into c Then
+                                  ~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
         Public Sub Case_IntoNotAvailableInVisualBasic17_13()
             Dim compilation = CreateCompilation(Shapes & "
 Module Program

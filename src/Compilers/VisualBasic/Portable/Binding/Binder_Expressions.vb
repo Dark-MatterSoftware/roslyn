@@ -212,6 +212,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     Return BindTypeOfListExpression(DirectCast(node, TypeOfListExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.TypeOfIntoExpression
+                    Return BindTypeOfIntoExpression(DirectCast(node, TypeOfIntoExpressionSyntax), diagnostics)
+
                 Case SyntaxKind.BinaryConditionalExpression
                     Return BindBinaryConditionalExpression(DirectCast(node, BinaryConditionalExpressionSyntax), diagnostics)
 

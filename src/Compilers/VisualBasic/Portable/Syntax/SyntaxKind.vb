@@ -3336,5 +3336,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         GuidLiteralExpression = 819                  ' LiteralExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents a type test that names its result, <c>TypeOf value Is Customer Into c</c>.
+        ''' </summary>
+        TypeOfIntoExpression = 820                   ' TypeOfIntoExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

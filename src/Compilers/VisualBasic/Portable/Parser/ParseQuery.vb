@@ -1174,10 +1174,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(fromKw IsNot Nothing)
 
             Dim operators = Me._pool.Allocate(Of QueryClauseSyntax)()
+            Dim savedTypeOfIntoAllowed = _typeOfIntoAllowed
+            _typeOfIntoAllowed = False
 
             operators.Add(ParseFromOperator(fromKw))
             ParseMoreQueryOperators(operators)
 
+            _typeOfIntoAllowed = savedTypeOfIntoAllowed
             Dim result = operators.ToList
             Me._pool.Free(operators)
 
@@ -1188,9 +1191,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(AggregateKw IsNot Nothing)
 
             Dim operators = Me._pool.Allocate(Of QueryClauseSyntax)()
+            Dim savedTypeOfIntoAllowed = _typeOfIntoAllowed
+            _typeOfIntoAllowed = False
 
             operators.Add(ParseAggregateClause(AggregateKw))
 
+            _typeOfIntoAllowed = savedTypeOfIntoAllowed
             Dim result = operators.ToList
             Me._pool.Free(operators)
 

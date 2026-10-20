@@ -18295,6 +18295,117 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents a type test that names its result, such as TypeOf value Is Customer
+    ''' Into c.
+    ''' </summary>
+    Friend NotInheritable Class TypeOfIntoExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _typeOfExpression as ExpressionSyntax
+        Friend ReadOnly _intoKeyword as KeywordSyntax
+        Friend ReadOnly _identifier as IdentifierTokenSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, typeOfExpression As ExpressionSyntax, intoKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(typeOfExpression)
+            Me._typeOfExpression = typeOfExpression
+            AdjustFlagsAndWidth(intoKeyword)
+            Me._intoKeyword = intoKeyword
+            AdjustFlagsAndWidth(identifier)
+            Me._identifier = identifier
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, typeOfExpression As ExpressionSyntax, intoKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(typeOfExpression)
+            Me._typeOfExpression = typeOfExpression
+            AdjustFlagsAndWidth(intoKeyword)
+            Me._intoKeyword = intoKeyword
+            AdjustFlagsAndWidth(identifier)
+            Me._identifier = identifier
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), typeOfExpression As ExpressionSyntax, intoKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(typeOfExpression)
+            Me._typeOfExpression = typeOfExpression
+            AdjustFlagsAndWidth(intoKeyword)
+            Me._intoKeyword = intoKeyword
+            AdjustFlagsAndWidth(identifier)
+            Me._identifier = identifier
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeOfIntoExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The TypeOf ... Is test.
+        ''' </summary>
+        Friend ReadOnly Property TypeOfExpression As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._typeOfExpression
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The Into keyword.
+        ''' </summary>
+        Friend ReadOnly Property IntoKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._intoKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The name of the local that holds the tested value as the tested type.
+        ''' </summary>
+        Friend ReadOnly Property Identifier As InternalSyntax.IdentifierTokenSyntax
+            Get
+                Return Me._identifier
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._typeOfExpression
+                Case 1
+                    Return Me._intoKeyword
+                Case 2
+                    Return Me._identifier
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new TypeOfIntoExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _typeOfExpression, _intoKeyword, _identifier)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new TypeOfIntoExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _typeOfExpression, _intoKeyword, _identifier)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitTypeOfIntoExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a GetXmlNamespace expression.
     ''' </summary>
     Friend NotInheritable Class GetXmlNamespaceExpressionSyntax
@@ -31792,6 +31903,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
         End Function
+        Public Overridable Function VisitTypeOfIntoExpression(ByVal node As TypeOfIntoExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
         Public Overridable Function VisitGetXmlNamespaceExpression(ByVal node As GetXmlNamespaceExpressionSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
@@ -34911,6 +35026,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New TypeOfListExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newTypeOfKeyword, newExpression, newOperatorToken, newOpenBraceToken, newTypes.Node, newCloseBraceToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeOfIntoExpression(ByVal node As TypeOfIntoExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newTypeOfExpression = DirectCast(Visit(node._typeOfExpression), ExpressionSyntax)
+            If node._typeOfExpression IsNot newTypeOfExpression Then anyChanges = True
+            Dim newIntoKeyword = DirectCast(Visit(node.IntoKeyword), KeywordSyntax)
+            If node._intoKeyword IsNot newIntoKeyword Then anyChanges = True
+            Dim newIdentifier = DirectCast(Visit(node.Identifier), IdentifierTokenSyntax)
+            If node._identifier IsNot newIdentifier Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeOfIntoExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newTypeOfExpression, newIntoKeyword, newIdentifier)
             Else
                 Return node
             End If
@@ -45097,6 +45229,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
             Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
             Return New TypeOfListExpressionSyntax(kind, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test that names its result, such as TypeOf value Is Customer
+        ''' Into c.
+        ''' </summary>
+        ''' <param name="typeOfExpression">
+        ''' The TypeOf ... Is test.
+        ''' </param>
+        ''' <param name="intoKeyword">
+        ''' The Into keyword.
+        ''' </param>
+        ''' <param name="identifier">
+        ''' The name of the local that holds the tested value as the tested type.
+        ''' </param>
+        Friend Shared Function TypeOfIntoExpression(typeOfExpression As ExpressionSyntax, intoKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax) As TypeOfIntoExpressionSyntax
+            Debug.Assert(typeOfExpression IsNot Nothing)
+            Debug.Assert(intoKeyword IsNot Nothing AndAlso intoKeyword.Kind = SyntaxKind.IntoKeyword)
+            Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.TypeOfIntoExpression, typeOfExpression, intoKeyword, identifier, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, TypeOfIntoExpressionSyntax)
+            End If
+
+            Dim result = New TypeOfIntoExpressionSyntax(SyntaxKind.TypeOfIntoExpression, typeOfExpression, intoKeyword, identifier)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 
@@ -57838,6 +58003,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openBraceToken IsNot Nothing AndAlso openBraceToken.Kind = SyntaxKind.OpenBraceToken)
             Debug.Assert(closeBraceToken IsNot Nothing AndAlso closeBraceToken.Kind = SyntaxKind.CloseBraceToken)
             Return New TypeOfListExpressionSyntax(kind, typeOfKeyword, expression, operatorToken, openBraceToken, types.Node, closeBraceToken, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a type test that names its result, such as TypeOf value Is Customer
+        ''' Into c.
+        ''' </summary>
+        ''' <param name="typeOfExpression">
+        ''' The TypeOf ... Is test.
+        ''' </param>
+        ''' <param name="intoKeyword">
+        ''' The Into keyword.
+        ''' </param>
+        ''' <param name="identifier">
+        ''' The name of the local that holds the tested value as the tested type.
+        ''' </param>
+        Friend Function TypeOfIntoExpression(typeOfExpression As ExpressionSyntax, intoKeyword As KeywordSyntax, identifier As IdentifierTokenSyntax) As TypeOfIntoExpressionSyntax
+            Debug.Assert(typeOfExpression IsNot Nothing)
+            Debug.Assert(intoKeyword IsNot Nothing AndAlso intoKeyword.Kind = SyntaxKind.IntoKeyword)
+            Debug.Assert(identifier IsNot Nothing AndAlso identifier.Kind = SyntaxKind.IdentifierToken)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.TypeOfIntoExpression, typeOfExpression, intoKeyword, identifier, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, TypeOfIntoExpressionSyntax)
+            End If
+
+            Dim result = New TypeOfIntoExpressionSyntax(SyntaxKind.TypeOfIntoExpression, typeOfExpression, intoKeyword, identifier, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 

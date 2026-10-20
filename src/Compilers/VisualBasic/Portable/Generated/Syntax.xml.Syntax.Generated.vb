@@ -24814,6 +24814,139 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents a type test that names its result, such as TypeOf value Is Customer
+    ''' Into c.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.TypeOfIntoExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class TypeOfIntoExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _typeOfExpression as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), typeOfExpression As ExpressionSyntax, intoKeyword As InternalSyntax.KeywordSyntax, identifier As InternalSyntax.IdentifierTokenSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfIntoExpressionSyntax(kind, errors, annotations, DirectCast(typeOfExpression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), intoKeyword, identifier), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The TypeOf ... Is test.
+        ''' </summary>
+        Public ReadOnly Property TypeOfExpression As ExpressionSyntax
+            Get
+                Return GetRedAtZero(_typeOfExpression)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the TypeOfExpression property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithTypeOfExpression(typeOfExpression as ExpressionSyntax) As TypeOfIntoExpressionSyntax
+            return Update(typeOfExpression, Me.IntoKeyword, Me.Identifier)
+        End Function
+
+        ''' <summary>
+        ''' The Into keyword.
+        ''' </summary>
+        Public ReadOnly Property IntoKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfIntoExpressionSyntax)._intoKeyword, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the IntoKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIntoKeyword(intoKeyword as SyntaxToken) As TypeOfIntoExpressionSyntax
+            return Update(Me.TypeOfExpression, intoKeyword, Me.Identifier)
+        End Function
+
+        ''' <summary>
+        ''' The name of the local that holds the tested value as the tested type.
+        ''' </summary>
+        Public ReadOnly Property Identifier As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeOfIntoExpressionSyntax)._identifier, Me.GetChildPosition(2), Me.GetChildIndex(2))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Identifier property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithIdentifier(identifier as SyntaxToken) As TypeOfIntoExpressionSyntax
+            return Update(Me.TypeOfExpression, Me.IntoKeyword, identifier)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._typeOfExpression
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.TypeOfExpression
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitTypeOfIntoExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitTypeOfIntoExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="typeOfExpression">
+        ''' The value for the TypeOfExpression property.
+        ''' </param>
+        ''' <param name="intoKeyword">
+        ''' The value for the IntoKeyword property.
+        ''' </param>
+        ''' <param name="identifier">
+        ''' The value for the Identifier property.
+        ''' </param>
+        Public Function Update(typeOfExpression As ExpressionSyntax, intoKeyword As SyntaxToken, identifier As SyntaxToken) As TypeOfIntoExpressionSyntax
+            If typeOfExpression IsNot Me.TypeOfExpression OrElse intoKeyword <> Me.IntoKeyword OrElse identifier <> Me.Identifier Then
+                Dim newNode = SyntaxFactory.TypeOfIntoExpression(typeOfExpression, intoKeyword, identifier)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a GetXmlNamespace expression.
     ''' </summary>
     ''' <remarks>
