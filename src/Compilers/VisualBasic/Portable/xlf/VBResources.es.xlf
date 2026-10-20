@@ -187,6 +187,11 @@
         <target state="new">'End Extension' expected.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_FieldInPropertyWithParameters">
+        <source>'Field' cannot be used in a property with parameters, because the property would need storage for each argument.</source>
+        <target state="new">'Field' cannot be used in a property with parameters, because the property would need storage for each argument.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_FieldInReadOnlyStructure">
         <source>Instance fields in a ReadOnly structure must be ReadOnly.</source>
         <target state="new">Instance fields in a ReadOnly structure must be ReadOnly.</target>

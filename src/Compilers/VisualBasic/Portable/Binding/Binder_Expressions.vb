@@ -2603,6 +2603,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            If Not result.HasSymbol AndAlso arity = 0 AndAlso node.Kind = SyntaxKind.IdentifierName Then
+                ' Field in a property body is its storage, ahead of declaring an implicit local named Field.
+                Dim storage = TryBindPropertyFieldStorage(DirectCast(node, IdentifierNameSyntax), diagnostics)
+                If storage IsNot Nothing Then
+                    result.Free()
+                    Return storage
+                End If
+            End If
+
             If Not result.IsGoodOrAmbiguous AndAlso
                Me.ImplicitVariableDeclarationAllowed AndAlso
                Not Me.AllImplicitVariableDeclarationsAreHandled AndAlso

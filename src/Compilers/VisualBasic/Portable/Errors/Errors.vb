@@ -1855,8 +1855,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' 37394 was the temporary error for Async Iterator functions before their lowering existed.
         ERR_PatternVariableNotOnlyClause = 37395
         ERR_PatternVariableNotAllowedHere = 37396
+        ERR_FieldInPropertyWithParameters = 37397
 
-        ERR_NextAvailable = 37397
+        ERR_NextAvailable = 37398
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

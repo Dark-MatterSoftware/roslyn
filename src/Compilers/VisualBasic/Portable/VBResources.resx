@@ -6007,6 +6007,9 @@
   <data name="ERR_PatternVariableNotOnlyClause" xml:space="preserve">
     <value>A 'Case' whose type test names its result with 'Into' cannot have other clauses.</value>
   </data>
+  <data name="ERR_FieldInPropertyWithParameters" xml:space="preserve">
+    <value>'Field' cannot be used in a property with parameters, because the property would need storage for each argument.</value>
+  </data>
   <data name="ERR_PatternVariableNotAllowedHere" xml:space="preserve">
     <value>'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.</value>
   </data>

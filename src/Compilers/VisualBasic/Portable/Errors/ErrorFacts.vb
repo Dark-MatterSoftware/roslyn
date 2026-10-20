@@ -1608,6 +1608,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_BadAsyncIteratorReturn,
                      ERRID.ERR_PatternVariableNotOnlyClause,
                      ERRID.ERR_PatternVariableNotAllowedHere,
+                     ERRID.ERR_FieldInPropertyWithParameters,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

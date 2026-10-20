@@ -3713,6 +3713,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If propertySymbol.AssociatedField IsNot Nothing Then
                 AddMember(propertySymbol.AssociatedField, binder, members, omitDiagnostics:=False)
             End If
+            If propertySymbol.FieldKeywordStorage IsNot Nothing Then
+                AddMember(propertySymbol.FieldKeywordStorage, binder, members, omitDiagnostics:=False)
+            End If
         End Sub
 
         Private Sub AddEventAndAccessors(eventSymbol As SourceEventSymbol,

@@ -37,6 +37,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private _getMethod As MethodSymbol
         Private _setMethod As MethodSymbol
         Private _backingField As FieldSymbol
+        Private _fieldKeywordStorage As FieldSymbol
         Private _lazyDocComment As String
         Private _lazyExpandedDocComment As String
         Private _lazyMeParameter As ParameterSymbol
@@ -207,6 +208,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Not prop.IsPartial Then
                     diagnostics.Add(ERRID.ERR_PropMustHaveGetSet, location)
                 End If
+            End If
+
+            If blockSyntaxOpt IsNot Nothing AndAlso Not prop.IsPartial AndAlso UsesFieldKeywordStorage(syntax, blockSyntaxOpt, containingType) Then
+                ' A Get or Set body that names Field reads and writes storage that the compiler declares.
+                prop._fieldKeywordStorage = New SynthesizedPropertyBackingFieldSymbol(prop, "<" & prop._name & ">k__BackingField", isShared:=prop.IsShared)
             End If
 
             If blockSyntaxOpt Is Nothing AndAlso Not isPartialDefinition Then
@@ -1143,6 +1149,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return _backingField
             End Get
         End Property
+
+        ''' <summary>
+        ''' The storage that Field reaches in the Get and Set bodies of this property, or Nothing.
+        ''' </summary>
+        Friend ReadOnly Property FieldKeywordStorage As FieldSymbol
+            Get
+                Return _fieldKeywordStorage
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Whether the accessor bodies name Field where storage can be declared for it: on vbnext, in a property
+        ''' without parameters, in a type that declares no member named Field. Binding decides what each use means.
+        ''' </summary>
+        Private Shared Function UsesFieldKeywordStorage(syntax As PropertyStatementSyntax, blockSyntax As PropertyBlockSyntax, containingType As SourceMemberContainerTypeSymbol) As Boolean
+            Dim options = TryCast(syntax.SyntaxTree.Options, VisualBasicParseOptions)
+            If options Is Nothing OrElse options.LanguageVersion < LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            If syntax.ParameterList IsNot Nothing AndAlso syntax.ParameterList.Parameters.Count > 0 Then
+                Return False
+            End If
+
+            If containingType.MemberNames.Contains(FieldKeywordName, CaseInsensitiveComparison.Comparer) Then
+                Return False
+            End If
+
+            For Each accessor In blockSyntax.Accessors
+                For Each identifierName As IdentifierNameSyntax In accessor.DescendantNodes().OfType(Of IdentifierNameSyntax)()
+                    If Not identifierName.Identifier.IsBracketed AndAlso CaseInsensitiveComparison.Equals(identifierName.Identifier.ValueText, FieldKeywordName) Then
+                        Return True
+                    End If
+                Next
+            Next
+
+            Return False
+        End Function
+
+        Friend Const FieldKeywordName As String = "Field"
 
         ''' <summary> 
         ''' Property declaration syntax node. 
