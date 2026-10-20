@@ -2927,7 +2927,29 @@ ProduceBoundNode:
                 ' A LOT of complexity in UseTwiceRewriter, which we would otherwise have around
                 ' the temps.
                 Debug.Assert(Not argumentIsDefaultValue OrElse argument.WasCompilerGenerated)
-                Dim adjustedArgument As BoundExpression = PassArgument(argument, conversion, candidateIsAProperty, conversionBack, targetType, param, diagnostics)
+                Dim adjustedArgument As BoundExpression
+
+                ' An interpolated string handler that reads other arguments of this call is bound with them.
+                Dim handlerArgumentNames As ImmutableArray(Of String) = Nothing
+                If Not argumentIsDefaultValue AndAlso Not candidateIsAProperty AndAlso
+                   argument.Kind = BoundKind.InterpolatedStringExpression AndAlso
+                   (conversion.Key And ConversionKind.InterpolatedString) = ConversionKind.InterpolatedString AndAlso
+                   targetType.IsInterpolatedStringHandlerType() Then
+                    handlerArgumentNames = GetInterpolatedStringHandlerArgumentNames(param)
+                End If
+
+                If Not handlerArgumentNames.IsDefaultOrEmpty Then
+                    Dim candidateParameters = ArrayBuilder(Of ParameterSymbol).GetInstance(candidate.Candidate.ParameterCount)
+                    For i As Integer = 0 To candidate.Candidate.ParameterCount - 1
+                        candidateParameters.Add(candidate.Candidate.Parameters(i))
+                    Next
+
+                    adjustedArgument = BindInterpolatedStringHandlerArgument(DirectCast(argument, BoundInterpolatedStringExpression), param, paramIndex,
+                                                                             candidateParameters.ToImmutableAndFree(), candidate.Candidate.UnderlyingSymbol,
+                                                                             handlerArgumentNames, diagnostics)
+                Else
+                    adjustedArgument = PassArgument(argument, conversion, candidateIsAProperty, conversionBack, targetType, param, diagnostics)
+                End If
 
                 ' Keep SemanticModel happy.
                 If argumentIsDefaultValue AndAlso adjustedArgument IsNot argument Then

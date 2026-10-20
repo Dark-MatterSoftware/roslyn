@@ -61,7 +61,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(node.ConstructionOpt IsNot Nothing)
 
             Debug.Assert(targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_FormattableString)) OrElse
-                         targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_IFormattable)))
+                         targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_IFormattable)) OrElse
+                         targetType.IsInterpolatedStringHandlerType())
 
             ' We lower an interpolated string into an invocation of System.Runtime.CompilerServices.FormattableStringFactory.Create.
             ' For example, we translate the expression:

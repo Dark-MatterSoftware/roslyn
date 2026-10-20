@@ -2379,6 +2379,17 @@ ResolutionComplete:
         ) As ApplicabilityComparisonResult
             Debug.Assert(argument Is Nothing OrElse argument.Kind <> BoundKind.OmittedArgument)
 
+            ' On vbnext, a non-constant interpolated string prefers an interpolated string handler parameter, as in C#.
+            If argument IsNot Nothing AndAlso argument.Kind = BoundKind.InterpolatedStringExpression AndAlso
+               argument.ConstantValueOpt Is Nothing AndAlso
+               binder IsNot Nothing AndAlso binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Dim leftIsHandler = left.IsInterpolatedStringHandlerType()
+                Dim rightIsHandler = right.IsInterpolatedStringHandlerType()
+                If leftIsHandler <> rightIsHandler Then
+                    Return If(leftIsHandler, ApplicabilityComparisonResult.LeftIsMoreApplicable, ApplicabilityComparisonResult.RightIsMoreApplicable)
+                End If
+            End If
+
             ' §11.8.1.1 Applicability
             'Given a pair of parameters Mj and Nj that matches an argument Aj,
             'the type of Mj is considered more applicable than the type of Nj if one of the following conditions is true:

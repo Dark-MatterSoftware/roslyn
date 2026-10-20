@@ -24,6 +24,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WithRValueExpressionPlaceholder
         RValuePlaceholder
         LValuePlaceholder
+        InterpolatedStringArgumentPlaceholder
         Dup
         BadExpression
         BadStatement
@@ -523,6 +524,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(type As TypeSymbol) As BoundLValuePlaceholder
             If type IsNot Me.Type Then
                 Dim result = New BoundLValuePlaceholder(Me.Syntax, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundInterpolatedStringArgumentPlaceholder
+        Inherits BoundRValuePlaceholderBase
+
+        Public Sub New(syntax As SyntaxNode, argumentIndex As Integer, type As TypeSymbol, hasErrors As Boolean)
+            MyBase.New(BoundKind.InterpolatedStringArgumentPlaceholder, syntax, type, hasErrors)
+
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._ArgumentIndex = argumentIndex
+        End Sub
+
+        Public Sub New(syntax As SyntaxNode, argumentIndex As Integer, type As TypeSymbol)
+            MyBase.New(BoundKind.InterpolatedStringArgumentPlaceholder, syntax, type)
+
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._ArgumentIndex = argumentIndex
+        End Sub
+
+
+        Private ReadOnly _ArgumentIndex As Integer
+        Public ReadOnly Property ArgumentIndex As Integer
+            Get
+                Return _ArgumentIndex
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitInterpolatedStringArgumentPlaceholder(Me)
+        End Function
+
+        Public Function Update(argumentIndex As Integer, type As TypeSymbol) As BoundInterpolatedStringArgumentPlaceholder
+            If argumentIndex <> Me.ArgumentIndex OrElse type IsNot Me.Type Then
+                Dim result = New BoundInterpolatedStringArgumentPlaceholder(Me.Syntax, argumentIndex, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9352,9 +9395,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return visitor.VisitInterpolatedStringExpression(Me)
         End Function
 
-        Public Function Update(contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, type As TypeSymbol) As BoundInterpolatedStringExpression
-            If contents <> Me.Contents OrElse constructionOpt IsNot Me.ConstructionOpt OrElse type IsNot Me.Type Then
-                Dim result = New BoundInterpolatedStringExpression(Me.Syntax, contents, constructionOpt, Me.ConstantValueOpt, type, Me.HasErrors)
+        Public Function Update(contents As ImmutableArray(Of BoundNode), constructionOpt As BoundExpression, constantValueOpt As ConstantValue, type As TypeSymbol) As BoundInterpolatedStringExpression
+            If contents <> Me.Contents OrElse constructionOpt IsNot Me.ConstructionOpt OrElse constantValueOpt IsNot Me.ConstantValueOpt OrElse type IsNot Me.Type Then
+                Dim result = New BoundInterpolatedStringExpression(Me.Syntax, contents, constructionOpt, constantValueOpt, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9431,6 +9474,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitRValuePlaceholder(CType(node, BoundRValuePlaceholder), arg)
                 Case BoundKind.LValuePlaceholder
                     Return VisitLValuePlaceholder(CType(node, BoundLValuePlaceholder), arg)
+                Case BoundKind.InterpolatedStringArgumentPlaceholder
+                    Return VisitInterpolatedStringArgumentPlaceholder(CType(node, BoundInterpolatedStringArgumentPlaceholder), arg)
                 Case BoundKind.Dup
                     Return VisitDup(CType(node, BoundDup), arg)
                 Case BoundKind.BadExpression
@@ -9803,6 +9848,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitLValuePlaceholder(node As BoundLValuePlaceholder, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitInterpolatedStringArgumentPlaceholder(node As BoundInterpolatedStringArgumentPlaceholder, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10517,6 +10566,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Me.DefaultVisit(node)
         End Function
 
+        Public Overridable Function VisitInterpolatedStringArgumentPlaceholder(node As BoundInterpolatedStringArgumentPlaceholder) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
         Public Overridable Function VisitDup(node As BoundDup) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
@@ -11228,6 +11281,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Function VisitLValuePlaceholder(node As BoundLValuePlaceholder) As BoundNode
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitInterpolatedStringArgumentPlaceholder(node As BoundInterpolatedStringArgumentPlaceholder) As BoundNode
             Return Nothing
         End Function
 
@@ -12195,6 +12252,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitLValuePlaceholder(node As BoundLValuePlaceholder) As BoundNode
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(type)
+        End Function
+
+        Public Overrides Function VisitInterpolatedStringArgumentPlaceholder(node As BoundInterpolatedStringArgumentPlaceholder) As BoundNode
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(node.ArgumentIndex, type)
         End Function
 
         Public Overrides Function VisitDup(node As BoundDup) As BoundNode
@@ -13249,7 +13311,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim contents As ImmutableArray(Of BoundNode) = Me.VisitList(node.Contents)
             Dim constructionOpt As BoundExpression = node.ConstructionOpt
             Dim type as TypeSymbol = Me.VisitType(node.Type)
-            Return node.Update(contents, constructionOpt, type)
+            Return node.Update(contents, constructionOpt, node.ConstantValueOpt, type)
         End Function
 
         Public Overrides Function VisitInterpolation(node As BoundInterpolation) As BoundNode
@@ -13311,6 +13373,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitLValuePlaceholder(node As BoundLValuePlaceholder, arg As Object) As TreeDumperNode
             Return New TreeDumperNode("lValuePlaceholder", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitInterpolatedStringArgumentPlaceholder(node As BoundInterpolatedStringArgumentPlaceholder, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("interpolatedStringArgumentPlaceholder", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("argumentIndex", node.ArgumentIndex, Nothing),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function
@@ -14727,6 +14796,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New TreeDumperNode("interpolatedStringExpression", Nothing, New TreeDumperNode() {
                 New TreeDumperNode("contents", Nothing, From x In node.Contents Select Visit(x, Nothing)),
                 New TreeDumperNode("constructionOpt", Nothing, new TreeDumperNode() {Visit(node.ConstructionOpt, Nothing)}),
+                New TreeDumperNode("constantValueOpt", node.ConstantValueOpt, Nothing),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

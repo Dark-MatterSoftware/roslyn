@@ -106,6 +106,14 @@
     <Node Name="BoundLValuePlaceholder" Base="BoundLValuePlaceholderBase" HasValidate="true">
     </Node>
 
+    <!--
+    Stands for the receiver (ArgumentIndex -1) or an argument of the call whose interpolated string
+    handler constructor reads that value. Local rewriting replaces it with the temporary that holds the value.
+    -->
+    <Node Name="BoundInterpolatedStringArgumentPlaceholder" Base="BoundRValuePlaceholderBase">
+      <Field Name="ArgumentIndex" Type="Integer"/>
+    </Node>
+
     <!-- only used by codegen -->
     <Node Name="BoundDup" Base="BoundExpression">
       <!-- when duplicating a local or parameter, must remember if the original ref kind was a reference -->

@@ -1316,6 +1316,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' True for a class or structure marked with System.Runtime.CompilerServices.InterpolatedStringHandlerAttribute.
+        ''' </summary>
+        <Extension>
+        Friend Function IsInterpolatedStringHandlerType(type As TypeSymbol) As Boolean
+            Dim namedType = TryCast(type, NamedTypeSymbol)
+            If namedType Is Nothing OrElse (namedType.TypeKind <> TypeKind.Class AndAlso namedType.TypeKind <> TypeKind.Structure) Then
+                Return False
+            End If
+
+            For Each attribute In namedType.GetAttributes()
+                If attribute.IsTargetAttribute(AttributeDescription.InterpolatedStringHandlerAttribute) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        ''' <summary>
         ''' The members a SyncLock on a System.Threading.Lock uses: a public EnterScope that returns the nested
         ''' public Scope structure, and the structure's public Dispose. Keep consistent with C# LockBinder.TryFindLockTypeInfo.
         ''' </summary>

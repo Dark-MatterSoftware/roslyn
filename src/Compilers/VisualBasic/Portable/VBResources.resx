@@ -5977,4 +5977,7 @@
   <data name="ERR_CompactMemberKeyword" xml:space="preserve">
     <value>A compact property body starts with '= Get', a compact Function body with '= Return', and a compact Sub body with '= Call'.</value>
   </data>
+  <data name="ERR_InterpolatedStringHandlerArgument" xml:space="preserve">
+    <value>The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</value>
+  </data>
 </root>

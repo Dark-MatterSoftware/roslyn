@@ -1237,6 +1237,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return ConversionKind.InterpolatedString
             End If
 
+            ' On vbnext, an interpolated string also converts to an interpolated string handler type.
+            If binder.Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso destination.IsInterpolatedStringHandlerType() Then
+                Return ConversionKind.InterpolatedString
+            End If
+
             Return Nothing
 
         End Function

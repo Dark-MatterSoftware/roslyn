@@ -177,6 +177,11 @@
         <target state="new">An index from the end can only be used as an array index.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_InterpolatedStringHandlerArgument">
+        <source>The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</source>
+        <target state="new">The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_InvalidExperimentalDiagID">
         <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
         <target state="translated">L'argomento diagnosticId dell'attributo 'Experimental' deve essere un identificatore valido</target>

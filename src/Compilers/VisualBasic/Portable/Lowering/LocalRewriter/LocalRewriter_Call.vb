@@ -16,6 +16,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitCall(node As BoundCall) As BoundNode
             Debug.Assert(Not node.IsConstant, "Constant calls should become literals by now")
 
+            Dim withHandlerArguments = SpillInterpolatedStringHandlerArguments(node)
+            If withHandlerArguments IsNot Nothing Then
+                Return VisitExpression(withHandlerArguments)
+            End If
+
             Dim receiver As BoundExpression = node.ReceiverOpt
             Dim method As MethodSymbol = node.Method
             Dim arguments As ImmutableArray(Of BoundExpression) = node.Arguments

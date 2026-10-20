@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -154,6 +154,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                                    factoryMethodName:="Format",
                                                                                    targetType:=node.Type,
                                                                                    diagnostics),
+                               node.ConstantValueOpt,
                                node.Type)
         End Function
 
@@ -185,7 +186,283 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                                    factoryMethodName:="Create",
                                                                                    targetType,
                                                                                    diagnostics),
+                               node.ConstantValueOpt,
                                node.Type)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, an interpolated string converted to an interpolated string handler type becomes
+        ''' 
+        '''     handler = New Handler(literalLength, formattedCount, [handlerArguments], [shouldAppend])
+        '''     [shouldAppend AndAlso] handler.AppendLiteral("...") [AndAlso] handler.AppendFormatted(value, [alignment], [format]) ...
+        '''     handler
+        ''' 
+        ''' The Append calls stop at the first one that returns False, when they return Boolean.
+        ''' </summary>
+        Friend Function BindUnconvertedInterpolatedStringToHandler(
+            node As BoundInterpolatedStringExpression,
+            handlerType As NamedTypeSymbol,
+            handlerArguments As ImmutableArray(Of BoundExpression),
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim syntax = node.Syntax
+            Dim construction = TryBindInterpolatedStringHandler(node, handlerType, handlerArguments, diagnostics)
+            If construction Is Nothing Then
+                ReportDiagnostic(diagnostics, syntax, ErrorFactory.ErrorInfo(ERRID.ERR_InterpolatedStringFactoryError, handlerType.Name, "AppendFormatted"))
+            End If
+
+            Return node.Update(node.Contents, constructionOpt:=construction, node.ConstantValueOpt, node.Type)
+        End Function
+
+        Private Function TryBindInterpolatedStringHandler(
+            node As BoundInterpolatedStringExpression,
+            handlerType As NamedTypeSymbol,
+            handlerArguments As ImmutableArray(Of BoundExpression),
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim syntax = node.Syntax
+            If node.HasErrors OrElse node.Contents.OfType(Of BoundInterpolation)().Any(Function(interpolation) interpolation.HasErrors) Then
+                Return Nothing
+            End If
+
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
+            Dim booleanType = GetSpecialType(SpecialType.System_Boolean, syntax, diagnostics)
+
+            Dim literalLength = 0
+            Dim formattedCount = 0
+            For Each item In node.Contents
+                If item.Kind = BoundKind.Literal Then
+                    literalLength += UnescapeInterpolatedStringText(DirectCast(item, BoundLiteral).Value.StringValue).Length
+                Else
+                    formattedCount += 1
+                End If
+            Next
+
+            Dim handlerLocal = New SynthesizedLocal(ContainingMember, handlerType, SynthesizedLocalKind.LoweringTemp)
+            Dim shouldAppendLocal = New SynthesizedLocal(ContainingMember, booleanType, SynthesizedLocalKind.LoweringTemp)
+
+            Dim constructorArguments = ArrayBuilder(Of BoundExpression).GetInstance()
+            constructorArguments.Add(New BoundLiteral(syntax, ConstantValue.Create(literalLength), int32Type).MakeCompilerGenerated())
+            constructorArguments.Add(New BoundLiteral(syntax, ConstantValue.Create(formattedCount), int32Type).MakeCompilerGenerated())
+            constructorArguments.AddRange(handlerArguments)
+
+            ' A constructor may end with a ByRef Boolean that says whether to append at all.
+            Dim probe = BindingDiagnosticBag.GetInstance(diagnostics)
+            Dim withShouldAppend = constructorArguments.ToImmutable().Add(New BoundLocal(syntax, shouldAppendLocal, isLValue:=True, type:=booleanType).MakeCompilerGenerated())
+            Dim creation = BindObjectCreationExpression(syntax, handlerType, withShouldAppend, probe)
+            Dim usesShouldAppend = Not creation.HasErrors
+            If usesShouldAppend Then
+                diagnostics.AddRangeAndFree(probe)
+            Else
+                probe.Free()
+                creation = BindObjectCreationExpression(syntax, handlerType, constructorArguments.ToImmutable(), diagnostics)
+            End If
+
+            constructorArguments.Free()
+            If creation.HasErrors Then
+                Return Nothing
+            End If
+
+            Dim appends = ArrayBuilder(Of BoundExpression).GetInstance()
+            Dim appendsReturnBoolean As Boolean? = Nothing
+
+            For Each item In node.Contents
+                Dim append As BoundExpression
+                If item.Kind = BoundKind.Literal Then
+                    Dim text = UnescapeInterpolatedStringText(DirectCast(item, BoundLiteral).Value.StringValue)
+                    If text.Length = 0 Then
+                        Continue For
+                    End If
+
+                    append = BindHandlerAppend(syntax, NewHandlerReference(syntax, handlerLocal), "AppendLiteral",
+                                               ImmutableArray.Create(Of BoundExpression)(CreateStringLiteral(item.Syntax, text, compilerGenerated:=True, diagnostics)),
+                                               Nothing, diagnostics)
+                Else
+                    Dim interpolation = DirectCast(item, BoundInterpolation)
+                    Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance()
+                    Dim names = ArrayBuilder(Of String).GetInstance()
+                    arguments.Add(interpolation.Expression)
+                    names.Add(Nothing)
+                    If interpolation.AlignmentOpt IsNot Nothing Then
+                        arguments.Add(interpolation.AlignmentOpt)
+                        names.Add("alignment")
+                    End If
+
+                    If interpolation.FormatStringOpt IsNot Nothing Then
+                        arguments.Add(interpolation.FormatStringOpt)
+                        names.Add("format")
+                    End If
+
+                    Dim argumentNames = If(names.Count > 1, names.ToImmutable(), Nothing)
+                    names.Free()
+                    append = BindHandlerAppend(interpolation.Syntax, NewHandlerReference(syntax, handlerLocal), "AppendFormatted", arguments.ToImmutableAndFree(), argumentNames, diagnostics)
+                End If
+
+                If append Is Nothing Then
+                    appends.Free()
+                    Return Nothing
+                End If
+
+                Dim returnsBoolean = append.Type IsNot Nothing AndAlso append.Type.SpecialType = SpecialType.System_Boolean
+                If appendsReturnBoolean.HasValue AndAlso appendsReturnBoolean.Value <> returnsBoolean Then
+                    appends.Free()
+                    Return Nothing
+                End If
+
+                appendsReturnBoolean = returnsBoolean
+                appends.Add(append)
+            Next
+
+            Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+            sideEffects.Add(New BoundAssignmentOperator(syntax, NewHandlerReference(syntax, handlerLocal), creation, suppressObjectClone:=True, type:=handlerType).MakeCompilerGenerated())
+
+            If appends.Count > 0 Then
+                Dim condition As BoundExpression = Nothing
+                If appendsReturnBoolean.Value Then
+                    For Each append In appends
+                        condition = If(condition Is Nothing, append, MakeAndAlso(syntax, condition, append, booleanType))
+                    Next
+                ElseIf usesShouldAppend Then
+                    ' Sub calls become a Boolean sequence, so that shouldAppend can guard them with AndAlso.
+                    condition = New BoundSequence(syntax, ImmutableArray(Of LocalSymbol).Empty, appends.ToImmutable(),
+                                                  New BoundLiteral(syntax, ConstantValue.True, booleanType).MakeCompilerGenerated(), booleanType).MakeCompilerGenerated()
+                Else
+                    sideEffects.AddRange(appends)
+                End If
+
+                If condition IsNot Nothing Then
+                    If usesShouldAppend Then
+                        condition = MakeAndAlso(syntax, New BoundLocal(syntax, shouldAppendLocal, booleanType).MakeCompilerGenerated().MakeRValue(), condition, booleanType)
+                    End If
+
+                    sideEffects.Add(condition)
+                End If
+            End If
+
+            appends.Free()
+
+            Dim locals = If(usesShouldAppend,
+                            ImmutableArray.Create(Of LocalSymbol)(handlerLocal, shouldAppendLocal),
+                            ImmutableArray.Create(Of LocalSymbol)(handlerLocal))
+
+            Return New BoundSequence(syntax, locals, sideEffects.ToImmutableAndFree(),
+                                     New BoundLocal(syntax, handlerLocal, handlerType).MakeCompilerGenerated().MakeRValue(), handlerType).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' The names in InterpolatedStringHandlerArgumentAttribute on a parameter, or Default when it has none.
+        ''' </summary>
+        Friend Shared Function GetInterpolatedStringHandlerArgumentNames(parameter As ParameterSymbol) As ImmutableArray(Of String)
+            For Each attribute In parameter.GetAttributes()
+                If Not attribute.IsTargetAttribute(AttributeDescription.InterpolatedStringHandlerArgumentAttribute) Then
+                    Continue For
+                End If
+
+                Dim arguments = attribute.CommonConstructorArguments
+                If arguments.Length <> 1 OrElse arguments(0).IsNull Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                If arguments(0).Kind = TypedConstantKind.Array Then
+                    Return arguments(0).Values.SelectAsArray(Function(value) TryCast(value.Value, String))
+                End If
+
+                Return ImmutableArray.Create(TryCast(arguments(0).Value, String))
+            Next
+
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Binds an interpolated string passed to a handler parameter that names other arguments of the call, or ""
+        ''' for its instance, in InterpolatedStringHandlerArgumentAttribute. The handler constructor reads placeholders
+        ''' for those values, and local rewriting stores the values in temporaries that the call and the handler share.
+        ''' </summary>
+        Friend Function BindInterpolatedStringHandlerArgument(
+            argument As BoundInterpolatedStringExpression,
+            parameter As ParameterSymbol,
+            parameterIndex As Integer,
+            parameters As ImmutableArray(Of ParameterSymbol),
+            member As Symbol,
+            names As ImmutableArray(Of String),
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim handlerType = DirectCast(parameter.Type, NamedTypeSymbol)
+            Dim syntax = argument.Syntax
+            Dim placeholders = ArrayBuilder(Of BoundExpression).GetInstance(names.Length)
+            Dim method = TryCast(member, MethodSymbol)
+
+            For Each name In names
+                Dim placeholder As BoundExpression = Nothing
+
+                If name IsNot Nothing AndAlso name.Length = 0 Then
+                    ' The instance: the receiver of an instance method, or the extended value of an extension method.
+                    If method IsNot Nothing AndAlso method.MethodKind <> MethodKind.Constructor AndAlso
+                       (Not method.IsShared OrElse method.ReducedFrom IsNot Nothing) Then
+                        Dim receiverType = If(method.ReducedFrom IsNot Nothing, method.ReceiverType, method.ContainingType)
+                        placeholder = New BoundInterpolatedStringArgumentPlaceholder(syntax, -1, receiverType).MakeCompilerGenerated()
+                    End If
+                ElseIf name IsNot Nothing Then
+                    For index = 0 To parameterIndex - 1
+                        If CaseInsensitiveComparison.Equals(parameters(index).Name, name) AndAlso Not parameters(index).IsByRef Then
+                            placeholder = New BoundInterpolatedStringArgumentPlaceholder(syntax, index, parameters(index).Type).MakeCompilerGenerated()
+                            Exit For
+                        End If
+                    Next
+                End If
+
+                If placeholder Is Nothing Then
+                    ReportDiagnostic(diagnostics, syntax, ERRID.ERR_InterpolatedStringHandlerArgument, parameter.Name, If(name, "Nothing"))
+                    placeholders.Free()
+                    Return New BoundConversion(syntax, argument, ConversionKind.InterpolatedString, False, False, handlerType, hasErrors:=True)
+                End If
+
+                placeholders.Add(placeholder)
+            Next
+
+            Dim converted = BindUnconvertedInterpolatedStringToHandler(argument, handlerType, placeholders.ToImmutableAndFree(), diagnostics)
+            Return New BoundConversion(syntax, converted, ConversionKind.InterpolatedString, False, False, handlerType)
+        End Function
+
+        Private Function BindHandlerAppend(
+            syntax As SyntaxNode,
+            handler As BoundExpression,
+            methodName As String,
+            arguments As ImmutableArray(Of BoundExpression),
+            argumentNames As ImmutableArray(Of String),
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim lookup = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(lookup, handler.Type, methodName, 0, LookupOptions.MustBeInstance Or LookupOptions.MethodsOnly Or LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            diagnostics.Add(syntax, useSiteInfo)
+
+            If Not lookup.IsGood Then
+                lookup.Free()
+                Return Nothing
+            End If
+
+            Dim group = New BoundMethodGroup(syntax, Nothing, lookup.Symbols.ToDowncastedImmutable(Of MethodSymbol), lookup.Kind, handler, QualificationKind.QualifiedViaValue).MakeCompilerGenerated()
+            lookup.Free()
+
+            Dim result = BindInvocationExpression(syntax, syntax, TypeCharacter.None, group, arguments, argumentNames, diagnostics, callerInfoOpt:=Nothing).MakeCompilerGenerated()
+            Return If(result.HasErrors, Nothing, result)
+        End Function
+
+        Private Shared Function NewHandlerReference(syntax As SyntaxNode, handlerLocal As LocalSymbol) As BoundLocal
+            Return New BoundLocal(syntax, handlerLocal, isLValue:=True, type:=handlerLocal.Type).MakeCompilerGenerated()
+        End Function
+
+        Private Shared Function MakeAndAlso(syntax As SyntaxNode, left As BoundExpression, right As BoundExpression, booleanType As TypeSymbol) As BoundExpression
+            Return New BoundBinaryOperator(syntax, BinaryOperatorKind.AndAlso, left, right, checked:=False, type:=booleanType).MakeCompilerGenerated()
+        End Function
+
+        Private Shared Function UnescapeInterpolatedStringText(text As String) As String
+            Return text.Replace("{{", "{").Replace("}}", "}")
         End Function
 
         Private Function TryInvokeInterpolatedStringFactory(node As BoundInterpolatedStringExpression, factoryType As TypeSymbol, factoryMethodName As String, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression

@@ -2110,6 +2110,12 @@ DoneWithDiagnostics:
         Private Function ReclassifyInterpolatedStringExpression(conversionSemantics As SyntaxKind, tree As SyntaxNode, convKind As ConversionKind, isExplicit As Boolean, node As BoundInterpolatedStringExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
 
             If (convKind And ConversionKind.InterpolatedString) = ConversionKind.InterpolatedString Then
+                If targetType.IsInterpolatedStringHandlerType() Then
+                    Return New BoundConversion(tree,
+                                               BindUnconvertedInterpolatedStringToHandler(node, DirectCast(targetType, NamedTypeSymbol), ImmutableArray(Of BoundExpression).Empty, diagnostics),
+                                               ConversionKind.InterpolatedString, False, isExplicit, targetType)
+                End If
+
                 Debug.Assert(targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_IFormattable)) OrElse targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_FormattableString)))
                 Return New BoundConversion(tree,
                                            BindUnconvertedInterpolatedStringToFormattable(tree, node, targetType, diagnostics),
