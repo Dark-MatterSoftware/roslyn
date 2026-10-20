@@ -408,6 +408,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "Iterator"
                 Case SyntaxKind.YieldKeyword
                     Return "Yield"
+                Case SyntaxKind.InitOnlyKeyword
+                    Return "InitOnly"
+                Case SyntaxKind.RequiredKeyword
+                    Return "Required"
+                Case SyntaxKind.RecordKeyword
+                    Return "Record"
+                Case SyntaxKind.ExtensionKeyword
+                    Return "Extension"
                 Case SyntaxKind.ExclamationToken
                     Return "!"
                 Case SyntaxKind.AtToken
@@ -438,6 +446,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return "-"
                 Case SyntaxKind.DotToken
                     Return "."
+                Case SyntaxKind.DotDotToken
+                    Return ".."
                 Case SyntaxKind.SlashToken
                     Return "/"
                 Case SyntaxKind.ColonToken
@@ -484,6 +494,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return ">>="
                 Case SyntaxKind.QuestionToken
                     Return "?"
+                Case SyntaxKind.QuestionEqualsToken
+                    Return "?="
                 Case SyntaxKind.DoubleQuoteToken
                     Return """"
                 Case SyntaxKind.DollarSignDoubleQuoteToken

@@ -109,13 +109,29 @@ case_statement
 
 case_clause
   : else_case_clause
+  | list_case_clause
+  | positional_case_clause
+  | property_case_clause
   | range_case_clause
   | relational_case_clause
   | simple_case_clause
+  | type_case_clause
   ;
 
 else_case_clause
   : 'Else'
+  ;
+
+list_case_clause
+  : 'Is' '{' (expression (',' expression)*)? '}'
+  ;
+
+positional_case_clause
+  : 'Is' '(' (expression (',' expression)*)? ')'
+  ;
+
+property_case_clause
+  : '.' identifier_token 'Is'? ('=' | '<>' | '<' | '>' | '<=' | '>=') expression
   ;
 
 range_case_clause
@@ -159,6 +175,14 @@ simple_case_clause
   : expression
   ;
 
+type_case_clause
+  : 'Is' 'TypeOf' type '('? (expression (',' expression)*)? ')'? case_filter*
+  ;
+
+case_filter
+  : 'AndAlso' case_clause
+  ;
+
 catch_statement
   : 'Catch' identifier_name? simple_as_clause? catch_filter_clause?
   ;
@@ -178,6 +202,8 @@ declaration_statement
   | enum_member_declaration
   | enum_statement
   | event_block
+  | extension_block
+  | extension_statement
   | field_declaration
   | imports_statement
   | incomplete_member
@@ -197,6 +223,7 @@ end_block_statement
   | end_class_statement
   | end_enum_statement
   | end_event_statement
+  | end_extension_statement
   | end_function_statement
   | end_get_statement
   | end_if_statement
@@ -232,6 +259,10 @@ end_enum_statement
 
 end_event_statement
   : 'End' 'Event'
+  ;
+
+end_extension_statement
+  : 'End' 'Extension'
   ;
 
 end_function_statement
@@ -484,6 +515,14 @@ set_accessor_block
   : accessor_statement statement* end_set_statement
   ;
 
+extension_block
+  : extension_statement statement* end_extension_statement
+  ;
+
+extension_statement
+  : 'Extension' parameter_list
+  ;
+
 field_declaration
   : attribute_list* modifier* variable_declarator (',' variable_declarator)*
   ;
@@ -506,7 +545,7 @@ implements_statement
   ;
 
 inherits_statement
-  : 'Inherits' type (',' type)*
+  : 'Inherits' type (',' type)* argument_list?
   ;
 
 method_base
@@ -531,13 +570,15 @@ declare_function_statement
   ;
 
 literal_expression
-  : 'False'
+  : 'Default'
+  | 'False'
   | 'Nothing'
   | 'True'
   | character_literal_token
   | date_literal_token
   | decimal_literal_token
   | floating_literal_token
+  | guid_literal_token
   | integer_literal_token
   | string_literal_token
   ;
@@ -627,7 +668,7 @@ method_statement
   ;
 
 function_statement
-  : attribute_list* modifier* 'Function' identifier_token type_parameter_list? parameter_list? simple_as_clause? handles_clause? implements_clause?
+  : attribute_list* modifier* 'Function' identifier_token type_parameter_list? parameter_list? simple_as_clause? handles_clause? implements_clause? '='?
   ;
 
 handles_clause
@@ -659,7 +700,7 @@ with_events_property_event_container
   ;
 
 sub_statement
-  : attribute_list* modifier* 'Sub' identifier_token type_parameter_list? parameter_list? simple_as_clause? handles_clause? implements_clause?
+  : attribute_list* modifier* 'Sub' identifier_token type_parameter_list? parameter_list? simple_as_clause? handles_clause? implements_clause? '='?
   ;
 
 operator_statement
@@ -667,7 +708,7 @@ operator_statement
   ;
 
 property_statement
-  : attribute_list* modifier* 'Property' identifier_token parameter_list? as_clause? equals_value? implements_clause?
+  : attribute_list* modifier* 'Property' identifier_token parameter_list? as_clause? equals_value? implements_clause? '='?
   ;
 
 sub_new_statement
@@ -726,7 +767,7 @@ class_block
   ;
 
 class_statement
-  : attribute_list* modifier* 'Class' identifier_token type_parameter_list?
+  : attribute_list* modifier* 'Class' identifier_token type_parameter_list? parameter_list?
   ;
 
 interface_block
@@ -734,7 +775,7 @@ interface_block
   ;
 
 interface_statement
-  : attribute_list* modifier* 'Interface' identifier_token type_parameter_list?
+  : attribute_list* modifier* 'Interface' identifier_token type_parameter_list? parameter_list?
   ;
 
 module_block
@@ -742,7 +783,7 @@ module_block
   ;
 
 module_statement
-  : attribute_list* modifier* 'Module' identifier_token type_parameter_list?
+  : attribute_list* modifier* 'Module' identifier_token type_parameter_list? parameter_list?
   ;
 
 structure_block
@@ -750,7 +791,7 @@ structure_block
   ;
 
 structure_statement
-  : attribute_list* modifier* 'Structure' identifier_token type_parameter_list?
+  : attribute_list* modifier* 'Structure' identifier_token type_parameter_list? parameter_list?
   ;
 
 type_statement
@@ -817,6 +858,7 @@ executable_statement
   | sync_lock_block
   | throw_statement
   | try_block
+  | tuple_deconstruction_statement
   | using_block
   | while_block
   | with_block
@@ -837,7 +879,7 @@ remove_handler_statement
   ;
 
 assignment_statement
-  : expression ('=' | '+=' | '-=' | '*=' | '/=' | '\\=' | '^=' | '<<=' | '>>=' | '&=') expression
+  : expression ('=' | '+=' | '-=' | '*=' | '/=' | '\\=' | '^=' | '<<=' | '>>=' | '&=' | '?=') expression
   ;
 
 call_statement
@@ -956,7 +998,7 @@ for_each_block
   ;
 
 for_each_statement
-  : 'For' 'Each' (expression | variable_declarator) 'In' expression
+  : 'For' 'Each' 'ByRef'? (expression | variable_declarator) 'With'? identifier_token? 'In' expression
   ;
 
 go_to_statement
@@ -1132,6 +1174,10 @@ finally_statement
   : 'Finally'
   ;
 
+tuple_deconstruction_statement
+  : modifier+ '(' modified_identifier (',' modified_identifier)* ')' equals_value
+  ;
+
 using_block
   : using_statement statement* end_using_statement
   ;
@@ -1153,7 +1199,7 @@ with_block
   ;
 
 with_statement
-  : 'With' expression
+  : 'With' 'Dim'? modified_identifier? simple_as_clause? '='? expression
   ;
 
 yield_statement
@@ -1171,6 +1217,7 @@ expression
   | binary_conditional_expression
   | binary_expression
   | cast_expression
+  | collection_expression
   | collection_initializer
   | conditional_access_expression
   | event_container
@@ -1189,11 +1236,15 @@ expression
   | parenthesized_expression
   | predefined_cast_expression
   | query_expression
+  | range_expression
+  | select_case_expression
   | ternary_conditional_expression
   | tuple_expression
   | type
   | type_of_expression
+  | type_of_list_expression
   | unary_expression
+  | with_expression
   | xml_member_access_expression
   | xml_node
   ;
@@ -1358,6 +1409,10 @@ direct_cast_expression
 
 try_cast_expression
   : 'TryCast' '(' expression ',' type ')'
+  ;
+
+collection_expression
+  : '(' (expression (',' expression)*)? ')'
   ;
 
 conditional_access_expression
@@ -1620,6 +1675,18 @@ where_clause
   : 'Where' expression
   ;
 
+range_expression
+  : expression? '..' expression?
+  ;
+
+select_case_expression
+  : 'Select' 'Case'? expression select_case_arm* 'End' 'Select'
+  ;
+
+select_case_arm
+  : case_statement expression
+  ;
+
 ternary_conditional_expression
   : 'If' '(' expression ',' expression ',' expression ')'
   ;
@@ -1641,8 +1708,22 @@ type_of_is_not_expression
   : 'TypeOf' expression 'IsNot' type
   ;
 
+type_of_list_expression
+  : type_of_is_list_expression
+  | type_of_is_not_list_expression
+  ;
+
+type_of_is_list_expression
+  : 'TypeOf' expression 'Is' '{' (type (',' type)*)? '}'
+  ;
+
+type_of_is_not_list_expression
+  : 'TypeOf' expression 'IsNot' '{' (type (',' type)*)? '}'
+  ;
+
 unary_expression
   : address_of_expression
+  | from_end_index_expression
   | not_expression
   | unary_minus_expression
   | unary_plus_expression
@@ -1650,6 +1731,10 @@ unary_expression
 
 address_of_expression
   : 'AddressOf' expression
+  ;
+
+from_end_index_expression
+  : '^' expression
   ;
 
 not_expression
@@ -1662,6 +1747,10 @@ unary_minus_expression
 
 unary_plus_expression
   : '+' expression
+  ;
+
+with_expression
+  : expression object_member_initializer
   ;
 
 xml_member_access_expression
@@ -1868,6 +1957,7 @@ directive_trivia
   | external_checksum_directive_trivia
   | external_source_directive_trivia
   | if_directive_trivia
+  | nullable_directive_trivia
   | reference_directive_trivia
   | region_directive_trivia
   ;
@@ -1921,6 +2011,10 @@ else_if_directive_trivia
   : '#' 'Else'? 'ElseIf' expression 'Then'?
   ;
 
+nullable_directive_trivia
+  : '#' identifier_token identifier_token
+  ;
+
 reference_directive_trivia
   : '#' 'R' string_literal_token
   ;
@@ -1939,10 +2033,12 @@ skipped_tokens_trivia
 
 modifier
   : 'Async'
+  | 'ByRef'
   | 'Const'
   | 'Default'
   | 'Dim'
   | 'Friend'
+  | 'InitOnly'
   | 'Iterator'
   | 'MustInherit'
   | 'MustOverride'
@@ -1957,6 +2053,8 @@ modifier
   | 'Protected'
   | 'Public'
   | 'ReadOnly'
+  | 'Record'
+  | 'Required'
   | 'Shadows'
   | 'Shared'
   | 'Static'
@@ -1970,6 +2068,7 @@ syntax_token
   | date_literal_token
   | decimal_literal_token
   | floating_literal_token
+  | guid_literal_token
   | identifier_token
   | integer_literal_token
   | interpolated_string_text_token
@@ -2001,6 +2100,10 @@ decimal_literal_token
   ;
 
 floating_literal_token
+  : /* see lexical specification */
+  ;
+
+guid_literal_token
   : /* see lexical specification */
   ;
 

@@ -112,6 +112,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.EndSyncLockStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.EndKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.SyncLockKeyword, String.Empty, Nothing, Nothing))
         End Function
 
+        Private Shared Function GenerateGreenEndExtensionStatement() As InternalSyntax.EndBlockStatementSyntax
+            return InternalSyntax.SyntaxFactory.EndExtensionStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.EndKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.ExtensionKeyword, String.Empty, Nothing, Nothing))
+        End Function
+
         Private Shared Function GenerateGreenCompilationUnit() As InternalSyntax.CompilationUnitSyntax
             return InternalSyntax.SyntaxFactory.CompilationUnit(Nothing, Nothing, Nothing, Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.EndOfFileToken, String.Empty, Nothing, Nothing))
         End Function
@@ -165,7 +169,7 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenInheritsStatement() As InternalSyntax.InheritsStatementSyntax
-            return InternalSyntax.SyntaxFactory.InheritsStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.InheritsKeyword, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)())
+            return InternalSyntax.SyntaxFactory.InheritsStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.InheritsKeyword, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), Nothing)
         End Function
 
         Private Shared Function GenerateGreenImplementsStatement() As InternalSyntax.ImplementsStatementSyntax
@@ -173,19 +177,19 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenModuleStatement() As InternalSyntax.ModuleStatementSyntax
-            return InternalSyntax.SyntaxFactory.ModuleStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.ModuleKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing)
+            return InternalSyntax.SyntaxFactory.ModuleStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.ModuleKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenStructureStatement() As InternalSyntax.StructureStatementSyntax
-            return InternalSyntax.SyntaxFactory.StructureStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.StructureKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing)
+            return InternalSyntax.SyntaxFactory.StructureStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.StructureKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenInterfaceStatement() As InternalSyntax.InterfaceStatementSyntax
-            return InternalSyntax.SyntaxFactory.InterfaceStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.InterfaceKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing)
+            return InternalSyntax.SyntaxFactory.InterfaceStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.InterfaceKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenClassStatement() As InternalSyntax.ClassStatementSyntax
-            return InternalSyntax.SyntaxFactory.ClassStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.ClassKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing)
+            return InternalSyntax.SyntaxFactory.ClassStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.ClassKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenEnumStatement() As InternalSyntax.EnumStatementSyntax
@@ -277,11 +281,11 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenSubStatement() As InternalSyntax.MethodStatementSyntax
-            return InternalSyntax.SyntaxFactory.SubStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.SubKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            return InternalSyntax.SyntaxFactory.SubStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.SubKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenFunctionStatement() As InternalSyntax.MethodStatementSyntax
-            return InternalSyntax.SyntaxFactory.FunctionStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.FunctionKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            return InternalSyntax.SyntaxFactory.FunctionStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.FunctionKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenSubNewStatement() As InternalSyntax.SubNewStatementSyntax
@@ -313,7 +317,7 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenPropertyStatement() As InternalSyntax.PropertyStatementSyntax
-            return InternalSyntax.SyntaxFactory.PropertyStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.PropertyKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing, Nothing, Nothing)
+            return InternalSyntax.SyntaxFactory.PropertyStatement(Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.PropertyKeyword, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateGreenGetAccessorStatement() As InternalSyntax.AccessorStatementSyntax
@@ -454,6 +458,10 @@ Partial Public Class GeneratedTests
 
         Private Shared Function GenerateGreenLocalDeclarationStatement() As InternalSyntax.LocalDeclarationStatementSyntax
             return InternalSyntax.SyntaxFactory.LocalDeclarationStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.StaticKeyword, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)())
+        End Function
+
+        Private Shared Function GenerateGreenTupleDeconstructionStatement() As InternalSyntax.TupleDeconstructionStatementSyntax
+            return InternalSyntax.SyntaxFactory.TupleDeconstructionStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.DimKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing), GenerateGreenEqualsValue())
         End Function
 
         Private Shared Function GenerateGreenLabelStatement() As InternalSyntax.LabelStatementSyntax
@@ -688,6 +696,34 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.CaseGreaterThanClause(Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.GreaterThanToken, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateGreenTypeCaseClause() As InternalSyntax.TypeCaseClauseSyntax
+            return InternalSyntax.SyntaxFactory.TypeCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenTupleType(), Nothing, Nothing, Nothing, Nothing)
+        End Function
+
+        Private Shared Function GenerateGreenPositionalCaseClause() As InternalSyntax.PositionalCaseClauseSyntax
+            return InternalSyntax.SyntaxFactory.PositionalCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenListCaseClause() As InternalSyntax.ListCaseClauseSyntax
+            return InternalSyntax.SyntaxFactory.ListCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenBraceToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseBraceToken, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenSelectCaseExpression() As InternalSyntax.SelectCaseExpressionSyntax
+            return InternalSyntax.SyntaxFactory.SelectCaseExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.SelectKeyword, String.Empty, Nothing, Nothing), Nothing, GenerateGreenKeywordEventContainer(), GenerateGreenSelectCaseArm(), new InternalSyntax.KeywordSyntax(SyntaxKind.EndKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.SelectKeyword, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenSelectCaseArm() As InternalSyntax.SelectCaseArmSyntax
+            return InternalSyntax.SyntaxFactory.SelectCaseArm(GenerateGreenCaseStatement(), GenerateGreenKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateGreenCaseFilter() As InternalSyntax.CaseFilterSyntax
+            return InternalSyntax.SyntaxFactory.CaseFilter(new InternalSyntax.KeywordSyntax(SyntaxKind.AndAlsoKeyword, String.Empty, Nothing, Nothing), GenerateGreenElseCaseClause())
+        End Function
+
+        Private Shared Function GenerateGreenPropertyCaseClause() As InternalSyntax.PropertyCaseClauseSyntax
+            return InternalSyntax.SyntaxFactory.PropertyCaseClause(new InternalSyntax.PunctuationSyntax(SyntaxKind.DotToken, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.EqualsToken, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateGreenSyncLockStatement() As InternalSyntax.SyncLockStatementSyntax
             return InternalSyntax.SyntaxFactory.SyncLockStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.SyncLockKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
         End Function
@@ -765,7 +801,7 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenForEachStatement() As InternalSyntax.ForEachStatementSyntax
-            return InternalSyntax.SyntaxFactory.ForEachStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.ForKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.EachKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.InKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+            return InternalSyntax.SyntaxFactory.ForEachStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.ForKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.EachKeyword, String.Empty, Nothing, Nothing), Nothing, GenerateGreenKeywordEventContainer(), Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.InKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
         End Function
 
         Private Shared Function GenerateGreenNextStatement() As InternalSyntax.NextStatementSyntax
@@ -824,6 +860,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.ConcatenateAssignmentStatement(GenerateGreenKeywordEventContainer(), new InternalSyntax.PunctuationSyntax(SyntaxKind.AmpersandEqualsToken, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateGreenNothingCoalescingAssignmentStatement() As InternalSyntax.AssignmentStatementSyntax
+            return InternalSyntax.SyntaxFactory.NothingCoalescingAssignmentStatement(GenerateGreenKeywordEventContainer(), new InternalSyntax.PunctuationSyntax(SyntaxKind.QuestionEqualsToken, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateGreenMidExpression() As InternalSyntax.MidExpressionSyntax
             return InternalSyntax.SyntaxFactory.MidExpression(GenerateGreenIdentifierToken(), GenerateGreenArgumentList())
         End Function
@@ -845,7 +885,7 @@ Partial Public Class GeneratedTests
         End Function
 
         Private Shared Function GenerateGreenWithStatement() As InternalSyntax.WithStatementSyntax
-            return InternalSyntax.SyntaxFactory.WithStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.WithKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+            return InternalSyntax.SyntaxFactory.WithStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.WithKeyword, String.Empty, Nothing, Nothing), Nothing, Nothing, Nothing, Nothing, GenerateGreenKeywordEventContainer())
         End Function
 
         Private Shared Function GenerateGreenReDimStatement() As InternalSyntax.ReDimStatementSyntax
@@ -882,6 +922,10 @@ Partial Public Class GeneratedTests
 
         Private Shared Function GenerateGreenDateLiteralExpression() As InternalSyntax.LiteralExpressionSyntax
             return InternalSyntax.SyntaxFactory.DateLiteralExpression(GenerateGreenIntegerLiteralToken())
+        End Function
+
+        Private Shared Function GenerateGreenGuidLiteralExpression() As InternalSyntax.LiteralExpressionSyntax
+            return InternalSyntax.SyntaxFactory.GuidLiteralExpression(GenerateGreenIntegerLiteralToken())
         End Function
 
         Private Shared Function GenerateGreenStringLiteralExpression() As InternalSyntax.LiteralExpressionSyntax
@@ -936,6 +980,14 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.TypeOfIsNotExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.IsNotKeyword, String.Empty, Nothing, Nothing), GenerateGreenTupleType())
         End Function
 
+        Private Shared Function GenerateGreenTypeOfIsListExpression() As InternalSyntax.TypeOfListExpressionSyntax
+            return InternalSyntax.SyntaxFactory.TypeOfIsListExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenBraceToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseBraceToken, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenTypeOfIsNotListExpression() As InternalSyntax.TypeOfListExpressionSyntax
+            return InternalSyntax.SyntaxFactory.TypeOfIsNotListExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.TypeOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.IsNotKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenBraceToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseBraceToken, String.Empty, Nothing, Nothing))
+        End Function
+
         Private Shared Function GenerateGreenGetXmlNamespaceExpression() As InternalSyntax.GetXmlNamespaceExpressionSyntax
             return InternalSyntax.SyntaxFactory.GetXmlNamespaceExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.GetXmlNamespaceKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
         End Function
@@ -978,6 +1030,22 @@ Partial Public Class GeneratedTests
 
         Private Shared Function GenerateGreenCollectionInitializer() As InternalSyntax.CollectionInitializerSyntax
             return InternalSyntax.SyntaxFactory.CollectionInitializer(new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenBraceToken, String.Empty, Nothing, Nothing), Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseBraceToken, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenCollectionExpression() As InternalSyntax.CollectionExpressionSyntax
+            return InternalSyntax.SyntaxFactory.CollectionExpression(new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenExtensionStatement() As InternalSyntax.ExtensionStatementSyntax
+            return InternalSyntax.SyntaxFactory.ExtensionStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.ExtensionKeyword, String.Empty, Nothing, Nothing), GenerateGreenParameterList())
+        End Function
+
+        Private Shared Function GenerateGreenExtensionBlock() As InternalSyntax.ExtensionBlockSyntax
+            return InternalSyntax.SyntaxFactory.ExtensionBlock(GenerateGreenExtensionStatement(), Nothing, GenerateGreenEndExtensionStatement())
+        End Function
+
+        Private Shared Function GenerateGreenWithExpression() As InternalSyntax.WithExpressionSyntax
+            return InternalSyntax.SyntaxFactory.WithExpression(GenerateGreenKeywordEventContainer(), GenerateGreenObjectMemberInitializer())
         End Function
 
         Private Shared Function GenerateGreenCTypeExpression() As InternalSyntax.CTypeExpressionSyntax
@@ -1106,6 +1174,14 @@ Partial Public Class GeneratedTests
 
         Private Shared Function GenerateGreenAddressOfExpression() As InternalSyntax.UnaryExpressionSyntax
             return InternalSyntax.SyntaxFactory.AddressOfExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.AddressOfKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateGreenFromEndIndexExpression() As InternalSyntax.UnaryExpressionSyntax
+            return InternalSyntax.SyntaxFactory.FromEndIndexExpression(new InternalSyntax.PunctuationSyntax(SyntaxKind.CaretToken, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateGreenRangeExpression() As InternalSyntax.RangeExpressionSyntax
+            return InternalSyntax.SyntaxFactory.RangeExpression(Nothing, new InternalSyntax.PunctuationSyntax(SyntaxKind.DotDotToken, String.Empty, Nothing, Nothing), Nothing)
         End Function
 
         Private Shared Function GenerateGreenBinaryConditionalExpression() As InternalSyntax.BinaryConditionalExpressionSyntax
@@ -1416,6 +1492,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.DateLiteralToken(String.Empty, New DateTime(2008,11,04), InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "), InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "))
         End Function
 
+        Private Shared Function GenerateGreenGuidLiteralToken() As InternalSyntax.GuidLiteralTokenSyntax
+            return InternalSyntax.SyntaxFactory.GuidLiteralToken(String.Empty, "Bar", InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "), InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "))
+        End Function
+
         Private Shared Function GenerateGreenStringLiteralToken() As InternalSyntax.StringLiteralTokenSyntax
             return InternalSyntax.SyntaxFactory.StringLiteralToken(String.Empty, "Bar", InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "), InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "))
         End Function
@@ -1542,6 +1622,10 @@ Partial Public Class GeneratedTests
 
         Private Shared Function GenerateGreenReferenceDirectiveTrivia() As InternalSyntax.ReferenceDirectiveTriviaSyntax
             return InternalSyntax.SyntaxFactory.ReferenceDirectiveTrivia(new InternalSyntax.PunctuationSyntax(SyntaxKind.HashToken, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.ReferenceKeyword, String.Empty, Nothing, Nothing), GenerateGreenStringLiteralToken())
+        End Function
+
+        Private Shared Function GenerateGreenNullableDirectiveTrivia() As InternalSyntax.NullableDirectiveTriviaSyntax
+            return InternalSyntax.SyntaxFactory.NullableDirectiveTrivia(new InternalSyntax.PunctuationSyntax(SyntaxKind.HashToken, String.Empty, Nothing, Nothing), GenerateGreenIdentifierToken(), GenerateGreenIdentifierToken())
         End Function
 
         Private Shared Function GenerateGreenBadDirectiveTrivia() As InternalSyntax.BadDirectiveTriviaSyntax
@@ -1692,6 +1776,12 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenEndSyncLockStatement()
             dim objectUnderTest = GenerateGreenEndSyncLockStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenEndExtensionStatement()
+            dim objectUnderTest = GenerateGreenEndExtensionStatement()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -2212,6 +2302,12 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTupleDeconstructionStatement()
+            dim objectUnderTest = GenerateGreenTupleDeconstructionStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenLabelStatement()
             dim objectUnderTest = GenerateGreenLabelStatement()
             AttachAndCheckDiagnostics(objectUnderTest)
@@ -2560,6 +2656,48 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeCaseClause()
+            dim objectUnderTest = GenerateGreenTypeCaseClause()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenPositionalCaseClause()
+            dim objectUnderTest = GenerateGreenPositionalCaseClause()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenListCaseClause()
+            dim objectUnderTest = GenerateGreenListCaseClause()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenSelectCaseExpression()
+            dim objectUnderTest = GenerateGreenSelectCaseExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenSelectCaseArm()
+            dim objectUnderTest = GenerateGreenSelectCaseArm()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenCaseFilter()
+            dim objectUnderTest = GenerateGreenCaseFilter()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenPropertyCaseClause()
+            dim objectUnderTest = GenerateGreenPropertyCaseClause()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenSyncLockStatement()
             dim objectUnderTest = GenerateGreenSyncLockStatement()
             AttachAndCheckDiagnostics(objectUnderTest)
@@ -2764,6 +2902,12 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenNothingCoalescingAssignmentStatement()
+            dim objectUnderTest = GenerateGreenNothingCoalescingAssignmentStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenMidExpression()
             dim objectUnderTest = GenerateGreenMidExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
@@ -2854,6 +2998,12 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenGuidLiteralExpression()
+            dim objectUnderTest = GenerateGreenGuidLiteralExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenStringLiteralExpression()
             dim objectUnderTest = GenerateGreenStringLiteralExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
@@ -2932,6 +3082,18 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeOfIsListExpression()
+            dim objectUnderTest = GenerateGreenTypeOfIsListExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeOfIsNotListExpression()
+            dim objectUnderTest = GenerateGreenTypeOfIsNotListExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenGetXmlNamespaceExpression()
             dim objectUnderTest = GenerateGreenGetXmlNamespaceExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
@@ -2994,6 +3156,30 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenCollectionInitializer()
             dim objectUnderTest = GenerateGreenCollectionInitializer()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenCollectionExpression()
+            dim objectUnderTest = GenerateGreenCollectionExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenExtensionStatement()
+            dim objectUnderTest = GenerateGreenExtensionStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenExtensionBlock()
+            dim objectUnderTest = GenerateGreenExtensionBlock()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenWithExpression()
+            dim objectUnderTest = GenerateGreenWithExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -3186,6 +3372,18 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenAddressOfExpression()
             dim objectUnderTest = GenerateGreenAddressOfExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenFromEndIndexExpression()
+            dim objectUnderTest = GenerateGreenFromEndIndexExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRangeExpression()
+            dim objectUnderTest = GenerateGreenRangeExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -3652,6 +3850,12 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenGuidLiteralToken()
+            dim objectUnderTest = GenerateGreenGuidLiteralToken()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenStringLiteralToken()
             dim objectUnderTest = GenerateGreenStringLiteralToken()
             AttachAndCheckDiagnostics(objectUnderTest)
@@ -3840,6 +4044,12 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenReferenceDirectiveTrivia()
             dim objectUnderTest = GenerateGreenReferenceDirectiveTrivia()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenNullableDirectiveTrivia()
+            dim objectUnderTest = GenerateGreenNullableDirectiveTrivia()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -4039,6 +4249,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenEndSyncLockStatementRewriter()
             dim oldNode = GenerateGreenEndSyncLockStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenEndExtensionStatementRewriter()
+            dim oldNode = GenerateGreenEndExtensionStatement()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -4733,6 +4951,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTupleDeconstructionStatementRewriter()
+            dim oldNode = GenerateGreenTupleDeconstructionStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenLabelStatementRewriter()
             dim oldNode = GenerateGreenLabelStatement()
             Dim rewriter = New GreenIdentityRewriter()
@@ -5197,6 +5423,62 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeCaseClauseRewriter()
+            dim oldNode = GenerateGreenTypeCaseClause()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenPositionalCaseClauseRewriter()
+            dim oldNode = GenerateGreenPositionalCaseClause()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenListCaseClauseRewriter()
+            dim oldNode = GenerateGreenListCaseClause()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenSelectCaseExpressionRewriter()
+            dim oldNode = GenerateGreenSelectCaseExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenSelectCaseArmRewriter()
+            dim oldNode = GenerateGreenSelectCaseArm()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenCaseFilterRewriter()
+            dim oldNode = GenerateGreenCaseFilter()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenPropertyCaseClauseRewriter()
+            dim oldNode = GenerateGreenPropertyCaseClause()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenSyncLockStatementRewriter()
             dim oldNode = GenerateGreenSyncLockStatement()
             Dim rewriter = New GreenIdentityRewriter()
@@ -5469,6 +5751,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenNothingCoalescingAssignmentStatementRewriter()
+            dim oldNode = GenerateGreenNothingCoalescingAssignmentStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenMidExpressionRewriter()
             dim oldNode = GenerateGreenMidExpression()
             Dim rewriter = New GreenIdentityRewriter()
@@ -5589,6 +5879,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenGuidLiteralExpressionRewriter()
+            dim oldNode = GenerateGreenGuidLiteralExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenStringLiteralExpressionRewriter()
             dim oldNode = GenerateGreenStringLiteralExpression()
             Dim rewriter = New GreenIdentityRewriter()
@@ -5693,6 +5991,22 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeOfIsListExpressionRewriter()
+            dim oldNode = GenerateGreenTypeOfIsListExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeOfIsNotListExpressionRewriter()
+            dim oldNode = GenerateGreenTypeOfIsNotListExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenGetXmlNamespaceExpressionRewriter()
             dim oldNode = GenerateGreenGetXmlNamespaceExpression()
             Dim rewriter = New GreenIdentityRewriter()
@@ -5775,6 +6089,38 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenCollectionInitializerRewriter()
             dim oldNode = GenerateGreenCollectionInitializer()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenCollectionExpressionRewriter()
+            dim oldNode = GenerateGreenCollectionExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenExtensionStatementRewriter()
+            dim oldNode = GenerateGreenExtensionStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenExtensionBlockRewriter()
+            dim oldNode = GenerateGreenExtensionBlock()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenWithExpressionRewriter()
+            dim oldNode = GenerateGreenWithExpression()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -6031,6 +6377,22 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenAddressOfExpressionRewriter()
             dim oldNode = GenerateGreenAddressOfExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenFromEndIndexExpressionRewriter()
+            dim oldNode = GenerateGreenFromEndIndexExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRangeExpressionRewriter()
+            dim oldNode = GenerateGreenRangeExpression()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -6773,6 +7135,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenNullableDirectiveTriviaRewriter()
+            dim oldNode = GenerateGreenNullableDirectiveTrivia()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenBadDirectiveTriviaRewriter()
             dim oldNode = GenerateGreenBadDirectiveTrivia()
             Dim rewriter = New GreenIdentityRewriter()
@@ -6947,6 +7317,13 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenEndSyncLockStatementVisitor()
             Dim oldNode = GenerateGreenEndSyncLockStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenEndExtensionStatementVisitor()
+            Dim oldNode = GenerateGreenEndExtensionStatement()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -7554,6 +7931,13 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTupleDeconstructionStatementVisitor()
+            Dim oldNode = GenerateGreenTupleDeconstructionStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenLabelStatementVisitor()
             Dim oldNode = GenerateGreenLabelStatement()
             Dim visitor = New GreenNodeVisitor()
@@ -7960,6 +8344,55 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeCaseClauseVisitor()
+            Dim oldNode = GenerateGreenTypeCaseClause()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenPositionalCaseClauseVisitor()
+            Dim oldNode = GenerateGreenPositionalCaseClause()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenListCaseClauseVisitor()
+            Dim oldNode = GenerateGreenListCaseClause()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenSelectCaseExpressionVisitor()
+            Dim oldNode = GenerateGreenSelectCaseExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenSelectCaseArmVisitor()
+            Dim oldNode = GenerateGreenSelectCaseArm()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenCaseFilterVisitor()
+            Dim oldNode = GenerateGreenCaseFilter()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenPropertyCaseClauseVisitor()
+            Dim oldNode = GenerateGreenPropertyCaseClause()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenSyncLockStatementVisitor()
             Dim oldNode = GenerateGreenSyncLockStatement()
             Dim visitor = New GreenNodeVisitor()
@@ -8198,6 +8631,13 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenNothingCoalescingAssignmentStatementVisitor()
+            Dim oldNode = GenerateGreenNothingCoalescingAssignmentStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenMidExpressionVisitor()
             Dim oldNode = GenerateGreenMidExpression()
             Dim visitor = New GreenNodeVisitor()
@@ -8303,6 +8743,13 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenGuidLiteralExpressionVisitor()
+            Dim oldNode = GenerateGreenGuidLiteralExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenStringLiteralExpressionVisitor()
             Dim oldNode = GenerateGreenStringLiteralExpression()
             Dim visitor = New GreenNodeVisitor()
@@ -8394,6 +8841,20 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenTypeOfIsListExpressionVisitor()
+            Dim oldNode = GenerateGreenTypeOfIsListExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeOfIsNotListExpressionVisitor()
+            Dim oldNode = GenerateGreenTypeOfIsNotListExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenGetXmlNamespaceExpressionVisitor()
             Dim oldNode = GenerateGreenGetXmlNamespaceExpression()
             Dim visitor = New GreenNodeVisitor()
@@ -8466,6 +8927,34 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenCollectionInitializerVisitor()
             Dim oldNode = GenerateGreenCollectionInitializer()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenCollectionExpressionVisitor()
+            Dim oldNode = GenerateGreenCollectionExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenExtensionStatementVisitor()
+            Dim oldNode = GenerateGreenExtensionStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenExtensionBlockVisitor()
+            Dim oldNode = GenerateGreenExtensionBlock()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenWithExpressionVisitor()
+            Dim oldNode = GenerateGreenWithExpression()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -8690,6 +9179,20 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenAddressOfExpressionVisitor()
             Dim oldNode = GenerateGreenAddressOfExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenFromEndIndexExpressionVisitor()
+            Dim oldNode = GenerateGreenFromEndIndexExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRangeExpressionVisitor()
+            Dim oldNode = GenerateGreenRangeExpression()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -9334,6 +9837,13 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenReferenceDirectiveTriviaVisitor()
             Dim oldNode = GenerateGreenReferenceDirectiveTrivia()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenNullableDirectiveTriviaVisitor()
+            Dim oldNode = GenerateGreenNullableDirectiveTrivia()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -10028,6 +10538,35 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.EndSyncLockStatement(SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.SyncLockKeyword))
         End Function
 
+        Private Shared Function GenerateRedEndExtensionStatement() As EndBlockStatementSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.EndExtensionStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.ExtensionKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.EndExtensionStatement(SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.EndExtensionStatement(SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.EndExtensionStatement(SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.ExtensionKeyword))
+        End Function
+
         Private Shared Function GenerateRedCompilationUnit() As CompilationUnitSyntax
             Dim exceptionTest as boolean = false
             Try
@@ -10296,14 +10835,14 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedInheritsStatement() As InheritsStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of TypeSyntax)())
+            SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of TypeSyntax)(), Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), New SeparatedSyntaxList(Of TypeSyntax)())
+            return SyntaxFactory.InheritsStatement(SyntaxFactory.Token(SyntaxKind.InheritsKeyword), New SeparatedSyntaxList(Of TypeSyntax)(), Nothing)
         End Function
 
         Private Shared Function GenerateRedImplementsStatement() As ImplementsStatementSyntax
@@ -10322,7 +10861,7 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedModuleStatement() As ModuleStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing)
+            SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10330,20 +10869,20 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing)
+            SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), GenerateRedIdentifierToken(), Nothing)
+            return SyntaxFactory.ModuleStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ModuleKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedStructureStatement() As StructureStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing)
+            SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10351,20 +10890,20 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing)
+            SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), GenerateRedIdentifierToken(), Nothing)
+            return SyntaxFactory.StructureStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.StructureKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedInterfaceStatement() As InterfaceStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing)
+            SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10372,20 +10911,20 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing)
+            SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), GenerateRedIdentifierToken(), Nothing)
+            return SyntaxFactory.InterfaceStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InterfaceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedClassStatement() As ClassStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing)
+            SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10393,14 +10932,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing)
+            SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), GenerateRedIdentifierToken(), Nothing)
+            return SyntaxFactory.ClassStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ClassKeyword), GenerateRedIdentifierToken(), Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedEnumStatement() As EnumStatementSyntax
@@ -10860,7 +11399,7 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedSubStatement() As MethodStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10868,7 +11407,7 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10876,20 +11415,20 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            return SyntaxFactory.SubStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedFunctionStatement() As MethodStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10897,7 +11436,7 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -10905,14 +11444,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
+            return SyntaxFactory.FunctionStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.FunctionKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedSubNewStatement() As SubNewStatementSyntax
@@ -11169,7 +11708,7 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedPropertyStatement() As PropertyStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -11177,14 +11716,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing)
+            SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing)
+            return SyntaxFactory.PropertyStatement(Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.PropertyKeyword), GenerateRedIdentifierToken(), Nothing, Nothing, Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedGetAccessorStatement() As AccessorStatementSyntax
@@ -11824,6 +12363,35 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedLocalDeclarationStatement() As LocalDeclarationStatementSyntax
             Dim exceptionTest as boolean = false
             return SyntaxFactory.LocalDeclarationStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.StaticKeyword)), New SeparatedSyntaxList(Of VariableDeclaratorSyntax)())
+        End Function
+
+        Private Shared Function GenerateRedTupleDeconstructionStatement() As TupleDeconstructionStatementSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken), GenerateRedEqualsValue())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedEqualsValue())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken), GenerateRedEqualsValue())
         End Function
 
         Private Shared Function GenerateRedLabelStatement() As LabelStatementSyntax
@@ -13065,6 +13633,217 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.CaseGreaterThanClause(Nothing, SyntaxFactory.Token(SyntaxKind.GreaterThanToken), GenerateRedKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateRedTypeCaseClause() As TypeCaseClauseSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), Nothing, Nothing, Nothing, Nothing, Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing)
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing)
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.TypeCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedTupleType(), Nothing, Nothing, Nothing, Nothing)
+        End Function
+
+        Private Shared Function GenerateRedPositionalCaseClause() As PositionalCaseClauseSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.PositionalCaseClause(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.PositionalCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.PositionalCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.PositionalCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+        Private Shared Function GenerateRedListCaseClause() As ListCaseClauseSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.ListCaseClause(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ListCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ListCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.ListCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+        Private Shared Function GenerateRedSelectCaseExpression() As SelectCaseExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.SelectCaseExpression(SyntaxFactory.Token(SyntaxKind.SelectKeyword), Nothing, Nothing, SyntaxFactory.SingletonList(Of SelectCaseArmSyntax)(GenerateRedSelectCaseArm()), SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.SelectKeyword))
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.SelectCaseExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, GenerateRedKeywordEventContainer(), SyntaxFactory.SingletonList(Of SelectCaseArmSyntax)(GenerateRedSelectCaseArm()), SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.SelectKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.SelectCaseExpression(SyntaxFactory.Token(SyntaxKind.SelectKeyword), Nothing, GenerateRedKeywordEventContainer(), SyntaxFactory.SingletonList(Of SelectCaseArmSyntax)(GenerateRedSelectCaseArm()), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.SelectKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.SelectCaseExpression(SyntaxFactory.Token(SyntaxKind.SelectKeyword), Nothing, GenerateRedKeywordEventContainer(), SyntaxFactory.SingletonList(Of SelectCaseArmSyntax)(GenerateRedSelectCaseArm()), SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.SelectCaseExpression(SyntaxFactory.Token(SyntaxKind.SelectKeyword), Nothing, GenerateRedKeywordEventContainer(), SyntaxFactory.SingletonList(Of SelectCaseArmSyntax)(GenerateRedSelectCaseArm()), SyntaxFactory.Token(SyntaxKind.EndKeyword), SyntaxFactory.Token(SyntaxKind.SelectKeyword))
+        End Function
+
+        Private Shared Function GenerateRedSelectCaseArm() As SelectCaseArmSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.SelectCaseArm(Nothing, GenerateRedKeywordEventContainer())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.SelectCaseArm(GenerateRedCaseStatement(), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.SelectCaseArm(GenerateRedCaseStatement(), GenerateRedKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateRedCaseFilter() As CaseFilterSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.CaseFilter(SyntaxFactory.Token(SyntaxKind.AndAlsoKeyword), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.CaseFilter(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedElseCaseClause())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.CaseFilter(SyntaxFactory.Token(SyntaxKind.AndAlsoKeyword), GenerateRedElseCaseClause())
+        End Function
+
+        Private Shared Function GenerateRedPropertyCaseClause() As PropertyCaseClauseSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), GenerateRedIdentifierToken(), Nothing, SyntaxFactory.Token(SyntaxKind.EqualsToken), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), Nothing, SyntaxFactory.Token(SyntaxKind.EqualsToken), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, SyntaxFactory.Token(SyntaxKind.EqualsToken), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), GenerateRedIdentifierToken(), Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), GenerateRedIdentifierToken(), Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.PropertyCaseClause(SyntaxFactory.Token(SyntaxKind.DotToken), GenerateRedIdentifierToken(), Nothing, SyntaxFactory.Token(SyntaxKind.EqualsToken), GenerateRedKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateRedSyncLockStatement() As SyncLockStatementSyntax
             Dim exceptionTest as boolean = false
             Try
@@ -13451,7 +14230,7 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedForEachStatement() As ForEachStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
+            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, Nothing, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
             catch e as ArgumentNullException
             exceptionTest = true
             End Try
@@ -13459,7 +14238,7 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.InKeyword), Nothing)
+            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), Nothing)
             catch e as ArgumentNullException
             exceptionTest = true
             End Try
@@ -13467,7 +14246,7 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
+            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -13475,7 +14254,7 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
+            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
             catch e as ArgumentException
             exceptionTest = true
             End Try
@@ -13483,14 +14262,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
+            return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
         End Function
 
         Private Shared Function GenerateRedNextStatement() As NextStatementSyntax
@@ -13939,6 +14718,43 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.ConcatenateAssignmentStatement(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.AmpersandEqualsToken), GenerateRedKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateRedNothingCoalescingAssignmentStatement() As AssignmentStatementSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.NothingCoalescingAssignmentStatement(Nothing, SyntaxFactory.Token(SyntaxKind.QuestionEqualsToken), GenerateRedKeywordEventContainer())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.NothingCoalescingAssignmentStatement(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.QuestionEqualsToken), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.NothingCoalescingAssignmentStatement(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.NothingCoalescingAssignmentStatement(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.NothingCoalescingAssignmentStatement(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.QuestionEqualsToken), GenerateRedKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateRedMidExpression() As MidExpressionSyntax
             Dim exceptionTest as boolean = false
             Try
@@ -14095,7 +14911,7 @@ Partial Public Class GeneratedTests
         Private Shared Function GenerateRedWithStatement() As WithStatementSyntax
             Dim exceptionTest as boolean = false
             Try
-            SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), Nothing)
+            SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), Nothing, Nothing, Nothing, Nothing, Nothing)
             catch e as ArgumentNullException
             exceptionTest = true
             End Try
@@ -14103,14 +14919,14 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             Try
-            SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, Nothing, Nothing, Nothing, GenerateRedKeywordEventContainer())
             catch e as ArgumentException
             exceptionTest = true
             End Try
             Debug.Assert(exceptionTest)
             exceptionTest = false
 
-            return SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), GenerateRedKeywordEventContainer())
+            return SyntaxFactory.WithStatement(SyntaxFactory.Token(SyntaxKind.WithKeyword), Nothing, Nothing, Nothing, Nothing, GenerateRedKeywordEventContainer())
         End Function
 
         Private Shared Function GenerateRedReDimStatement() As ReDimStatementSyntax
@@ -14236,6 +15052,19 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.DateLiteralExpression(GenerateRedIntegerLiteralToken())
+        End Function
+
+        Private Shared Function GenerateRedGuidLiteralExpression() As LiteralExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.GuidLiteralExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.GuidLiteralExpression(GenerateRedIntegerLiteralToken())
         End Function
 
         Private Shared Function GenerateRedStringLiteralExpression() As LiteralExpressionSyntax
@@ -14551,6 +15380,112 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.TypeOfIsNotExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsNotKeyword), GenerateRedTupleType())
         End Function
 
+        Private Shared Function GenerateRedTypeOfIsListExpression() As TypeOfListExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), Nothing, SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.TypeOfIsListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+        Private Shared Function GenerateRedTypeOfIsNotListExpression() As TypeOfListExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), Nothing, SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.TypeOfIsNotListExpression(SyntaxFactory.Token(SyntaxKind.TypeOfKeyword), GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.IsNotKeyword), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), New SeparatedSyntaxList(Of TypeSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
         Private Shared Function GenerateRedGetXmlNamespaceExpression() As GetXmlNamespaceExpressionSyntax
             Dim exceptionTest as boolean = false
             Try
@@ -14796,6 +15731,90 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.CollectionInitializer(SyntaxFactory.Token(SyntaxKind.OpenBraceToken), Nothing, SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+        End Function
+
+        Private Shared Function GenerateRedCollectionExpression() As CollectionExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing, SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.OpenParenToken), Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.CollectionExpression(SyntaxFactory.Token(SyntaxKind.OpenParenToken), Nothing, SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+        Private Shared Function GenerateRedExtensionStatement() As ExtensionStatementSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.ExtensionStatement(SyntaxFactory.Token(SyntaxKind.ExtensionKeyword), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ExtensionStatement(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedParameterList())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.ExtensionStatement(SyntaxFactory.Token(SyntaxKind.ExtensionKeyword), GenerateRedParameterList())
+        End Function
+
+        Private Shared Function GenerateRedExtensionBlock() As ExtensionBlockSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.ExtensionBlock(Nothing, Nothing, GenerateRedEndExtensionStatement())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ExtensionBlock(GenerateRedExtensionStatement(), Nothing, Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.ExtensionBlock(GenerateRedExtensionStatement(), Nothing, GenerateRedEndExtensionStatement())
+        End Function
+
+        Private Shared Function GenerateRedWithExpression() As WithExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.WithExpression(Nothing, GenerateRedObjectMemberInitializer())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.WithExpression(GenerateRedKeywordEventContainer(), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.WithExpression(GenerateRedKeywordEventContainer(), GenerateRedObjectMemberInitializer())
         End Function
 
         Private Shared Function GenerateRedCTypeExpression() As CTypeExpressionSyntax
@@ -16028,6 +17047,48 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.AddressOfExpression(SyntaxFactory.Token(SyntaxKind.AddressOfKeyword), GenerateRedKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateRedFromEndIndexExpression() As UnaryExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.FromEndIndexExpression(SyntaxFactory.Token(SyntaxKind.CaretToken), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.FromEndIndexExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.FromEndIndexExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.FromEndIndexExpression(SyntaxFactory.Token(SyntaxKind.CaretToken), GenerateRedKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateRedRangeExpression() As RangeExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.RangeExpression(Nothing, SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), Nothing)
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.RangeExpression(Nothing, SyntaxFactory.Token(SyntaxKind.DotDotToken), Nothing)
         End Function
 
         Private Shared Function GenerateRedBinaryConditionalExpression() As BinaryConditionalExpressionSyntax
@@ -17639,6 +18700,11 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.DateLiteralToken(SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")), String.Empty, New DateTime(2008,11,04), SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))
         End Function
 
+        Private Shared Function GenerateRedGuidLiteralToken() As SyntaxToken
+            Dim exceptionTest as boolean = false
+            return SyntaxFactory.GuidLiteralToken(SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")), String.Empty, "Bar", SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))
+        End Function
+
         Private Shared Function GenerateRedStringLiteralToken() As SyntaxToken
             Dim exceptionTest as boolean = false
             return SyntaxFactory.StringLiteralToken(SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")), String.Empty, "Bar", SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))
@@ -18439,6 +19505,35 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.ReferenceDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), SyntaxFactory.Token(SyntaxKind.ReferenceKeyword), GenerateRedStringLiteralToken())
         End Function
 
+        Private Shared Function GenerateRedNullableDirectiveTrivia() As NullableDirectiveTriviaSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken(), GenerateRedIdentifierToken())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedIdentifierToken())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), GenerateRedIdentifierToken(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.HashToken), GenerateRedIdentifierToken(), GenerateRedIdentifierToken())
+        End Function
+
         Private Shared Function GenerateRedBadDirectiveTrivia() As BadDirectiveTriviaSyntax
             Dim exceptionTest as boolean = false
             Try
@@ -18671,6 +19766,15 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedEndExtensionStatement()
+            dim objectUnderTest = GenerateRedEndExtensionStatement()
+            Assert.NotNull(objectUnderTest.endKeyword)
+            Assert.NotNull(objectUnderTest.blockKeyword)
+            Dim withObj = objectUnderTest.WithEndKeyword(objectUnderTest.EndKeyword).WithBlockKeyword(objectUnderTest.BlockKeyword)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedCompilationUnit()
             dim objectUnderTest = GenerateRedCompilationUnit()
             Assert.NotNull(objectUnderTest.endOfFileToken)
@@ -18790,7 +19894,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedInheritsStatement()
             Assert.NotNull(objectUnderTest.inheritsKeyword)
             Assert.NotNull(objectUnderTest.types)
-            Dim withObj = objectUnderTest.WithInheritsKeyword(objectUnderTest.InheritsKeyword).WithTypes(objectUnderTest.Types)
+            Dim withObj = objectUnderTest.WithInheritsKeyword(objectUnderTest.InheritsKeyword).WithTypes(objectUnderTest.Types).WithArgumentList(objectUnderTest.ArgumentList)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -18808,7 +19912,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedModuleStatement()
             Assert.NotNull(objectUnderTest.moduleKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithModuleKeyword(objectUnderTest.ModuleKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithModuleKeyword(objectUnderTest.ModuleKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -18817,7 +19921,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedStructureStatement()
             Assert.NotNull(objectUnderTest.structureKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithStructureKeyword(objectUnderTest.StructureKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithStructureKeyword(objectUnderTest.StructureKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -18826,7 +19930,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedInterfaceStatement()
             Assert.NotNull(objectUnderTest.interfaceKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithInterfaceKeyword(objectUnderTest.InterfaceKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithInterfaceKeyword(objectUnderTest.InterfaceKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -18835,7 +19939,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedClassStatement()
             Assert.NotNull(objectUnderTest.classKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithClassKeyword(objectUnderTest.ClassKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithClassKeyword(objectUnderTest.ClassKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -19042,7 +20146,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedSubStatement()
             Assert.NotNull(objectUnderTest.subOrFunctionKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithSubOrFunctionKeyword(objectUnderTest.SubOrFunctionKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList).WithAsClause(objectUnderTest.AsClause).WithHandlesClause(objectUnderTest.HandlesClause).WithImplementsClause(objectUnderTest.ImplementsClause)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithSubOrFunctionKeyword(objectUnderTest.SubOrFunctionKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList).WithAsClause(objectUnderTest.AsClause).WithHandlesClause(objectUnderTest.HandlesClause).WithImplementsClause(objectUnderTest.ImplementsClause).WithEqualsToken(objectUnderTest.EqualsToken)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -19051,7 +20155,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedFunctionStatement()
             Assert.NotNull(objectUnderTest.subOrFunctionKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithSubOrFunctionKeyword(objectUnderTest.SubOrFunctionKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList).WithAsClause(objectUnderTest.AsClause).WithHandlesClause(objectUnderTest.HandlesClause).WithImplementsClause(objectUnderTest.ImplementsClause)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithSubOrFunctionKeyword(objectUnderTest.SubOrFunctionKeyword).WithIdentifier(objectUnderTest.Identifier).WithTypeParameterList(objectUnderTest.TypeParameterList).WithParameterList(objectUnderTest.ParameterList).WithAsClause(objectUnderTest.AsClause).WithHandlesClause(objectUnderTest.HandlesClause).WithImplementsClause(objectUnderTest.ImplementsClause).WithEqualsToken(objectUnderTest.EqualsToken)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -19131,7 +20235,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedPropertyStatement()
             Assert.NotNull(objectUnderTest.propertyKeyword)
             Assert.NotNull(objectUnderTest.identifier)
-            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithPropertyKeyword(objectUnderTest.PropertyKeyword).WithIdentifier(objectUnderTest.Identifier).WithParameterList(objectUnderTest.ParameterList).WithAsClause(objectUnderTest.AsClause).WithInitializer(objectUnderTest.Initializer).WithImplementsClause(objectUnderTest.ImplementsClause)
+            Dim withObj = objectUnderTest.WithAttributeLists(objectUnderTest.AttributeLists).WithModifiers(objectUnderTest.Modifiers).WithPropertyKeyword(objectUnderTest.PropertyKeyword).WithIdentifier(objectUnderTest.Identifier).WithParameterList(objectUnderTest.ParameterList).WithAsClause(objectUnderTest.AsClause).WithInitializer(objectUnderTest.Initializer).WithImplementsClause(objectUnderTest.ImplementsClause).WithEqualsToken(objectUnderTest.EqualsToken)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -19435,6 +20539,18 @@ Partial Public Class GeneratedTests
             Assert.NotNull(objectUnderTest.modifiers)
             Assert.NotNull(objectUnderTest.declarators)
             Dim withObj = objectUnderTest.WithModifiers(objectUnderTest.Modifiers).WithDeclarators(objectUnderTest.Declarators)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedTupleDeconstructionStatement()
+            dim objectUnderTest = GenerateRedTupleDeconstructionStatement()
+            Assert.NotNull(objectUnderTest.modifiers)
+            Assert.NotNull(objectUnderTest.openParenToken)
+            Assert.NotNull(objectUnderTest.names)
+            Assert.NotNull(objectUnderTest.closeParenToken)
+            Assert.NotNull(objectUnderTest.initializer)
+            Dim withObj = objectUnderTest.WithModifiers(objectUnderTest.Modifiers).WithOpenParenToken(objectUnderTest.OpenParenToken).WithNames(objectUnderTest.Names).WithCloseParenToken(objectUnderTest.CloseParenToken).WithInitializer(objectUnderTest.Initializer)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -19949,6 +21065,79 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTypeCaseClause()
+            dim objectUnderTest = GenerateRedTypeCaseClause()
+            Assert.NotNull(objectUnderTest.isKeyword)
+            Assert.NotNull(objectUnderTest.typeOfKeyword)
+            Assert.NotNull(objectUnderTest.type)
+            Dim withObj = objectUnderTest.WithIsKeyword(objectUnderTest.IsKeyword).WithTypeOfKeyword(objectUnderTest.TypeOfKeyword).WithType(objectUnderTest.Type).WithOpenParenToken(objectUnderTest.OpenParenToken).WithArguments(objectUnderTest.Arguments).WithCloseParenToken(objectUnderTest.CloseParenToken).WithFilters(objectUnderTest.Filters)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedPositionalCaseClause()
+            dim objectUnderTest = GenerateRedPositionalCaseClause()
+            Assert.NotNull(objectUnderTest.isKeyword)
+            Assert.NotNull(objectUnderTest.openParenToken)
+            Assert.NotNull(objectUnderTest.arguments)
+            Assert.NotNull(objectUnderTest.closeParenToken)
+            Dim withObj = objectUnderTest.WithIsKeyword(objectUnderTest.IsKeyword).WithOpenParenToken(objectUnderTest.OpenParenToken).WithArguments(objectUnderTest.Arguments).WithCloseParenToken(objectUnderTest.CloseParenToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedListCaseClause()
+            dim objectUnderTest = GenerateRedListCaseClause()
+            Assert.NotNull(objectUnderTest.isKeyword)
+            Assert.NotNull(objectUnderTest.openBraceToken)
+            Assert.NotNull(objectUnderTest.arguments)
+            Assert.NotNull(objectUnderTest.closeBraceToken)
+            Dim withObj = objectUnderTest.WithIsKeyword(objectUnderTest.IsKeyword).WithOpenBraceToken(objectUnderTest.OpenBraceToken).WithArguments(objectUnderTest.Arguments).WithCloseBraceToken(objectUnderTest.CloseBraceToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedSelectCaseExpression()
+            dim objectUnderTest = GenerateRedSelectCaseExpression()
+            Assert.NotNull(objectUnderTest.selectKeyword)
+            Assert.NotNull(objectUnderTest.expression)
+            Assert.NotNull(objectUnderTest.arms)
+            Assert.NotNull(objectUnderTest.endKeyword)
+            Assert.NotNull(objectUnderTest.endSelectKeyword)
+            Dim withObj = objectUnderTest.WithSelectKeyword(objectUnderTest.SelectKeyword).WithCaseKeyword(objectUnderTest.CaseKeyword).WithExpression(objectUnderTest.Expression).WithArms(objectUnderTest.Arms).WithEndKeyword(objectUnderTest.EndKeyword).WithEndSelectKeyword(objectUnderTest.EndSelectKeyword)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedSelectCaseArm()
+            dim objectUnderTest = GenerateRedSelectCaseArm()
+            Assert.NotNull(objectUnderTest.caseStatement)
+            Assert.NotNull(objectUnderTest.value)
+            Dim withObj = objectUnderTest.WithCaseStatement(objectUnderTest.CaseStatement).WithValue(objectUnderTest.Value)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedCaseFilter()
+            dim objectUnderTest = GenerateRedCaseFilter()
+            Assert.NotNull(objectUnderTest.andAlsoKeyword)
+            Assert.NotNull(objectUnderTest.clause)
+            Dim withObj = objectUnderTest.WithAndAlsoKeyword(objectUnderTest.AndAlsoKeyword).WithClause(objectUnderTest.Clause)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedPropertyCaseClause()
+            dim objectUnderTest = GenerateRedPropertyCaseClause()
+            Assert.NotNull(objectUnderTest.dotToken)
+            Assert.NotNull(objectUnderTest.name)
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Assert.NotNull(objectUnderTest.value)
+            Dim withObj = objectUnderTest.WithDotToken(objectUnderTest.DotToken).WithName(objectUnderTest.Name).WithIsKeyword(objectUnderTest.IsKeyword).WithOperatorToken(objectUnderTest.OperatorToken).WithValue(objectUnderTest.Value)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedSyncLockStatement()
             dim objectUnderTest = GenerateRedSyncLockStatement()
             Assert.NotNull(objectUnderTest.syncLockKeyword)
@@ -20123,7 +21312,7 @@ Partial Public Class GeneratedTests
             Assert.NotNull(objectUnderTest.controlVariable)
             Assert.NotNull(objectUnderTest.inKeyword)
             Assert.NotNull(objectUnderTest.expression)
-            Dim withObj = objectUnderTest.WithForKeyword(objectUnderTest.ForKeyword).WithEachKeyword(objectUnderTest.EachKeyword).WithControlVariable(objectUnderTest.ControlVariable).WithInKeyword(objectUnderTest.InKeyword).WithExpression(objectUnderTest.Expression)
+            Dim withObj = objectUnderTest.WithForKeyword(objectUnderTest.ForKeyword).WithEachKeyword(objectUnderTest.EachKeyword).WithByRefKeyword(objectUnderTest.ByRefKeyword).WithControlVariable(objectUnderTest.ControlVariable).WithWithKeyword(objectUnderTest.WithKeyword).WithIndex(objectUnderTest.Index).WithInKeyword(objectUnderTest.InKeyword).WithExpression(objectUnderTest.Expression)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -20262,6 +21451,16 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedNothingCoalescingAssignmentStatement()
+            dim objectUnderTest = GenerateRedNothingCoalescingAssignmentStatement()
+            Assert.NotNull(objectUnderTest.left)
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Assert.NotNull(objectUnderTest.right)
+            Dim withObj = objectUnderTest.WithLeft(objectUnderTest.Left).WithOperatorToken(objectUnderTest.OperatorToken).WithRight(objectUnderTest.Right)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedMidExpression()
             dim objectUnderTest = GenerateRedMidExpression()
             Assert.NotNull(objectUnderTest.mid)
@@ -20315,7 +21514,7 @@ Partial Public Class GeneratedTests
             dim objectUnderTest = GenerateRedWithStatement()
             Assert.NotNull(objectUnderTest.withKeyword)
             Assert.NotNull(objectUnderTest.expression)
-            Dim withObj = objectUnderTest.WithWithKeyword(objectUnderTest.WithKeyword).WithExpression(objectUnderTest.Expression)
+            Dim withObj = objectUnderTest.WithWithKeyword(objectUnderTest.WithKeyword).WithDimKeyword(objectUnderTest.DimKeyword).WithIdentifier(objectUnderTest.Identifier).WithAsClause(objectUnderTest.AsClause).WithEqualsToken(objectUnderTest.EqualsToken).WithExpression(objectUnderTest.Expression)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -20390,6 +21589,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedDateLiteralExpression()
             dim objectUnderTest = GenerateRedDateLiteralExpression()
+            Assert.NotNull(objectUnderTest.token)
+            Dim withObj = objectUnderTest.WithToken(objectUnderTest.Token)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedGuidLiteralExpression()
+            dim objectUnderTest = GenerateRedGuidLiteralExpression()
             Assert.NotNull(objectUnderTest.token)
             Dim withObj = objectUnderTest.WithToken(objectUnderTest.Token)
             Assert.Equal(withobj, objectUnderTest)
@@ -20515,6 +21722,32 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTypeOfIsListExpression()
+            dim objectUnderTest = GenerateRedTypeOfIsListExpression()
+            Assert.NotNull(objectUnderTest.typeOfKeyword)
+            Assert.NotNull(objectUnderTest.expression)
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Assert.NotNull(objectUnderTest.openBraceToken)
+            Assert.NotNull(objectUnderTest.types)
+            Assert.NotNull(objectUnderTest.closeBraceToken)
+            Dim withObj = objectUnderTest.WithTypeOfKeyword(objectUnderTest.TypeOfKeyword).WithExpression(objectUnderTest.Expression).WithOperatorToken(objectUnderTest.OperatorToken).WithOpenBraceToken(objectUnderTest.OpenBraceToken).WithTypes(objectUnderTest.Types).WithCloseBraceToken(objectUnderTest.CloseBraceToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedTypeOfIsNotListExpression()
+            dim objectUnderTest = GenerateRedTypeOfIsNotListExpression()
+            Assert.NotNull(objectUnderTest.typeOfKeyword)
+            Assert.NotNull(objectUnderTest.expression)
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Assert.NotNull(objectUnderTest.openBraceToken)
+            Assert.NotNull(objectUnderTest.types)
+            Assert.NotNull(objectUnderTest.closeBraceToken)
+            Dim withObj = objectUnderTest.WithTypeOfKeyword(objectUnderTest.TypeOfKeyword).WithExpression(objectUnderTest.Expression).WithOperatorToken(objectUnderTest.OperatorToken).WithOpenBraceToken(objectUnderTest.OpenBraceToken).WithTypes(objectUnderTest.Types).WithCloseBraceToken(objectUnderTest.CloseBraceToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedGetXmlNamespaceExpression()
             dim objectUnderTest = GenerateRedGetXmlNamespaceExpression()
             Assert.NotNull(objectUnderTest.getXmlNamespaceKeyword)
@@ -20610,6 +21843,42 @@ Partial Public Class GeneratedTests
             Assert.NotNull(objectUnderTest.openBraceToken)
             Assert.NotNull(objectUnderTest.closeBraceToken)
             Dim withObj = objectUnderTest.WithOpenBraceToken(objectUnderTest.OpenBraceToken).WithInitializers(objectUnderTest.Initializers).WithCloseBraceToken(objectUnderTest.CloseBraceToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedCollectionExpression()
+            dim objectUnderTest = GenerateRedCollectionExpression()
+            Assert.NotNull(objectUnderTest.openParenToken)
+            Assert.NotNull(objectUnderTest.closeParenToken)
+            Dim withObj = objectUnderTest.WithOpenParenToken(objectUnderTest.OpenParenToken).WithElements(objectUnderTest.Elements).WithCloseParenToken(objectUnderTest.CloseParenToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedExtensionStatement()
+            dim objectUnderTest = GenerateRedExtensionStatement()
+            Assert.NotNull(objectUnderTest.extensionKeyword)
+            Assert.NotNull(objectUnderTest.parameterList)
+            Dim withObj = objectUnderTest.WithExtensionKeyword(objectUnderTest.ExtensionKeyword).WithParameterList(objectUnderTest.ParameterList)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedExtensionBlock()
+            dim objectUnderTest = GenerateRedExtensionBlock()
+            Assert.NotNull(objectUnderTest.extensionStatement)
+            Assert.NotNull(objectUnderTest.endExtensionStatement)
+            Dim withObj = objectUnderTest.WithExtensionStatement(objectUnderTest.ExtensionStatement).WithMembers(objectUnderTest.Members).WithEndExtensionStatement(objectUnderTest.EndExtensionStatement)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedWithExpression()
+            dim objectUnderTest = GenerateRedWithExpression()
+            Assert.NotNull(objectUnderTest.expression)
+            Assert.NotNull(objectUnderTest.initializer)
+            Dim withObj = objectUnderTest.WithExpression(objectUnderTest.Expression).WithInitializer(objectUnderTest.Initializer)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -20936,6 +22205,23 @@ Partial Public Class GeneratedTests
             Assert.NotNull(objectUnderTest.operatorToken)
             Assert.NotNull(objectUnderTest.operand)
             Dim withObj = objectUnderTest.WithOperatorToken(objectUnderTest.OperatorToken).WithOperand(objectUnderTest.Operand)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedFromEndIndexExpression()
+            dim objectUnderTest = GenerateRedFromEndIndexExpression()
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Assert.NotNull(objectUnderTest.operand)
+            Dim withObj = objectUnderTest.WithOperatorToken(objectUnderTest.OperatorToken).WithOperand(objectUnderTest.Operand)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedRangeExpression()
+            dim objectUnderTest = GenerateRedRangeExpression()
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Dim withObj = objectUnderTest.WithLeft(objectUnderTest.Left).WithOperatorToken(objectUnderTest.OperatorToken).WithRight(objectUnderTest.Right)
             Assert.Equal(withobj, objectUnderTest)
         End Sub
 
@@ -21629,6 +22915,11 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedGuidLiteralToken()
+            dim objectUnderTest = GenerateRedGuidLiteralToken()
+        End Sub
+
+        <Fact>
         Public Sub TestRedStringLiteralToken()
             dim objectUnderTest = GenerateRedStringLiteralToken()
         End Sub
@@ -21902,6 +23193,16 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedNullableDirectiveTrivia()
+            dim objectUnderTest = GenerateRedNullableDirectiveTrivia()
+            Assert.NotNull(objectUnderTest.hashToken)
+            Assert.NotNull(objectUnderTest.nullableKeyword)
+            Assert.NotNull(objectUnderTest.settingKeyword)
+            Dim withObj = objectUnderTest.WithHashToken(objectUnderTest.HashToken).WithNullableKeyword(objectUnderTest.NullableKeyword).WithSettingKeyword(objectUnderTest.SettingKeyword)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedBadDirectiveTrivia()
             dim objectUnderTest = GenerateRedBadDirectiveTrivia()
             Assert.NotNull(objectUnderTest.hashToken)
@@ -22099,6 +23400,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedEndSyncLockStatementRewriter()
             dim oldNode = GenerateRedEndSyncLockStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedEndExtensionStatementRewriter()
+            dim oldNode = GenerateRedEndExtensionStatement()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -22793,6 +24102,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTupleDeconstructionStatementRewriter()
+            dim oldNode = GenerateRedTupleDeconstructionStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestRedLabelStatementRewriter()
             dim oldNode = GenerateRedLabelStatement()
             Dim rewriter = New RedIdentityRewriter()
@@ -23257,6 +24574,62 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTypeCaseClauseRewriter()
+            dim oldNode = GenerateRedTypeCaseClause()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedPositionalCaseClauseRewriter()
+            dim oldNode = GenerateRedPositionalCaseClause()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedListCaseClauseRewriter()
+            dim oldNode = GenerateRedListCaseClause()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedSelectCaseExpressionRewriter()
+            dim oldNode = GenerateRedSelectCaseExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedSelectCaseArmRewriter()
+            dim oldNode = GenerateRedSelectCaseArm()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedCaseFilterRewriter()
+            dim oldNode = GenerateRedCaseFilter()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedPropertyCaseClauseRewriter()
+            dim oldNode = GenerateRedPropertyCaseClause()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestRedSyncLockStatementRewriter()
             dim oldNode = GenerateRedSyncLockStatement()
             Dim rewriter = New RedIdentityRewriter()
@@ -23529,6 +24902,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedNothingCoalescingAssignmentStatementRewriter()
+            dim oldNode = GenerateRedNothingCoalescingAssignmentStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestRedMidExpressionRewriter()
             dim oldNode = GenerateRedMidExpression()
             Dim rewriter = New RedIdentityRewriter()
@@ -23649,6 +25030,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedGuidLiteralExpressionRewriter()
+            dim oldNode = GenerateRedGuidLiteralExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestRedStringLiteralExpressionRewriter()
             dim oldNode = GenerateRedStringLiteralExpression()
             Dim rewriter = New RedIdentityRewriter()
@@ -23753,6 +25142,22 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTypeOfIsListExpressionRewriter()
+            dim oldNode = GenerateRedTypeOfIsListExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedTypeOfIsNotListExpressionRewriter()
+            dim oldNode = GenerateRedTypeOfIsNotListExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestRedGetXmlNamespaceExpressionRewriter()
             dim oldNode = GenerateRedGetXmlNamespaceExpression()
             Dim rewriter = New RedIdentityRewriter()
@@ -23835,6 +25240,38 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedCollectionInitializerRewriter()
             dim oldNode = GenerateRedCollectionInitializer()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedCollectionExpressionRewriter()
+            dim oldNode = GenerateRedCollectionExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedExtensionStatementRewriter()
+            dim oldNode = GenerateRedExtensionStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedExtensionBlockRewriter()
+            dim oldNode = GenerateRedExtensionBlock()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedWithExpressionRewriter()
+            dim oldNode = GenerateRedWithExpression()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -24091,6 +25528,22 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedAddressOfExpressionRewriter()
             dim oldNode = GenerateRedAddressOfExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedFromEndIndexExpressionRewriter()
+            dim oldNode = GenerateRedFromEndIndexExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedRangeExpressionRewriter()
+            dim oldNode = GenerateRedRangeExpression()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -24827,6 +26280,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedReferenceDirectiveTriviaRewriter()
             dim oldNode = GenerateRedReferenceDirectiveTrivia()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedNullableDirectiveTriviaRewriter()
+            dim oldNode = GenerateRedNullableDirectiveTrivia()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

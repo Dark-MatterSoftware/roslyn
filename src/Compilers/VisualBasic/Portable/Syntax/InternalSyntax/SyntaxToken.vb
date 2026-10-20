@@ -398,11 +398,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If CInt(kind) >= SyntaxKind.AddHandlerKeyword Then
 
-                If CInt(kind) <= SyntaxKind.YieldKeyword OrElse kind = SyntaxKind.NameOfKeyword Then
+                If CInt(kind) <= SyntaxKind.YieldKeyword OrElse kind = SyntaxKind.NameOfKeyword OrElse
+                   kind = SyntaxKind.InitOnlyKeyword OrElse
+                   kind = SyntaxKind.RequiredKeyword OrElse
+                   kind = SyntaxKind.RecordKeyword OrElse
+                   kind = SyntaxKind.ExtensionKeyword Then
                     Return New KeywordSyntax(kind, tokenText, leading, trailing)
                 ElseIf CInt(kind) <= SyntaxKind.EndOfXmlToken OrElse
                        kind = SyntaxKind.EndOfInterpolatedStringToken OrElse
-                       kind = SyntaxKind.DollarSignDoubleQuoteToken _
+                       kind = SyntaxKind.DollarSignDoubleQuoteToken OrElse
+                       kind = SyntaxKind.QuestionEqualsToken OrElse
+                       kind = SyntaxKind.DotDotToken _
                 Then
                     Return New PunctuationSyntax(kind, tokenText, leading, trailing)
                 End If
