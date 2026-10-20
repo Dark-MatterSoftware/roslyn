@@ -340,7 +340,7 @@ Wave 5 row 6. Extends the `Select Case` patterns of phase 5 and phase 11.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 27a | VB-066 | `docs/vbnext-vb066-syntax.md` records the proposed spellings for naming the result of a type test in `Case Is TypeOf` and in `TypeOf ... Is`, and the scope of that name, and locks or defers them. No code change. |
+| 27a | VB-066 | Done. [vbnext-vb066-syntax.md](vbnext-vb066-syntax.md) locks `Into` after the tested type, as in `Case Is TypeOf Customer Into c` and `If TypeOf value Is Customer Into c Then`. In `Select Case` the name is in scope in that `Case` body. In `If` it is in scope in the rest of its `AndAlso` chain and in that `Then` block, not in `ElseIf`, `Else`, or after `End If`. `Case c As Customer`, the C# order `Is Customer c`, `Dim c` after the type, and narrowing the tested variable are not adopted. `IsNot` with `Into` is not locked. No code change. |
 | 27b | VB-066 | On `vbnext`, a type test with the locked spelling declares a local of the tested type. It is definitely assigned where the test succeeded, and it is out of scope elsewhere. |
 
 ## Phase 28 — Property backing fields
@@ -360,4 +360,4 @@ Wave 5 row 7.
 
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Slice 27a, the pattern variable design note, starts now.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Slice 27a locks `Into` for pattern variables, and slice 27b starts now.
