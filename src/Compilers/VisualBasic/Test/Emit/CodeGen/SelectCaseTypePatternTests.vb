@@ -47,6 +47,30 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub SelectCase_TypeAndRelationCompareAsTheTestedTypeUnderOptionStrict()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Function Describe(value As Object) As String
+        Select Case value
+            Case Is TypeOf Integer AndAlso Is > 0 AndAlso Is < 10
+                Return ""digit""
+            Case Is TypeOf String AndAlso Is <> """"
+                Return ""text""
+            Case Else
+                Return ""other""
+        End Select
+    End Function
+
+    Shared Sub Main()
+        System.Console.Write(Describe(7) & "" "" & Describe(12) & "" "" & Describe(""hi"") & "" "" & Describe("""") & "" "" & Describe(7L))
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(False), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="digit other text other other").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub SelectCase_TypePatternRejectedOn17_13()
             Dim compilation = CreateCompilation("
 Class Program

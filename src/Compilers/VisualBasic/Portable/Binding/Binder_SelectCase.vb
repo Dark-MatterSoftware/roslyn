@@ -598,10 +598,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim typeTest As BoundExpression = New BoundTypeOf(node, selectExpressionOpt, isTypeOfIsNotExpression:=False, targetType, booleanType, hasErrors:=hasErrors)
             Dim condition As BoundExpression = typeTest
+
+            ' The tests after the type test read the Select expression as the tested type.
+            Dim typedConversion = ConversionKind.NarrowingReference
+            If Not hasErrors AndAlso operandType IsNot Nothing AndAlso Not operandType.IsErrorType() Then
+                Dim castUseSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+                Dim classified = Conversions.ClassifyDirectCastConversion(operandType, targetType, castUseSiteInfo)
+                If Conversions.ConversionExists(classified) Then
+                    typedConversion = classified
+                End If
+            End If
+
             Dim typedReceiver As BoundExpression = Nothing
+            If node.Arguments.Count > 0 OrElse node.Filters.Count > 0 Then
+                typedReceiver = New BoundDirectCast(node, selectExpressionOpt, typedConversion, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
+            End If
 
             If node.Arguments.Count > 0 Then
-                typedReceiver = New BoundDirectCast(node, selectExpressionOpt, ConversionKind.NarrowingReference, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
                 Dim positional = BindPositionalComparisons(node, typedReceiver, node.Arguments, diagnostics)
                 condition = BindBinaryOperator(
                     node:=node,
@@ -618,16 +631,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each filter In node.Filters
                 Dim filterCondition As BoundExpression
                 If filter.Clause.Kind = SyntaxKind.PropertyCaseClause Then
-                    If typedReceiver Is Nothing Then
-                        typedReceiver = New BoundDirectCast(node, selectExpressionOpt, ConversionKind.NarrowingReference, targetType, hasErrors:=hasErrors OrElse targetType.IsErrorType())
-                    End If
-
                     filterCondition = BindPropertyCaseFilter(DirectCast(filter.Clause, PropertyCaseClauseSyntax), typedReceiver, diagnostics)
                 Else
-                    Dim relational = DirectCast(BindRelationalCaseClause(DirectCast(filter.Clause, RelationalCaseClauseSyntax), selectExpressionOpt, convertCaseElements, diagnostics), BoundRelationalCaseClause)
-                    Dim relationalCondition As BoundExpression = Nothing
-                    ComputeRelationalCaseClauseCondition(relational, relationalCondition, selectExpressionOpt, diagnostics)
-                    filterCondition = relationalCondition
+                    filterCondition = BindRelationalCaseFilter(DirectCast(filter.Clause, RelationalCaseClauseSyntax), typedReceiver, diagnostics)
                 End If
 
                 condition = BindBinaryOperator(
@@ -643,6 +649,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition.MakeTreeCompilerGenerated(), hasErrors:=hasErrors)
+        End Function
+
+        Private Function BindRelationalCaseFilter(node As RelationalCaseClauseSyntax, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim operatorKind As BinaryOperatorKind
+            Select Case node.Kind
+                Case SyntaxKind.CaseEqualsClause : operatorKind = BinaryOperatorKind.Equals
+                Case SyntaxKind.CaseNotEqualsClause : operatorKind = BinaryOperatorKind.NotEquals
+                Case SyntaxKind.CaseLessThanOrEqualClause : operatorKind = BinaryOperatorKind.LessThanOrEqual
+                Case SyntaxKind.CaseGreaterThanOrEqualClause : operatorKind = BinaryOperatorKind.GreaterThanOrEqual
+                Case SyntaxKind.CaseLessThanClause : operatorKind = BinaryOperatorKind.LessThan
+                Case SyntaxKind.CaseGreaterThanClause : operatorKind = BinaryOperatorKind.GreaterThan
+                Case Else
+                    Throw ExceptionUtilities.UnexpectedValue(node.Kind)
+            End Select
+
+            Return BindBinaryOperator(
+                node:=node,
+                left:=receiver,
+                right:=BindValue(node.Value, diagnostics),
+                operatorTokenKind:=node.OperatorToken.Kind,
+                preliminaryOperatorKind:=operatorKind,
+                isOperandOfConditionalBranch:=False,
+                diagnostics:=diagnostics,
+                isSelectCase:=True)
         End Function
 
         Private Function BindPropertyCaseFilter(node As PropertyCaseClauseSyntax, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
