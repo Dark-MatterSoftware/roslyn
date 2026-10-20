@@ -44,7 +44,7 @@ Async Iterator Function EnumerateCustomers() As IAsyncEnumerable(Of Customer)
 End Function
 ```
 
-A function with both modifiers can `Await` and `Yield`, and returns `IAsyncEnumerable(Of T)` or `IAsyncEnumerator(Of T)`. Today the two modifiers together report BC36936, "'Async' and 'Iterator' modifiers cannot be used together", and Visual Basic 17.13 keeps that error. Slice 26d implements it, and the slice 26c loop consumes it.
+A function with both modifiers can `Await` and `Yield`, and returns `IAsyncEnumerable(Of T)` or `IAsyncEnumerator(Of T)`. Before `vbnext`, the two modifiers together report BC36936, "'Async' and 'Iterator' modifiers cannot be used together", and Visual Basic 17.13 keeps that error. Slice 26d implements it on `vbnext`, and the slice 26c loop consumes it.
 
 [vblang #163](https://github.com/dotnet/vblang/issues/163) proposes both existing modifiers on one function. C# marks the method `async` and infers the iterator from `yield`, but VB already requires `Iterator` for `Yield`, so both modifiers stay.
 
