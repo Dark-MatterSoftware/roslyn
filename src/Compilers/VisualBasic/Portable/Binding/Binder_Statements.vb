@@ -5867,18 +5867,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 methodReturnType = method.ReturnType
                 isAsync = method.IsAsync
 
-                ' method cannot be both iterator and async, so async will win here.
-                isIterator = Not isAsync AndAlso method.IsIterator
+                ' A method cannot be both iterator and async, so async wins, except for an async iterator,
+                ' which returns from its body the way an iterator does, with no value.
+                isIterator = method.IsIterator AndAlso (Not isAsync OrElse methodReturnType.IsAsyncIteratorReturnType(Compilation))
 
                 If Not method.IsSub Then
-                    If isAsync AndAlso method.ReturnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
-                        Return DirectCast(method.ReturnType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics(0)
-
-                    ElseIf isAsync AndAlso method.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
+                    If isIterator Then
                         ' I don't believe we need to report use-site error here because we are using System.Void just as an indicator that we don't expect any value to be returned.
                         Return Compilation.GetSpecialType(SpecialType.System_Void)
 
-                    ElseIf isIterator Then
+                    ElseIf isAsync AndAlso method.ReturnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                        Return DirectCast(method.ReturnType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics(0)
+
+                    ElseIf isAsync AndAlso method.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
                         ' I don't believe we need to report use-site error here because we are using System.Void just as an indicator that we don't expect any value to be returned.
                         Return Compilation.GetSpecialType(SpecialType.System_Void)
                     End If
@@ -6033,6 +6034,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         returnSpecialType = SpecialType.System_Collections_IEnumerator Then
 
                         Return GetSpecialType(SpecialType.System_Object, node, diagnostics)
+                    End If
+
+                    ' An async iterator yields the element type of IAsyncEnumerable(Of T) or IAsyncEnumerator(Of T).
+                    If method.IsAsync AndAlso methodReturnType.IsAsyncIteratorReturnType(Compilation) Then
+                        Return DirectCast(methodReturnType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics(0)
                     End If
 
                 End If

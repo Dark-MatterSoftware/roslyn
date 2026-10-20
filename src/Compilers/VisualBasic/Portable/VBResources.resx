@@ -5998,6 +5998,12 @@
   <data name="ERR_AwaitEachRequiresAsyncEnumerable" xml:space="preserve">
     <value>'Await Each' requires a collection that implements 'System.Collections.Generic.IAsyncEnumerable(Of T)', but '{0}' does not.</value>
   </data>
+  <data name="ERR_BadAsyncIteratorReturn" xml:space="preserve">
+    <value>An 'Async Iterator' function must return 'IAsyncEnumerable(Of T)' or 'IAsyncEnumerator(Of T)'.</value>
+  </data>
+  <data name="ERR_AsyncIteratorNotAvailableYet" xml:space="preserve">
+    <value>This build of the compiler cannot compile 'Async Iterator' functions yet.</value>
+  </data>
   <data name="ERR_DeconstructionRequiresOptionInfer" xml:space="preserve">
     <value>'Dim (...)' infers the type of each variable, which requires 'Option Infer On'. Declare the variables with 'As' clauses, then assign them with '(...) = value'.</value>
   </data>

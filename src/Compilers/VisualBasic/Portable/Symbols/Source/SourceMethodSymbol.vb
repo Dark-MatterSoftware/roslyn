@@ -449,8 +449,10 @@ lReportErrorOnTwoTokens:
 
             methodModifiers = binder.ValidateSharedPropertyAndMethodModifiers(modifiers, methodModifiers, False, container, diagBag)
 
+            ' On vbnext, Async and Iterator together declare an async iterator, which returns IAsyncEnumerable(Of T)
+            ' or IAsyncEnumerator(Of T).
             Const asyncIterator As SourceMemberFlags = SourceMemberFlags.Async Or SourceMemberFlags.Iterator
-            If (methodModifiers.FoundFlags And asyncIterator) = asyncIterator Then
+            If (methodModifiers.FoundFlags And asyncIterator) = asyncIterator AndAlso binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
                 binder.ReportModifierError(modifiers, ERRID.ERR_InvalidAsyncIteratorModifiers, diagBag, InvalidAsyncIterator)
             End If
 
@@ -2659,7 +2661,11 @@ lReportErrorOnTwoTokens:
                             binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_RestrictedType1, restrictedType)
                         End If
 
-                        If Not (Me.IsAsync AndAlso Me.IsIterator) Then
+                        If Me.IsAsync AndAlso Me.IsIterator Then
+                            If binder.Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso Not retType.IsAsyncIteratorReturnType(Me.DeclaringCompilation) Then
+                                binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_BadAsyncIteratorReturn)
+                            End If
+                        Else
                             If Me.IsSub Then
                                 If Me.IsIterator Then
                                     binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_BadIteratorReturn)

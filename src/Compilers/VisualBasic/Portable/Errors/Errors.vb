@@ -1851,8 +1851,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_AsyncUsingRequiresAsyncDisposable = 37390
         ERR_AwaitEachNotInAsyncMethod = 37391
         ERR_AwaitEachRequiresAsyncEnumerable = 37392
+        ERR_BadAsyncIteratorReturn = 37393
+        ERR_AsyncIteratorNotAvailableYet = 37394
 
-        ERR_NextAvailable = 37393
+        ERR_NextAvailable = 37395
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

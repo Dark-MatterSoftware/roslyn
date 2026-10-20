@@ -1605,6 +1605,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_AsyncUsingRequiresAsyncDisposable,
                      ERRID.ERR_AwaitEachNotInAsyncMethod,
                      ERRID.ERR_AwaitEachRequiresAsyncEnumerable,
+                     ERRID.ERR_BadAsyncIteratorReturn,
+                     ERRID.ERR_AsyncIteratorNotAvailableYet,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

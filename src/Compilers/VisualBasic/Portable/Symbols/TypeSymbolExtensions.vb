@@ -1316,6 +1316,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' An async iterator returns IAsyncEnumerable(Of T) or IAsyncEnumerator(Of T).
+        ''' </summary>
+        <Extension>
+        Friend Function IsAsyncIteratorReturnType(type As TypeSymbol, compilation As VisualBasicCompilation) As Boolean
+            Dim definition = type.OriginalDefinition
+            Return definition.Equals(compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T)) OrElse
+                   definition.Equals(compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerator_T))
+        End Function
+
+        ''' <summary>
         ''' True for a class or structure marked with System.Runtime.CompilerServices.InterpolatedStringHandlerAttribute.
         ''' </summary>
         <Extension>

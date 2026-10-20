@@ -7,6 +7,11 @@
         <target state="translated">La propriété d'initialisation uniquement '{0}' peut uniquement être affectée par un initialiseur de membre d'objet, ou sur 'Me', 'MyClass` ou 'MyBase' dans un constructeur d'instance.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AsyncIteratorNotAvailableYet">
+        <source>This build of the compiler cannot compile 'Async Iterator' functions yet.</source>
+        <target state="new">This build of the compiler cannot compile 'Async Iterator' functions yet.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_AsyncUsingNotInAsyncMethod">
         <source>'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</source>
         <target state="new">'Async Using' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</target>
@@ -40,6 +45,11 @@
       <trans-unit id="ERR_BadAbstractStaticMemberAccess">
         <source>A shared abstract or virtual interface member cannot be accessed.</source>
         <target state="translated">Impossible d’accéder à un membre d’interface virtuelle ou abstrait partagé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_BadAsyncIteratorReturn">
+        <source>An 'Async Iterator' function must return 'IAsyncEnumerable(Of T)' or 'IAsyncEnumerator(Of T)'.</source>
+        <target state="new">An 'Async Iterator' function must return 'IAsyncEnumerable(Of T)' or 'IAsyncEnumerator(Of T)'.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_BadInitOnlyProperty">
