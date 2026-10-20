@@ -25,7 +25,7 @@ Public ReadOnly Property Settings As Dictionary(Of String, String)
 End Property
 ```
 
-In the `Get` and `Set` bodies of a property, `Field` is storage that the compiler declares for that property. It has the property's type, so it compiles under `Option Strict On` and `Option Infer Off`, and it is `Shared` when the property is `Shared`. `Field` reads and assigns it in either accessor, including the `Get` of a `ReadOnly` property and the `Set` of a `WriteOnly` property. A lambda in an accessor that uses `Field` uses the same storage. The compiler declares the storage only for a property whose accessors use `Field`.
+In the `Get` and `Set` bodies of a property, `Field` is storage that the compiler declares for that property. It has the property's type, so it compiles under `Option Strict On` and `Option Infer Off`, and it is `Shared` when the property is `Shared`. `Field` reads and assigns it in either accessor, including the `Get` of a `ReadOnly` property and the `Set` of a `WriteOnly` property. A lambda in an accessor that uses `Field` uses the same storage. The compiler declares the storage only for a property whose accessors name `Field`. Under `Option Explicit Off`, `Field` in an accessor is the storage rather than a new implicit local.
 
 `Field` reads like the `Value` parameter that a `Set` already has without declaring it. C# 14 added the `field` keyword for the same purpose.
 
@@ -45,7 +45,7 @@ This differs from an auto-implemented property, whose `_Name` field stays as it 
 
 A property with parameters, such as `Property Item(index As Integer) As T`, has one storage location for every argument, so `Field` there is an error. A `MustOverride` property and an interface property have no bodies.
 
-Visual Basic 17.13 keeps reporting that `Field` is not declared.
+Visual Basic 17.13 keeps reporting that `Field` is not declared. Slice 28b implements `Field` on `vbnext`.
 
 ### Sources
 
