@@ -97,6 +97,32 @@ End Module
 ", indentationLine:=6, expectedIndentation:=28)
         End Sub
 
+        <WpfFact>
+        Public Sub InsideAwaitEachLoop()
+            AssertSmartIndent("
+Module M
+    Async Sub F()
+        Await Each item In Items()
+
+        Next
+    End Sub
+End Module
+", indentationLine:=4, expectedIndentation:=12)
+        End Sub
+
+        <WpfFact>
+        Public Sub InsideAsyncUsingBlock()
+            AssertSmartIndent("
+Module M
+    Async Sub F()
+        Async Using r = Open()
+
+        End Using
+    End Sub
+End Module
+", indentationLine:=4, expectedIndentation:=12)
+        End Sub
+
         ''' <param name="indentationLine">0-based. The line number in code to get indentation for.</param>
         Private Sub AssertSmartIndent(code As String, indentationLine As Integer, expectedIndentation As Integer?)
             Using workspace = EditorTestWorkspace.CreateVisualBasic(code, parseOptions:=s_vbNext)

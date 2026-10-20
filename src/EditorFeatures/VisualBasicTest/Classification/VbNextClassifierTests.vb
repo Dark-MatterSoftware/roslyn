@@ -141,5 +141,102 @@ Dim b = ""hi""u8",
                 Operators.Equals,
                 [String]("""hi""u8"))
         End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestAsyncUsingAndAwaitEach(testHost As TestHost) As Task
+            Await TestInMethodAsync("Async Using r = Open()
+End Using
+Await Each n In items
+Next",
+                testHost,
+                s_vbNext,
+                Keyword("Async"),
+                Keyword("Using"),
+                Identifier("r"),
+                Operators.Equals,
+                Identifier("Open"),
+                Punctuation.OpenParen,
+                Punctuation.CloseParen,
+                Keyword("End"),
+                Keyword("Using"),
+                Keyword("Await"),
+                ControlKeyword("Each"),
+                Identifier("n"),
+                ControlKeyword("In"),
+                Identifier("items"),
+                ControlKeyword("Next"))
+        End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestIntoAfterTypeTests(testHost As TestHost) As Task
+            Await TestInMethodAsync("If TypeOf o Is String Into s Then
+End If
+Select Case o
+    Case Is TypeOf Integer Into n
+End Select",
+                testHost,
+                s_vbNext,
+                ControlKeyword("If"),
+                Keyword("TypeOf"),
+                Identifier("o"),
+                Keyword("Is"),
+                Keyword("String"),
+                Keyword("Into"),
+                Identifier("s"),
+                ControlKeyword("Then"),
+                ControlKeyword("End"),
+                ControlKeyword("If"),
+                ControlKeyword("Select"),
+                ControlKeyword("Case"),
+                Identifier("o"),
+                ControlKeyword("Case"),
+                Keyword("Is"),
+                Keyword("TypeOf"),
+                Keyword("Integer"),
+                Keyword("Into"),
+                Identifier("n"),
+                ControlKeyword("End"),
+                ControlKeyword("Select"))
+        End Function
+    End Class
+
+    <Trait(Traits.Feature, Traits.Features.Classification)>
+    Public Class VbNextSemanticClassifierTests
+        Inherits AbstractVisualBasicClassifierTests
+
+        Private Shared ReadOnly s_vbNext As ParseOptions() = {VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext)}
+
+        Protected Overrides Async Function GetClassificationSpansAsync(code As String, spans As ImmutableArray(Of TextSpan), parseOptions As ParseOptions, testHost As TestHost) As Task(Of ImmutableArray(Of ClassifiedSpan))
+            Using workspace = CreateWorkspace(code, testHost, parseOptions)
+                Dim document = workspace.CurrentSolution.Projects.First().Documents.First()
+                Return Await GetSemanticClassificationsAsync(document, spans)
+            End Using
+        End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestFieldInPropertyBody(testHost As TestHost) As Task
+            Await TestAsync("Class C
+    Private _other As Integer
+    Property Name As String
+        Get
+            Return Field
+        End Get
+        Set
+            Field = Value
+        End Set
+    End Property
+    ReadOnly Property Other As Integer
+        Get
+            Return _other
+        End Get
+    End Property
+End Class",
+                testHost,
+                s_vbNext,
+                Keyword("Field"),
+                Keyword("Field"),
+                Parameter("Value"),
+                Field("_other"))
+        End Function
     End Class
 End Namespace

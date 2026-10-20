@@ -191,7 +191,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
 
                     Case SyntaxKind.AsyncKeyword
                         _asyncKeyword = targetToken
-                        _declarationTypes = _declarationTypes And defaultMethodFlags
+                        _declarationTypes = _declarationTypes And AsyncDeclarationTypes(targetToken, defaultMethodFlags)
 
                     Case Else
                         Dim vbNextModifierText = targetToken.GetVbNextDeclarationModifierText()
@@ -207,7 +207,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                         ElseIf targetToken.HasMatchingText(SyntaxKind.AsyncKeyword) Then
                             ' Contextual Async keyword
                             _asyncKeyword = targetToken
-                            _declarationTypes = _declarationTypes And defaultMethodFlags
+                            _declarationTypes = _declarationTypes And AsyncDeclarationTypes(targetToken, defaultMethodFlags)
                         ElseIf targetToken.HasMatchingText(SyntaxKind.IteratorKeyword) Then
                             ' Contextual Iterator keyword
                             _iteratorKeyword = targetToken
@@ -226,6 +226,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
 
         Public Function CouldApplyToOneOf(declarationTypes As PossibleDeclarationTypes) As Boolean
             Return (declarationTypes And _declarationTypes) <> 0
+        End Function
+
+        ''' <summary>
+        ''' Async allows a method. On vbnext it also allows an Async Iterator Function.
+        ''' </summary>
+        Private Shared Function AsyncDeclarationTypes(asyncKeyword As SyntaxToken, defaultMethodFlags As PossibleDeclarationTypes) As PossibleDeclarationTypes
+            If asyncKeyword.SyntaxTree.IsVbNext() Then
+                Return defaultMethodFlags Or PossibleDeclarationTypes.IteratorFunction
+            End If
+
+            Return defaultMethodFlags
         End Function
 
         Public ReadOnly Property AccessibilityKeyword As SyntaxToken

@@ -72,5 +72,110 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations.De
         Public Sub ExtensionMissingOn17_13()
             VerifyRecommendationsMissing(<ModuleDeclaration>|</ModuleDeclaration>, "Extension")
         End Sub
+
+        <Fact>
+        Public Sub EachAfterAwaitInAsyncMethod()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Async Sub F()
+        Await |
+    End Sub
+End Module</File>, "Each")
+        End Sub
+
+        <Fact>
+        Public Sub EachAfterAwaitMissingOn17_13()
+            VerifyRecommendationsMissing(<File>Module M
+    Async Sub F()
+        Await |
+    End Sub
+End Module</File>, "Each")
+        End Sub
+
+        <Fact>
+        Public Sub UsingAfterAsyncInAsyncMethod()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Async Sub F()
+        Async |
+    End Sub
+End Module</File>, "Using")
+        End Sub
+
+        <Fact>
+        Public Sub IteratorAfterAsyncAndAsyncAfterIterator()
+            VerifyRecommendationsContain(<ClassDeclaration VbNext="True">Async |</ClassDeclaration>, "Iterator")
+            VerifyRecommendationsContain(<ClassDeclaration VbNext="True">Iterator |</ClassDeclaration>, "Async")
+        End Sub
+
+        <Fact>
+        Public Sub IteratorAfterAsyncMissingOn17_13()
+            VerifyRecommendationsMissing(<ClassDeclaration>Async |</ClassDeclaration>, "Iterator")
+        End Sub
+
+        <Fact>
+        Public Sub IntoAfterCaseIsTypeOf()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F(o As Object)
+        Select Case o
+            Case Is TypeOf String |
+        End Select
+    End Sub
+End Module</File>, "Into")
+        End Sub
+
+        <Fact>
+        Public Sub IntoAfterTypeOfInIfCondition()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F(o As Object)
+        If TypeOf o Is String |
+    End Sub
+End Module</File>, "Into")
+        End Sub
+
+        <Fact>
+        Public Sub IntoMissingAfterTypeOfOutsideACondition()
+            VerifyRecommendationsMissing(<File VbNext="True">Module M
+    Sub F(o As Object)
+        Dim b As Boolean = TypeOf o Is String |
+    End Sub
+End Module</File>, "Into")
+        End Sub
+
+        <Fact>
+        Public Sub IntoAfterTypeOfMissingOn17_13()
+            VerifyRecommendationsMissing(<File>Module M
+    Sub F(o As Object)
+        If TypeOf o Is String |
+    End Sub
+End Module</File>, "Into")
+        End Sub
+
+        <Fact>
+        Public Sub FieldInPropertyAccessor()
+            VerifyRecommendationsContain(<File VbNext="True">Class C
+    Property P As Integer
+        Get
+            Return |
+        End Get
+        Set
+        End Set
+    End Property
+End Class</File>, "Field")
+        End Sub
+
+        <Fact>
+        Public Sub FieldMissingOutsidePropertyAccessorAndOn17_13()
+            VerifyRecommendationsMissing(<File VbNext="True">Class C
+    Function F() As Integer
+        Return |
+    End Function
+End Class</File>, "Field")
+            VerifyRecommendationsMissing(<File>Class C
+    ReadOnly Property P As Integer
+        Get
+            Return |
+        End Get
+    End Property
+End Class</File>, "Field")
+        End Sub
     End Class
 End Namespace

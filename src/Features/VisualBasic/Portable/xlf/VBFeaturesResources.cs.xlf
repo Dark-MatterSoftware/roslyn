@@ -92,6 +92,11 @@
         <target state="translated">Zavést příkaz Using</target>
         <note>{Locked="Using"} "Using" is a VB keyword and should not be localized.</note>
       </trans-unit>
+      <trans-unit id="Introduces_a_loop_that_awaits_each_element_of_an_asynchronous_collection">
+        <source>Introduces a loop that awaits each element of an asynchronous collection.</source>
+        <target state="new">Introduces a loop that awaits each element of an asynchronous collection.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Move_the_0_statement_to_line_1">
         <source>Move the '{0}' statement to line {1}.</source>
         <target state="translated">Přesuňte příkaz {0} na řádek {1}.</target>
@@ -107,6 +112,11 @@
         <target state="translated">&lt;Víc typů&gt;</target>
         <note />
       </trans-unit>
+      <trans-unit id="Names_the_result_of_a_type_test_as_a_local_of_the_tested_type">
+        <source>Names the result of a type test as a local of the tested type.</source>
+        <target state="new">Names the result of a type test as a local of the tested type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Organize_Imports">
         <source>Organize Imports</source>
         <target state="translated">Uspořádat direktivy Import</target>
@@ -115,6 +125,16 @@
       <trans-unit id="Project_level_Imports">
         <source>Project level 'Imports'</source>
         <target state="translated">Úroveň projektu Importy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Refers_to_the_storage_that_the_compiler_declares_for_this_property">
+        <source>Refers to the storage that the compiler declares for this property.</source>
+        <target state="new">Refers to the storage that the compiler declares for this property.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Releases_the_resource_with_an_awaited_DisposeAsync_when_the_block_ends">
+        <source>Releases the resource with an awaited DisposeAsync when the block ends.</source>
+        <target state="new">Releases the resource with an awaited DisposeAsync when the block ends.</target>
         <note />
       </trans-unit>
       <trans-unit id="Remove_shared_keyword_from_module_member">

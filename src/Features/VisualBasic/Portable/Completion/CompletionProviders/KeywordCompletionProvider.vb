@@ -75,6 +75,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 New KeywordRecommenders.Expressions.AddressOfKeywordRecommender(),
                 New KeywordRecommenders.Expressions.BinaryOperatorKeywordRecommender(),
                 New KeywordRecommenders.Expressions.CastOperatorsKeywordRecommender(),
+                New KeywordRecommenders.Expressions.FieldKeywordRecommender(),
                 New KeywordRecommenders.Expressions.FromKeywordRecommender(),
                 New KeywordRecommenders.Expressions.GetTypeKeywordRecommender(),
                 New KeywordRecommenders.Expressions.GetXmlNamespaceKeywordRecommender(),

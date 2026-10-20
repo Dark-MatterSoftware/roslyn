@@ -156,5 +156,53 @@ End Class",
                 afterCaret:={3, -1},
                 parseOptions:=VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
         End Function
+
+        <WpfFact>
+        Public Async Function TestApplyAfterAwaitEachStatement() As Task
+            Await VerifyStatementEndConstructAppliedAsync(
+                before:="Class C
+    Async Sub M()
+        Await Each item In Items()
+    End Sub
+End Class",
+                beforeCaret:={2, -1},
+                after:="Class C
+    Async Sub M()
+        Await Each item In Items()
+
+        Next
+    End Sub
+End Class",
+                afterCaret:={3, -1},
+                parseOptions:=s_vbNext)
+        End Function
+
+        <WpfFact>
+        Public Async Function DoNotApplyAfterAsyncUsingDeclaration() As Task
+            Await VerifyStatementEndConstructNotAppliedAsync(
+                text:="Class C
+    Async Sub M()
+        Async Using stream = Open()
+    End Sub
+End Class",
+                caret:={2, -1},
+                parseOptions:=s_vbNext)
+        End Function
+
+        <WpfFact>
+        Public Async Function TestApplyAfterAsyncIteratorFunction() As Task
+            Await VerifyStatementEndConstructAppliedAsync(
+                before:="Class C
+    Async Iterator Function Items() As System.Collections.Generic.IAsyncEnumerable(Of Integer)
+End Class",
+                beforeCaret:={1, -1},
+                after:="Class C
+    Async Iterator Function Items() As System.Collections.Generic.IAsyncEnumerable(Of Integer)
+
+    End Function
+End Class",
+                afterCaret:={2, -1},
+                parseOptions:=s_vbNext)
+        End Function
     End Class
 End Namespace

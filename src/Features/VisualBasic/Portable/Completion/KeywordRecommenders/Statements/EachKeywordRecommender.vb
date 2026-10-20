@@ -18,12 +18,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Stat
         Private Shared ReadOnly s_keywords As ImmutableArray(Of RecommendedKeyword) =
             ImmutableArray.Create(New RecommendedKeyword("Each", VBFeaturesResources.Introduces_a_loop_that_is_repeated_for_each_element_in_a_collection))
 
+        Private Shared ReadOnly s_awaitEachKeywords As ImmutableArray(Of RecommendedKeyword) =
+            ImmutableArray.Create(New RecommendedKeyword("Each", VBFeaturesResources.Introduces_a_loop_that_awaits_each_element_of_an_asynchronous_collection))
+
         Protected Overrides Function RecommendKeywords(context As VisualBasicSyntaxContext, cancellationToken As CancellationToken) As ImmutableArray(Of RecommendedKeyword)
             If context.FollowsEndOfStatement Then
                 Return ImmutableArray(Of RecommendedKeyword).Empty
             End If
 
             Dim targetToken = context.TargetToken
+
+            ' Await Each on vbnext, where Await starts the statement.
+            If context.SyntaxTree.IsVbNext() AndAlso
+               (targetToken.IsKind(SyntaxKind.AwaitKeyword) OrElse targetToken.HasMatchingText(SyntaxKind.AwaitKeyword)) AndAlso
+               targetToken.GetAncestor(Of StatementSyntax)()?.GetFirstToken() = targetToken Then
+                Return s_awaitEachKeywords
+            End If
 
             If targetToken.IsKind(SyntaxKind.ForKeyword) AndAlso targetToken.Parent.IsKind(SyntaxKind.ForStatement) Then
                 Dim forStatement = DirectCast(targetToken.Parent, ForStatementSyntax)

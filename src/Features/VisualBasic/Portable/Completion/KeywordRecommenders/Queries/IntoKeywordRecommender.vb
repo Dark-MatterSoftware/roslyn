@@ -18,7 +18,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Quer
         Private Shared ReadOnly s_keywords As ImmutableArray(Of RecommendedKeyword) =
             ImmutableArray.Create(New RecommendedKeyword("Into", VBFeaturesResources.Specifies_an_identifier_that_can_serve_as_a_reference_to_the_results_of_a_join_or_grouping_subexpression))
 
+        Private Shared ReadOnly s_typeTestKeywords As ImmutableArray(Of RecommendedKeyword) =
+            ImmutableArray.Create(New RecommendedKeyword("Into", VBFeaturesResources.Names_the_result_of_a_type_test_as_a_local_of_the_tested_type))
+
         Protected Overrides Function RecommendKeywords(context As VisualBasicSyntaxContext, cancellationToken As CancellationToken) As ImmutableArray(Of RecommendedKeyword)
+            ' "Into" after the type of Case Is TypeOf, or of TypeOf ... Is in an If or ElseIf condition, on vbnext
+            If context.SyntaxTree.IsVbNext() AndAlso IsAfterNameableTypeTest(context.TargetToken) Then
+                Return s_typeTestKeywords
+            End If
+
             ' "Into" for Group By is easy
             If context.SyntaxTree.IsFollowingCompleteExpression(Of GroupByClauseSyntax)(
                context.Position, context.TargetToken, Function(g) g.Keys.LastRangeExpression(), cancellationToken) Then
@@ -42,6 +50,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Quer
             End If
 
             Return ImmutableArray(Of RecommendedKeyword).Empty
+        End Function
+
+        Private Shared Function IsAfterNameableTypeTest(targetToken As SyntaxToken) As Boolean
+            Dim typeClause = targetToken.GetAncestor(Of TypeCaseClauseSyntax)()
+            If typeClause IsNot Nothing Then
+                Dim lastTestToken = If(typeClause.CloseParenToken.Kind = SyntaxKind.CloseParenToken, typeClause.CloseParenToken, typeClause.Type.GetLastToken())
+                Return targetToken = lastTestToken AndAlso typeClause.IntoKeyword.Kind = SyntaxKind.None
+            End If
+
+            Dim typeTest = targetToken.GetAncestor(Of TypeOfExpressionSyntax)()
+            If typeTest Is Nothing OrElse Not typeTest.IsKind(SyntaxKind.TypeOfIsExpression) OrElse targetToken <> typeTest.Type.GetLastToken() Then
+                Return False
+            End If
+
+            ' The test is the condition, or an operand of its AndAlso chain, through parentheses.
+            Dim expression As SyntaxNode = typeTest
+            Do While expression.Parent.IsKind(SyntaxKind.AndAlsoExpression, SyntaxKind.ParenthesizedExpression)
+                expression = expression.Parent
+            Loop
+
+            Select Case expression.Parent.Kind
+                Case SyntaxKind.IfStatement
+                    Return DirectCast(expression.Parent, IfStatementSyntax).Condition Is expression
+                Case SyntaxKind.ElseIfStatement
+                    Return DirectCast(expression.Parent, ElseIfStatementSyntax).Condition Is expression
+                Case SyntaxKind.SingleLineIfStatement
+                    Return DirectCast(expression.Parent, SingleLineIfStatementSyntax).Condition Is expression
+            End Select
+
+            Return False
         End Function
     End Class
 End Namespace

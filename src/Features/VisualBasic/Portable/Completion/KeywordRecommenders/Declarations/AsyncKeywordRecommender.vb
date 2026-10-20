@@ -17,8 +17,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
         Protected Overrides Function RecommendKeywords(context As VisualBasicSyntaxContext, cancellationToken As CancellationToken) As ImmutableArray(Of RecommendedKeyword)
             ' Function/Sub declaration
             If context.IsTypeMemberDeclarationKeywordContext OrElse context.IsInterfaceMemberDeclarationKeywordContext Then
+                ' On vbnext, Async and Iterator together declare an Async Iterator Function.
                 If context.ModifierCollectionFacts.AsyncKeyword.Kind = SyntaxKind.None AndAlso
-                   context.ModifierCollectionFacts.IteratorKeyword.Kind = SyntaxKind.None AndAlso
+                   (context.ModifierCollectionFacts.IteratorKeyword.Kind = SyntaxKind.None OrElse context.SyntaxTree.IsVbNext()) AndAlso
                    context.ModifierCollectionFacts.OverridableSharedOrPartialKeyword.Kind <> SyntaxKind.PartialKeyword AndAlso
                    context.ModifierCollectionFacts.MutabilityOrWithEventsKeyword.Kind = SyntaxKind.None Then
 

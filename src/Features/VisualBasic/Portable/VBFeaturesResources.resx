@@ -744,6 +744,18 @@ Option Explicit {On | Off}</value>
   <data name="Introduces_a_loop_that_is_repeated_for_each_element_in_a_collection" xml:space="preserve">
     <value>Introduces a loop that is repeated for each element in a collection.</value>
   </data>
+  <data name="Introduces_a_loop_that_awaits_each_element_of_an_asynchronous_collection" xml:space="preserve">
+    <value>Introduces a loop that awaits each element of an asynchronous collection.</value>
+  </data>
+  <data name="Releases_the_resource_with_an_awaited_DisposeAsync_when_the_block_ends" xml:space="preserve">
+    <value>Releases the resource with an awaited DisposeAsync when the block ends.</value>
+  </data>
+  <data name="Names_the_result_of_a_type_test_as_a_local_of_the_tested_type" xml:space="preserve">
+    <value>Names the result of a type test as a local of the tested type.</value>
+  </data>
+  <data name="Refers_to_the_storage_that_the_compiler_declares_for_this_property" xml:space="preserve">
+    <value>Refers to the storage that the compiler declares for this property.</value>
+  </data>
   <data name="Introduces_a_loop_that_is_iterated_a_specified_number_of_times" xml:space="preserve">
     <value>Introduces a loop that is iterated a specified number of times.</value>
   </data>

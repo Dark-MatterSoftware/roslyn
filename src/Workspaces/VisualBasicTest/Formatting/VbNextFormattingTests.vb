@@ -19,6 +19,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Formatting
         End Function
 
         <Fact>
+        Public Async Function AsynchronousStreamsAndPatternVariablesIndentTheirBodies() As Task
+            Await AssertVbNextFormatAsync("
+Class C
+Async Iterator Function Items() As System.Collections.Generic.IAsyncEnumerable(Of Integer)
+Async Using   r = Open()
+Await Each   n In Source()
+If TypeOf n Is Integer   Into i Then
+Yield i
+End If
+Next
+End Using
+End Function
+Property Name As String
+Get
+Return   Field
+End Get
+Set
+Select Case Value
+Case Is TypeOf String   Into s
+Field = s
+End Select
+End Set
+End Property
+End Class
+", "
+Class C
+    Async Iterator Function Items() As System.Collections.Generic.IAsyncEnumerable(Of Integer)
+        Async Using r = Open()
+            Await Each n In Source()
+                If TypeOf n Is Integer Into i Then
+                    Yield i
+                End If
+            Next
+        End Using
+    End Function
+    Property Name As String
+        Get
+            Return Field
+        End Get
+        Set
+            Select Case Value
+                Case Is TypeOf String Into s
+                    Field = s
+            End Select
+        End Set
+    End Property
+End Class
+")
+        End Function
+
+        <Fact>
         Public Async Function ExtensionBlockIndentsItsMembers() As Task
             Await AssertVbNextFormatAsync("
 Module M

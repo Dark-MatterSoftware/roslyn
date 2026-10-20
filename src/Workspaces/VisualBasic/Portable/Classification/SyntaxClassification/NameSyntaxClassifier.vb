@@ -119,6 +119,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Classification.Classifiers
                     classifiedSpan = New ClassifiedSpan(GetNameToken(node).Span, ClassificationTypeNames.PropertyName)
                     Return True
                 Case SymbolKind.Field
+                    If IsPropertyFieldKeyword(node, DirectCast(symbol, IFieldSymbol)) Then
+                        classifiedSpan = New ClassifiedSpan(GetNameToken(node).Span, ClassificationTypeNames.Keyword)
+                        Return True
+                    End If
+
                     Dim classification = GetClassificationForField(DirectCast(symbol, IFieldSymbol))
                     If classification IsNot Nothing Then
                         classifiedSpan = New ClassifiedSpan(GetNameToken(node).Span, classification)
@@ -191,6 +196,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Classification.Classifiers
             End If
 
             Return False
+        End Function
+
+        ''' <summary>
+        ''' Field in a property body on vbnext, which names the storage that the compiler declares for the property.
+        ''' </summary>
+        Private Shared Function IsPropertyFieldKeyword(node As NameSyntax, fieldSymbol As IFieldSymbol) As Boolean
+            Dim identifierName = TryCast(node, IdentifierNameSyntax)
+            Return identifierName IsNot Nothing AndAlso
+                   Not identifierName.Identifier.IsBracketed AndAlso
+                   CaseInsensitiveComparison.Equals(identifierName.Identifier.ValueText, "Field") AndAlso
+                   fieldSymbol.IsImplicitlyDeclared AndAlso
+                   TypeOf fieldSymbol.AssociatedSymbol Is IPropertySymbol
         End Function
 
         Private Shared Function GetClassificationForField(fieldSymbol As IFieldSymbol) As String
