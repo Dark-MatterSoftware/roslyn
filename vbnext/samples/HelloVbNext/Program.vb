@@ -68,5 +68,6 @@ Module Program
         Console.WriteLine("modern visual basic".WordCount)
         Console.WriteLine(Items({"records", "extensions"}))
         WaveFive.RunAsync().GetAwaiter().GetResult()
+        WaveSix.RunAsync().GetAwaiter().GetResult()
     End Sub
 End Module
