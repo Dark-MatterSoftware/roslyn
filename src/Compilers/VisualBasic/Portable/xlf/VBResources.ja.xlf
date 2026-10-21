@@ -357,6 +357,11 @@
         <target state="new">A line in a raw string does not start with the closing delimiter's whitespace.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_RefStructureAcrossSuspension">
+        <source>A value of type '{0}' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.</source>
+        <target state="new">A value of type '{0}' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_ReturnFromNonGenericTaskLikeAsync">
         <source>'Return' statements in this Async method cannot return a value since the return type of the function is '{0}'.</source>
         <target state="new">'Return' statements in this Async method cannot return a value since the return type of the function is '{0}'.</target>

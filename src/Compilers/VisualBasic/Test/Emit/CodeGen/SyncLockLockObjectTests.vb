@@ -235,7 +235,7 @@ End Class
 ", targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
 
             compilation.AssertTheseEmitDiagnostics(<expected><![CDATA[
-BC37052: Variable of restricted type 'Lock.Scope' cannot be declared in an Async or Iterator method.
+BC37405: A value of type 'Lock.Scope' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.
         SyncLock Gate
         ~~~~~~~~~~~~~~
 ]]></expected>)

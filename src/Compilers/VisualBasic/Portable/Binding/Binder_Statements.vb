@@ -1642,7 +1642,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ElseIf IsInAsyncContext() OrElse IsInIteratorContext() Then
                     ReportDiagnostic(diagnostics, name, ERRID.ERR_BadStaticInitializerInResumable)
                 End If
-            ElseIf IsInAsyncContext() OrElse IsInIteratorContext() Then
+            ElseIf (IsInAsyncContext() AndAlso Compilation.LanguageVersion < LanguageVersion.VbNext) OrElse IsInIteratorContext() Then
+                ' On vbnext, an Async method declares such a local, and the state machine reports one that is live across an Await.
                 If type.IsRestrictedType() OrElse type.IsRefLikeOrAllowsRefLikeType() Then
                     If Not isInitializedByAsNew OrElse Not skipAsNewInitializer Then
                         ReportDiagnostic(diagnostics, errSyntax, ERRID.ERR_CannotLiftRestrictedTypeResumable1, type)

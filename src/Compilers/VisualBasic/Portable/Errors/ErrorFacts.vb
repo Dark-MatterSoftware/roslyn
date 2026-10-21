@@ -1616,6 +1616,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_BadAsyncMethodBuilder,
                      ERRID.ERR_GuardThenMustLeave,
                      ERRID.ERR_GuardCannotHaveElse,
+                     ERRID.ERR_RefStructureAcrossSuspension,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_PossibleNullAssignment,

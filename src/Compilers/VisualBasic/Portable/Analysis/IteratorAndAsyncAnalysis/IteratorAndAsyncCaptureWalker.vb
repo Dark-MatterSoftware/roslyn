@@ -65,11 +65,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             walker.Free()
 
             If lazyDisallowedCaptures IsNot Nothing Then
+                ' On vbnext such a local can be declared, and the error is that its value is kept across the suspension.
+                Dim errorId = If(info.Compilation.LanguageVersion >= LanguageVersion.VbNext,
+                                 ERRID.ERR_RefStructureAcrossSuspension,
+                                 ERRID.ERR_CannotLiftRestrictedTypeResumable1)
                 For Each variable In lazyDisallowedCaptures.Keys
                     Dim type As TypeSymbol = If(variable.Kind = SymbolKind.Local, TryCast(variable, LocalSymbol).Type, TryCast(variable, ParameterSymbol).Type)
                     For Each node In lazyDisallowedCaptures(variable)
-                        ' Variable of restricted type '{0}' cannot be declared in an Async or Iterator method.
-                        diagnostics.Add(ERRID.ERR_CannotLiftRestrictedTypeResumable1, node.GetLocation(), type)
+                        diagnostics.Add(errorId, node.GetLocation(), type)
                     Next
                 Next
             End If
@@ -135,7 +138,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If type.IsRestrictedType() OrElse type.IsRefLikeOrAllowsRefLikeType() Then
                 ' Error has already been reported, except for the scope of a SyncLock on a System.Threading.Lock,
                 ' which the binder cannot see crossing a Yield:
-                If TypeOf variable Is SynthesizedLocal AndAlso DirectCast(variable, LocalSymbol).SynthesizedKind <> SynthesizedLocalKind.Lock Then
+                ' On vbnext a synthesized ref-like local, such as the enumerator of a For Each over a span, can be live
+                ' across an Await too.
+                If TypeOf variable Is SynthesizedLocal AndAlso DirectCast(variable, LocalSymbol).SynthesizedKind <> SynthesizedLocalKind.Lock AndAlso
+                   compilation.LanguageVersion < LanguageVersion.VbNext Then
                     Return
                 End If
 

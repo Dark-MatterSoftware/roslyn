@@ -1863,8 +1863,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_BadAsyncMethodBuilder = 37402
         ERR_GuardThenMustLeave = 37403
         ERR_GuardCannotHaveElse = 37404
+        ERR_RefStructureAcrossSuspension = 37405
 
-        ERR_NextAvailable = 37405
+        ERR_NextAvailable = 37406
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

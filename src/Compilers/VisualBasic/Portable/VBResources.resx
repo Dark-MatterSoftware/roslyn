@@ -6025,6 +6025,9 @@
   <data name="ERR_GuardCannotHaveElse" xml:space="preserve">
     <value>An 'If' that declares '{0}' with 'IsNot' and 'Into' cannot have 'Else' or 'ElseIf'.</value>
   </data>
+  <data name="ERR_RefStructureAcrossSuspension" xml:space="preserve">
+    <value>A value of type '{0}' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.</value>
+  </data>
   <data name="ERR_BadAsyncMethodBuilder" xml:space="preserve">
     <value>'{0}' cannot build the result of an Async function that returns '{1}'. A builder needs a 'Public Shared Function Create()' that returns the builder and a 'Public' instance property 'Task' of the return type, and has one type parameter when the return type is generic.</value>
   </data>

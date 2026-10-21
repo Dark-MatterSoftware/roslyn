@@ -409,6 +409,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Throw ExceptionUtilities.Unreachable
 
                     Case Else
+                        ' A ref structure value cannot be stored in a field while the method is suspended.
+                        If expr.Type IsNot Nothing AndAlso (expr.Type.IsRestrictedType() OrElse expr.Type.IsRefLikeOrAllowsRefLikeType()) Then
+                            Me.Diagnostics.Add(ERRID.ERR_RefStructureAcrossSuspension, expr.Syntax.GetLocation(), expr.Type)
+                            Return expr
+                        End If
+
                         ' Create a field for a spill
                         Dim spillField As FieldSymbol = Me._spillFieldAllocator.AllocateField(expr.Type)
                         Dim initialization As BoundStatement = Me.F.Assignment(Me.F.Field(Me.F.Me(), spillField, True), expr)
