@@ -848,5 +848,22 @@ End Class
 "
             Await TestInRegularAndScriptAsync(initial, expected)
         End Function
+
+        <Fact>
+        Public Async Function ForEachDeconstruction() As Task
+            Dim initial = "
+Imports System
+Imports System.Collections.Generic
+
+Class Test
+    Sub Method()
+        For Each [||] (name, count) In New List(Of (String, Integer))()
+            Console.WriteLine(name)
+        Next
+    End Sub
+End Class
+"
+            Await TestMissingAsync(initial, New TestParameters(parseOptions:=VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext)))
+        End Function
     End Class
 End Namespace

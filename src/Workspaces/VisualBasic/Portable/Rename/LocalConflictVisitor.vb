@@ -146,6 +146,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
             If controlVariable.Kind = SyntaxKind.VariableDeclarator Then
                 ' it's only legal to have one name in the variable declarator for for and foreach loops.
                 tokens.Add(DirectCast(controlVariable, VariableDeclaratorSyntax).Names.First().Identifier)
+            ElseIf controlVariable.Kind = SyntaxKind.ForEachDeconstruction Then
+                ' Only the names that the loop declares; the others refer to variables outside it.
+                For Each variable In DirectCast(controlVariable, ForEachDeconstructionSyntax).Variables
+                    Dim name = variable.Names.First()
+                    If TypeOf _semanticModel.GetDeclaredSymbol(name, _cancellationToken) Is ILocalSymbol Then
+                        tokens.Add(name.Identifier)
+                    End If
+                Next
             Else
                 Dim symbol = _semanticModel.GetSymbolInfo(controlVariable, _cancellationToken).Symbol
 

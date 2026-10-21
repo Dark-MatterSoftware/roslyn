@@ -165,6 +165,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ConvertForEachToFor
         End Sub
 
         Protected Overrides Function IsSupported(foreachVariable As ILocalSymbol, foreachOperation As IForEachLoopOperation, foreachStatement As ForEachBlockSyntax) As Boolean
+            If foreachStatement.ForEachStatement.ControlVariable.IsKind(SyntaxKind.ForEachDeconstruction) Then
+                Return False
+            End If
+
             ' VB can have Next variable. but we only support
             ' simple 1 variable case.
             If foreachOperation.NextVariables.Length > 1 Then

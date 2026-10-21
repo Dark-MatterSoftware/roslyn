@@ -161,6 +161,19 @@ End Module
 ", indentationLine:=4, expectedIndentation:=12)
         End Sub
 
+        <WpfFact>
+        Public Sub InsideAForEachDeconstruction()
+            AssertSmartIndent("
+Module M
+    Sub F(items As (String, Integer)())
+        For Each (name, count As Integer) In items
+
+        Next
+    End Sub
+End Module
+", indentationLine:=4, expectedIndentation:=12)
+        End Sub
+
         ''' <param name="indentationLine">0-based. The line number in code to get indentation for.</param>
         Private Sub AssertSmartIndent(code As String, indentationLine As Integer, expectedIndentation As Integer?)
             Using workspace = EditorTestWorkspace.CreateVisualBasic(code, parseOptions:=s_vbNext)

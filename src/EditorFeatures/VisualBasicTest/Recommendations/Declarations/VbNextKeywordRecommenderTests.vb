@@ -224,5 +224,37 @@ End Class</File>, "Field")
     End Property
 End Class</File>, "Field")
         End Sub
+
+        <Fact>
+        Public Sub InAfterForEachDeconstruction()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F()
+        For Each (name, count) |
+    End Sub
+End Module</File>, "In")
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F()
+        For Each (name As String, count As Integer) |
+    End Sub
+End Module</File>, "In")
+        End Sub
+
+        <Fact>
+        Public Sub AsAfterANameInForEachDeconstruction()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F()
+        For Each (name, count |
+    End Sub
+End Module</File>, "As")
+        End Sub
+
+        <Fact>
+        Public Sub InAfterParenthesizedForEachControlVariableMissingOn17_13()
+            VerifyRecommendationsMissing(<File>Module M
+    Sub F()
+        For Each (name, count) |
+    End Sub
+End Module</File>, "In")
+        End Sub
     End Class
 End Namespace

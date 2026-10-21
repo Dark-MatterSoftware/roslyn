@@ -40,6 +40,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                 Return ImmutableArray.Create(New RecommendedKeyword("In", VBFeaturesResources.Specifies_the_group_that_the_loop_variable_in_a_For_Each_statement_is_to_traverse))
             End If
 
+            ' For Each (a, b) |
+            If targetToken.IsKind(SyntaxKind.CloseParenToken) AndAlso
+               targetToken.Parent.IsKind(SyntaxKind.ForEachDeconstruction) AndAlso
+               targetToken.Parent.IsParentKind(SyntaxKind.ForEachStatement) Then
+                Return ImmutableArray.Create(New RecommendedKeyword("In", VBFeaturesResources.Specifies_the_group_that_the_loop_variable_in_a_For_Each_statement_is_to_traverse))
+            End If
+
             ' From element |
             ' Group Join element |
             If targetToken.IsFromIdentifierNode(Of CollectionRangeVariableSyntax)(Function(rangeVariable) rangeVariable.Identifier) OrElse

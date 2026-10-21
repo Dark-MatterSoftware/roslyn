@@ -229,6 +229,26 @@ If TypeOf o IsNot String Into s Then Return",
                 ControlKeyword("Then"),
                 ControlKeyword("Return"))
         End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestForEachDeconstruction(testHost As TestHost) As Task
+            Await TestInMethodAsync("For Each (name, count As Integer) In items
+Next",
+                testHost,
+                s_vbNext,
+                ControlKeyword("For"),
+                ControlKeyword("Each"),
+                Punctuation.OpenParen,
+                Identifier("name"),
+                Punctuation.Comma,
+                Identifier("count"),
+                Keyword("As"),
+                Keyword("Integer"),
+                Punctuation.CloseParen,
+                ControlKeyword("In"),
+                Identifier("items"),
+                ControlKeyword("Next"))
+        End Function
     End Class
 
     <Trait(Traits.Feature, Traits.Features.Classification)>
@@ -268,6 +288,31 @@ End Class",
                 Keyword("Field"),
                 Parameter("Value"),
                 Field("_other"))
+        End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestForEachDeconstructionAndLambdaParameterAttribute(testHost As TestHost) As Task
+            Await TestAsync("Class FromQueryAttribute
+    Inherits System.Attribute
+End Class
+Module M
+    Sub F(items As (String, Integer)())
+        Dim total = 0
+        For Each (name, count) In items
+            total += count
+        Next
+        Dim find = Function(<FromQuery> id As Integer) id
+    End Sub
+End Module",
+                testHost,
+                s_vbNext,
+                [Namespace]("System"),
+                [Class]("Attribute"),
+                Parameter("items"),
+                Local("total"),
+                Local("count"),
+                [Class]("FromQuery"),
+                Parameter("id"))
         End Function
     End Class
 End Namespace

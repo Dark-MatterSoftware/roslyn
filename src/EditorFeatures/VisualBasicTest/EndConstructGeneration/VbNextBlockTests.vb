@@ -224,5 +224,25 @@ End Class",
                 afterCaret:={3, -1},
                 parseOptions:=s_vbNext)
         End Function
+
+        <WpfFact>
+        Public Async Function TestApplyAfterForEachDeconstruction() As Task
+            Await VerifyStatementEndConstructAppliedAsync(
+                before:="Class C
+    Sub M(items As (String, Integer)())
+        For Each (name, count) In items
+    End Sub
+End Class",
+                beforeCaret:={2, -1},
+                after:="Class C
+    Sub M(items As (String, Integer)())
+        For Each (name, count) In items
+
+        Next
+    End Sub
+End Class",
+                afterCaret:={3, -1},
+                parseOptions:=s_vbNext)
+        End Function
     End Class
 End Namespace
