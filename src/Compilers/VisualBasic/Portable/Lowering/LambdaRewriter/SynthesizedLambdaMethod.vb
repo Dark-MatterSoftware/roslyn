@@ -78,11 +78,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim params = ArrayBuilder(Of ParameterSymbol).GetInstance
             For Each curParam In _lambda.Parameters
-                params.Add(
-                    WithNewContainerAndType(
-                    Me,
-                    curParam.Type.InternalSubstituteTypeParameters(TypeMap).Type,
-                    curParam))
+                Dim parameterType = curParam.Type.InternalSubstituteTypeParameters(TypeMap).Type
+                If curParam.GetAttributes().IsEmpty Then
+                    params.Add(WithNewContainerAndType(Me, parameterType, curParam))
+                Else
+                    params.Add(New AttributedLambdaParameterSymbol(Me, parameterType, curParam))
+                End If
             Next
 
             Me._parameters = params.ToImmutableAndFree
@@ -247,6 +248,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return _topLevelMethod.AreLocalsZeroed
             End Get
         End Property
+
+        ''' <summary>
+        ''' A parameter of the lambda's method that emits the attributes written on the lambda parameter, which reflection
+        ''' over the delegate's method reads.
+        ''' </summary>
+        Private NotInheritable Class AttributedLambdaParameterSymbol
+            Inherits SynthesizedParameterSymbol
+
+            Private ReadOnly _attributes As ImmutableArray(Of VisualBasicAttributeData)
+
+            Public Sub New(container As MethodSymbol, type As TypeSymbol, lambdaParameter As ParameterSymbol)
+                MyBase.New(container, type, lambdaParameter.Ordinal, lambdaParameter.IsByRef, lambdaParameter.Name)
+                _attributes = lambdaParameter.GetAttributes()
+            End Sub
+
+            Public Overrides Function GetAttributes() As ImmutableArray(Of VisualBasicAttributeData)
+                Return _attributes
+            End Function
+        End Class
 
     End Class
 End Namespace

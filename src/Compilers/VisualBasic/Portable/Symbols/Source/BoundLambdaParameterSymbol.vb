@@ -3,6 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Generic
+Imports System.Collections.Immutable
 Imports System.Collections.ObjectModel
 Imports System.Threading
 
@@ -19,6 +20,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private _lambdaSymbol As LambdaSymbol
         Private ReadOnly _syntaxNode As SyntaxNode
+        Private _attributes As ImmutableArray(Of VisualBasicAttributeData) = ImmutableArray(Of VisualBasicAttributeData).Empty
 
         Public Sub New(
             name As String,
@@ -43,6 +45,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return _lambdaSymbol
             End Get
         End Property
+
+        ''' <summary>
+        ''' On vbnext, the attributes written on the lambda parameter.
+        ''' </summary>
+        Public Overrides Function GetAttributes() As ImmutableArray(Of VisualBasicAttributeData)
+            Return _attributes
+        End Function
+
+        Friend Sub SetAttributes(attributes As ImmutableArray(Of VisualBasicAttributeData))
+            _attributes = attributes
+        End Sub
 
         Public Sub SetLambdaSymbol(lambda As LambdaSymbol)
             Debug.Assert(_lambdaSymbol Is Nothing AndAlso lambda IsNot Nothing)

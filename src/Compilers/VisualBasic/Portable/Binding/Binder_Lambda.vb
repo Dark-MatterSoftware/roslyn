@@ -135,6 +135,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                unboundParam.IsByRef,
                                                                unboundParam.Syntax,
                                                                unboundParam.GetFirstLocation())
+                BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
             Next
 
             If parameters.Length <> targetSignature.ParameterTypes.Length Then
@@ -160,11 +161,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                    unboundParam.IsByRef,
                                                                    unboundParam.Syntax,
                                                                    unboundParam.GetFirstLocation())
+                    BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
                 Next
             End If
 
             Return parameters.AsImmutableOrNull()
         End Function
+
+        ''' <summary>
+        ''' On vbnext, the attributes on a lambda parameter, which the method the lambda becomes emits on its parameter.
+        ''' </summary>
+        Private Sub BindLambdaParameterAttributes(unboundParam As UnboundLambdaParameterSymbol, parameter As BoundLambdaParameterSymbol, diagnostics As BindingDiagnosticBag)
+            Dim parameterSyntax = TryCast(unboundParam.Syntax.Parent, ParameterSyntax)
+            If parameterSyntax Is Nothing OrElse parameterSyntax.AttributeLists.Count = 0 OrElse Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return
+            End If
+
+            Dim attributes = ArrayBuilder(Of VisualBasicAttributeData).GetInstance()
+            For Each attributeList In parameterSyntax.AttributeLists
+                For Each attributeSyntax In attributeList.Attributes
+                    Dim attributeType = BindAttributeType(Me, attributeSyntax, parameter, diagnostics)
+                    Dim attribute = GetAttribute(attributeSyntax, attributeType, diagnostics)
+
+                    If Not attribute.HasErrors AndAlso Not attributeType.IsErrorType() AndAlso
+                       (attributeType.GetAttributeUsageInfo().ValidTargets And AttributeTargets.Parameter) = 0 Then
+                        ReportDiagnostic(diagnostics, attributeSyntax.Name, ERRID.ERR_InvalidAttributeUsage2,
+                                         CustomSymbolDisplayFormatter.ShortErrorName(attributeType), parameter.Name)
+                    End If
+
+                    attributes.Add(attribute)
+                Next
+            Next
+
+            parameter.SetAttributes(attributes.ToImmutableAndFree())
+        End Sub
 
         Friend Function BindUnboundLambda(source As UnboundLambda, target As UnboundLambda.TargetSignature) As BoundLambda
             Debug.Assert(Me Is source.Binder)

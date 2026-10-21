@@ -76,7 +76,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Binder.ReportDiagnostic(diagBag, GetModifierToken(syntax.Modifiers, SyntaxKind.OptionalKeyword), ERRID.ERR_OptionalIllegal1, StringConstants.Lambda)
             End If
 
-            If syntax.AttributeLists.Node IsNot Nothing Then
+            ' On vbnext, the attributes bind with the lambda's parameters and are emitted on the method the lambda becomes.
+            If syntax.AttributeLists.Node IsNot Nothing AndAlso binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
                 Binder.ReportDiagnostic(diagBag, syntax.AttributeLists.Node, ERRID.ERR_LambdasCannotHaveAttributes)
             End If
 
