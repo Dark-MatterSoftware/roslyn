@@ -4551,9 +4551,12 @@ ContinueCandidatesLoop:
             ' Optimization: We will rely on ShadowBasedOnReceiverType to give us the
             '               same effect later on for cases when existingCandidate is
             '               applicable and neither candidate is from restricted type.
+            '               A ref structure does not convert to its base type either, so ValueType.ToString does not
+            '               shadow by receiver type against its override.
             Dim existingIsApplicable As Boolean = (existingCandidate.State = CandidateAnalysisResultState.Applicable)
 
-            If existingIsApplicable AndAlso Not existingType.IsRestrictedType() AndAlso Not newType.IsRestrictedType() Then
+            If existingIsApplicable AndAlso Not existingType.IsRestrictedType() AndAlso Not newType.IsRestrictedType() AndAlso
+               Not existingType.IsRefLikeType AndAlso Not newType.IsRefLikeType Then
                 Return False
             End If
 

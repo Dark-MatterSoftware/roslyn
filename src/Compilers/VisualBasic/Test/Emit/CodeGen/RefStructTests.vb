@@ -166,6 +166,44 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub ByRefStructure_CallsItsToStringOverride()
+            Dim compilation = CreateCompilation("
+ByRef Structure Buffer
+    Public Value As Integer
+
+    Public Overrides Function ToString() As String
+        Return ""buffer "" & Value.ToString()
+    End Function
+End Structure
+
+Module Program
+    Sub Main()
+        Dim item As Buffer
+        item.Value = 3
+        System.Console.Write(item.ToString())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="buffer 3", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub Span_ToStringCallsTheOverride()
+            Dim compilation = CreateCompilation("
+Imports System
+Module Program
+    Sub Main()
+        Dim chars As ReadOnlySpan(Of Char) = ""hello"".AsSpan()
+        Console.Write(chars.Slice(1, 3).ToString())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext, targetFramework:=TargetFramework.Net90)
+
+            CompileAndVerify(compilation, expectedOutput:="ell", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub Span_IndexAndSliceCompile()
             Dim compilation = CreateCompilation("
 Imports System
