@@ -338,7 +338,7 @@ BC30451: 'c' is not declared. It may be inaccessible due to its protection level
 BC30451: 'c' is not declared. It may be inaccessible due to its protection level.
         System.Console.Write(c)
                              ~
-BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
+BC37403: The 'Then' part of an 'If' that declares 'a' with 'IsNot' and 'Into' must end with 'Return', 'Exit', 'Continue', 'Throw', or 'GoTo'.
         If TypeOf value IsNot Circle Into a Then
                                           ~
 BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
@@ -357,6 +357,155 @@ BC32000: Local variable 'y' cannot be referred to before it is declared.
         If y.Radius > 0 AndAlso TypeOf value Is Circle Into y Then
            ~
 ]]></expected>)
+        End Sub
+
+        Private Const Guards As String = "
+Module Program
+    Function Describe(value As Object) As String
+        If TypeOf value IsNot Circle Into c Then Return ""not a circle""
+
+        Return ""circle "" & c.Radius.ToString()
+    End Function
+
+    Function Increment(value As Object) As Integer
+        If (TypeOf value IsNot Integer Into n) Then
+            Return -1
+        End If
+
+        Return n + 1
+    End Function
+
+    Sub Process(items As Object())
+        For Each item As Object In items
+            If TypeOf item IsNot Square Into s Then
+                System.Console.Write(""skip "")
+                Continue For
+            End If
+
+            Dim area As System.Func(Of Double) = Function() s.Side * s.Side
+            If s.Side > 1 Then
+                System.Console.Write(""big "" & area().ToString() & "" "")
+            Else
+                System.Console.Write(""small "")
+            End If
+        Next
+    End Sub
+
+    Sub Main()
+        System.Console.Write(Describe(New Circle(2)) & "" "")
+        System.Console.Write(Describe(""x"") & "" "")
+        System.Console.Write(Increment(41).ToString() & "" "")
+        System.Console.Write(Increment(""x"").ToString() & "" "")
+        Process(New Object() {New Square(3), ""x"", New Square(1)})
+    End Sub
+End Module
+"
+
+        <Fact>
+        Public Sub Guard_NameIsInScopeAfterTheIf()
+            CompileAndRun(Guards, "circle 2 not a circle 42 -1 big 9 skip small")
+        End Sub
+
+        <Fact>
+        Public Sub Guard_InDebugBuild()
+            CompileAndRun(Guards, "circle 2 not a circle 42 -1 big 9 skip small", TestOptions.DebugExe.WithOptionStrict(OptionStrict.On))
+        End Sub
+
+        <Fact>
+        Public Sub Guard_Errors()
+            Dim compilation = CreateCompilation(Shapes & "
+Module Program
+    Sub M(value As Object, other As Object)
+        System.Console.Write(a)
+        If TypeOf value IsNot Circle Into a Then
+            System.Console.Write(a)
+            Return
+        End If
+
+        If TypeOf value IsNot Circle Into b Then
+            System.Console.Write(""falls through"")
+        End If
+
+        If TypeOf value IsNot Circle Into c Then Return Else System.Console.Write(""else"")
+
+        If TypeOf value IsNot Circle Into d Then
+            Return
+        ElseIf other Is Nothing Then
+            Return
+        End If
+
+        If other Is Nothing Then
+        ElseIf TypeOf value IsNot Circle Into e Then
+            Return
+        End If
+
+        If TypeOf value IsNot Circle Into f Then Return
+        Dim f As Integer = 1
+
+        Dim g As Integer = 2
+        If TypeOf value IsNot Circle Into g Then Return
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30451: 'a' is not declared. It may be inaccessible due to its protection level.
+        System.Console.Write(a)
+                             ~
+BC30451: 'a' is not declared. It may be inaccessible due to its protection level.
+            System.Console.Write(a)
+                                 ~
+BC37403: The 'Then' part of an 'If' that declares 'b' with 'IsNot' and 'Into' must end with 'Return', 'Exit', 'Continue', 'Throw', or 'GoTo'.
+        If TypeOf value IsNot Circle Into b Then
+                                          ~
+BC37404: An 'If' that declares 'c' with 'IsNot' and 'Into' cannot have 'Else' or 'ElseIf'.
+        If TypeOf value IsNot Circle Into c Then Return Else System.Console.Write("else")
+                                          ~
+BC37404: An 'If' that declares 'd' with 'IsNot' and 'Into' cannot have 'Else' or 'ElseIf'.
+        If TypeOf value IsNot Circle Into d Then
+                                          ~
+BC37396: 'Into' cannot name the result of this type test here. Use it in 'Case Is TypeOf', or in the condition of an 'If' or 'ElseIf'.
+        ElseIf TypeOf value IsNot Circle Into e Then
+                                              ~
+BC30616: Variable 'f' hides a variable in an enclosing block.
+        If TypeOf value IsNot Circle Into f Then Return
+                                          ~
+BC30288: Local variable 'f' is already declared in the current block.
+        Dim f As Integer = 1
+            ~
+BC30616: Variable 'g' hides a variable in an enclosing block.
+        If TypeOf value IsNot Circle Into g Then Return
+                                          ~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub Guard_SemanticModel()
+            Dim compilation = CreateCompilation(Shapes & "
+Module Program
+    Function Radius(value As Object) As Double
+        If TypeOf value IsNot Circle Into c Then Return 0
+        If c.Radius > 1 Then
+            Return c.Radius
+        End If
+        Return 1
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim usages = tree.GetRoot().DescendantNodes().OfType(Of Syntax.IdentifierNameSyntax)().Where(Function(n) n.Identifier.ValueText = "c").ToArray()
+            Assert.Equal(2, usages.Length)
+            Dim declaration = tree.GetRoot().DescendantNodes().OfType(Of Syntax.TypeOfIntoExpressionSyntax)().Single()
+            For Each usage In usages
+                Dim local = DirectCast(model.GetSymbolInfo(usage).Symbol, ILocalSymbol)
+                Assert.Equal("Circle", local.Type.ToTestDisplayString())
+                Assert.Equal(declaration.Identifier.SpanStart, local.Locations.Single().SourceSpan.Start)
+            Next
+
+            Assert.Equal("System.Boolean", model.GetTypeInfo(declaration).Type.ToTestDisplayString())
         End Sub
 
         <Fact>

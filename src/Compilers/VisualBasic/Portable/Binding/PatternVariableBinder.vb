@@ -77,6 +77,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Select
         End Sub
 
+        ''' <summary>
+        ''' The name that a guard If declares for the statements after it.
+        ''' </summary>
+        Public Shared Function GetGuardDeclarations(statement As StatementSyntax) As ImmutableArray(Of (Identifier As SyntaxToken, Type As TypeSyntax))
+            Dim test = GetGuardTest(statement)
+            If test Is Nothing OrElse test.Identifier.IsMissing Then
+                Return ImmutableArray(Of (Identifier As SyntaxToken, Type As TypeSyntax)).Empty
+            End If
+
+            Return ImmutableArray.Create((test.Identifier, DirectCast(test.TypeOfExpression, TypeOfExpressionSyntax).Type))
+        End Function
+
+        ''' <summary>
+        ''' The TypeOf value IsNot T Into name test that is the whole condition of an If statement, through
+        ''' parentheses, which makes the If a guard.
+        ''' </summary>
+        Public Shared Function GetGuardTest(statement As StatementSyntax) As TypeOfIntoExpressionSyntax
+            Dim condition As ExpressionSyntax = Nothing
+            Select Case statement.Kind
+                Case SyntaxKind.SingleLineIfStatement
+                    condition = DirectCast(statement, SingleLineIfStatementSyntax).Condition
+                Case SyntaxKind.MultiLineIfBlock
+                    condition = DirectCast(statement, MultiLineIfBlockSyntax).IfStatement.Condition
+            End Select
+
+            While condition IsNot Nothing AndAlso condition.Kind = SyntaxKind.ParenthesizedExpression
+                condition = DirectCast(condition, ParenthesizedExpressionSyntax).Expression
+            End While
+
+            Dim test = TryCast(condition, TypeOfIntoExpressionSyntax)
+            If test IsNot Nothing AndAlso test.TypeOfExpression.Kind = SyntaxKind.TypeOfIsNotExpression Then
+                Return test
+            End If
+
+            Return Nothing
+        End Function
+
         Friend Overrides ReadOnly Property Locals As ImmutableArray(Of LocalSymbol)
             Get
                 If _locals.IsDefault Then

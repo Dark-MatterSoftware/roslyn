@@ -73,7 +73,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub CreateBinderFromStatementList(list As SyntaxList(Of StatementSyntax), outerBinder As Binder)
             Dim newBinder = New StatementListBinder(outerBinder, list)
             _listMap = _listMap.SetItem(list, newBinder)
-            VisitStatementsInList(list, newBinder)
+
+            ' A guard If, If TypeOf value IsNot T Into name Then ..., declares the name for the statements after it.
+            Dim currentBinder As BlockBaseBinder = newBinder
+            For Each statement In list
+                If currentBinder IsNot newBinder Then
+                    RememberBinder(statement, currentBinder)
+                End If
+
+                MakeBinder(statement, currentBinder)
+
+                Dim declarations = PatternVariableBinder.GetGuardDeclarations(statement)
+                If Not declarations.IsEmpty Then
+                    Dim guardBinder = New PatternVariableBinder(currentBinder, declarations)
+                    newBinder.GuardBinders = newBinder.GuardBinders.Add(statement, guardBinder)
+                    currentBinder = guardBinder
+                End If
+            Next
         End Sub
 
         ' Add a binder to the map.

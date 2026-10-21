@@ -1614,6 +1614,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ReturnFromNonGenericTaskLikeAsync,
                      ERRID.ERR_BadTaskLikeAsyncReturnOperand,
                      ERRID.ERR_BadAsyncMethodBuilder,
+                     ERRID.ERR_GuardThenMustLeave,
+                     ERRID.ERR_GuardCannotHaveElse,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_PossibleNullAssignment,

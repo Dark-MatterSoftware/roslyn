@@ -222,6 +222,16 @@
         <target state="new">For Each ByRef requires a one-dimensional array whose element type is the loop variable's type.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_GuardCannotHaveElse">
+        <source>An 'If' that declares '{0}' with 'IsNot' and 'Into' cannot have 'Else' or 'ElseIf'.</source>
+        <target state="new">An 'If' that declares '{0}' with 'IsNot' and 'Into' cannot have 'Else' or 'ElseIf'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_GuardThenMustLeave">
+        <source>The 'Then' part of an 'If' that declares '{0}' with 'IsNot' and 'Into' must end with 'Return', 'Exit', 'Continue', 'Throw', or 'GoTo'.</source>
+        <target state="new">The 'Then' part of an 'If' that declares '{0}' with 'IsNot' and 'Into' must end with 'Return', 'Exit', 'Continue', 'Throw', or 'GoTo'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_IndexFromEndRequiresArray">
         <source>An index from the end can only be used as an array index.</source>
         <target state="new">An index from the end can only be used as an array index.</target>

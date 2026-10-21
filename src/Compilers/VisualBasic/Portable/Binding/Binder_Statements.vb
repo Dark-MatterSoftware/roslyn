@@ -1543,10 +1543,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim current As Binder = Me
             Dim blockBinder As BlockBaseBinder
 
+            ' A guard If's binder sits between the statements after it and the statement list that declares them.
             Do
                 blockBinder = TryCast(current, BlockBaseBinder)
 
-                If blockBinder IsNot Nothing Then
+                If blockBinder IsNot Nothing AndAlso TypeOf blockBinder IsNot PatternVariableBinder Then
                     Exit Do
                 End If
 
@@ -2670,10 +2671,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Function BindBlock(syntax As SyntaxNode, stmtList As SyntaxList(Of StatementSyntax), diagnostics As BindingDiagnosticBag, stmtListBinder As Binder) As BoundBlock
             Dim boundStatements(stmtList.Count - 1) As BoundStatement
             Dim locals As ArrayBuilder(Of LocalSymbol) = Nothing
+            Dim guardBinders = TryCast(stmtListBinder, StatementListBinder)?.GuardBinders
+            Dim currentBinder = stmtListBinder
 
             For i = 0 To boundStatements.Length - 1
-                Dim boundStatement As BoundStatement = stmtListBinder.BindStatement(stmtList(i), diagnostics)
+                Dim boundStatement As BoundStatement = currentBinder.BindStatement(stmtList(i), diagnostics)
                 boundStatements(i) = boundStatement
+
+                ' The statements after a guard If see the name it declares.
+                Dim guardBinder As PatternVariableBinder = Nothing
+                If guardBinders IsNot Nothing AndAlso guardBinders.TryGetValue(stmtList(i), guardBinder) Then
+                    currentBinder = guardBinder
+                End If
 
                 Select Case boundStatement.Kind
                     Case BoundKind.LocalDeclaration

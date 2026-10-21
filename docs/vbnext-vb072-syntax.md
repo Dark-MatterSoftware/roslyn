@@ -39,7 +39,7 @@ End Sub
 
 ### The `Then` part always leaves
 
-The end of the `Then` part must be unreachable, as it is when the part ends with `Return`, `Exit`, `Continue`, `Throw`, or `GoTo`. Otherwise the statements after the `If` could run when `value` is not a `T`, and `Into` is an error. The rule is the same in a single-line `If` and in a block.
+The last statement of the `Then` part must be `Return`, `Exit`, `Continue`, `Throw`, or `GoTo`. Otherwise the statements after the `If` could run when `value` is not a `T`, and `Into` is an error. The rule is the same in a single-line `If` and in a block, and it looks only at that last statement, so a `Then` part that ends with an `If` whose branches all return is still an error. A `GoTo` to a label after the `If` reaches it with the name at its default value, as a `GoTo` past a `Dim` with an initializer does.
 
 ### No `Else` or `ElseIf`
 

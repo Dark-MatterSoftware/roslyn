@@ -1861,8 +1861,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ReturnFromNonGenericTaskLikeAsync = 37400
         ERR_BadTaskLikeAsyncReturnOperand = 37401
         ERR_BadAsyncMethodBuilder = 37402
+        ERR_GuardThenMustLeave = 37403
+        ERR_GuardCannotHaveElse = 37404
 
-        ERR_NextAvailable = 37403
+        ERR_NextAvailable = 37405
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

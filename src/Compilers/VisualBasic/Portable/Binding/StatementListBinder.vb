@@ -21,6 +21,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private ReadOnly _statementList As SyntaxList(Of StatementSyntax)
         Private _locals As ImmutableArray(Of LocalSymbol) = Nothing
 
+        ''' <summary>
+        ''' For each guard If in the list, the binder for the statements after it, which declares the guard's name.
+        ''' </summary>
+        Friend Property GuardBinders As ImmutableDictionary(Of StatementSyntax, PatternVariableBinder) = ImmutableDictionary(Of StatementSyntax, PatternVariableBinder).Empty
+
         Public Sub New(containing As Binder,
                        statementList As SyntaxList(Of StatementSyntax))
             MyBase.New(containing)
