@@ -230,9 +230,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         <Extension()>
         Friend Function IsMetadataVirtual(method As MethodSymbol) As Boolean
-            ' A shared interface method is static and abstract. It is not virtual.
-            If method.IsShared AndAlso method.ContainingType IsNot Nothing AndAlso method.ContainingType.IsInterface Then
-                Return False
+            ' The runtime requires a shared interface member that a type supplies to be abstract virtual static,
+            ' and the shared method that supplies it to be static and not virtual, linked by a method implementation.
+            If method.IsShared Then
+                Return method.ContainingType IsNot Nothing AndAlso
+                       method.ContainingType.IsInterface AndAlso
+                       (method.IsMustOverride OrElse method.IsOverridable)
             End If
 
             If method.IsOverridable OrElse

@@ -522,7 +522,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' signature).
         ''' </summary>
         Friend Overridable Function IsMetadataNewSlot() As Boolean
-            If Me.IsOverrides Then
+            If Me.IsShared Then
+                Return False
+            ElseIf Me.IsOverrides Then
                 Return OverrideHidingHelper.RequiresExplicitOverride(Me)
             Else
                 Return Me.IsMetadataVirtual
