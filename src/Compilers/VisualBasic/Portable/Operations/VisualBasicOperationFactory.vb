@@ -1490,7 +1490,31 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim locals As ImmutableArray(Of ILocalSymbol) = ImmutableArray(Of ILocalSymbol).CastUp(boundUsingStatement.Locals)
             Dim syntax As SyntaxNode = boundUsingStatement.Syntax
             Dim isImplicit As Boolean = boundUsingStatement.WasCompilerGenerated
-            Return New UsingOperation(resources, body, locals, isAsynchronous:=boundUsingStatement.UsingInfo.IsAsynchronous, disposeInfo:=Nothing, _semanticModel, syntax, isImplicit)
+            Return New UsingOperation(resources, body, locals, isAsynchronous:=boundUsingStatement.UsingInfo.IsAsynchronous, GetAsyncUsingDisposeInfo(boundUsingStatement.UsingInfo), _semanticModel, syntax, isImplicit)
+        End Function
+
+        ''' <summary>
+        ''' The DisposeAsync that an Async Using resource calls when it binds by pattern instead of through IAsyncDisposable.
+        ''' </summary>
+        Private Function GetAsyncUsingDisposeInfo(usingInfo As UsingInfo) As DisposeOperationInfo
+            If Not usingInfo.IsAsynchronous Then
+                Return Nothing
+            End If
+
+            Dim disposeAwaits = If(usingInfo.DisposeAwaitInfo?.Values, Enumerable.Empty(Of BoundExpression)())
+            If usingInfo.DisposeAwaitForExpressionOpt IsNot Nothing Then
+                disposeAwaits = disposeAwaits.Append(usingInfo.DisposeAwaitForExpressionOpt)
+            End If
+
+            Dim asyncDisposable = DirectCast(_semanticModel.Compilation, VisualBasicCompilation).GetWellKnownType(WellKnownType.System_IAsyncDisposable)
+            For Each disposeAwait In disposeAwaits
+                Dim method = TryCast(TryCast(disposeAwait, BoundAwaitOperator)?.Operand, BoundCall)?.Method
+                If method IsNot Nothing AndAlso Not TypeSymbol.Equals(method.ContainingType, asyncDisposable, TypeCompareKind.ConsiderEverything) Then
+                    Return New DisposeOperationInfo(method, ImmutableArray(Of IArgumentOperation).Empty)
+                End If
+            Next
+
+            Return Nothing
         End Function
 
         Private Function CreateBoundExpressionStatementOperation(boundExpressionStatement As BoundExpressionStatement) As IExpressionStatementOperation

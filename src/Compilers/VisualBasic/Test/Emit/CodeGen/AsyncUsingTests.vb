@@ -339,6 +339,104 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub AsyncUsing_BindsDisposeAsyncByPattern()
+            Dim compilation = CreateCompilation(AsyncDisposableTypes & "
+Class Handle
+    Private ReadOnly _name As String
+    Sub New(name As String)
+        _name = name
+    End Sub
+    Function DisposeAsync() As System.Threading.Tasks.Task
+        System.Console.Write(""released "" & _name & "" "")
+        Return System.Threading.Tasks.Task.CompletedTask
+    End Function
+End Class
+
+Structure Token
+    Function DisposeAsync() As System.Threading.Tasks.Task
+        System.Console.Write(""token "")
+        Return System.Threading.Tasks.Task.CompletedTask
+    End Function
+End Structure
+
+Module Program
+    Async Function Run() As System.Threading.Tasks.Task
+        Async Using h As New Handle(""a""), t As New Token()
+            System.Console.Write(""body "")
+        End Using
+        Async Using New Handle(""b"")
+        End Using
+        Dim missing As Handle = Nothing
+        Async Using missing
+        End Using
+        System.Console.Write(""after"")
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="body token released a released b after").VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub AsyncUsing_ConfigureAwait()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Threading.Tasks
+
+Class Resource
+    Implements IAsyncDisposable
+
+    Public Async Function Release() As Task
+        Await Task.Yield()
+        Console.Write(""released "")
+    End Function
+
+    Public Function DisposeAsync() As ValueTask Implements IAsyncDisposable.DisposeAsync
+        Return New ValueTask(Release())
+    End Function
+End Class
+
+Module Program
+    Async Function Run() As Task
+        Dim r As New Resource()
+        Async Using r.ConfigureAwait(False)
+            Console.Write(""body "")
+        End Using
+        Console.Write(""after"")
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="body released after", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub AsyncUsing_ConfigureAwaitEmits()
+            Dim compilation = CreateCompilation("
+Imports System.IO
+Imports System.Threading.Tasks
+
+Module Program
+    Async Function Copy(source As Stream, target As Stream) As Task
+        Async Using source.ConfigureAwait(False)
+            Await source.CopyToAsync(target).ConfigureAwait(False)
+        End Using
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub AsyncUsing_ParsesAsAUsingStatement()
             Dim tree = VisualBasicSyntaxTree.ParseText("
 Module Program

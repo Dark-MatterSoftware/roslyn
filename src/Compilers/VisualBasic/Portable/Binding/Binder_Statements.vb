@@ -4458,22 +4458,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' Await enumerator.DisposeAsync() for an Await Each enumerator that has its own DisposeAsync without
-        ''' implementing IAsyncDisposable, as the enumerator of source.ConfigureAwait(False) does. Nothing when it has none.
+        ''' Await receiver.DisposeAsync() for a resource or an Await Each enumerator that has its own DisposeAsync without
+        ''' implementing IAsyncDisposable, as the result of ConfigureAwait(False) does. Nothing when it has none.
         ''' </summary>
-        Private Function BindPatternDisposeAsyncAwait(syntaxNode As VisualBasicSyntaxNode, enumerator As BoundLValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundExpression
+        Private Function BindPatternDisposeAsyncAwait(syntaxNode As VisualBasicSyntaxNode, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
             Try
                 Dim lookupResult As New LookupResult()
-                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.DisposeAsyncMethodName, enumerator.Type, s_isFunctionWithoutArguments,
-                                                      lookupResult, enumerator.Syntax, temporaryDiagnostics) Then
+                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.DisposeAsyncMethodName, receiver.Type, s_isFunctionWithoutArguments,
+                                                      lookupResult, receiver.Syntax, temporaryDiagnostics) Then
                     Return Nothing
                 End If
 
-                Dim group As BoundMethodOrPropertyGroup = CreateBoundMethodGroup(enumerator.Syntax, lookupResult, LookupOptions.AllMethodsOfAnyArity,
-                                                                                 temporaryDiagnostics.AccumulatesDependencies, enumerator, Nothing,
+                Dim group As BoundMethodOrPropertyGroup = CreateBoundMethodGroup(receiver.Syntax, lookupResult, LookupOptions.AllMethodsOfAnyArity,
+                                                                                 temporaryDiagnostics.AccumulatesDependencies, receiver, Nothing,
                                                                                  QualificationKind.QualifiedViaValue)
-                Dim disposeCall = CreateBoundInvocationExpressionFromMethodOrPropertyGroup(enumerator.Syntax, group, temporaryDiagnostics)
+                Dim disposeCall = CreateBoundInvocationExpressionFromMethodOrPropertyGroup(receiver.Syntax, group, temporaryDiagnostics)
                 If disposeCall.HasErrors Then
                     Return Nothing
                 End If
@@ -5666,7 +5666,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim isValidDispose = Conversions.IsWideningConversion(conversionKind)
                 Dim isAsync = disposeAwaitInfo IsNot Nothing
 
-                If isValidDispose OrElse
+                If isAsync AndAlso Not isValidDispose AndAlso HasDisposeAsyncFunction(resourceType, syntaxNode, diagnostics) Then
+                    ' Async Using by pattern, as C# does: a resource that has its own DisposeAsync, such as the result of
+                    ' ConfigureAwait(False), is released by awaiting that method on the resource itself.
+                    Dim resourcePlaceholder = New BoundRValuePlaceholder(syntaxNode, resourceType)
+                    Dim disposeCondition As BoundExpression = Nothing
+                    If Not resourceType.IsValueType Then
+                        disposeCondition = BindIsExpression(resourcePlaceholder,
+                                                            New BoundLiteral(syntaxNode, ConstantValue.Nothing, Nothing),
+                                                            syntaxNode, True, diagnostics)
+                    End If
+
+                    placeholderInfo.Add(resourceType,
+                                        New ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)(resourcePlaceholder, resourcePlaceholder, disposeCondition))
+                ElseIf isValidDispose OrElse
                    (Not isAsync AndAlso resourceType.IsObjectType() AndAlso OptionStrict <> OptionStrict.On) Then
                     Dim resourcePlaceholder = New BoundRValuePlaceholder(syntaxNode, resourceType)
                     Dim disposeConversion As BoundExpression = Nothing
@@ -5711,7 +5724,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
+            ' The receiver is the resource itself when Async Using binds DisposeAsync by pattern.
+            If info.Item2 Is info.Item1 Then
+                Return BindPatternDisposeAsyncAwait(DirectCast(awaitSyntax, VisualBasicSyntaxNode), info.Item1, diagnostics)
+            End If
+
             Return BindDisposeAsyncAwait(awaitSyntax, info.Item2, diagnostics)
+        End Function
+
+        Private Function HasDisposeAsyncFunction(resourceType As TypeSymbol, syntaxNode As SyntaxNode, diagnostics As BindingDiagnosticBag) As Boolean
+            If resourceType.Kind <> SymbolKind.NamedType AndAlso resourceType.Kind <> SymbolKind.TypeParameter Then
+                Return False
+            End If
+
+            Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=False, withDependencies:=diagnostics.AccumulatesDependencies)
+            Try
+                Return GetMemberIfMatchesRequirements(WellKnownMemberNames.DisposeAsyncMethodName, resourceType, s_isFunctionWithoutArguments,
+                                                      New LookupResult(), syntaxNode, temporaryDiagnostics)
+            Finally
+                temporaryDiagnostics.Free()
+            End Try
         End Function
 
         ''' <summary>
