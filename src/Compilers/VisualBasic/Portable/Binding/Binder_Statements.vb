@@ -552,7 +552,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim save_m_isInCatchFinallyOrSyncLock As Boolean = _isInCatchFinallyOrSyncLock
                 _isInCatchFinallyOrSyncLock = True
 
-                VisitList(node.CatchBlocks)
+                ' On vbnext a Catch body can await. Its filter, a Finally, and SyncLock still cannot.
+                Dim awaitInCatchBody = _binder.Compilation.LanguageVersion >= LanguageVersion.VbNext
+                For Each catchBlock In node.CatchBlocks
+                    _containsCatch = True
+                    _isInCatchFinallyOrSyncLock = True
+                    Visit(catchBlock.ExceptionSourceOpt)
+                    Visit(catchBlock.ExceptionFilterOpt)
+                    _isInCatchFinallyOrSyncLock = save_m_isInCatchFinallyOrSyncLock OrElse Not awaitInCatchBody
+                    Visit(catchBlock.Body)
+                Next
+
+                _isInCatchFinallyOrSyncLock = True
                 Visit(node.FinallyBlockOpt)
 
                 _isInCatchFinallyOrSyncLock = save_m_isInCatchFinallyOrSyncLock

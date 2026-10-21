@@ -15,6 +15,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitTryStatement(node As BoundTryStatement) As BoundNode
             Debug.Assert(_unstructuredExceptionHandling.Context Is Nothing)
 
+            If _currentMethodOrLambda.IsAsync AndAlso CatchBlocksContainAwait(node) Then
+                Return Visit(RewriteTryWithAwaitInCatch(node))
+            End If
+
             Dim rewrittenTryBlock = RewriteTryBlock(node)
             Dim rewrittenCatchBlocks = VisitList(node.CatchBlocks)
             Dim rewrittenFinally = RewriteFinallyBlock(node)
