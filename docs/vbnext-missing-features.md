@@ -174,6 +174,18 @@ Checked against this tree after wave 6, by compiling the library shapes that wav
 | VB-076 | Attributes on lambda parameters | Done in phase 38: on `vbnext` lambda parameters carry attributes, including `EnumeratorCancellation`. Before that, `<FromQuery> name As String` in a lambda reported BC36634. ASP.NET Core minimal API handlers, written as lambdas, read these attributes, and `docs/vbnext-vb071-syntax.md` left `EnumeratorCancellation` on an `Async Iterator Function` lambda open for the same reason. C# 10 added attributes on lambdas and their parameters. |
 | VB-077 | Deconstruction in `For Each` | Done in phase 39: on `vbnext`, `For Each (key, value) In map` and `Await Each (key, value) In source`, locked in `docs/vbnext-vb077-syntax.md`, deconstruct each item from a tuple or a `Deconstruct` method. Before that, `For Each (key, value) In map` treated the tuple as existing variables and reported BC30451, so iterating a dictionary, a list of tuples, or an `IAsyncEnumerable` of records needed a `Dim (key, value) = item` line in the body. C# 7 has `foreach (var (key, value) in map)`. |
 
+## Wave 8
+
+Checked against this tree after wave 7, by compiling and running the library shapes that wave 7 code meets next against .NET 11 with `LangVersion` `vbnext`: generic math, parsing through `IParsable(Of T)`, and writing through spans and `CollectionsMarshal`. Three gaps report an error on `vbnext` today, and two compile but do the wrong thing. `Func(Of ReadOnlySpan(Of Char), Integer)` with a lambda, a delegate with a span parameter, `Select Case` on a `ReadOnlySpan(Of Char)` with string cases, `MemoryMarshal.CreateReadOnlySpan` with a `ref readonly` parameter, a `ByRef Structure` that holds a span field, `CollectionsMarshal.GetValueRefOrAddDefault(...) += 1`, and `ArgumentNullException.ThrowIfNull` with its caller argument name already work.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-078 | Running types that implement shared abstract members | No new syntax. A type that supplies a `Shared MustOverride` member with `Public Shared Function ... Implements`, the form slice 9f added, or that implements `IParsable(Of T)` from .NET, compiles, but loading it throws `TypeLoadException`, "Virtual Static Method", because the implementing method is emitted as a virtual shared method. Slice 9f was checked on .NET Framework, which cannot run such a type. |
+| VB-079 | Shared abstract properties and shared virtual members through a type parameter | No new syntax. Slice 9g calls a `Shared MustOverride` function through `T`, but `T.Zero` on `INumber(Of T)`, a shared abstract property, and `T.CreateChecked(2)`, a generic shared virtual function with a default body, report BC37314, "A shared abstract or virtual interface member cannot be accessed". Generic math in .NET 7 and later is built from these members. C# 11 added them. |
+| VB-080 | Operators through a type parameter | No new syntax. `a + b` and `a > b`, where `T` is constrained to `INumber(Of T)` or `IComparisonOperators(Of T, T, Boolean)`, report BC30452, because VB looks for operators only on the type itself, not on the shared abstract operators of its constraints. A generic `Sum`, `Average`, or `Max` over numbers cannot be written without them. C# 11 binds such operators through the constraint. |
+| VB-081 | Writing through a `ByRef` return on a value | No new syntax. `CollectionsMarshal.AsSpan(list)(0) = 5` and `span.Slice(1)(0) = 7` report BC30068, "Expression is a value and therefore cannot be the target of an assignment", because the span is a value, although its indexer returns a reference to the element. The same assignment through a span local, and slice 7e's `First(items) = 9`, already work. C# 7 assigns through any `ref` return. |
+| VB-082 | `ByRef` locals | `Dim ByRef slot As Integer = CollectionsMarshal.GetValueRefOrAddDefault(counts, key, exists)` compiles on `vbnext` with no diagnostic, because `ByRef` is accepted as a declaration modifier and then ignored, so `slot` is a copy and `slot += 1` does not change the dictionary. A reference that several statements use, such as a dictionary slot that is read and then updated, needs a call per use. C# 7 has `ref` locals, and C# 7.3 lets them be reassigned. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -290,3 +302,15 @@ The three memory gaps come first, because each one blocks span-based code that t
 | 3 | VB-075 | Ref structure locals in `Async` and `Iterator` methods | L | A flow check for values live across `Await` and `Yield`, in place of the blanket error. Follows VB-073 so those locals can be read. |
 | 4 | VB-076 | Attributes on lambda parameters | M | The attribute list moves from an error to the synthesized parameter. Then `EnumeratorCancellation` reaches an async iterator lambda. |
 | 5 | VB-077 | Deconstruction in `For Each` | M | Needs a design note first, because `For Each (a, b) In` could declare new names or assign existing ones. Reuses the VB-005 deconstruction from slices 5a to 5d. |
+
+### Wave 8 order
+
+The three generic math gaps come first, in the order a test needs them: a type that implements the members must load before code can call them, and calls must work before operators can be built on them. Then the two reference gaps, smallest first.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-078 | Running types that implement shared abstract members | M | An emit fix for the slice 9f form, with method implementation records in place of virtual shared methods. Every later generic math test runs such a type on .NET. |
+| 2 | VB-079 | Shared abstract properties and shared virtual members through a type parameter | L | Extends the slice 9g `constrained.` call to properties, generic methods, and members with a default body. |
+| 3 | VB-080 | Operators through a type parameter | L | Operator resolution looks at the shared abstract operators of a type parameter's constraints, then emits them as 9g calls. Follows VB-079, which it reuses. |
+| 4 | VB-081 | Writing through a `ByRef` return on a value | S | The assignment target rule for a `ByRef` property or indexer whose receiver is a value. |
+| 5 | VB-082 | `ByRef` locals | L | Needs a design note first, because it adds a declaration form and its rules for lambdas, `Async`, and reassignment. The first slice makes today's silently ignored `Dim ByRef` an error. |
