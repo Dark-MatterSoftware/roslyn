@@ -3891,7 +3891,7 @@ Bailout:
                     Continue For
                 End If
 
-                Dim info As QuickApplicabilityInfo = DoQuickApplicabilityCheck(group(i), typeArguments, arguments, isQueryOperatorInvocation, forceExpandedForm, useSiteInfo)
+                Dim info As QuickApplicabilityInfo = DoQuickApplicabilityCheck(binder, group(i), typeArguments, arguments, isQueryOperatorInvocation, forceExpandedForm, useSiteInfo)
 
                 If info.Candidate Is Nothing Then
                     Continue For
@@ -3927,7 +3927,7 @@ Bailout:
                     End If
 
                     If container = group(j).UnderlyingSymbol.ContainingSymbol Then
-                        info = DoQuickApplicabilityCheck(group(j), typeArguments, arguments, isQueryOperatorInvocation, forceExpandedForm, useSiteInfo)
+                        info = DoQuickApplicabilityCheck(binder, group(j), typeArguments, arguments, isQueryOperatorInvocation, forceExpandedForm, useSiteInfo)
                         group(j) = Nothing
 
                         If info.Candidate Is Nothing Then
@@ -4073,6 +4073,7 @@ Bailout:
         End Structure
 
         Private Shared Function DoQuickApplicabilityCheck(
+            binder As Binder,
             candidate As Candidate,
             typeArguments As ImmutableArray(Of TypeSymbol),
             arguments As ImmutableArray(Of BoundExpression),
@@ -4085,7 +4086,7 @@ Bailout:
                 Return Nothing
             End If
 
-            If candidate.UnderlyingSymbol.HasUnsupportedMetadata Then
+            If candidate.UnderlyingSymbol.HasUnsupportedMetadata OrElse binder?.GetRefReadOnlyReturnUnsupportedInfo(candidate.UnderlyingSymbol) IsNot Nothing Then
                 Return New QuickApplicabilityInfo(candidate, CandidateAnalysisResultState.HasUnsupportedMetadata)
             End If
 

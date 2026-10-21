@@ -1468,6 +1468,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return IsCompilerServicesTopLevelType(typeSymbol)
         End Function
 
+        ''' <summary>
+        ''' System.Runtime.InteropServices.InAttribute, which as a required modifier on a ByRef return marks it ref readonly.
+        ''' </summary>
+        <Extension>
+        Friend Function IsWellKnownTypeInAttribute(typeSymbol As TypeSymbol) As Boolean
+            Return String.Equals(typeSymbol.Name, "InAttribute") AndAlso
+                   typeSymbol.ContainingType Is Nothing AndAlso
+                   IsContainedInNamespace(typeSymbol, "System", "Runtime", "InteropServices")
+        End Function
+
+        ''' <summary>
+        ''' Whether the modifiers on a ByRef return mark it ref readonly.
+        ''' </summary>
+        Friend Function IsRefReadOnlyReturn(returnsByRef As Boolean, refCustomModifiers As ImmutableArray(Of CustomModifier)) As Boolean
+            If Not returnsByRef OrElse refCustomModifiers.IsDefaultOrEmpty Then
+                Return False
+            End If
+
+            For Each modifier In refCustomModifiers
+                If Not modifier.IsOptional AndAlso DirectCast(modifier, VisualBasicCustomModifier).ModifierSymbol.IsWellKnownTypeInAttribute() Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
         <Extension>
         Friend Function IsCompilerServicesTopLevelType(typeSymbol As TypeSymbol) As Boolean
             Return typeSymbol.ContainingType Is Nothing AndAlso IsContainedInNamespace(typeSymbol, "System", "Runtime", "CompilerServices")

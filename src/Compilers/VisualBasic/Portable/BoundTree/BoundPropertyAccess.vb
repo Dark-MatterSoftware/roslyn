@@ -23,7 +23,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 propertyGroupOpt,
                 accessKind,
                 isWriteable:=isWriteable,
-                isLValue:=propertySymbol.ReturnsByRef,
+                isLValue:=propertySymbol.ReturnsByRef AndAlso Not propertySymbol.ReturnsByRefReadOnly,
                 receiverOpt:=receiverOpt,
                 arguments:=arguments,
                 defaultArguments:=defaultArguments,
@@ -47,7 +47,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Me.AccessKind = PropertyAccessKind.Unknown OrElse
                     Me.AccessKind = newAccessKind)
             Debug.Assert((newAccessKind And PropertyAccessKind.Set) = 0 OrElse
-                    Not Me.PropertySymbol.ReturnsByRef)
+                    Not Me.PropertySymbol.ReturnsByRef OrElse Me.PropertySymbol.ReturnsByRefReadOnly)
 
             Return Me.Update(
                 Me.PropertySymbol,

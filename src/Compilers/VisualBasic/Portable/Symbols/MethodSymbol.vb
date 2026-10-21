@@ -199,6 +199,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public MustOverride ReadOnly Property ReturnsByRef As Boolean
 
         ''' <summary>
+        ''' Whether the method returns ref readonly, which code reads but cannot write through.
+        ''' </summary>
+        Friend ReadOnly Property ReturnsByRefReadOnly As Boolean
+            Get
+                Return TypeSymbolExtensions.IsRefReadOnlyReturn(ReturnsByRef, RefCustomModifiers)
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Gets the return type of the method. If the method is a Sub, returns
         ''' the same type symbol as is returned by Compilation.VoidType.
         ''' </summary>
@@ -792,8 +801,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return useSiteInfo
             End If
 
-            ' Check return type custom modifiers.
-            Dim refModifiersUseSiteInfo = DeriveUseSiteInfoFromCustomModifiers(Me.RefCustomModifiers)
+            ' Check return type custom modifiers. A ref readonly return is read through ReturnsByRefReadOnly, except from a
+            ' delegate, because a lambda cannot return ByRef.
+            Dim refModifiersUseSiteInfo = DeriveUseSiteInfoFromCustomModifiers(Me.RefCustomModifiers,
+                                                                               allowInAttribute:=Me.ReturnsByRef AndAlso Not (Me.ContainingType IsNot Nothing AndAlso Me.ContainingType.TypeKind = TypeKind.Delegate))
 
             If MergeUseSiteInfo(useSiteInfo, refModifiersUseSiteInfo) Then
                 Return useSiteInfo

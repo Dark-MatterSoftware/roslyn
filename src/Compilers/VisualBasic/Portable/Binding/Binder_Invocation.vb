@@ -901,6 +901,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
         End Function
 
+        ''' <summary>
+        ''' On vbnext, a member that returns ref readonly reads as a value. Before vbnext it is unsupported, with the error
+        ''' its metadata reported before vbnext.
+        ''' </summary>
+        Friend Function GetRefReadOnlyReturnUnsupportedInfo(methodOrProperty As Symbol) As DiagnosticInfo
+            If Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Return Nothing
+            End If
+
+            Select Case methodOrProperty.Kind
+                Case SymbolKind.Method
+                    If DirectCast(methodOrProperty, MethodSymbol).ReturnsByRefReadOnly Then
+                        Return ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedMethod1, CustomSymbolDisplayFormatter.ShortErrorName(methodOrProperty))
+                    End If
+
+                Case SymbolKind.Property
+                    Dim [property] = DirectCast(methodOrProperty, PropertySymbol)
+                    If [property].ReturnsByRefReadOnly Then
+                        Return ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedProperty1, CustomSymbolDisplayFormatter.QualifiedName([property].OriginalDefinition))
+                    End If
+            End Select
+
+            Return Nothing
+        End Function
+
         Private Function CreateBoundCallOrPropertyAccess(
             node As SyntaxNode,
             target As SyntaxNode,
@@ -2098,7 +2123,12 @@ ProduceBoundNode:
                candidateAnalysisResult.State = VisualBasic.OverloadResolution.CandidateAnalysisResultState.HasUnsupportedMetadata Then
                 If lookupResult <> LookupResultKind.Inaccessible Then
                     Debug.Assert(lookupResult = LookupResultKind.Good)
-                    ReportUseSite(diagnostics, diagnosticLocation, candidate.UnderlyingSymbol.GetUseSiteInfo())
+                    Dim refReadOnlyInfo = GetRefReadOnlyReturnUnsupportedInfo(candidate.UnderlyingSymbol)
+                    If refReadOnlyInfo IsNot Nothing AndAlso candidate.UnderlyingSymbol.GetUseSiteInfo().DiagnosticInfo Is Nothing Then
+                        ReportDiagnostic(diagnostics, diagnosticLocation, refReadOnlyInfo)
+                    Else
+                        ReportUseSite(diagnostics, diagnosticLocation, candidate.UnderlyingSymbol.GetUseSiteInfo())
+                    End If
                 End If
 
                 Return

@@ -239,8 +239,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                     Return Not IsStackLocal(local) OrElse local.IsByRef
 
                 Case BoundKind.Call
+                    ' A ref readonly result is copied before a member is called on it, so the callee cannot write through it.
                     Dim method = DirectCast(expression, BoundCall).Method
-                    Return method.ReturnsByRef
+                    Return method.ReturnsByRef AndAlso Not method.ReturnsByRefReadOnly
 
                 Case BoundKind.Dup
                     ' For a dupped local we assume that if the dup 

@@ -1096,15 +1096,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Friend Function DeriveUseSiteInfoFromCustomModifiers(
             customModifiers As ImmutableArray(Of CustomModifier),
-            Optional allowIsExternalInit As Boolean = False
+            Optional allowIsExternalInit As Boolean = False,
+            Optional allowInAttribute As Boolean = False
         ) As UseSiteInfo(Of AssemblySymbol)
             Dim modifiersUseSiteInfo As UseSiteInfo(Of AssemblySymbol) = Nothing
 
             For Each modifier As CustomModifier In customModifiers
                 Dim useSiteInfo As UseSiteInfo(Of AssemblySymbol)
+                Dim modifierSymbol = DirectCast(modifier, VisualBasicCustomModifier).ModifierSymbol
 
                 If Not modifier.IsOptional AndAlso
-                   (Not allowIsExternalInit OrElse Not DirectCast(modifier, VisualBasicCustomModifier).ModifierSymbol.IsWellKnownTypeIsExternalInit()) Then
+                   (Not allowIsExternalInit OrElse Not modifierSymbol.IsWellKnownTypeIsExternalInit()) AndAlso
+                   (Not allowInAttribute OrElse Not modifierSymbol.IsWellKnownTypeInAttribute()) Then
 
                     useSiteInfo = New UseSiteInfo(Of AssemblySymbol)(ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedType1, String.Empty))
                     GetSymbolSpecificUnsupportedMetadataUseSiteErrorInfo(useSiteInfo)

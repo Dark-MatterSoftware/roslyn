@@ -23,7 +23,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         )
             Me.New(syntax, method, methodGroupOpt, receiverOpt, arguments, defaultArguments,
                    constantValueOpt,
-                   isLValue:=method.ReturnsByRef,
+                   isLValue:=method.ReturnsByRef AndAlso Not method.ReturnsByRefReadOnly,
                    suppressObjectClone:=suppressObjectClone,
                    type:=type,
                    hasErrors:=hasErrors)

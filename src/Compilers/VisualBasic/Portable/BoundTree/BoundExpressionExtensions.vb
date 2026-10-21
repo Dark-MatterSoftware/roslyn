@@ -131,7 +131,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         <Extension()>
         Public Function IsPropertyReturnsByRef(node As BoundExpression) As Boolean
             Return node.Kind = BoundKind.PropertyAccess AndAlso
-                DirectCast(node, BoundPropertyAccess).PropertySymbol.ReturnsByRef
+                DirectCast(node, BoundPropertyAccess).PropertySymbol.ReturnsByRef AndAlso
+                Not DirectCast(node, BoundPropertyAccess).PropertySymbol.ReturnsByRefReadOnly
         End Function
 
         <Extension()>
@@ -285,7 +286,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case BoundKind.PropertyAccess
                     Dim propertyAccess = DirectCast(node, BoundPropertyAccess)
-                    Debug.Assert(Not propertyAccess.PropertySymbol.ReturnsByRef OrElse (newAccessKind And PropertyAccessKind.Set) = 0)
+                    Debug.Assert(Not propertyAccess.IsPropertyReturnsByRef() OrElse (newAccessKind And PropertyAccessKind.Set) = 0)
                     Return propertyAccess.SetAccessKind(newAccessKind)
 
                 Case Else
@@ -323,7 +324,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case BoundKind.PropertyAccess
                     Dim propertyAccess = DirectCast(node, BoundPropertyAccess)
-                    Dim accessKind = If(propertyAccess.PropertySymbol.ReturnsByRef, PropertyAccessKind.Get, PropertyAccessKind.Get Or PropertyAccessKind.Set)
+                    Dim accessKind = If(propertyAccess.IsPropertyReturnsByRef(), PropertyAccessKind.Get, PropertyAccessKind.Get Or PropertyAccessKind.Set)
                     Return propertyAccess.SetAccessKind(accessKind)
 
                 Case BoundKind.LateMemberAccess
