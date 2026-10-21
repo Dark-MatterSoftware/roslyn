@@ -1326,7 +1326,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
-        ''' An Async Function that returns no value returns Task, or ValueTask on vbnext.
+        ''' An Async Function that returns no value returns Task, or on vbnext ValueTask or another non-generic
+        ''' task-like type.
         ''' </summary>
         <Extension>
         Friend Function IsNonGenericAsyncReturnType(type As TypeSymbol, compilation As VisualBasicCompilation) As Boolean
@@ -1335,11 +1336,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Return compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
-                   type.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask))
+                   (type.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask)) OrElse IsCustomTaskType(type, arity:=0))
         End Function
 
         ''' <summary>
-        ''' An Async Function that returns a value of type T returns Task(Of T), or ValueTask(Of T) on vbnext.
+        ''' An Async Function that returns a value of type T returns Task(Of T), or on vbnext ValueTask(Of T) or
+        ''' another task-like type with one type parameter.
         ''' </summary>
         <Extension>
         Friend Function IsGenericAsyncReturnType(type As TypeSymbol, compilation As VisualBasicCompilation) As Boolean
@@ -1349,17 +1351,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Return compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
-                   definition.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask_T))
+                   (definition.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask_T)) OrElse IsCustomTaskType(type, arity:=1))
+        End Function
+
+        ''' <summary>
+        ''' A task-like type names the builder for the Async functions that return it with AsyncMethodBuilderAttribute.
+        ''' </summary>
+        Private Function IsCustomTaskType(type As TypeSymbol, arity As Integer) As Boolean
+            Dim namedType = TryCast(type, NamedTypeSymbol)
+            Return namedType IsNot Nothing AndAlso
+                   Not namedType.IsErrorType() AndAlso
+                   namedType.Arity = arity AndAlso
+                   namedType.OriginalDefinition.TryGetAsyncMethodBuilderArgument(Nothing)
         End Function
 
         ''' <summary>
         ''' The type named by AsyncMethodBuilderAttribute on a task-like type, which builds the result of an Async
-        ''' Function that returns it.
+        ''' Function that returns it, or on an Async Function, which builds its result instead.
         ''' </summary>
         <Extension>
-        Friend Function TryGetAsyncMethodBuilderArgument(type As NamedTypeSymbol, <Out> ByRef builderArgument As TypeSymbol) As Boolean
-            For Each attribute In type.OriginalDefinition.GetAttributes()
-                If attribute.IsTargetAttribute(AttributeDescription.AsyncMethodBuilderAttribute) Then
+        Friend Function TryGetAsyncMethodBuilderArgument(symbol As Symbol, <Out> ByRef builderArgument As TypeSymbol) As Boolean
+            For Each attribute In symbol.GetAttributes()
+                If attribute.IsTargetAttribute(AttributeDescription.AsyncMethodBuilderAttribute) AndAlso Not attribute.HasErrors Then
                     builderArgument = TryCast(attribute.CommonConstructorArguments(0).ValueInternal, TypeSymbol)
                     Return builderArgument IsNot Nothing
                 End If

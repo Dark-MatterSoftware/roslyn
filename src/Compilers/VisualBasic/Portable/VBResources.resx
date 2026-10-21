@@ -6010,6 +6010,18 @@
   <data name="ERR_MultipleEnumeratorCancellationAttributes" xml:space="preserve">
     <value>'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.</value>
   </data>
+  <data name="ERR_BadTaskLikeAsyncReturn" xml:space="preserve">
+    <value>The 'Async' modifier can only be used on Subs, or on Functions that return Task, Task(Of T), or a type that names its builder with 'AsyncMethodBuilder'.</value>
+  </data>
+  <data name="ERR_ReturnFromNonGenericTaskLikeAsync" xml:space="preserve">
+    <value>'Return' statements in this Async method cannot return a value since the return type of the function is '{0}'.</value>
+  </data>
+  <data name="ERR_BadTaskLikeAsyncReturnOperand" xml:space="preserve">
+    <value>Since this is an async method, the return expression must be of type '{0}' rather than '{1}'.</value>
+  </data>
+  <data name="ERR_BadAsyncMethodBuilder" xml:space="preserve">
+    <value>'{0}' cannot build the result of an Async function that returns '{1}'. A builder needs a 'Public Shared Function Create()' that returns the builder and a 'Public' instance property 'Task' of the return type, and has one type parameter when the return type is generic.</value>
+  </data>
   <data name="WRN_UndecoratedCancellationTokenParameter" xml:space="preserve">
     <value>'Async Iterator' function '{0}' has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation', so the token passed to 'GetAsyncEnumerator' is not used.</value>
   </data>

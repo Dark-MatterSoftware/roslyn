@@ -161,10 +161,10 @@ End Module
 ", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
 
             compilation.AssertTheseDiagnostics(<expected><![CDATA[
-BC36952: 'Return' statements in this Async method cannot return a value since the return type of the function is 'Task'. Consider changing the function's return type to 'Task(Of T)'.
+BC37400: 'Return' statements in this Async method cannot return a value since the return type of the function is 'ValueTask'.
         Return 1
         ~~~~~~~~
-BC37055: Since this is an async method, the return expression must be of type 'Integer' rather than 'Task(Of Integer)'.
+BC37401: Since this is an async method, the return expression must be of type 'Integer' rather than 'ValueTask(Of Integer)'.
         Return Wrapped()
                ~~~~~~~~~
 ]]></expected>)

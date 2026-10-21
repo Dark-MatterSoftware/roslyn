@@ -1857,8 +1857,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_PatternVariableNotAllowedHere = 37396
         ERR_FieldInPropertyWithParameters = 37397
         ERR_MultipleEnumeratorCancellationAttributes = 37398
+        ERR_BadTaskLikeAsyncReturn = 37399
+        ERR_ReturnFromNonGenericTaskLikeAsync = 37400
+        ERR_BadTaskLikeAsyncReturnOperand = 37401
+        ERR_BadAsyncMethodBuilder = 37402
 
-        ERR_NextAvailable = 37399
+        ERR_NextAvailable = 37403
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

@@ -6183,10 +6183,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If retType.SpecialType = SpecialType.System_Void Then
                 ' For subs just generate a return
                 If expressionSyntax IsNot Nothing Then
-                    ReportDiagnostic(diagnostics, originalSyntax,
-                                     If(isIterator,
-                                          ERRID.ERR_BadReturnValueInIterator,
-                                          If(isAsync AndAlso Not methodReturnType.SpecialType = SpecialType.System_Void, ERRID.ERR_ReturnFromNonGenericTaskAsync, ERRID.ERR_ReturnFromNonFunction)))
+                    If Not isIterator AndAlso isAsync AndAlso Not methodReturnType.SpecialType = SpecialType.System_Void AndAlso
+                       Not methodReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
+                        ReportDiagnostic(diagnostics, originalSyntax, ERRID.ERR_ReturnFromNonGenericTaskLikeAsync, methodReturnType)
+                    Else
+                        ReportDiagnostic(diagnostics, originalSyntax,
+                                         If(isIterator,
+                                              ERRID.ERR_BadReturnValueInIterator,
+                                              If(isAsync AndAlso Not methodReturnType.SpecialType = SpecialType.System_Void, ERRID.ERR_ReturnFromNonGenericTaskAsync, ERRID.ERR_ReturnFromNonFunction)))
+                    End If
 
                     Dim arg As BoundExpression = Me.BindValue(expressionSyntax, diagnostics)
                     arg = MakeRValueAndIgnoreDiagnostics(arg)
@@ -6227,7 +6232,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Not Conversions.ConversionExists(Conversions.ClassifyConversion(arg, retType, Me, useSiteInfo).Key) Then
 
                             If Not diagnostics.Add(arg, useSiteInfo) Then
-                                ReportDiagnostic(diagnostics, arg.Syntax, ERRID.ERR_BadAsyncReturnOperand1, retType)
+                                If methodReturnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                                    ReportDiagnostic(diagnostics, arg.Syntax, ERRID.ERR_BadAsyncReturnOperand1, retType)
+                                Else
+                                    ReportDiagnostic(diagnostics, arg.Syntax, ERRID.ERR_BadTaskLikeAsyncReturnOperand, retType, methodReturnType)
+                                End If
                             End If
 
                             arg = MakeRValueAndIgnoreDiagnostics(arg)

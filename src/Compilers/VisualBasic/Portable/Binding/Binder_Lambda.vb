@@ -13,6 +13,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
     Partial Friend Class Binder
 
+        ''' <summary>
+        ''' The error for an Async Function whose return type is not one an Async Function can return.
+        ''' </summary>
+        Friend ReadOnly Property BadAsyncReturnErrorId As ERRID
+            Get
+                Return If(Compilation.LanguageVersion >= LanguageVersion.VbNext, ERRID.ERR_BadTaskLikeAsyncReturn, ERRID.ERR_BadAsyncReturn)
+            End Get
+        End Property
+
         Private Function BindLambdaExpression(
              node As LambdaExpressionSyntax,
              diagnostics As BindingDiagnosticBag
@@ -53,7 +62,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         If modifiers = SourceMemberFlags.Async AndAlso
                            Not returnType.IsGenericAsyncReturnType(Compilation) AndAlso
                            Not returnType.IsNonGenericAsyncReturnType(Compilation) Then
-                            ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.AsClause.Type, ERRID.ERR_BadAsyncReturn)
+                            ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.AsClause.Type, BadAsyncReturnErrorId)
                         End If
 
                         If modifiers = SourceMemberFlags.Iterator Then
@@ -179,7 +188,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     If Not targetReturnType.IsErrorType() Then
                         If source.Flags = SourceMemberFlags.Async Then
                             If Not targetReturnType.IsGenericAsyncReturnType(Compilation) AndAlso Not targetReturnType.IsNonGenericAsyncReturnType(Compilation) Then
-                                ReportDiagnostic(diagnostics, LambdaHeaderErrorNode(source), ERRID.ERR_BadAsyncReturn)
+                                ReportDiagnostic(diagnostics, LambdaHeaderErrorNode(source), BadAsyncReturnErrorId)
                             End If
                         End If
 

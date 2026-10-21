@@ -2677,7 +2677,7 @@ lReportErrorOnTwoTokens:
 
                                     If Not retType.IsGenericAsyncReturnType(compilation) AndAlso
                                        Not retType.IsNonGenericAsyncReturnType(compilation) Then
-                                        binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_BadAsyncReturn)
+                                        binder.ReportDiagnostic(diagBag, errorLocation, binder.BadAsyncReturnErrorId)
                                     End If
                                 End If
 

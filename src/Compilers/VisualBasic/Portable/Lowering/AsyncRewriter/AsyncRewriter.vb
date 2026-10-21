@@ -25,6 +25,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private _builderField As FieldSymbol
         Private _lastExpressionCaptureNumber As Integer
         Private _badTaskLikeBuilder As Boolean
+        Private _taskLikeBuilderArgument As TypeSymbol
 
         Public Sub New(body As BoundStatement,
                        method As MethodSymbol,
@@ -75,21 +76,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         ''' <summary>
-        ''' For a ValueTask or ValueTask(Of T) return type, the builder named by its AsyncMethodBuilderAttribute,
-        ''' constructed with the result type when the return type is generic. Nothing for Task and Task(Of T), and
-        ''' for a return type whose builder is missing or does not fit, which EnsureAllSymbolsAndSignature reports.
+        ''' The builder named by AsyncMethodBuilderAttribute on the method, or else on a task-like return type,
+        ''' constructed with the result type when the return type is generic. Nothing for Task and Task(Of T)
+        ''' without a builder on the method, and for a builder that does not fit, which
+        ''' EnsureAllSymbolsAndSignature reports.
         ''' </summary>
         Private Function GetTaskLikeBuilderType(resultTypeOpt As TypeSymbol) As NamedTypeSymbol
             Dim returnType = DirectCast(Me.Method.ReturnType, NamedTypeSymbol)
-            Dim definition = returnType.OriginalDefinition
-            If definition.Equals(Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) OrElse
-               definition.Equals(Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
-                Return Nothing
+            Dim builderArgument As TypeSymbol = Nothing
+            Dim forMethod = Me.F.Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                            Me.Method.TryGetAsyncMethodBuilderArgument(builderArgument)
+
+            If Not forMethod Then
+                Dim definition = returnType.OriginalDefinition
+                If definition.Equals(Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) OrElse
+                   definition.Equals(Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                    Return Nothing
+                End If
+
+                definition.TryGetAsyncMethodBuilderArgument(builderArgument)
             End If
 
-            Dim builderArgument As TypeSymbol = Nothing
-            Dim builder = If(returnType.TryGetAsyncMethodBuilderArgument(builderArgument), TryCast(builderArgument, NamedTypeSymbol), Nothing)
-            If builder Is Nothing OrElse builder.IsErrorType() OrElse builder.ContainingType IsNot Nothing AndAlso builder.ContainingType.IsGenericType Then
+            Me._taskLikeBuilderArgument = builderArgument
+            Dim builder = TryCast(builderArgument, NamedTypeSymbol)
+            If builder Is Nothing OrElse builder.IsErrorType() OrElse
+               (builder.ContainingType IsNot Nothing AndAlso builder.ContainingType.IsGenericType) OrElse
+               (Not forMethod AndAlso builder.DeclaredAccessibility <> returnType.DeclaredAccessibility) Then
                 Me._badTaskLikeBuilder = True
                 Return Nothing
             End If
@@ -99,16 +111,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Me._badTaskLikeBuilder = True
                     Return Nothing
                 End If
-
-                Return builder
+            ElseIf builder.OriginalDefinition.Arity <> 1 Then
+                Me._badTaskLikeBuilder = True
+                Return Nothing
+            Else
+                builder = builder.OriginalDefinition.Construct(resultTypeOpt)
             End If
 
-            If builder.OriginalDefinition.Arity <> 1 Then
+            If Not HasBuilderCreateAndTask(builder, returnType.InternalSubstituteTypeParameters(Me.TypeMap).Type) Then
                 Me._badTaskLikeBuilder = True
                 Return Nothing
             End If
 
-            Return builder.OriginalDefinition.Construct(resultTypeOpt)
+            Return builder
+        End Function
+
+        ''' <summary>
+        ''' A builder has a Public Shared Function Create() that returns the builder, and a Public instance
+        ''' property Task without parameters whose type is the return type.
+        ''' </summary>
+        Private Shared Function HasBuilderCreateAndTask(builder As NamedTypeSymbol, returnType As TypeSymbol) As Boolean
+            Dim hasCreate = False
+            For Each member In builder.GetMembers("Create")
+                Dim method = TryCast(member, MethodSymbol)
+                If method IsNot Nothing AndAlso method.DeclaredAccessibility = Accessibility.Public AndAlso method.IsShared AndAlso
+                   method.ParameterCount = 0 AndAlso Not method.IsGenericMethod AndAlso Not method.ReturnsByRef AndAlso
+                   TypeSymbol.Equals(method.ReturnType, builder, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                    hasCreate = True
+                    Exit For
+                End If
+            Next
+
+            If Not hasCreate Then
+                Return False
+            End If
+
+            For Each member In builder.GetMembers("Task")
+                Dim [property] = TryCast(member, PropertySymbol)
+                If [property] IsNot Nothing AndAlso [property].DeclaredAccessibility = Accessibility.Public AndAlso
+                   Not [property].IsShared AndAlso [property].ParameterCount = 0 Then
+                    Return TypeSymbol.Equals([property].Type, returnType, TypeCompareKind.AllIgnoreOptionsForVB)
+                End If
+            Next
+
+            Return False
         End Function
 
         ''' <summary>
@@ -375,7 +421,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             If Me._badTaskLikeBuilder Then
-                Me.Diagnostics.Add(ERRID.ERR_BadAsyncReturn, Me.Method.GetFirstLocation())
+                Me.Diagnostics.Add(ERRID.ERR_BadAsyncMethodBuilder, Me.Method.GetFirstLocation(),
+                                   If(DirectCast(Me._taskLikeBuilderArgument, Object), "Nothing"), Me.Method.ReturnType)
                 Return True
             End If
 
