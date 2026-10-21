@@ -292,7 +292,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Continue For
                     End If
 
-                    Debug.Assert(local.SynthesizedKind.IsLongLived())
+                    ' A deconstruction declares its item and ByRef slots as lowering temporaries of a block.
+                    Debug.Assert(local.SynthesizedKind.IsLongLived() OrElse local.SynthesizedKind = SynthesizedLocalKind.LoweringTemp)
 
                     ' We need to produce hoisted local scope debug information for user locals as well as
                     ' lambda display classes, since Dev12 EE uses them to determine which variables are displayed

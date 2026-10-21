@@ -247,6 +247,46 @@ End Class
             CompileAndVerify(compilation, expectedOutput:="122343").VerifyDiagnostics()
         End Sub
 
+        <Theory>
+        <InlineData(OptimizationLevel.Release)>
+        <InlineData(OptimizationLevel.Debug)>
+        Public Sub Deconstruction_InAsyncMethod(optimization As OptimizationLevel)
+            Dim compilation = CreateCompilation("
+Imports System.Threading.Tasks
+Class Point
+    Public X As Integer
+    Public Y As Integer
+    Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+    Sub Deconstruct(ByRef a As Integer, ByRef b As Integer)
+        a = X
+        b = Y
+    End Sub
+End Class
+Module Program
+    Async Function Run() As Task
+        For i = 1 To 2
+            Await Task.Yield()
+            Dim (x, y) = New Point(i, i + 1)
+            Dim (s, t) = (i.ToString(), i * 10)
+            Dim q As Long = 0
+            Dim r = 0
+            (q, r) = New Point(i, i)
+            Await Task.Yield()
+            System.Console.Write(x & y & s & t & q & r & "" "")
+        Next
+    End Function
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptimizationLevel(optimization), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1211011 2322022 ").VerifyDiagnostics()
+        End Sub
+
         <Fact>
         Public Sub DeconstructMethod_Extension()
             Dim compilation = CreateCompilation("

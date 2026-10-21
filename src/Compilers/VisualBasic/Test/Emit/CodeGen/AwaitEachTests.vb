@@ -496,5 +496,162 @@ End Module
 
             CompileAndVerify(compilation, verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
+
+        Private Const Items As String = "
+Public Class Items(Of T)
+    Implements System.Collections.Generic.IAsyncEnumerable(Of T)
+
+    Private ReadOnly _values As T()
+
+    Public Sub New(ParamArray values As T())
+        _values = values
+    End Sub
+
+    Public Function GetAsyncEnumerator(Optional cancellationToken As System.Threading.CancellationToken = Nothing) As System.Collections.Generic.IAsyncEnumerator(Of T) Implements System.Collections.Generic.IAsyncEnumerable(Of T).GetAsyncEnumerator
+        Return New Enumerator(_values)
+    End Function
+
+    Private Class Enumerator
+        Implements System.Collections.Generic.IAsyncEnumerator(Of T)
+
+        Private ReadOnly _values As T()
+        Private _index As Integer = -1
+
+        Public Sub New(values As T())
+            _values = values
+        End Sub
+
+        Public ReadOnly Property Current As T Implements System.Collections.Generic.IAsyncEnumerator(Of T).Current
+            Get
+                Return _values(_index)
+            End Get
+        End Property
+
+        Public Function MoveNextAsync() As System.Threading.Tasks.ValueTask(Of Boolean) Implements System.Collections.Generic.IAsyncEnumerator(Of T).MoveNextAsync
+            Return New System.Threading.Tasks.ValueTask(Of Boolean)(Advance())
+        End Function
+
+        Private Async Function Advance() As System.Threading.Tasks.Task(Of Boolean)
+            Await System.Threading.Tasks.Task.Yield()
+            _index += 1
+            Return _index < _values.Length
+        End Function
+
+        Public Function DisposeAsync() As System.Threading.Tasks.ValueTask Implements System.IAsyncDisposable.DisposeAsync
+            Return New System.Threading.Tasks.ValueTask(System.Threading.Tasks.Task.FromResult(0))
+        End Function
+    End Class
+End Class
+
+Public Class Point
+    Private ReadOnly _x As Integer
+    Private ReadOnly _y As Integer
+
+    Public Sub New(x As Integer, y As Integer)
+        _x = x
+        _y = y
+    End Sub
+
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = _x
+        y = _y
+    End Sub
+End Class
+"
+
+        Private Const DeconstructionProgram As String = "
+Module Program
+    Async Function Run() As System.Threading.Tasks.Task
+        Await Each (name, count) In New Items(Of (String, Integer))((""a"", 1), (""b"", 2))
+            Await System.Threading.Tasks.Task.Yield()
+            System.Console.Write(name & count.ToString() & "" "")
+        Next
+
+        Await Each (x, y As Long) In New Items(Of Point)(New Point(3, 4), New Point(5, 6))
+            Await System.Threading.Tasks.Task.Yield()
+            System.Console.Write((x + y).ToString() & "" "")
+        Next
+
+        Dim last As String = Nothing
+        Dim total As Integer = 0
+        Await Each (last, total) In New Items(Of (String, Integer))((""c"", 7), (""d"", 8))
+        Next
+        System.Console.Write(last & total.ToString() & "" "")
+
+        Dim actions As New System.Collections.Generic.List(Of System.Func(Of String))
+        Await Each (letter, digit) In New Items(Of (String, Integer))((""e"", 1), (""f"", 2))
+            actions.Add(Function() letter & digit.ToString())
+        Next
+        For Each action In actions
+            System.Console.Write(action() & "" "")
+        Next
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+"
+
+        <Fact>
+        Public Sub AwaitEach_Deconstruction()
+            CompileAndRun(Items & DeconstructionProgram, "a1 b2 7 11 d8 e1 f2 ",
+                          TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True))
+        End Sub
+
+        <Fact>
+        Public Sub AwaitEach_DeconstructionInDebugBuild()
+            CompileAndRun(Items & DeconstructionProgram, "a1 b2 7 11 d8 e1 f2 ",
+                          TestOptions.DebugExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True))
+        End Sub
+
+        <Fact>
+        Public Sub AwaitEach_DeconstructionErrors()
+            Dim compilation = CreateCompilation(AsyncStreamTypes & Items & "
+Module Program
+    Async Function Run() As System.Threading.Tasks.Task
+        Await Each (a, b) In New Items(Of Integer)(1, 2)
+        Next
+    End Function
+
+    Sub NotAsync()
+        Await Each (c, d) In New Items(Of (Integer, Integer))((1, 2))
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37363: Deconstruction requires a tuple with 2 elements.
+        Await Each (a, b) In New Items(Of Integer)(1, 2)
+                   ~~~~~~
+BC37391: 'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.
+        Await Each (c, d) In New Items(Of (Integer, Integer))((1, 2))
+        ~~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub AwaitEach_DeconstructionSemanticModel()
+            Dim compilation = CreateCompilation(AsyncStreamTypes & Items & "
+Module Program
+    Async Function Run() As System.Threading.Tasks.Task
+        Await Each (name, count) In New Items(Of (String, Integer))((""a"", 1))
+            System.Console.Write(name & count.ToString())
+        Next
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim forEachLoop = tree.GetRoot().DescendantNodes().OfType(Of Syntax.ForEachBlockSyntax)().Single()
+            Dim usages = forEachLoop.DescendantNodes().OfType(Of Syntax.IdentifierNameSyntax)().Where(Function(n) n.Identifier.ValueText = "name" OrElse n.Identifier.ValueText = "count").ToArray()
+            Assert.Equal(2, usages.Length)
+            Assert.Equal("System.String", DirectCast(model.GetSymbolInfo(usages(0)).Symbol, ILocalSymbol).Type.ToTestDisplayString())
+            Assert.Equal("System.Int32", DirectCast(model.GetSymbolInfo(usages(1)).Symbol, ILocalSymbol).Type.ToTestDisplayString())
+            Assert.True(DirectCast(model.GetOperation(forEachLoop), Operations.IForEachLoopOperation).IsAsynchronous)
+        End Sub
     End Class
 End Namespace
