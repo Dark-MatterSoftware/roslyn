@@ -4698,11 +4698,12 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="ForStatement.ControlVariable"></native-equiv>
       </child>
 
-      <child name="ControlVariable" kind="@ExpressionSyntax|VariableDeclarator" order="30">
+      <child name="ControlVariable" kind="@ExpressionSyntax|VariableDeclarator|ForEachDeconstruction" order="30">
         <description>
           If the For or For Each statement is of a form that does not declare a new loop control variable, this is the
           expression that denotes the loop control variable. If this loop is of a form that does declare a new control variable,
-          this is a VariableDeclarator that has the variable being declared.
+          this is a VariableDeclarator that has the variable being declared. If a For Each statement deconstructs each item,
+          this is a ForEachDeconstruction that lists the variables.
         </description>
         <lm-equiv name="Variable"></lm-equiv>
         <native-equiv name="ForStatement.ControlVariable"></native-equiv>
@@ -4833,6 +4834,41 @@ Unify Enum declarations with other block type declarations.
         <description>The expression denoting the collection to iterate over.</description>
         <lm-equiv name="Collection"></lm-equiv>
         <native-equiv name="Collection"></native-equiv>
+      </child>
+    </node-structure>
+
+    <!--****************
+      -  ForEachDeconstruction
+      ******************-->
+    <node-structure name="ForEachDeconstructionSyntax" parent="VisualBasicSyntaxNode">
+      <description>
+        The parenthesized list of variables that a For Each or Await Each statement deconstructs each item into,
+        <c>For Each (key, value) In map</c>.
+      </description>
+      <lm-equiv name=""></lm-equiv>
+      <native-equiv name=""></native-equiv>
+
+      <node-kind name="ForEachDeconstruction">
+        <lm-equiv name="" />
+        <native-equiv name="" />
+      </node-kind>
+
+      <child name="OpenParenToken" kind="OpenParenToken">
+        <description>The opening parenthesis.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="Variables" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="VariableDeclarator" min-count="1">
+        <description>The variables, in order, each with an optional As clause.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
+      </child>
+
+      <child name="CloseParenToken" kind="CloseParenToken">
+        <description>The closing parenthesis.</description>
+        <lm-equiv name=""></lm-equiv>
+        <native-equiv name=""></native-equiv>
       </child>
     </node-structure>
 

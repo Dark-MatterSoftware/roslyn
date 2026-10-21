@@ -879,7 +879,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 GetNextToken()
             End If
 
-            Dim controlVariable = ParseForLoopControlVariable()
+            Dim controlVariable As VisualBasicSyntaxNode
+            If IsForEachDeconstructionStart() AndAlso CheckFeatureAvailability(Feature.ForEachDeconstruction) Then
+                controlVariable = ParseForEachDeconstruction()
+            Else
+                controlVariable = ParseForLoopControlVariable()
+            End If
 
             Dim withKeyword As KeywordSyntax = Nothing
             Dim index As IdentifierTokenSyntax = Nothing
@@ -921,6 +926,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim statement = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression)
 
             Return statement
+        End Function
+
+        ''' <summary>
+        ''' Whether a For Each control variable is a deconstruction list: an opening parenthesis, a name, and then a
+        ''' comma or an As clause.
+        ''' </summary>
+        Private Function IsForEachDeconstructionStart() As Boolean
+            Return CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso
+                   PeekToken(1).Kind = SyntaxKind.IdentifierToken AndAlso
+                   (PeekToken(2).Kind = SyntaxKind.CommaToken OrElse PeekToken(2).Kind = SyntaxKind.AsKeyword)
+        End Function
+
+        ''' <summary>
+        ''' Parses (name [As type], name [As type], ...) as the variables a For Each statement deconstructs each item into.
+        ''' </summary>
+        Private Function ParseForEachDeconstruction() As ForEachDeconstructionSyntax
+            Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim variables = _pool.AllocateSeparated(Of VariableDeclaratorSyntax)()
+            Do
+                variables.Add(ParseForLoopVariableDeclaration())
+
+                Dim comma As PunctuationSyntax = Nothing
+                If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                    Exit Do
+                End If
+
+                variables.AddSeparator(comma)
+            Loop
+
+            Dim closeParen As PunctuationSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
+
+            Dim result = SyntaxFactory.ForEachDeconstruction(openParen, variables.ToList, closeParen)
+            _pool.Free(variables)
+            Return result
         End Function
 
         Private Function ParseForStatement(forKeyword As KeywordSyntax) As ForStatementSyntax

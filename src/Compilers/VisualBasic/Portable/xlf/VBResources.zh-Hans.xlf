@@ -567,6 +567,11 @@
         <target state="new">enum constraints</target>
         <note />
       </trans-unit>
+      <trans-unit id="FEATURE_ForEachDeconstruction">
+        <source>deconstruction in 'For Each'</source>
+        <target state="new">deconstruction in 'For Each'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FEATURE_GenericAttributes">
         <source>generic attributes</source>
         <target state="new">generic attributes</target>

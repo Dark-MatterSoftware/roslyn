@@ -3341,5 +3341,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         TypeOfIntoExpression = 820                   ' TypeOfIntoExpressionSyntax : ExpressionSyntax
 
+        ''' <summary>
+        ''' Represents the list of variables that a For Each statement deconstructs each item into, <c>For Each (key, value) In map</c>.
+        ''' </summary>
+        ForEachDeconstruction = 821                  ' ForEachDeconstructionSyntax : VisualBasicSyntaxNode
+
     End Enum
 End Namespace

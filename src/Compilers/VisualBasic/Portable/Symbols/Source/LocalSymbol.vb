@@ -919,6 +919,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     End Try
                 End If
 
+                ' A name in For Each (a, b) In items without an As clause has the type of its element of the item.
+                If _asClauseOpt Is Nothing AndAlso
+                   _modifiedIdentifierOpt IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent.Parent IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent.Parent.Kind = SyntaxKind.ForEachDeconstruction Then
+
+                    If _deconstructionTypeGuard <> 0 Then
+                        Return ErrorTypeSymbol.UnknownResultType
+                    End If
+
+                    _deconstructionTypeGuard = 1
+                    Try
+                        Return localBinder.GetForEachDeconstructionElementType(Me)
+                    Finally
+                        _deconstructionTypeGuard = 0
+                    End Try
+                End If
+
                 Dim declType As TypeSymbol = Nothing
                 Dim type As TypeSymbol = Nothing
                 Dim valueExpression As BoundExpression = Nothing

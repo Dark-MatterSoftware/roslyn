@@ -75,6 +75,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         AsyncUsing
         AwaitEach
         PatternVariables
+        ForEachDeconstruction
     End Enum
 
     Friend Module FeatureExtensions
@@ -175,7 +176,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      Feature.CollectionExpression,
                      Feature.AsyncUsing,
                      Feature.AwaitEach,
-                     Feature.PatternVariables
+                     Feature.PatternVariables,
+                     Feature.ForEachDeconstruction
                     Return LanguageVersion.VbNext
 
                 Case Else
@@ -319,6 +321,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return ERRID.FEATURE_AwaitEach
                 Case Feature.PatternVariables
                     Return ERRID.FEATURE_PatternVariables
+                Case Feature.ForEachDeconstruction
+                    Return ERRID.FEATURE_ForEachDeconstruction
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(feature)
             End Select

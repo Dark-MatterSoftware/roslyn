@@ -392,6 +392,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitForEachStatement(ByVal node As ForEachStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitForEachDeconstruction(ByVal node As ForEachDeconstructionSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitNextStatement(ByVal node As NextStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1173,6 +1176,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitForEachStatement(ByVal node As ForEachStatementSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitForEachDeconstruction(ByVal node As ForEachDeconstructionSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitNextStatement(ByVal node As NextStatementSyntax)
@@ -3807,6 +3813,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New ForEachStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newForKeyword, newEachKeyword, newByRefKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitForEachDeconstruction(ByVal node As ForEachDeconstructionSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newOpenParenToken = DirectCast(VisitToken(node.OpenParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OpenParenToken.Node IsNot newOpenParenToken Then anyChanges = True
+            Dim newVariables = VisitList(node.Variables)
+            If node._variables IsNot newVariables.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(VisitToken(node.CloseParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.CloseParenToken.Node IsNot newCloseParenToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New ForEachDeconstructionSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newOpenParenToken, newVariables.Node, newCloseParenToken)
             Else
                 Return node
             End If
@@ -20787,7 +20810,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="equalsToken">
         ''' The "=" token.
@@ -20929,7 +20954,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.ConditionalAccessExpression,
                      SyntaxKind.NameOfExpression,
                      SyntaxKind.InterpolatedStringExpression,
-                     SyntaxKind.VariableDeclarator
+                     SyntaxKind.VariableDeclarator,
+                     SyntaxKind.ForEachDeconstruction
                 Case Else
                     Throw new ArgumentException("controlVariable")
             End Select
@@ -21204,7 +21230,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="fromValue">
         ''' The expression denoting the initial value of the iteration.
@@ -21235,7 +21263,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="fromValue">
         ''' The expression denoting the initial value of the iteration.
@@ -21421,7 +21451,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="withKeyword">
         ''' The optional "With" keyword that names the iteration index.
@@ -21565,7 +21597,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.ConditionalAccessExpression,
                      SyntaxKind.NameOfExpression,
                      SyntaxKind.InterpolatedStringExpression,
-                     SyntaxKind.VariableDeclarator
+                     SyntaxKind.VariableDeclarator,
+                     SyntaxKind.ForEachDeconstruction
                 Case Else
                     Throw new ArgumentException("controlVariable")
             End Select
@@ -21715,7 +21748,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="index">
         ''' The iteration index name. The first item is 0.
@@ -21744,13 +21779,67 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="expression">
         ''' The expression denoting the collection to iterate over.
         ''' </param>
         Public Shared Function ForEachStatement(forKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, expression As ExpressionSyntax) As ForEachStatementSyntax
             Return SyntaxFactory.ForEachStatement(forKeyword, SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, controlVariable, Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), expression)
+        End Function
+
+
+        ''' <summary>
+        ''' The parenthesized list of variables that a For Each or Await Each statement
+        ''' deconstructs each item into, For Each (key, value) In map.
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="variables">
+        ''' The variables, in order, each with an optional As clause.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Public Shared Function ForEachDeconstruction(openParenToken As SyntaxToken, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax), closeParenToken As SyntaxToken) As ForEachDeconstructionSyntax
+            Select Case openParenToken.Kind()
+                Case SyntaxKind.OpenParenToken
+                Case Else
+                    Throw new ArgumentException("openParenToken")
+            End Select
+            Select Case closeParenToken.Kind()
+                Case SyntaxKind.CloseParenToken
+                Case Else
+                    Throw new ArgumentException("closeParenToken")
+            End Select
+            Return New ForEachDeconstructionSyntax(SyntaxKind.ForEachDeconstruction, Nothing, Nothing, DirectCast(openParenToken.Node, InternalSyntax.PunctuationSyntax), variables.Node, DirectCast(closeParenToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' The parenthesized list of variables that a For Each or Await Each statement
+        ''' deconstructs each item into, For Each (key, value) In map.
+        ''' </summary>
+        ''' <param name="variables">
+        ''' The variables, in order, each with an optional As clause.
+        ''' </param>
+        Public Shared Function ForEachDeconstruction(variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As ForEachDeconstructionSyntax
+            Return SyntaxFactory.ForEachDeconstruction(SyntaxFactory.Token(SyntaxKind.OpenParenToken), variables, SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+
+        ''' <summary>
+        ''' The parenthesized list of variables that a For Each or Await Each statement
+        ''' deconstructs each item into, For Each (key, value) In map.
+        ''' </summary>
+        ''' <param name="variables">
+        ''' The variables, in order, each with an optional As clause.
+        ''' </param>
+        Public Shared Function ForEachDeconstruction(ParamArray variables As VariableDeclaratorSyntax()) As ForEachDeconstructionSyntax
+            Return SyntaxFactory.ForEachDeconstruction(SyntaxFactory.Token(SyntaxKind.OpenParenToken), SyntaxFactory.SeparatedList(Of VariableDeclaratorSyntax)().AddRange(variables), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
         End Function
 
 

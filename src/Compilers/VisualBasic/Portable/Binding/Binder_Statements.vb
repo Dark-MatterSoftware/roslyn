@@ -3633,6 +3633,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             declaredOrInferredLocalOpt = Nothing
             isInferredLocal = False
 
+            If controlVariableSyntax.Kind = SyntaxKind.ForEachDeconstruction Then
+                ' For Each (a, b) In items iterates into a local of the element type, made once the collection is bound.
+                controlVariable = Nothing
+                Return False
+            End If
+
             If controlVariableSyntax.Kind = SyntaxKind.VariableDeclarator Then
                 ' This case handles control variables for
                 ' for x as integer = 0 to n
@@ -4113,6 +4119,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                  diagnostics)
             End If
 
+            Dim deconstruction = TryCast(forEachStatement.ControlVariable, ForEachDeconstructionSyntax)
+            If deconstruction IsNot Nothing Then
+                Dim itemType = If(elementType, ErrorTypeSymbol.UnknownResultType)
+                declaredOrInferredLocalOpt = New SynthesizedLocal(ContainingMember, itemType, SynthesizedLocalKind.LoweringTemp)
+                controlVariableOpt = New BoundLocal(deconstruction, declaredOrInferredLocalOpt, itemType).MakeCompilerGenerated()
+            End If
+
             '
             ' Now we're already creating some bound nodes that will be used in the local rewriter to report possible
             ' diagnostics early and to reuse the code that exists in the binder.
@@ -4255,6 +4268,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim nextVariables As ImmutableArray(Of BoundExpression) = Nothing
             Me.BindForLoopBodyAndNextControlVariables(node, nextVariables, loopBody, diagnostics)
             loopBody = AddIterationIndexLocal(forEachStatement, loopBody)
+            If deconstruction IsNot Nothing Then
+                loopBody = AddForEachDeconstruction(deconstruction, DirectCast(controlVariableOpt, BoundLocal), loopBody, diagnostics)
+            End If
 
             Dim enumeratorInfo = New ForEachEnumeratorInfo(boundGetEnumeratorCall,
                                                            boundMoveNextCall,
@@ -4579,6 +4595,178 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' For Each (a, b) In items: the body starts by deconstructing the item into the names, and declares the names that
+        ''' the loop declares, so each iteration has its own.
+        ''' </summary>
+        Private Function AddForEachDeconstruction(syntax As ForEachDeconstructionSyntax, item As BoundLocal, loopBody As BoundBlock, diagnostics As BindingDiagnosticBag) As BoundBlock
+            Dim declared = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim deconstruction = BindForEachDeconstruction(syntax, item, declared, diagnostics)
+            Return loopBody.Update(loopBody.StatementListSyntax,
+                                   loopBody.Locals.AddRange(declared.ToImmutableAndFree()),
+                                   loopBody.Statements.Insert(0, deconstruction))
+        End Function
+
+        ''' <summary>
+        ''' The local that the loop declares for a name of For Each (a, b) In items, or Nothing when the name refers to a
+        ''' variable outside the loop.
+        ''' </summary>
+        Private Function GetForEachDeconstructionLocal(identifier As SyntaxToken) As LocalSymbol
+            Dim loopBinder As Binder = Me
+            While loopBinder IsNot Nothing AndAlso TypeOf loopBinder IsNot ForOrForEachBlockBinder
+                loopBinder = loopBinder.ContainingBinder
+            End While
+
+            If loopBinder Is Nothing Then
+                Return Nothing
+            End If
+
+            For Each local In DirectCast(loopBinder, ForOrForEachBlockBinder).Locals
+                If local.IdentifierToken = identifier Then
+                    Return local
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        Private Function BindForEachDeconstruction(
+            syntax As ForEachDeconstructionSyntax,
+            item As BoundLocal,
+            declared As ArrayBuilder(Of LocalSymbol),
+            diagnostics As BindingDiagnosticBag
+        ) As BoundStatement
+
+            Dim variables = syntax.Variables
+            Dim count = variables.Count
+            Dim value = item.MakeRValue()
+            Dim elements = GetDeconstructionElements(value, count)
+            Dim method As MethodSymbol = Nothing
+            If elements.IsDefault Then
+                method = FindDeconstructMethod(value, count, diagnostics, syntax)
+                If method Is Nothing AndAlso Not value.Type.IsErrorType() Then
+                    ReportDiagnostic(diagnostics, syntax, ERRID.ERR_DeconstructionRequiresTuple, count)
+                End If
+            End If
+
+            Dim matches = Not elements.IsDefault OrElse method IsNot Nothing
+
+            ' The targets, in order: a local that the loop declares, or the variable that the name refers to.
+            Dim targets = ArrayBuilder(Of BoundExpression).GetInstance(count)
+            For i = 0 To count - 1
+                Dim variable = variables(i)
+                Dim name = variable.Names(0)
+                Dim elementType As TypeSymbol = If(method IsNot Nothing, method.Parameters(i).Type,
+                                                   If(Not elements.IsDefault, elements(i).Type, ErrorTypeSymbol.UnknownResultType))
+                Dim local = If(name.Identifier.IsMissing, Nothing, GetForEachDeconstructionLocal(name.Identifier))
+
+                If local IsNot Nothing Then
+                    VerifyLocalSymbolNameAndSetType(local, If(variable.AsClause Is Nothing, elementType, local.Type), name, name.Identifier, diagnostics)
+                    declared.Add(local)
+                    targets.Add(New BoundLocal(name, local, isLValue:=True, type:=local.Type))
+                ElseIf name.Identifier.IsMissing Then
+                    targets.Add(BadExpression(name, ErrorTypeSymbol.UnknownResultType))
+                Else
+                    targets.Add(BindDeconstructionTarget(name, diagnostics))
+                End If
+            Next
+
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim temps = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim hasErrors = Not matches OrElse value.HasErrors
+
+            If Not elements.IsDefault Then
+                For i = 0 To count - 1
+                    Dim target = targets(i)
+                    Dim element = New BoundFieldAccess(variables(i), value, elements(i), isLValue:=False, type:=elements(i).Type)
+                    Dim storedValue = If(target.HasErrors, element, ApplyImplicitConversion(variables(i), target.Type, element, diagnostics)).MakeTreeCompilerGenerated()
+                    Dim assignment = New BoundExpressionStatement(
+                        variables(i),
+                        New BoundAssignmentOperator(variables(i), target, storedValue, suppressObjectClone:=True,
+                                                    hasErrors:=target.HasErrors OrElse storedValue.HasErrors).MakeCompilerGenerated())
+                    assignment.SetWasCompilerGenerated()
+                    statements.Add(assignment)
+                    hasErrors = hasErrors OrElse target.HasErrors OrElse storedValue.HasErrors
+                Next
+
+            ElseIf method IsNot Nothing Then
+                Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(count)
+                Dim followUps = ArrayBuilder(Of BoundStatement).GetInstance()
+                For i = 0 To count - 1
+                    Dim target = targets(i)
+                    Dim parameterType = method.Parameters(i).Type
+                    If CanPassByRef(target, parameterType) Then
+                        arguments.Add(target)
+                    Else
+                        Dim slot = New SynthesizedLocal(ContainingMember, parameterType, SynthesizedLocalKind.LoweringTemp)
+                        temps.Add(slot)
+                        arguments.Add(New BoundLocal(variables(i), slot, parameterType).MakeCompilerGenerated())
+                        If target.HasErrors Then
+                            hasErrors = True
+                        Else
+                            Dim storedValue = ApplyImplicitConversion(variables(i), target.Type,
+                                                                      New BoundLocal(variables(i), slot, parameterType).MakeRValue(),
+                                                                      diagnostics).MakeTreeCompilerGenerated()
+                            Dim assignment = New BoundExpressionStatement(
+                                variables(i),
+                                New BoundAssignmentOperator(variables(i), target, storedValue, suppressObjectClone:=True,
+                                                            hasErrors:=storedValue.HasErrors).MakeCompilerGenerated())
+                            assignment.SetWasCompilerGenerated()
+                            followUps.Add(assignment)
+                            hasErrors = hasErrors OrElse storedValue.HasErrors
+                        End If
+                    End If
+                Next
+
+                Dim invocation = New BoundCall(syntax, method, Nothing, DeconstructReceiver(syntax, item.LocalSymbol, method),
+                                               arguments.ToImmutableAndFree(), Nothing, method.ReturnType, hasErrors:=hasErrors).MakeCompilerGenerated()
+                Dim callStatement = New BoundExpressionStatement(syntax, invocation)
+                callStatement.SetWasCompilerGenerated()
+                statements.Add(callStatement)
+                statements.AddRange(followUps)
+                followUps.Free()
+            End If
+
+            targets.Free()
+            Return New BoundBlock(syntax, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' The type of a name without an As clause in For Each (a, b) In items: its element of the item.
+        ''' </summary>
+        Friend Function GetForEachDeconstructionElementType(local As LocalSymbol) As TypeSymbol
+            Dim name = TryCast(local.IdentifierToken.Parent, ModifiedIdentifierSyntax)
+            Dim variable = TryCast(name?.Parent, VariableDeclaratorSyntax)
+            Dim deconstruction = TryCast(variable?.Parent, ForEachDeconstructionSyntax)
+            Dim statement = TryCast(deconstruction?.Parent, ForEachStatementSyntax)
+            If statement Is Nothing Then
+                Return ErrorTypeSymbol.UnknownResultType
+            End If
+
+            Dim collection = BindValue(statement.Expression, BindingDiagnosticBag.Discarded)
+            If Not collection.IsLValue AndAlso Not collection.IsNothingLiteral Then
+                collection = MakeRValue(collection, BindingDiagnosticBag.Discarded)
+            End If
+
+            Dim currentType As TypeSymbol = Nothing
+            Dim elementType As TypeSymbol = Nothing
+            InterpretForEachStatementCollection(collection, currentType, elementType, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, BindingDiagnosticBag.Discarded)
+            If elementType Is Nothing OrElse elementType.IsErrorType() Then
+                Return ErrorTypeSymbol.UnknownResultType
+            End If
+
+            Dim index = deconstruction.Variables.IndexOf(variable)
+            Dim count = deconstruction.Variables.Count
+            Dim item = New BoundRValuePlaceholder(deconstruction, elementType)
+            Dim elements = GetDeconstructionElements(item, count)
+            If Not elements.IsDefault Then
+                Return elements(index).Type
+            End If
+
+            Dim method = FindDeconstructMethod(item, count, BindingDiagnosticBag.Discarded, deconstruction)
+            Return If(method IsNot Nothing, method.Parameters(index).Type, ErrorTypeSymbol.UnknownResultType)
         End Function
 
         Private Function AddIterationIndexLocal(statement As ForEachStatementSyntax, loopBody As BoundBlock) As BoundBlock

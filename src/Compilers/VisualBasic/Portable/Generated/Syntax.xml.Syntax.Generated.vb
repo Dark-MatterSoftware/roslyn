@@ -20821,7 +20821,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </summary>
         Public ReadOnly Property ControlVariable As VisualBasicSyntaxNode
             Get
@@ -20906,7 +20908,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </summary>
         Public Shadows ReadOnly Property ControlVariable As VisualBasicSyntaxNode
             Get
@@ -21316,7 +21320,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </summary>
         Public Shadows ReadOnly Property ControlVariable As VisualBasicSyntaxNode
             Get
@@ -21488,6 +21494,147 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         Public Function Update(forKeyword As SyntaxToken, eachKeyword As SyntaxToken, byRefKeyword As SyntaxToken, controlVariable As VisualBasicSyntaxNode, withKeyword As SyntaxToken, index As SyntaxToken, inKeyword As SyntaxToken, expression As ExpressionSyntax) As ForEachStatementSyntax
             If forKeyword <> Me.ForKeyword OrElse eachKeyword <> Me.EachKeyword OrElse byRefKeyword <> Me.ByRefKeyword OrElse controlVariable IsNot Me.ControlVariable OrElse withKeyword <> Me.WithKeyword OrElse index <> Me.Index OrElse inKeyword <> Me.InKeyword OrElse expression IsNot Me.Expression Then
                 Dim newNode = SyntaxFactory.ForEachStatement(forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' The parenthesized list of variables that a For Each or Await Each statement
+    ''' deconstructs each item into, For Each (key, value) In map.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.ForEachDeconstruction"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class ForEachDeconstructionSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend _variables as SyntaxNode
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openParenToken As InternalSyntax.PunctuationSyntax, variables As SyntaxNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachDeconstructionSyntax(kind, errors, annotations, openParenToken, if(variables IsNot Nothing, variables.Green, Nothing), closeParenToken), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Public ReadOnly Property OpenParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachDeconstructionSyntax)._openParenToken, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenParenToken(openParenToken as SyntaxToken) As ForEachDeconstructionSyntax
+            return Update(openParenToken, Me.Variables, Me.CloseParenToken)
+        End Function
+
+        ''' <summary>
+        ''' The variables, in order, each with an optional As clause.
+        ''' </summary>
+        Public ReadOnly Property Variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax)
+            Get
+                Dim listNode = GetRed(_variables, 1)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of VariableDeclaratorSyntax)(listNode, Me.GetChildIndex(1))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Variables property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithVariables(variables as SeparatedSyntaxList(Of VariableDeclaratorSyntax)) As ForEachDeconstructionSyntax
+            return Update(Me.OpenParenToken, variables, Me.CloseParenToken)
+        End Function
+
+        Public Shadows Function AddVariables(ParamArray items As VariableDeclaratorSyntax()) As ForEachDeconstructionSyntax
+            Return Me.WithVariables(Me.Variables.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Public ReadOnly Property CloseParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ForEachDeconstructionSyntax)._closeParenToken, Me.GetChildPosition(2), Me.GetChildIndex(2))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseParenToken(closeParenToken as SyntaxToken) As ForEachDeconstructionSyntax
+            return Update(Me.OpenParenToken, Me.Variables, closeParenToken)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._variables
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return GetRed(_variables, 1)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitForEachDeconstruction(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitForEachDeconstruction(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The value for the OpenParenToken property.
+        ''' </param>
+        ''' <param name="variables">
+        ''' The value for the Variables property.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The value for the CloseParenToken property.
+        ''' </param>
+        Public Function Update(openParenToken As SyntaxToken, variables As SeparatedSyntaxList(Of VariableDeclaratorSyntax), closeParenToken As SyntaxToken) As ForEachDeconstructionSyntax
+            If openParenToken <> Me.OpenParenToken OrElse variables <> Me.Variables OrElse closeParenToken <> Me.CloseParenToken Then
+                Dim newNode = SyntaxFactory.ForEachDeconstruction(openParenToken, variables, closeParenToken)
                 Dim annotations = Me.GetAnnotations()
                 If annotations IsNot Nothing AndAlso annotations.Length > 0
                     return newNode.WithAnnotations(annotations)

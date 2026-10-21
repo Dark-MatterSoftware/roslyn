@@ -4,6 +4,7 @@
 
 Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis.Collections
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -47,6 +48,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 controlVariableSyntax = DirectCast(_syntax.ForOrForEachStatement, ForStatementSyntax).ControlVariable
             Else
                 controlVariableSyntax = DirectCast(_syntax.ForOrForEachStatement, ForEachStatementSyntax).ControlVariable
+            End If
+
+            Dim deconstruction = TryCast(controlVariableSyntax, ForEachDeconstructionSyntax)
+            If deconstruction IsNot Nothing Then
+                Return BuildDeconstructionLocals(deconstruction)
             End If
 
             Dim declarator = TryCast(controlVariableSyntax, VariableDeclaratorSyntax)
@@ -112,6 +118,45 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return ImmutableArray(Of LocalSymbol).Empty
+        End Function
+
+        ''' <summary>
+        ''' The locals that For Each (a, b) In items declares: each name with an As clause, and, under Option Infer, each
+        ''' name that does not already refer to a variable, as the control variable of For Each x In items would.
+        ''' </summary>
+        Private Function BuildDeconstructionLocals(deconstruction As ForEachDeconstructionSyntax) As ImmutableArray(Of LocalSymbol)
+            Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+
+            For Each variable In deconstruction.Variables
+                Dim name = variable.Names(0)
+                If name.Identifier.IsMissing Then
+                    Continue For
+                End If
+
+                If variable.AsClause IsNot Nothing Then
+                    locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, name.Identifier, name, variable.AsClause, Nothing, LocalDeclarationKind.Variable))
+                ElseIf OptionInfer AndAlso Not RefersToVariable(name.Identifier) Then
+                    locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, name.Identifier, name, Nothing, Nothing, LocalDeclarationKind.Variable))
+                End If
+            Next
+
+            Dim indexLocal = CreateIndexLocal()
+            If indexLocal IsNot Nothing Then
+                locals.Add(indexLocal)
+            End If
+
+            Return locals.ToImmutableAndFree()
+        End Function
+
+        Private Function RefersToVariable(identifier As SyntaxToken) As Boolean
+            Dim result = LookupResult.GetInstance()
+            ContainingBinder.Lookup(result, identifier.ValueText, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo:=CompoundUseSiteInfo(Of AssemblySymbol).Discarded)
+
+            Dim found = result.IsGoodOrAmbiguous AndAlso
+                        result.Symbols(0).Kind <> SymbolKind.NamedType AndAlso
+                        result.Symbols(0).Kind <> SymbolKind.TypeParameter
+            result.Free()
+            Return found
         End Function
 
         Private Function IsByRefForEach() As Boolean

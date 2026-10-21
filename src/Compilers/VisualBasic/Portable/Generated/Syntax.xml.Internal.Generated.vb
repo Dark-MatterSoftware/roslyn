@@ -15126,7 +15126,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </summary>
         Friend ReadOnly Property ControlVariable As InternalSyntax.VisualBasicSyntaxNode
             Get
@@ -15589,6 +15591,123 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
         Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
             Return visitor.VisitForEachStatement(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' The parenthesized list of variables that a For Each or Await Each statement
+    ''' deconstructs each item into, For Each (key, value) In map.
+    ''' </summary>
+    Friend NotInheritable Class ForEachDeconstructionSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend ReadOnly _openParenToken as PunctuationSyntax
+        Friend ReadOnly _variables as GreenNode
+        Friend ReadOnly _closeParenToken as PunctuationSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, openParenToken As InternalSyntax.PunctuationSyntax, variables As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If variables IsNot Nothing Then
+                AdjustFlagsAndWidth(variables)
+                Me._variables = variables
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, openParenToken As InternalSyntax.PunctuationSyntax, variables As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If variables IsNot Nothing Then
+                AdjustFlagsAndWidth(variables)
+                Me._variables = variables
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openParenToken As InternalSyntax.PunctuationSyntax, variables As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If variables IsNot Nothing Then
+                AdjustFlagsAndWidth(variables)
+                Me._variables = variables
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.ForEachDeconstructionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property OpenParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openParenToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The variables, in order, each with an optional As clause.
+        ''' </summary>
+        Friend ReadOnly Property Variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of VariableDeclaratorSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of VariableDeclaratorSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of VariableDeclaratorSyntax)(Me._variables))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property CloseParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeParenToken
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._openParenToken
+                Case 1
+                    Return Me._variables
+                Case 2
+                    Return Me._closeParenToken
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new ForEachDeconstructionSyntax(Me.Kind, newErrors, GetAnnotations, _openParenToken, _variables, _closeParenToken)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new ForEachDeconstructionSyntax(Me.Kind, GetDiagnostics, annotations, _openParenToken, _variables, _closeParenToken)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitForEachDeconstruction(Me)
         End Function
 
     End Class
@@ -31795,6 +31914,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitForOrForEachStatement(node)
         End Function
+        Public Overridable Function VisitForEachDeconstruction(ByVal node As ForEachDeconstructionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitVisualBasicSyntaxNode(node)
+        End Function
         Public Overridable Function VisitNextStatement(ByVal node As NextStatementSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitStatement(node)
@@ -34632,6 +34755,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New ForEachStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newForKeyword, newEachKeyword, newByRefKeyword, newControlVariable, newWithKeyword, newIndex, newInKeyword, newExpression)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitForEachDeconstruction(ByVal node As ForEachDeconstructionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newOpenParenToken = DirectCast(Visit(node.OpenParenToken), PunctuationSyntax)
+            If node._openParenToken IsNot newOpenParenToken Then anyChanges = True
+            Dim newVariables = VisitList(node.Variables)
+            If node._variables IsNot newVariables.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(Visit(node.CloseParenToken), PunctuationSyntax)
+            If node._closeParenToken IsNot newCloseParenToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New ForEachDeconstructionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOpenParenToken, newVariables.Node, newCloseParenToken)
             Else
                 Return node
             End If
@@ -43526,7 +43666,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="equalsToken">
         ''' The "=" token.
@@ -43604,7 +43746,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="withKeyword">
         ''' The optional "With" keyword that names the iteration index.
@@ -43625,6 +43769,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(inKeyword IsNot Nothing AndAlso inKeyword.Kind = SyntaxKind.InKeyword)
             Debug.Assert(expression IsNot Nothing)
             Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression)
+        End Function
+
+
+        ''' <summary>
+        ''' The parenthesized list of variables that a For Each or Await Each statement
+        ''' deconstructs each item into, For Each (key, value) In map.
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="variables">
+        ''' The variables, in order, each with an optional As clause.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Friend Shared Function ForEachDeconstruction(openParenToken As PunctuationSyntax, variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As ForEachDeconstructionSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.ForEachDeconstruction, openParenToken, variables.Node, closeParenToken, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ForEachDeconstructionSyntax)
+            End If
+
+            Dim result = New ForEachDeconstructionSyntax(SyntaxKind.ForEachDeconstruction, openParenToken, variables.Node, closeParenToken)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 
@@ -56300,7 +56476,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="equalsToken">
         ''' The "=" token.
@@ -56378,7 +56556,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ''' If the For or For Each statement is of a form that does not declare a new loop
         ''' control variable, this is the expression that denotes the loop control
         ''' variable. If this loop is of a form that does declare a new control variable,
-        ''' this is a VariableDeclarator that has the variable being declared.
+        ''' this is a VariableDeclarator that has the variable being declared. If a For
+        ''' Each statement deconstructs each item, this is a ForEachDeconstruction that
+        ''' lists the variables.
         ''' </param>
         ''' <param name="withKeyword">
         ''' The optional "With" keyword that names the iteration index.
@@ -56399,6 +56579,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(inKeyword IsNot Nothing AndAlso inKeyword.Kind = SyntaxKind.InKeyword)
             Debug.Assert(expression IsNot Nothing)
             Return New ForEachStatementSyntax(SyntaxKind.ForEachStatement, forKeyword, eachKeyword, byRefKeyword, controlVariable, withKeyword, index, inKeyword, expression, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' The parenthesized list of variables that a For Each or Await Each statement
+        ''' deconstructs each item into, For Each (key, value) In map.
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="variables">
+        ''' The variables, in order, each with an optional As clause.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Friend Function ForEachDeconstruction(openParenToken As PunctuationSyntax, variables As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As ForEachDeconstructionSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.ForEachDeconstruction, openParenToken, variables.Node, closeParenToken, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ForEachDeconstructionSyntax)
+            End If
+
+            Dim result = New ForEachDeconstructionSyntax(SyntaxKind.ForEachDeconstruction, openParenToken, variables.Node, closeParenToken, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 

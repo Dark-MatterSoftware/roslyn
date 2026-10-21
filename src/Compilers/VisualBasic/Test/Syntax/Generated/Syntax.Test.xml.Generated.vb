@@ -804,6 +804,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.ForEachStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.ForKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.KeywordSyntax(SyntaxKind.EachKeyword, String.Empty, Nothing, Nothing), Nothing, GenerateGreenKeywordEventContainer(), Nothing, Nothing, new InternalSyntax.KeywordSyntax(SyntaxKind.InKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateGreenForEachDeconstruction() As InternalSyntax.ForEachDeconstructionSyntax
+            return InternalSyntax.SyntaxFactory.ForEachDeconstruction(new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
+        End Function
+
         Private Shared Function GenerateGreenNextStatement() As InternalSyntax.NextStatementSyntax
             return InternalSyntax.SyntaxFactory.NextStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.NextKeyword, String.Empty, Nothing, Nothing), Nothing)
         End Function
@@ -2818,6 +2822,12 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenForEachStatement()
             dim objectUnderTest = GenerateGreenForEachStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenForEachDeconstruction()
+            dim objectUnderTest = GenerateGreenForEachDeconstruction()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -5643,6 +5653,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenForEachStatementRewriter()
             dim oldNode = GenerateGreenForEachStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenForEachDeconstructionRewriter()
+            dim oldNode = GenerateGreenForEachDeconstruction()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -8546,6 +8564,13 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenForEachStatementVisitor()
             Dim oldNode = GenerateGreenForEachStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenForEachDeconstructionVisitor()
+            Dim oldNode = GenerateGreenForEachDeconstruction()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -14311,6 +14336,27 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.ForEachStatement(SyntaxFactory.Token(SyntaxKind.ForKeyword), SyntaxFactory.Token(SyntaxKind.EachKeyword), Nothing, GenerateRedKeywordEventContainer(), Nothing, Nothing, SyntaxFactory.Token(SyntaxKind.InKeyword), GenerateRedKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateRedForEachDeconstruction() As ForEachDeconstructionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.ForEachDeconstruction(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of VariableDeclaratorSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ForEachDeconstruction(SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of VariableDeclaratorSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.ForEachDeconstruction(SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of VariableDeclaratorSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
         End Function
 
         Private Shared Function GenerateRedNextStatement() As NextStatementSyntax
@@ -21387,6 +21433,16 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedForEachDeconstruction()
+            dim objectUnderTest = GenerateRedForEachDeconstruction()
+            Assert.NotNull(objectUnderTest.openParenToken)
+            Assert.NotNull(objectUnderTest.variables)
+            Assert.NotNull(objectUnderTest.closeParenToken)
+            Dim withObj = objectUnderTest.WithOpenParenToken(objectUnderTest.OpenParenToken).WithVariables(objectUnderTest.Variables).WithCloseParenToken(objectUnderTest.CloseParenToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedNextStatement()
             dim objectUnderTest = GenerateRedNextStatement()
             Assert.NotNull(objectUnderTest.nextKeyword)
@@ -24864,6 +24920,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedForEachStatementRewriter()
             dim oldNode = GenerateRedForEachStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedForEachDeconstructionRewriter()
+            dim oldNode = GenerateRedForEachDeconstruction()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

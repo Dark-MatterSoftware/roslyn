@@ -2207,5 +2207,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_AsyncUsing
         FEATURE_AwaitEach
         FEATURE_PatternVariables
+        FEATURE_ForEachDeconstruction
     End Enum
 End Namespace

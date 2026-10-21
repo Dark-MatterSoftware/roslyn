@@ -5995,6 +5995,9 @@
   <data name="FEATURE_PatternVariables" xml:space="preserve">
     <value>'Into' after a type test</value>
   </data>
+  <data name="FEATURE_ForEachDeconstruction" xml:space="preserve">
+    <value>deconstruction in 'For Each'</value>
+  </data>
   <data name="ERR_AwaitEachNotInAsyncMethod" xml:space="preserve">
     <value>'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</value>
   </data>

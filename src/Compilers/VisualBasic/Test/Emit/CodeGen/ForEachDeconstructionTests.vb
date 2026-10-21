@@ -1,0 +1,194 @@
+' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
+
+Imports Microsoft.CodeAnalysis.Test.Utilities
+Imports Roslyn.Test.Utilities
+
+Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
+
+    Public Class ForEachDeconstructionTests
+        Inherits BasicTestBase
+
+        Private Shared ReadOnly VbNext As VisualBasicParseOptions = TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext)
+        Private Shared ReadOnly Vb17_13 As VisualBasicParseOptions = TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13)
+
+        Private Function CompileAndRun(source As String, expectedOutput As String, Optional options As VisualBasicCompilationOptions = Nothing) As CompilationVerifier
+            Dim compilation = CreateCompilation(source, options:=If(options, TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True)), parseOptions:=VbNext)
+            Return CompileAndVerify(compilation, expectedOutput:=expectedOutput).VerifyDiagnostics()
+        End Function
+
+        Private Const Basics As String = "
+Imports System
+Imports System.Collections.Generic
+
+Class Point
+    Public ReadOnly X As Integer
+    Public ReadOnly Y As Integer
+
+    Public Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X
+        y = Me.Y
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Dim pairs = New List(Of (String, Integer)) From {(""a"", 1), (""b"", 2)}
+        For Each (name, count) In pairs
+            Console.Write(name & count.ToString() & "" "")
+        Next
+
+        For Each (x, y) In {New Point(1, 2), New Point(3, 4)}
+            Console.Write((x + y).ToString() & "" "")
+        Next
+
+        For Each (big As Long, small As Integer) In {(5, 6)}
+            Console.Write((big * 1000000000000L + small).ToString() & "" "")
+        Next
+
+        Dim last As String = ""none""
+        Dim total As Integer = 0
+        For Each (last, value) In pairs
+            total += value
+        Next
+        Console.Write(last & total.ToString() & "" "")
+
+        Dim actions As New List(Of Func(Of String))()
+        For Each (name, count) In pairs
+            actions.Add(Function() name)
+        Next
+        For Each action In actions
+            Console.Write(action())
+        Next
+    End Sub
+End Module
+"
+
+        <Fact>
+        Public Sub ForEachDeconstruction_TuplesDeconstructAndTypes()
+            CompileAndRun(Basics, "a1 b2 3 7 5000000000006 b3 ab")
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_InDebugBuild()
+            CompileAndRun(Basics, "a1 b2 3 7 5000000000006 b3 ab", TestOptions.DebugExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True))
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ForEachDeconstruction_Dictionary()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Module Program
+    Sub Main()
+        Dim prices As New Dictionary(Of String, Decimal) From {{""tea"", 2.5D}, {""cake"", 4D}}
+        For Each (item, price) In prices
+            Console.Write(item & ""="" & price.ToString(Globalization.CultureInfo.InvariantCulture) & "" "")
+        Next
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="tea=2.5 cake=4", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_Errors()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        For Each (a, b) In {1, 2}
+        Next
+
+        For Each (c, d, e) In {(1, 2)}
+        Next
+
+        Dim f As Integer = 0
+        For Each (f As Integer, g As Integer) In {(1, 2)}
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37363: Deconstruction requires a tuple with 2 elements.
+        For Each (a, b) In {1, 2}
+                 ~~~~~~
+BC37363: Deconstruction requires a tuple with 3 elements.
+        For Each (c, d, e) In {(1, 2)}
+                 ~~~~~~~~~
+BC30616: Variable 'f' hides a variable in an enclosing block.
+        For Each (f As Integer, g As Integer) In {(1, 2)}
+                  ~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_OptionInferOff()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim known As Integer
+        For Each (known, unknown) In {(1, 2)}
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(False), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30451: 'unknown' is not declared. It may be inaccessible due to its protection level.
+        For Each (known, unknown) In {(1, 2)}
+                         ~~~~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_SemanticModel()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        For Each (name, count) In {(""a"", 1)}
+            System.Console.Write(name & count.ToString())
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim usages = tree.GetRoot().DescendantNodes().OfType(Of Syntax.IdentifierNameSyntax)().Where(Function(n) n.Identifier.ValueText = "name" OrElse n.Identifier.ValueText = "count").ToArray()
+            Assert.Equal(2, usages.Length)
+            Assert.Equal("System.String", DirectCast(model.GetSymbolInfo(usages(0)).Symbol, ILocalSymbol).Type.ToTestDisplayString())
+            Assert.Equal("System.Int32", DirectCast(model.GetSymbolInfo(usages(1)).Symbol, ILocalSymbol).Type.ToTestDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_NotAvailableIn17_13()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        For Each (name, count) In {(""a"", 1)}
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=Vb17_13)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30451: 'name' is not declared. It may be inaccessible due to its protection level.
+        For Each (name, count) In {("a", 1)}
+                  ~~~~
+BC30451: 'count' is not declared. It may be inaccessible due to its protection level.
+        For Each (name, count) In {("a", 1)}
+                        ~~~~~
+]]></expected>)
+        End Sub
+    End Class
+End Namespace
