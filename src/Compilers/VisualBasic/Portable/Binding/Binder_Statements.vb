@@ -4481,6 +4481,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Await receiver.DisposeAsync() for a resource or an Await Each enumerator that has its own DisposeAsync without
         ''' implementing IAsyncDisposable, as the result of ConfigureAwait(False) does. Nothing when it has none.
         ''' </summary>
+        ''' <summary>
+        ''' receiver.Dispose() for a resource that has an accessible Dispose Sub that can be called without arguments, or
+        ''' Nothing when it has none.
+        ''' </summary>
+        Private Function BindPatternDispose(receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
+            Try
+                Dim lookupResult As New LookupResult()
+                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.DisposeMethodName, receiver.Type, s_isSubWithoutArguments,
+                                                      lookupResult, receiver.Syntax, temporaryDiagnostics) Then
+                    Return Nothing
+                End If
+
+                Dim group As BoundMethodOrPropertyGroup = CreateBoundMethodGroup(receiver.Syntax, lookupResult, LookupOptions.AllMethodsOfAnyArity,
+                                                                                 temporaryDiagnostics.AccumulatesDependencies, receiver, Nothing,
+                                                                                 QualificationKind.QualifiedViaValue)
+                ' Dispose is a Sub, so the call is bound as a statement would bind it, not made into a value.
+                Dim disposeCall = BindInvocationExpression(receiver.Syntax, receiver.Syntax, TypeCharacter.None, group,
+                                                           ImmutableArray(Of BoundExpression).Empty, Nothing, temporaryDiagnostics,
+                                                           callerInfoOpt:=receiver.Syntax)
+                If disposeCall.HasErrors OrElse disposeCall.Kind <> BoundKind.Call Then
+                    Return Nothing
+                End If
+
+                diagnostics.AddRange(temporaryDiagnostics)
+                Return disposeCall.MakeCompilerGenerated()
+            Finally
+                temporaryDiagnostics.Free()
+            End Try
+        End Function
+
         Private Function BindPatternDisposeAsyncAwait(syntaxNode As VisualBasicSyntaxNode, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
             Try
@@ -5291,6 +5322,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                                            End Function
 
         ''' <summary>
+        ''' Checks if a given symbol is a Sub that can be called without arguments.
+        ''' </summary>
+        Private Shared ReadOnly s_isSubWithoutArguments As Func(Of Symbol, Boolean) = Function(sym)
+                                                                                          If sym.Kind = SymbolKind.Method Then
+                                                                                              Dim method = DirectCast(sym, MethodSymbol)
+                                                                                              Return method.IsSub() AndAlso
+                                                                                                     Not method.IsGenericMethod AndAlso
+                                                                                                     method.CanBeCalledWithNoParameters
+                                                                                          End If
+                                                                                          Return False
+                                                                                      End Function
+
+        ''' <summary>
         ''' Checks if a given symbol is a property that is readable.
         ''' </summary>
         Private Shared ReadOnly s_isReadablePropertyWithoutArguments As Func(Of Symbol, Boolean) = Function(sym)
@@ -5699,6 +5743,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     placeholderInfo.Add(resourceType,
                                         New ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)(resourcePlaceholder, resourcePlaceholder, disposeCondition))
+                ElseIf Not isAsync AndAlso Not isValidDispose AndAlso resourceType.IsRefLikeType AndAlso
+                       Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    ' Using by pattern for a ref structure, as C# does: a ref structure cannot implement IDisposable, so it is
+                    ' released by calling its own Dispose. The call takes the place of the conversion to IDisposable.
+                    Dim resourcePlaceholder = New BoundRValuePlaceholder(syntaxNode, resourceType)
+                    Dim disposeCall = BindPatternDispose(resourcePlaceholder, diagnostics)
+                    If disposeCall IsNot Nothing Then
+                        placeholderInfo.Add(resourceType,
+                                            New ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression)(resourcePlaceholder, disposeCall, Nothing))
+                    Else
+                        ReportDiagnostic(diagnostics, syntaxNode, ErrorFactory.ErrorInfo(ERRID.ERR_UsingRequiresDisposePattern, resourceType))
+                    End If
                 ElseIf isValidDispose OrElse
                    (Not isAsync AndAlso resourceType.IsObjectType() AndAlso OptionStrict <> OptionStrict.On) Then
                     Dim resourcePlaceholder = New BoundRValuePlaceholder(syntaxNode, resourceType)

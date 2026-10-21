@@ -235,9 +235,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             ' create if statement with dispose call
-            Dim disposeCall = GenerateDisposeCallForForeachAndUsing(resourceSyntax, boundResourceLocal,
+            Dim disposeCall As BoundStatement
+            If disposeConversion IsNot Nothing AndAlso disposeConversion.Type.IsVoidType() Then
+                ' A ref structure calls its own Dispose, which the binder bound on the resource.
+                disposeCall = VisitExpressionNode(disposeConversion).ToStatement()
+                disposeCall.SetWasCompilerGenerated()
+            Else
+                disposeCall = GenerateDisposeCallForForeachAndUsing(resourceSyntax, boundResourceLocal,
                                                                     VisitExpressionNode(disposeCondition), True,
                                                                     VisitExpressionNode(disposeConversion))
+            End If
 
             Dim disposePrologue As BoundStatement = Nothing
 

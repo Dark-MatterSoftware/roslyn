@@ -1494,10 +1494,18 @@ Namespace Microsoft.CodeAnalysis.Operations
         End Function
 
         ''' <summary>
-        ''' The DisposeAsync that an Async Using resource calls when it binds by pattern instead of through IAsyncDisposable.
+        ''' The DisposeAsync that an Async Using resource calls when it binds by pattern instead of through IAsyncDisposable,
+        ''' or the Dispose that a ref structure resource calls.
         ''' </summary>
         Private Function GetAsyncUsingDisposeInfo(usingInfo As UsingInfo) As DisposeOperationInfo
             If Not usingInfo.IsAsynchronous Then
+                For Each info In If(usingInfo.PlaceholderInfo?.Values, Enumerable.Empty(Of ValueTuple(Of BoundRValuePlaceholder, BoundExpression, BoundExpression))())
+                    Dim patternDispose = TryCast(info.Item2, BoundCall)
+                    If patternDispose IsNot Nothing Then
+                        Return New DisposeOperationInfo(patternDispose.Method, ImmutableArray(Of IArgumentOperation).Empty)
+                    End If
+                Next
+
                 Return Nothing
             End If
 
