@@ -2675,8 +2675,8 @@ lReportErrorOnTwoTokens:
                                 If Me.IsAsync Then
                                     Dim compilation = Me.DeclaringCompilation
 
-                                    If Not retType.OriginalDefinition.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) AndAlso
-                                       Not retType.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
+                                    If Not retType.IsGenericAsyncReturnType(compilation) AndAlso
+                                       Not retType.IsNonGenericAsyncReturnType(compilation) Then
                                         binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_BadAsyncReturn)
                                     End If
                                 End If

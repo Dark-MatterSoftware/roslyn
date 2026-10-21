@@ -24,6 +24,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private _builderField As FieldSymbol
         Private _lastExpressionCaptureNumber As Integer
+        Private _badTaskLikeBuilder As Boolean
 
         Public Sub New(body As BoundStatement,
                        method As MethodSymbol,
@@ -55,11 +56,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case AsyncMethodKind.TaskFunction
                     Me._resultType = Me.F.SpecialType(SpecialType.System_Void)
-                    Me._builderType = Me.F.WellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncTaskMethodBuilder)
+                    Me._builderType = If(GetTaskLikeBuilderType(Nothing),
+                                         Me.F.WellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncTaskMethodBuilder))
 
                 Case AsyncMethodKind.GenericTaskFunction
                     Me._resultType = DirectCast(Me.Method.ReturnType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics().Single().InternalSubstituteTypeParameters(Me.TypeMap).Type
-                    Me._builderType = Me.F.WellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncTaskMethodBuilder_T).Construct(Me._resultType)
+                    Me._builderType = If(GetTaskLikeBuilderType(Me._resultType),
+                                         Me.F.WellKnownType(WellKnownType.System_Runtime_CompilerServices_AsyncTaskMethodBuilder_T).Construct(Me._resultType))
 
                 Case AsyncMethodKind.AsyncIterator
                     Me._resultType = Me.F.SpecialType(SpecialType.System_Void)
@@ -70,6 +73,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Throw ExceptionUtilities.UnexpectedValue(Me._asyncMethodKind)
             End Select
         End Sub
+
+        ''' <summary>
+        ''' For a ValueTask or ValueTask(Of T) return type, the builder named by its AsyncMethodBuilderAttribute,
+        ''' constructed with the result type when the return type is generic. Nothing for Task and Task(Of T), and
+        ''' for a return type whose builder is missing or does not fit, which EnsureAllSymbolsAndSignature reports.
+        ''' </summary>
+        Private Function GetTaskLikeBuilderType(resultTypeOpt As TypeSymbol) As NamedTypeSymbol
+            Dim returnType = DirectCast(Me.Method.ReturnType, NamedTypeSymbol)
+            Dim definition = returnType.OriginalDefinition
+            If definition.Equals(Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) OrElse
+               definition.Equals(Me.F.Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                Return Nothing
+            End If
+
+            Dim builderArgument As TypeSymbol = Nothing
+            Dim builder = If(returnType.TryGetAsyncMethodBuilderArgument(builderArgument), TryCast(builderArgument, NamedTypeSymbol), Nothing)
+            If builder Is Nothing OrElse builder.IsErrorType() OrElse builder.ContainingType IsNot Nothing AndAlso builder.ContainingType.IsGenericType Then
+                Me._badTaskLikeBuilder = True
+                Return Nothing
+            End If
+
+            If resultTypeOpt Is Nothing Then
+                If builder.IsGenericType Then
+                    Me._badTaskLikeBuilder = True
+                    Return Nothing
+                End If
+
+                Return builder
+            End If
+
+            If builder.OriginalDefinition.Arity <> 1 Then
+                Me._badTaskLikeBuilder = True
+                Return Nothing
+            End If
+
+            Return builder.OriginalDefinition.Construct(resultTypeOpt)
+        End Function
 
         ''' <summary>
         ''' Rewrite an async method into a state machine class.
@@ -334,6 +374,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return True
             End If
 
+            If Me._badTaskLikeBuilder Then
+                Me.Diagnostics.Add(ERRID.ERR_BadAsyncReturn, Me.Method.GetFirstLocation())
+                Return True
+            End If
+
             Dim bag = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=Me.Diagnostics.AccumulatesDependencies)
 
             EnsureSpecialType(SpecialType.System_Object, bag)
@@ -410,12 +455,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return If(returnType.IsAsyncIteratorReturnType(compilation), AsyncMethodKind.AsyncIterator, AsyncMethodKind.None)
             End If
 
-            If TypeSymbol.Equals(returnType, compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task), TypeCompareKind.ConsiderEverything) Then
+            If returnType.IsNonGenericAsyncReturnType(compilation) Then
                 Return AsyncMethodKind.TaskFunction
             End If
 
-            If returnType.Kind = SymbolKind.NamedType AndAlso
-                    TypeSymbol.Equals(returnType.OriginalDefinition, compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T), TypeCompareKind.ConsiderEverything) Then
+            If returnType.Kind = SymbolKind.NamedType AndAlso returnType.IsGenericAsyncReturnType(compilation) Then
                 Return AsyncMethodKind.GenericTaskFunction
             End If
 

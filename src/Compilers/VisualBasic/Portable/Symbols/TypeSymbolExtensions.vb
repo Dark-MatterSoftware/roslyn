@@ -1326,6 +1326,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' An Async Function that returns no value returns Task, or ValueTask on vbnext.
+        ''' </summary>
+        <Extension>
+        Friend Function IsNonGenericAsyncReturnType(type As TypeSymbol, compilation As VisualBasicCompilation) As Boolean
+            If type.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
+                Return True
+            End If
+
+            Return compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                   type.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask))
+        End Function
+
+        ''' <summary>
+        ''' An Async Function that returns a value of type T returns Task(Of T), or ValueTask(Of T) on vbnext.
+        ''' </summary>
+        <Extension>
+        Friend Function IsGenericAsyncReturnType(type As TypeSymbol, compilation As VisualBasicCompilation) As Boolean
+            Dim definition = type.OriginalDefinition
+            If definition.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                Return True
+            End If
+
+            Return compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                   definition.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask_T))
+        End Function
+
+        ''' <summary>
+        ''' The type named by AsyncMethodBuilderAttribute on a task-like type, which builds the result of an Async
+        ''' Function that returns it.
+        ''' </summary>
+        <Extension>
+        Friend Function TryGetAsyncMethodBuilderArgument(type As NamedTypeSymbol, <Out> ByRef builderArgument As TypeSymbol) As Boolean
+            For Each attribute In type.OriginalDefinition.GetAttributes()
+                If attribute.IsTargetAttribute(AttributeDescription.AsyncMethodBuilderAttribute) Then
+                    builderArgument = TryCast(attribute.CommonConstructorArguments(0).ValueInternal, TypeSymbol)
+                    Return builderArgument IsNot Nothing
+                End If
+            Next
+
+            builderArgument = Nothing
+            Return False
+        End Function
+
+        ''' <summary>
         ''' True for a class or structure marked with System.Runtime.CompilerServices.InterpolatedStringHandlerAttribute.
         ''' </summary>
         <Extension>

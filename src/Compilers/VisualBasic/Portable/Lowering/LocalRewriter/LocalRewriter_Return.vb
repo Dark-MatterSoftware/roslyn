@@ -15,7 +15,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitReturnStatement(node As BoundReturnStatement) As BoundNode
             Debug.Assert(node.FunctionLocalOpt Is Nothing OrElse
                          (Not Me._currentMethodOrLambda.IsIterator AndAlso
-                            Not (Me._currentMethodOrLambda.IsAsync AndAlso Me._currentMethodOrLambda.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)))))
+                            Not (Me._currentMethodOrLambda.IsAsync AndAlso Me._currentMethodOrLambda.ReturnType.IsNonGenericAsyncReturnType(Compilation))))
 
             Dim rewritten = RewriteReturnStatement(node)
 

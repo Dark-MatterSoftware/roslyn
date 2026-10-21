@@ -306,7 +306,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim methodSymbol = DirectCast(ContainingMember, MethodSymbol)
             Dim localForFunctionValue As LocalSymbol
 
-            If methodSymbol.IsIterator OrElse methodSymbol.ReturnsByRef OrElse (methodSymbol.IsAsync AndAlso methodSymbol.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task))) Then
+            If methodSymbol.IsIterator OrElse methodSymbol.ReturnsByRef OrElse (methodSymbol.IsAsync AndAlso methodSymbol.ReturnType.IsNonGenericAsyncReturnType(Compilation)) Then
                 ' We are actually not using FunctionValue of such method in Return statements and referencing it explicitly is an error. 
                 localForFunctionValue = Nothing
             Else
@@ -6124,10 +6124,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         ' I don't believe we need to report use-site error here because we are using System.Void just as an indicator that we don't expect any value to be returned.
                         Return Compilation.GetSpecialType(SpecialType.System_Void)
 
-                    ElseIf isAsync AndAlso method.ReturnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                    ElseIf isAsync AndAlso method.ReturnType.IsGenericAsyncReturnType(Compilation) Then
                         Return DirectCast(method.ReturnType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics(0)
 
-                    ElseIf isAsync AndAlso method.ReturnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
+                    ElseIf isAsync AndAlso method.ReturnType.IsNonGenericAsyncReturnType(Compilation) Then
                         ' I don't believe we need to report use-site error here because we are using System.Void just as an indicator that we don't expect any value to be returned.
                         Return Compilation.GetSpecialType(SpecialType.System_Void)
                     End If
@@ -6223,7 +6223,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         ' and instead say "Since this is async, the return expression must be 'T' rather than 'Task<T>'."
                         Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
                         If isAsync AndAlso Not retType.IsErrorType() AndAlso methodReturnType.Equals(arg.Type) AndAlso
-                            methodReturnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) AndAlso
+                            methodReturnType.IsGenericAsyncReturnType(Compilation) AndAlso
                             Not Conversions.ConversionExists(Conversions.ClassifyConversion(arg, retType, Me, useSiteInfo).Key) Then
 
                             If Not diagnostics.Add(arg, useSiteInfo) Then

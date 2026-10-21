@@ -1243,7 +1243,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 type = method.ReturnType
                 If type IsNot Nothing AndAlso
                    Not (method.IsIterator OrElse
-                        (method.IsAsync AndAlso type.Equals(compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)))) Then
+                        (method.IsAsync AndAlso type.IsNonGenericAsyncReturnType(compilation))) Then
 
                     Dim warning As ERRID = Nothing
                     Dim localName As String = GetFunctionLocalName(method, local)

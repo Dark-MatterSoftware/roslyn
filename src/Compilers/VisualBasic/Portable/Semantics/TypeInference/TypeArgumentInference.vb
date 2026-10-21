@@ -2215,7 +2215,8 @@ HandleAsAGeneralExpression:
 
                                         ' We can assume that the lambda will have return type Task(Of T) or IEnumerable(Of T)
                                         ' or IEnumerator(Of T) as appropriate. That's already been ensured by the lambda-interpretation.
-                                        Debug.Assert(TypeSymbol.Equals(lambdaReturnNamedType.OriginalDefinition, argument.GetBinderFromLambda().Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T), TypeCompareKind.ConsiderEverything) OrElse
+                                        Debug.Assert(lambdaReturnNamedType.IsGenericAsyncReturnType(argument.GetBinderFromLambda().Compilation) OrElse
+                                                     lambdaReturnNamedType.IsAsyncIteratorReturnType(argument.GetBinderFromLambda().Compilation) OrElse
                                                      TypeSymbol.Equals(lambdaReturnNamedType.OriginalDefinition, argument.GetBinderFromLambda().Compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T), TypeCompareKind.ConsiderEverything) OrElse
                                                      TypeSymbol.Equals(lambdaReturnNamedType.OriginalDefinition, argument.GetBinderFromLambda().Compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerator_T), TypeCompareKind.ConsiderEverything))
 

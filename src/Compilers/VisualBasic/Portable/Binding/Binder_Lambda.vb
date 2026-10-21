@@ -51,8 +51,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     If Not (modifiers And asyncIterator) = asyncIterator Then
 
                         If modifiers = SourceMemberFlags.Async AndAlso
-                           Not returnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) AndAlso
-                           Not returnType.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) Then
+                           Not returnType.IsGenericAsyncReturnType(Compilation) AndAlso
+                           Not returnType.IsNonGenericAsyncReturnType(Compilation) Then
                             ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.AsClause.Type, ERRID.ERR_BadAsyncReturn)
                         End If
 
@@ -178,7 +178,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     If Not targetReturnType.IsErrorType() Then
                         If source.Flags = SourceMemberFlags.Async Then
-                            If Not TypeSymbol.Equals(targetReturnType.OriginalDefinition, Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T), TypeCompareKind.ConsiderEverything) Then
+                            If Not targetReturnType.IsGenericAsyncReturnType(Compilation) AndAlso Not targetReturnType.IsNonGenericAsyncReturnType(Compilation) Then
                                 ReportDiagnostic(diagnostics, LambdaHeaderErrorNode(source), ERRID.ERR_BadAsyncReturn)
                             End If
                         End If
@@ -239,7 +239,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' turning "Async Function() : End Function" into a Func(Of Task(Of Integer)) is a delegate
                     ' relaxation.
                     If Not seenReturnWithAValue AndAlso lambdaSymbol.IsAsync AndAlso delegateRelaxation < ConversionKind.DelegateRelaxationLevelWideningDropReturnOrArgs AndAlso
-                       lambdaSymbol.ReturnType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                       lambdaSymbol.ReturnType.IsGenericAsyncReturnType(Compilation) Then
                         delegateRelaxation = ConversionKind.DelegateRelaxationLevelWideningDropReturnOrArgs
                     End If
                 End If
@@ -444,7 +444,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Dim retType As TypeSymbol = lambdaSymbol.ReturnType
 
                             If lambdaSymbol.IsAsync Then
-                                If retType.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task_T)) Then
+                                If retType.IsGenericAsyncReturnType(Compilation) Then
                                     retType = DirectCast(retType, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics(0)
                                 Else
                                     ' We should have forced Task(Of T) inference.
