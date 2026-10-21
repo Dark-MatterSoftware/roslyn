@@ -710,7 +710,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 RemovePlaceholderReplacement(enumeratorInfo.CurrentPlaceholder)
             End If
 
-            If enumeratorInfo.IsAsynchronous Then
+            If enumeratorInfo.IsAsynchronous AndAlso enumeratorInfo.DisposeAwaitOpt IsNot Nothing Then
                 ' Await Each releases the enumerator with an awaited DisposeAsync after the loop, as Async Using does.
                 Dim factory As New SyntheticBoundNodeFactory(_topMethod, _currentMethodOrLambda, syntaxNode, _compilationState, _diagnostics)
                 Dim dispose As BoundStatement = factory.ExpressionStatement(VisitExpressionNode(enumeratorInfo.DisposeAwaitOpt))

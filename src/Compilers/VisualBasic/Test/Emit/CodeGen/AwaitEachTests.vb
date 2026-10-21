@@ -317,5 +317,185 @@ End Module
 
             CompileAndVerify(compilation, verify:=Verification.FailsPEVerify).VerifyDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub AwaitEach_BindsByPatternWithTaskReturningMembers()
+            Dim compilation = CreateCompilation("
+Imports System.Threading.Tasks
+
+Class Countdown
+    Private ReadOnly _start As Integer
+    Sub New(start As Integer)
+        _start = start
+    End Sub
+    Function GetAsyncEnumerator() As Enumerator
+        Return New Enumerator(_start)
+    End Function
+
+    Class Enumerator
+        Private _value As Integer
+        Sub New(start As Integer)
+            _value = start + 1
+        End Sub
+        ReadOnly Property Current As Integer
+            Get
+                Return _value
+            End Get
+        End Property
+        Async Function MoveNextAsync() As Task(Of Boolean)
+            Await Task.Yield()
+            _value -= 1
+            Return _value > 0
+        End Function
+        Function DisposeAsync() As Task
+            System.Console.Write(""disposed "")
+            Return Task.CompletedTask
+        End Function
+    End Class
+End Class
+
+Class NoRelease
+    Function GetAsyncEnumerator() As Enumerator
+        Return New Enumerator()
+    End Function
+
+    Structure Enumerator
+        Private _done As Boolean
+        ReadOnly Property Current As String
+            Get
+                Return ""once""
+            End Get
+        End Property
+        Function MoveNextAsync() As Task(Of Boolean)
+            Dim result = Not _done
+            _done = True
+            Return Task.FromResult(result)
+        End Function
+    End Structure
+End Class
+
+Module Program
+    Async Function Run() As Task
+        Await Each n As Integer In New Countdown(3)
+            System.Console.Write(n & "" "")
+            If n = 2 Then Exit For
+        Next
+        Await Each s As String In New NoRelease()
+            System.Console.Write(s)
+        Next
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3 2 disposed once").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub AwaitEach_PatternWithTheWrongMoveNextAsyncIsAnError()
+            Dim compilation = CreateCompilation("
+Imports System.Threading.Tasks
+
+Class Wrong
+    Function GetAsyncEnumerator() As Wrong
+        Return Me
+    End Function
+    ReadOnly Property Current As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+    Function MoveNextAsync() As Task(Of Integer)
+        Return Task.FromResult(1)
+    End Function
+End Class
+
+Module Program
+    Async Function Run() As Task
+        Await Each n In New Wrong()
+        Next
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37392: 'Await Each' requires a collection that implements 'System.Collections.Generic.IAsyncEnumerable(Of T)', but 'Wrong' does not.
+        Await Each n In New Wrong()
+                        ~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub AwaitEach_WithCancellationAndConfigureAwait()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Runtime.CompilerServices
+Imports System.Threading
+Imports System.Threading.Tasks
+
+Module Program
+    Async Iterator Function Numbers(<EnumeratorCancellation> Optional token As CancellationToken = Nothing) As IAsyncEnumerable(Of Integer)
+        Try
+            For i As Integer = 1 To 5
+                token.ThrowIfCancellationRequested()
+                Await Task.Yield()
+                Yield i
+            Next
+        Finally
+            Console.Write(""finally "")
+        End Try
+    End Function
+
+    Async Function Run() As Task
+        Dim cts As New CancellationTokenSource()
+        Try
+            Await Each n As Integer In Numbers().WithCancellation(cts.Token)
+                Console.Write(n & "" "")
+                If n = 2 Then cts.Cancel()
+            Next
+        Catch ex As OperationCanceledException
+            Console.Write(""cancelled "")
+        End Try
+
+        Await Each n As Integer In Numbers().ConfigureAwait(False)
+            Console.Write(n & "" "")
+            If n = 2 Then Exit For
+        Next
+        Console.Write(""after"")
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1 2 finally cancelled 1 2 finally after", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub AwaitEach_WithCancellationEmits()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Imports System.Threading
+Imports System.Threading.Tasks
+
+Module Program
+    Async Function Sum(source As IAsyncEnumerable(Of Integer), token As CancellationToken) As Task(Of Integer)
+        Dim total As Integer = 0
+        Await Each n As Integer In source.WithCancellation(token).ConfigureAwait(False)
+            total += n
+        Next
+        Return total
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
     End Class
 End Namespace

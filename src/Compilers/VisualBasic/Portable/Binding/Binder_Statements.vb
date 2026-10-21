@@ -4151,13 +4151,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' if Dispose() needs to be called. This bound expression will contain a placeholder for the enumerator that gets
             ' replaced in the local rewriting.
             If needToDispose AndAlso isAwaitEach Then
-                ' Await Each releases the enumerator with an awaited DisposeAsync, as Async Using does.
-                Dim asyncDisposable = GetWellKnownType(WellKnownType.System_IAsyncDisposable, collectionSyntax, diagnostics)
-                boundDisposeCondition = BindIsExpression(boundEnumeratorPlaceholder,
-                                                         New BoundLiteral(collectionSyntax, ConstantValue.Nothing, Nothing),
-                                                         collectionSyntax, True, diagnostics)
-                boundDisposeCast = ApplyConversion(collectionSyntax, asyncDisposable, boundEnumeratorPlaceholder, isExplicit:=True, diagnostics:=diagnostics)
-                disposeAwait = BindDisposeAsyncAwait(node, boundDisposeCast, diagnostics)
+                ' Await Each releases the enumerator with an awaited DisposeAsync, as Async Using does: through
+                ' IAsyncDisposable when the enumerator implements it, and otherwise through its own DisposeAsync.
+                Dim enumeratorIsValueType = boundEnumeratorPlaceholder.Type.IsValueType
+                If isOrInheritsFromOrImplementsIDisposable Then
+                    Dim asyncDisposable = GetWellKnownType(WellKnownType.System_IAsyncDisposable, collectionSyntax, diagnostics)
+                    boundDisposeCast = ApplyConversion(collectionSyntax, asyncDisposable, boundEnumeratorPlaceholder, isExplicit:=True, diagnostics:=diagnostics)
+                    disposeAwait = BindDisposeAsyncAwait(node, boundDisposeCast, diagnostics)
+                Else
+                    disposeAwait = BindPatternDisposeAsyncAwait(node, boundEnumeratorPlaceholder, diagnostics)
+                    needToDispose = disposeAwait IsNot Nothing
+                End If
+
+                If needToDispose AndAlso Not enumeratorIsValueType Then
+                    boundDisposeCondition = BindIsExpression(boundEnumeratorPlaceholder,
+                                                             New BoundLiteral(collectionSyntax, ConstantValue.Nothing, Nothing),
+                                                             collectionSyntax, True, diagnostics)
+                End If
 
             ElseIf needToDispose Then
                 ' no need to report use site errors here, this was already done in InterpretForEachStatementCollection
@@ -4280,6 +4290,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ) As BoundExpression
 
             Dim collectionSyntax = collection.Syntax
+
+            ' As in C#, a GetAsyncEnumerator method is used first, so a configured collection such as
+            ' source.WithCancellation(token) iterates without implementing IAsyncEnumerable(Of T).
+            If TryBindAwaitEachPattern(statement, collection, currentType, boundGetEnumeratorCall, boundEnumeratorPlaceholder,
+                                       boundMoveNextCall, boundCurrentAccess, collectionPlaceholder, isOrInheritsFromOrImplementsIDisposable, diagnostics) Then
+                elementType = currentType
+                isEnumerable = True
+                needToDispose = True
+                Return collection
+            End If
+
             Dim asyncEnumerable = GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T, collectionSyntax, diagnostics)
             If asyncEnumerable.IsErrorType() Then
                 Return collection
@@ -4336,6 +4357,138 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             needToDispose = True
             isOrInheritsFromOrImplementsIDisposable = True
             Return collection
+        End Function
+
+        ''' <summary>
+        ''' Await Each by pattern: an accessible GetAsyncEnumerator function that can be called without arguments, whose
+        ''' result has a MoveNextAsync function that awaits to Boolean and a readable Current property. The enumerator
+        ''' implements IAsyncDisposable when isAsyncDisposable is True; otherwise its own DisposeAsync, if any, releases it.
+        ''' </summary>
+        Private Function TryBindAwaitEachPattern(
+            statement As ForEachStatementSyntax,
+            collection As BoundExpression,
+            <Out()> ByRef currentType As TypeSymbol,
+            <Out()> ByRef boundGetEnumeratorCall As BoundExpression,
+            <Out()> ByRef boundEnumeratorPlaceholder As BoundLValuePlaceholder,
+            <Out()> ByRef boundMoveNextCall As BoundExpression,
+            <Out()> ByRef boundCurrentAccess As BoundExpression,
+            <Out()> ByRef collectionPlaceholder As BoundRValuePlaceholder,
+            <Out()> ByRef isAsyncDisposable As Boolean,
+            diagnostics As BindingDiagnosticBag
+        ) As Boolean
+
+            currentType = Nothing
+            boundGetEnumeratorCall = Nothing
+            boundEnumeratorPlaceholder = Nothing
+            boundMoveNextCall = Nothing
+            boundCurrentAccess = Nothing
+            collectionPlaceholder = Nothing
+            isAsyncDisposable = False
+
+            Dim collectionType = collection.Type
+            If collection.IsNothingLiteral OrElse collectionType Is Nothing OrElse
+               (collectionType.Kind <> SymbolKind.NamedType AndAlso collectionType.Kind <> SymbolKind.TypeParameter) Then
+                Return False
+            End If
+
+            Dim collectionSyntax = collection.Syntax
+            Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
+            Try
+                Dim lookupResult As New LookupResult()
+                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.GetAsyncEnumeratorMethodName, collectionType, s_isFunctionWithoutArguments,
+                                                      lookupResult, collectionSyntax, temporaryDiagnostics) Then
+                    Return False
+                End If
+
+                collectionPlaceholder = New BoundRValuePlaceholder(collectionSyntax, collectionType)
+                Dim group As BoundMethodOrPropertyGroup = CreateBoundMethodGroup(collectionSyntax, lookupResult, LookupOptions.AllMethodsOfAnyArity,
+                                                                                 temporaryDiagnostics.AccumulatesDependencies, collectionPlaceholder, Nothing,
+                                                                                 QualificationKind.QualifiedViaValue)
+                boundGetEnumeratorCall = CreateBoundInvocationExpressionFromMethodOrPropertyGroup(collectionSyntax, group, temporaryDiagnostics)
+                If boundGetEnumeratorCall.HasErrors OrElse boundGetEnumeratorCall.Type Is Nothing Then
+                    Return False
+                End If
+
+                Dim enumeratorType = boundGetEnumeratorCall.Type
+                boundEnumeratorPlaceholder = New BoundLValuePlaceholder(collectionSyntax, enumeratorType)
+
+                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.MoveNextAsyncMethodName, enumeratorType, s_isFunctionWithoutArguments,
+                                                      lookupResult, collectionSyntax, temporaryDiagnostics) Then
+                    Return False
+                End If
+
+                group = CreateBoundMethodGroup(collectionSyntax, lookupResult, LookupOptions.AllMethodsOfAnyArity,
+                                               temporaryDiagnostics.AccumulatesDependencies, boundEnumeratorPlaceholder, Nothing,
+                                               QualificationKind.QualifiedViaValue)
+                Dim moveNextCall = CreateBoundInvocationExpressionFromMethodOrPropertyGroup(collectionSyntax, group, temporaryDiagnostics)
+                If moveNextCall.HasErrors Then
+                    Return False
+                End If
+
+                ' Outside an Async method the error is the one reported on Await Each.
+                Dim awaitDiagnostics = If(IsInAsyncContext(), temporaryDiagnostics, BindingDiagnosticBag.Discarded)
+                boundMoveNextCall = BindAwait(statement, moveNextCall.MakeCompilerGenerated(), awaitDiagnostics, bindAsStatement:=False).MakeCompilerGenerated()
+                If boundMoveNextCall.HasErrors OrElse boundMoveNextCall.Type Is Nothing OrElse boundMoveNextCall.Type.SpecialType <> SpecialType.System_Boolean Then
+                    Return False
+                End If
+
+                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.CurrentPropertyName, enumeratorType, s_isReadablePropertyWithoutArguments,
+                                                      lookupResult, collectionSyntax, temporaryDiagnostics) Then
+                    Return False
+                End If
+
+                Dim propertyGroup = New BoundPropertyGroup(collectionSyntax, lookupResult.Symbols.ToDowncastedImmutable(Of PropertySymbol), lookupResult.Kind,
+                                                           boundEnumeratorPlaceholder, QualificationKind.QualifiedViaValue)
+                boundCurrentAccess = CreateBoundInvocationExpressionFromMethodOrPropertyGroup(collectionSyntax, propertyGroup, temporaryDiagnostics)
+                If boundCurrentAccess.HasErrors Then
+                    Return False
+                End If
+
+                currentType = boundCurrentAccess.Type
+
+                Dim useSiteInfo = GetNewCompoundUseSiteInfo(temporaryDiagnostics)
+                isAsyncDisposable = IsOrInheritsFromOrImplementsInterface(enumeratorType, WellKnownType.System_IAsyncDisposable, useSiteInfo)
+                temporaryDiagnostics.Add(collectionSyntax, useSiteInfo)
+
+                diagnostics.AddRange(temporaryDiagnostics)
+                Return True
+            Finally
+                temporaryDiagnostics.Free()
+            End Try
+        End Function
+
+        ''' <summary>
+        ''' Await enumerator.DisposeAsync() for an Await Each enumerator that has its own DisposeAsync without
+        ''' implementing IAsyncDisposable, as the enumerator of source.ConfigureAwait(False) does. Nothing when it has none.
+        ''' </summary>
+        Private Function BindPatternDisposeAsyncAwait(syntaxNode As VisualBasicSyntaxNode, enumerator As BoundLValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
+            Try
+                Dim lookupResult As New LookupResult()
+                If Not GetMemberIfMatchesRequirements(WellKnownMemberNames.DisposeAsyncMethodName, enumerator.Type, s_isFunctionWithoutArguments,
+                                                      lookupResult, enumerator.Syntax, temporaryDiagnostics) Then
+                    Return Nothing
+                End If
+
+                Dim group As BoundMethodOrPropertyGroup = CreateBoundMethodGroup(enumerator.Syntax, lookupResult, LookupOptions.AllMethodsOfAnyArity,
+                                                                                 temporaryDiagnostics.AccumulatesDependencies, enumerator, Nothing,
+                                                                                 QualificationKind.QualifiedViaValue)
+                Dim disposeCall = CreateBoundInvocationExpressionFromMethodOrPropertyGroup(enumerator.Syntax, group, temporaryDiagnostics)
+                If disposeCall.HasErrors Then
+                    Return Nothing
+                End If
+
+                Dim awaitDiagnostics = If(IsInAsyncContext(), temporaryDiagnostics, BindingDiagnosticBag.Discarded)
+                Dim disposeAwait = BindAwait(syntaxNode, disposeCall.MakeCompilerGenerated(), awaitDiagnostics, bindAsStatement:=True).MakeCompilerGenerated()
+                If disposeAwait.HasErrors Then
+                    Return Nothing
+                End If
+
+                diagnostics.AddRange(temporaryDiagnostics)
+                Return disposeAwait
+            Finally
+                temporaryDiagnostics.Free()
+            End Try
         End Function
 
         Private Sub ReportDuplicateIterationIndex(statement As ForEachStatementSyntax, diagnostics As BindingDiagnosticBag)

@@ -807,7 +807,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim disposeMethod As MethodSymbol = Nothing
             If enumeratorInfo.IsAsynchronous Then
-                disposeMethod = TryCast(compilation.GetWellKnownTypeMember(WellKnownMember.System_IAsyncDisposable__DisposeAsync), MethodSymbol)
+                ' IAsyncDisposable.DisposeAsync, or the enumerator's own DisposeAsync when Await Each binds by pattern.
+                disposeMethod = GetAwaitEachDisposeMethod(enumeratorInfo)
             ElseIf enumeratorInfo.NeedToDispose OrElse (originalCollection.Type IsNot Nothing AndAlso originalCollection.Type.IsArrayType()) Then
                 disposeMethod = DirectCast(compilation.GetSpecialTypeMember(SpecialMember.System_IDisposable__Dispose), MethodSymbol)
             End If
@@ -819,6 +820,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                             elementType,
                                             elementConversion,
                                             currentConversion)
+        End Function
+
+        ''' <summary>
+        ''' The DisposeAsync method that the awaited release of an Await Each enumerator calls, or Nothing.
+        ''' </summary>
+        Friend Shared Function GetAwaitEachDisposeMethod(enumeratorInfo As ForEachEnumeratorInfo) As MethodSymbol
+            Dim disposeAwait = TryCast(enumeratorInfo.DisposeAwaitOpt, BoundAwaitOperator)
+            Return TryCast(disposeAwait?.Operand, BoundCall)?.Method
         End Function
 
         Friend Overrides Function GetAttributeSymbolInfo(attribute As AttributeSyntax, Optional cancellationToken As CancellationToken = Nothing) As SymbolInfo

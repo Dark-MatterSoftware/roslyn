@@ -1218,6 +1218,12 @@ Namespace Microsoft.CodeAnalysis.Operations
                                                                                                     moveNextArguments, moveNextDefaultArguments,
                                                                                                     currentArguments, currentDefaultArguments)
 
+            ' Await Each over an enumerator that has its own DisposeAsync, without IAsyncDisposable, calls that method.
+            Dim enumeratorInfo = boundForEachStatement.EnumeratorInfo
+            Dim patternDisposeMethod As MethodSymbol = If(enumeratorInfo.IsAsynchronous AndAlso enumeratorInfo.NeedToDispose AndAlso Not enumeratorInfo.IsOrInheritsFromOrImplementsIDisposable,
+                                                          MemberSemanticModel.GetAwaitEachDisposeMethod(enumeratorInfo),
+                                                          Nothing)
+
             Return New ForEachLoopOperationInfo(statementInfo.ElementType,
                                                      statementInfo.GetEnumeratorMethod,
                                                      statementInfo.CurrentProperty,
@@ -1228,7 +1234,7 @@ Namespace Microsoft.CodeAnalysis.Operations
                                                      boundForEachStatement.EnumeratorInfo.NeedToDispose,
                                                      knownToImplementIDisposable:=boundForEachStatement.EnumeratorInfo.NeedToDispose AndAlso
                                                                                   boundForEachStatement.EnumeratorInfo.IsOrInheritsFromOrImplementsIDisposable,
-                                                     patternDisposeMethod:=Nothing,
+                                                     patternDisposeMethod:=patternDisposeMethod,
                                                      statementInfo.CurrentConversion,
                                                      statementInfo.ElementConversion,
                                                      If(getEnumeratorArguments.IsDefaultOrEmpty, Nothing,
@@ -1248,7 +1254,8 @@ Namespace Microsoft.CodeAnalysis.Operations
                                                                            DeriveArguments(currentArguments,
                                                                                            DirectCast(statementInfo.CurrentProperty, PropertySymbol).Parameters,
                                                                                            currentDefaultArguments),
-                                                                           Nothing)))
+                                                                           Nothing)),
+                                                     disposeArguments:=If(patternDisposeMethod IsNot Nothing, ImmutableArray(Of IArgumentOperation).Empty, Nothing))
         End Function
 
         Private Function CreateBoundForEachStatementOperation(boundForEachStatement As BoundForEachStatement) As IForEachLoopOperation
