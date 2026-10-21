@@ -112,6 +112,91 @@ BC30002: Type 'Missing' is not defined.
 ]]></expected>)
         End Sub
 
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub LambdaParameterAttributes_EnumeratorCancellation()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Runtime.CompilerServices
+Imports System.Threading
+Imports System.Threading.Tasks
+
+Module Program
+    Async Function Run() As Task
+        Dim numbers As Func(Of CancellationToken, IAsyncEnumerable(Of Integer)) =
+            Async Iterator Function(<EnumeratorCancellation> token As CancellationToken)
+                For i As Integer = 1 To 100
+                    token.ThrowIfCancellationRequested()
+                    Await Task.Yield()
+                    Yield i
+                Next
+            End Function
+
+        Using source As New CancellationTokenSource()
+            Try
+                Await Each n As Integer In numbers(Nothing).WithCancellation(source.Token)
+                    Console.Write(n & "" "")
+                    If n = 2 Then source.Cancel()
+                Next
+            Catch ex As OperationCanceledException
+                Console.Write(""cancelled"")
+            End Try
+        End Using
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1 2 cancelled", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub LambdaParameterAttributes_EnumeratorCancellationDiagnostics()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Runtime.CompilerServices
+Imports System.Threading
+Imports System.Threading.Tasks
+
+Module Program
+    Sub Main()
+        Dim twice As Func(Of CancellationToken, CancellationToken, IAsyncEnumerable(Of Integer)) =
+            Async Iterator Function(<EnumeratorCancellation> a As CancellationToken, <EnumeratorCancellation> b As CancellationToken)
+                Await Task.Yield()
+                Yield 1
+            End Function
+
+        Dim notAToken As Func(Of Integer, IAsyncEnumerable(Of Integer)) =
+            Async Iterator Function(<EnumeratorCancellation> count As Integer)
+                Await Task.Yield()
+                Yield count
+            End Function
+
+        Dim notAnIterator As Func(Of CancellationToken, Task) =
+            Async Function(<EnumeratorCancellation> token As CancellationToken)
+                Await Task.Delay(1, token)
+            End Function
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37398: 'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.
+            Async Iterator Function(<EnumeratorCancellation> a As CancellationToken, <EnumeratorCancellation> b As CancellationToken)
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC42515: 'EnumeratorCancellation' on parameter 'count' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.
+            Async Iterator Function(<EnumeratorCancellation> count As Integer)
+                                     ~~~~~~~~~~~~~~~~~~~~~~
+BC42515: 'EnumeratorCancellation' on parameter 'token' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.
+            Async Function(<EnumeratorCancellation> token As CancellationToken)
+                            ~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
         <Fact>
         Public Sub LambdaParameterAttributes_RejectedOn17_13()
             Dim compilation = CreateCompilation({Attributes, "

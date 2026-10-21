@@ -169,6 +169,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' EnumeratorCancellation on a lambda parameter has an effect only on a CancellationToken parameter of an Async
+        ''' Iterator Function lambda that returns IAsyncEnumerable(Of T), and on at most one of them, as on a method.
+        ''' </summary>
+        Private Sub ReportLambdaEnumeratorCancellationDiagnostics(lambdaSymbol As LambdaSymbol, source As UnboundLambda, diagnostics As BindingDiagnosticBag)
+            Dim marked = ArrayBuilder(Of (Parameter As ParameterSymbol, Attribute As VisualBasicAttributeData)).GetInstance()
+            For Each parameter In lambdaSymbol.Parameters
+                For Each attribute In parameter.GetAttributes()
+                    If attribute.IsTargetAttribute(AttributeDescription.EnumeratorCancellationAttribute) Then
+                        marked.Add((parameter, attribute))
+                    End If
+                Next
+            Next
+
+            If marked.Count > 0 Then
+                Dim consumes = lambdaSymbol.IsAsync AndAlso lambdaSymbol.IsIterator AndAlso
+                               TypeSymbol.Equals(lambdaSymbol.ReturnType.OriginalDefinition, Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T), TypeCompareKind.ConsiderEverything)
+                Dim cancellationTokenType = Compilation.GetWellKnownType(WellKnownType.System_Threading_CancellationToken)
+
+                For Each item In marked
+                    If Not consumes OrElse Not TypeSymbol.Equals(item.Parameter.Type, cancellationTokenType, TypeCompareKind.ConsiderEverything) Then
+                        Dim location = If(item.Attribute.ApplicationSyntaxReference?.GetLocation(), item.Parameter.GetFirstLocation())
+                        ReportDiagnostic(diagnostics, location, ErrorFactory.ErrorInfo(ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage, item.Parameter.Name))
+                    End If
+                Next
+
+                If consumes AndAlso marked.Count > 1 Then
+                    ReportDiagnostic(diagnostics, LambdaHeaderErrorNode(source), ERRID.ERR_MultipleEnumeratorCancellationAttributes)
+                End If
+            End If
+
+            marked.Free()
+        End Sub
+
+        ''' <summary>
         ''' On vbnext, the attributes on a lambda parameter, which the method the lambda becomes emits on its parameter.
         ''' </summary>
         Private Sub BindLambdaParameterAttributes(unboundParam As UnboundLambdaParameterSymbol, parameter As BoundLambdaParameterSymbol, diagnostics As BindingDiagnosticBag)
@@ -272,6 +306,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' Create parameters
             Dim parameters As ImmutableArray(Of BoundLambdaParameterSymbol) = BuildBoundLambdaParameters(source, target, diagnostics)
             Dim lambdaSymbol As New SourceLambdaSymbol(source.Syntax, source, parameters, targetReturnType, Me)
+            ReportLambdaEnumeratorCancellationDiagnostics(lambdaSymbol, source, diagnostics)
 
             Dim delegateRelaxation As ConversionKind = Nothing
             Dim lambdaBinder As LambdaBodyBinder = Nothing
