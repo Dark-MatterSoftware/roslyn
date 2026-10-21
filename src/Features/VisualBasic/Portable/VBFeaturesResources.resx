@@ -753,6 +753,10 @@ Option Explicit {On | Off}</value>
   <data name="Names_the_result_of_a_type_test_as_a_local_of_the_tested_type" xml:space="preserve">
     <value>Names the result of a type test as a local of the tested type.</value>
   </data>
+  <data name="Defines_an_async_iterator_lambda_expression_that_can_use_the_Await_operator_and_the_Yield_statement_Async_Iterator_Function_parameterList_As_IAsyncEnumerable_Of_T" xml:space="preserve">
+    <value>Defines an async iterator lambda expression that can use the Await operator and the Yield statement.
+Async Iterator Function(...) As IAsyncEnumerable(Of T)</value>
+  </data>
   <data name="Refers_to_the_storage_that_the_compiler_declares_for_this_property" xml:space="preserve">
     <value>Refers to the storage that the compiler declares for this property.</value>
   </data>

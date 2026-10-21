@@ -141,6 +141,53 @@ End Module</File>, "Into")
         End Sub
 
         <Fact>
+        Public Sub IteratorAfterAsyncInALambda()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F()
+        Dim numbers = Async |
+    End Sub
+End Module</File>, "Iterator", "Function", "Sub")
+        End Sub
+
+        <Fact>
+        Public Sub IteratorAfterAsyncInALambdaMissingOn17_13()
+            VerifyRecommendationsMissing(<File>Module M
+    Sub F()
+        Dim numbers = Async |
+    End Sub
+End Module</File>, "Iterator")
+        End Sub
+
+        <Fact>
+        Public Sub IntoAfterTypeOfIsNotInAGuardIf()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F(o As Object)
+        If TypeOf o IsNot String |
+    End Sub
+End Module</File>, "Into")
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F(o As Object)
+        If (TypeOf o IsNot String |
+    End Sub
+End Module</File>, "Into")
+        End Sub
+
+        <Fact>
+        Public Sub IntoMissingAfterTypeOfIsNotOutsideAGuard()
+            VerifyRecommendationsMissing(<File VbNext="True">Module M
+    Sub F(o As Object)
+        If o Is Nothing Then
+        ElseIf TypeOf o IsNot String |
+    End Sub
+End Module</File>, "Into")
+            VerifyRecommendationsMissing(<File VbNext="True">Module M
+    Sub F(o As Object)
+        If o IsNot Nothing AndAlso TypeOf o IsNot String |
+    End Sub
+End Module</File>, "Into")
+        End Sub
+
+        <Fact>
         Public Sub IntoAfterTypeOfMissingOn17_13()
             VerifyRecommendationsMissing(<File>Module M
     Sub F(o As Object)

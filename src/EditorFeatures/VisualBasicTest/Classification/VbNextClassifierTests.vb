@@ -198,6 +198,37 @@ End Select",
                 ControlKeyword("End"),
                 ControlKeyword("Select"))
         End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestAsyncIteratorLambdaAndGuard(testHost As TestHost) As Task
+            Await TestInMethodAsync("Dim numbers = Async Iterator Function()
+                  Yield 1
+              End Function
+If TypeOf o IsNot String Into s Then Return",
+                testHost,
+                s_vbNext,
+                Keyword("Dim"),
+                Local("numbers"),
+                Operators.Equals,
+                Keyword("Async"),
+                Keyword("Iterator"),
+                Keyword("Function"),
+                Punctuation.OpenParen,
+                Punctuation.CloseParen,
+                ControlKeyword("Yield"),
+                Number("1"),
+                Keyword("End"),
+                Keyword("Function"),
+                ControlKeyword("If"),
+                Keyword("TypeOf"),
+                Identifier("o"),
+                Keyword("IsNot"),
+                Keyword("String"),
+                Keyword("Into"),
+                Identifier("s"),
+                ControlKeyword("Then"),
+                ControlKeyword("Return"))
+        End Function
     End Class
 
     <Trait(Traits.Feature, Traits.Features.Classification)>

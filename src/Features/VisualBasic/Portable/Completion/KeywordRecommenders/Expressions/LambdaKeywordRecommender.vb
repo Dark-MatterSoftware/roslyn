@@ -28,9 +28,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Expr
                 If targetToken.IsKindOrHasMatchingText(SyntaxKind.IteratorKeyword) Then
                     Return ImmutableArray.Create(New RecommendedKeyword("Function", VBFeaturesResources.Defines_a_lambda_expression_that_calculates_and_returns_a_single_value_Can_be_used_wherever_a_delegate_type_is_expected_Function_parameterList_expression))
                 ElseIf targetToken.IsKindOrHasMatchingText(SyntaxKind.AsyncKeyword) Then
-                    Return ImmutableArray.Create(
+                    Dim keywords = ImmutableArray.Create(
                         New RecommendedKeyword("Function", VBFeaturesResources.Defines_a_lambda_expression_that_calculates_and_returns_a_single_value_Can_be_used_wherever_a_delegate_type_is_expected_Function_parameterList_expression),
                         New RecommendedKeyword("Sub", VBFeaturesResources.Defines_a_lambda_expression_that_can_execute_statements_and_does_not_return_a_value_Can_be_used_wherever_a_delegate_type_is_expected_Sub_parameterList_statement))
+
+                    ' On vbnext, Async Iterator Function starts a lambda that awaits and yields.
+                    If context.SyntaxTree.IsVbNext() Then
+                        keywords = keywords.Add(New RecommendedKeyword("Iterator", VBFeaturesResources.Defines_an_async_iterator_lambda_expression_that_can_use_the_Await_operator_and_the_Yield_statement_Async_Iterator_Function_parameterList_As_IAsyncEnumerable_Of_T))
+                    End If
+
+                    Return keywords
                 End If
             End If
 

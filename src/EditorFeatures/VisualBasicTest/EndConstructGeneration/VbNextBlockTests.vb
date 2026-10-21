@@ -204,5 +204,25 @@ End Class",
                 afterCaret:={2, -1},
                 parseOptions:=s_vbNext)
         End Function
+
+        <WpfFact>
+        Public Async Function TestApplyAfterAsyncIteratorLambda() As Task
+            Await VerifyStatementEndConstructAppliedAsync(
+                before:="Class C
+    Sub M()
+        Dim numbers = Async Iterator Function()
+    End Sub
+End Class",
+                beforeCaret:={2, -1},
+                after:="Class C
+    Sub M()
+        Dim numbers = Async Iterator Function()
+
+                      End Function
+    End Sub
+End Class",
+                afterCaret:={3, -1},
+                parseOptions:=s_vbNext)
+        End Function
     End Class
 End Namespace

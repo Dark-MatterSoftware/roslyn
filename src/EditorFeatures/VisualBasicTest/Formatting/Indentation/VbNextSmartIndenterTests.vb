@@ -123,6 +123,44 @@ End Module
 ", indentationLine:=4, expectedIndentation:=12)
         End Sub
 
+        <WpfFact>
+        Public Sub InsideAsyncIteratorLambda()
+            AssertSmartIndent("
+Module M
+    Sub F()
+        Dim numbers = Async Iterator Function()
+
+                      End Function
+    End Sub
+End Module
+", indentationLine:=4, expectedIndentation:=26)
+        End Sub
+
+        <WpfFact>
+        Public Sub AfterAGuardIf()
+            AssertSmartIndent("
+Module M
+    Sub F(o As Object)
+        If TypeOf o IsNot String Into s Then Return
+
+    End Sub
+End Module
+", indentationLine:=4, expectedIndentation:=8)
+        End Sub
+
+        <WpfFact>
+        Public Sub InsideAGuardIfBlock()
+            AssertSmartIndent("
+Module M
+    Sub F(o As Object)
+        If TypeOf o IsNot String Into s Then
+
+        End If
+    End Sub
+End Module
+", indentationLine:=4, expectedIndentation:=12)
+        End Sub
+
         ''' <param name="indentationLine">0-based. The line number in code to get indentation for.</param>
         Private Sub AssertSmartIndent(code As String, indentationLine As Integer, expectedIndentation As Integer?)
             Using workspace = EditorTestWorkspace.CreateVisualBasic(code, parseOptions:=s_vbNext)

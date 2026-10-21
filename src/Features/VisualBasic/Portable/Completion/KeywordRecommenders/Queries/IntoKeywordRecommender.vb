@@ -60,7 +60,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Quer
             End If
 
             Dim typeTest = targetToken.GetAncestor(Of TypeOfExpressionSyntax)()
-            If typeTest Is Nothing OrElse Not typeTest.IsKind(SyntaxKind.TypeOfIsExpression) OrElse targetToken <> typeTest.Type.GetLastToken() Then
+            If typeTest Is Nothing OrElse targetToken <> typeTest.Type.GetLastToken() Then
+                Return False
+            End If
+
+            If typeTest.IsKind(SyntaxKind.TypeOfIsNotExpression) Then
+                Return IsGuardCondition(typeTest)
+            End If
+
+            If Not typeTest.IsKind(SyntaxKind.TypeOfIsExpression) Then
                 Return False
             End If
 
@@ -75,6 +83,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Quer
                     Return DirectCast(expression.Parent, IfStatementSyntax).Condition Is expression
                 Case SyntaxKind.ElseIfStatement
                     Return DirectCast(expression.Parent, ElseIfStatementSyntax).Condition Is expression
+                Case SyntaxKind.SingleLineIfStatement
+                    Return DirectCast(expression.Parent, SingleLineIfStatementSyntax).Condition Is expression
+            End Select
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' TypeOf ... IsNot names its result only as the whole condition of an If, through parentheses, which then
+        ''' guards the rest of the block.
+        ''' </summary>
+        Private Shared Function IsGuardCondition(typeTest As TypeOfExpressionSyntax) As Boolean
+            Dim expression As SyntaxNode = typeTest
+            Do While expression.Parent.IsKind(SyntaxKind.ParenthesizedExpression)
+                expression = expression.Parent
+            Loop
+
+            Select Case expression.Parent.Kind
+                Case SyntaxKind.IfStatement
+                    Return DirectCast(expression.Parent, IfStatementSyntax).Condition Is expression
                 Case SyntaxKind.SingleLineIfStatement
                     Return DirectCast(expression.Parent, SingleLineIfStatementSyntax).Condition Is expression
             End Select
