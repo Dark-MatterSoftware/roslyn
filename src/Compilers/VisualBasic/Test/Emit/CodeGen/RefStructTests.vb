@@ -73,23 +73,30 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub ByRefStructure_RejectsIteratorLocal()
+        Public Sub ByRefStructure_IteratorLocalOnlyRejectedAcrossYield()
             Dim compilation = CreateCompilation("
 ByRef Structure Buffer
     Public Value As Integer
 End Structure
 
 Module Program
-    Iterator Function Run() As System.Collections.Generic.IEnumerable(Of Integer)
+    Iterator Function BeforeYield() As System.Collections.Generic.IEnumerable(Of Integer)
         Dim item As Buffer
         item.Value = 1
+        Yield item.Value
+    End Function
+
+    Iterator Function AcrossYield() As System.Collections.Generic.IEnumerable(Of Integer)
+        Dim item As Buffer
+        item.Value = 1
+        Yield 0
         Yield item.Value
     End Function
 End Module
 ", parseOptions:=VbNext)
 
-            compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_CannotLiftRestrictedTypeResumable1, "Buffer").WithArguments("Buffer").WithLocation(8, 21))
+            compilation.VerifyEmitDiagnostics(
+                Diagnostic(ERRID.ERR_RefStructureAcrossSuspension, "item.Value").WithArguments("Buffer").WithLocation(17, 15))
         End Sub
 
         <Fact>

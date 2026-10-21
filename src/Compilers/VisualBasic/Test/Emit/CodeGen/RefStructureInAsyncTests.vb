@@ -102,6 +102,93 @@ BC37405: A value of type 'Span(Of Integer)' cannot be kept across an 'Await' or 
 ]]></expected>)
         End Sub
 
+        Private Const SpansBeforeYield As String = "
+Imports System
+Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Module Program
+    Iterator Function Words(text As String) As IEnumerable(Of String)
+        Dim start As Integer = 0
+        While start < text.Length
+            Dim rest As ReadOnlySpan(Of Char) = text.AsSpan(start)
+            Dim length As Integer = rest.IndexOf("" ""c)
+            If length < 0 Then length = rest.Length
+            Dim word As New String(rest.Slice(0, length))
+            start += length + 1
+            Yield word
+        End While
+    End Function
+
+    Async Iterator Function Totals(rows As Integer()()) As IAsyncEnumerable(Of Integer)
+        For Each row As Integer() In rows
+            Dim total As Integer = 0
+            For Each value As Integer In row.AsSpan()
+                total += value
+            Next
+            Await Task.Yield()
+            Yield total
+        Next
+    End Function
+
+    Async Function Run() As Task
+        For Each w As String In Words(""a bb ccc"")
+            Console.Write(w & "" "")
+        Next
+        Await Each t As Integer In Totals(New Integer()() {New Integer() {1, 2}, New Integer() {3, 4}})
+            Console.Write(t & "" "")
+        Next
+    End Function
+
+    Sub Main()
+        Run().GetAwaiter().GetResult()
+    End Sub
+End Module
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub RefStructure_LocalsBeforeYield()
+            Dim compilation = CreateCompilation(SpansBeforeYield, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+            CompileAndVerify(compilation, expectedOutput:="a bb ccc 3 7", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub RefStructure_LocalsBeforeYieldInDebugBuild()
+            Dim compilation = CreateCompilation(SpansBeforeYield, targetFramework:=TargetFramework.Net90, options:=TestOptions.DebugExe.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+            CompileAndVerify(compilation, expectedOutput:="a bb ccc 3 7", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub RefStructure_LiveAcrossYield()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Module Program
+    Iterator Function AfterYield(data As Integer()) As IEnumerable(Of Integer)
+        Dim span As Span(Of Integer) = data
+        Yield 1
+        Yield span(0)
+    End Function
+
+    Iterator Function InLoop(data As Integer()) As IEnumerable(Of Integer)
+        For Each value As Integer In data.AsSpan()
+            Yield value
+        Next
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseEmitDiagnostics(<expected><![CDATA[
+BC37405: A value of type 'Span(Of Integer)' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.
+        Yield span(0)
+              ~~~~
+BC37405: A value of type 'Span(Of Integer).Enumerator' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.
+        For Each value As Integer In data.AsSpan()
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
         <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub RefStructure_RejectedOn17_13()
             Dim compilation = CreateCompilation("
