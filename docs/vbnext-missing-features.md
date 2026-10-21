@@ -162,6 +162,18 @@ Checked against this tree after wave 5, by compiling the library shapes that wav
 | VB-071 | Async iterator lambdas | Done in slice 33c: on `vbnext` a multi-line `Async Iterator Function` lambda, locked in `docs/vbnext-vb071-syntax.md`, awaits and yields. `docs/vbnext-vb061-syntax.md` left this open. Before that, a lambda could not be both `Async` and `Iterator`, so an `IAsyncEnumerable(Of T)` argument needed a separate function. |
 | VB-072 | A type test that guards the rest of a block | Done in slice 33d: on `vbnext`, `If TypeOf value IsNot T Into name Then Return`, locked in `docs/vbnext-vb072-syntax.md`, declares the name for the rest of the block. `docs/vbnext-vb066-syntax.md` left this open. Before that, `IsNot` with `Into` reported BC37396, and a name declared in an `If` condition was out of scope after `End If`. |
 
+## Wave 7
+
+Checked against this tree after wave 6, by compiling the library shapes that wave 6 code meets next against .NET 11 with `LangVersion` `vbnext`. Each gap below reports an error on `vbnext` today. `Parallel.ForEachAsync` with an async lambda, queries over `IAsyncEnumerable(Of T)`, `Task.WhenEach`, `Yield` in a `Try` with a `Catch` in an async iterator, and `Dictionary.GetAlternateLookup(Of ReadOnlySpan(Of Char))` already compile.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-073 | Reading `ref readonly` returns | No new syntax. Reading an element of a `ReadOnlySpan(Of T)`, as in `span(0)`, reports BC30643, "property is of an unsupported type", because its indexer returns `ref readonly T`. `ReadOnlySpan(Of Char)` from `String.AsSpan` is the most common span in .NET, so VB can pass one along but not look inside it. A `Span(Of T)` element and a `ByRef` return such as `CollectionsMarshal.GetValueRefOrAddDefault` already work. C# 7.2 added `ref readonly` returns. |
+| VB-074 | `Using` on a ref structure | No new syntax. `Using gate.EnterScope()` on a .NET 9 `Lock` reports BC36010, because `Lock.Scope` is a ref structure, which cannot implement `IDisposable`, with a `Dispose` method. C# 8 binds `using` to an accessible `Dispose` on a ref structure. Slice 25a covers `SyncLock` on a `Lock`, not other scope types or an explicit `EnterScope`. |
+| VB-075 | Ref structure locals in `Async` and `Iterator` methods | No new syntax. A `Span(Of T)` or `ReadOnlySpan(Of T)` local in an `Async` or `Iterator` function reports BC37052 even when it is not used across an `Await` or `Yield`, so parsing a buffer before awaiting needs a separate method. C# 13 allows such a local when its value is not live across a suspension point. |
+| VB-076 | Attributes on lambda parameters | `<FromQuery> name As String` in a lambda reports BC36634. ASP.NET Core minimal API handlers, written as lambdas, read these attributes, and `docs/vbnext-vb071-syntax.md` left `EnumeratorCancellation` on an `Async Iterator Function` lambda open for the same reason. C# 10 added attributes on lambdas and their parameters. |
+| VB-077 | Deconstruction in `For Each` | `For Each (key, value) In map` treats the tuple as existing variables and reports BC30451, so iterating a dictionary, a list of tuples, or an `IAsyncEnumerable` of records needs a `Dim (key, value) = item` line in the body. C# 7 has `foreach (var (key, value) in map)`. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -266,3 +278,15 @@ The three gaps with no new syntax come first, smallest first, then the two desig
 | 3 | VB-070 | Task-like `Async` return types | L | A builder chosen from the return type instead of the three fixed builders. Follows VB-069 so both state machine changes are tested together. |
 | 4 | VB-071 | Async iterator lambdas | M | Needs a design note first. Reuses the slice 26d lowering. |
 | 5 | VB-072 | A type test that guards the rest of a block | M | Needs a design note first, because it changes where a name from an `If` condition is in scope. |
+
+### Wave 7 order
+
+The three memory gaps come first, because each one blocks span-based code that the next one needs, then the two lambda and loop gaps.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-073 | Reading `ref readonly` returns | M | Symbols and binding for a return kind that metadata already describes. Every later span gap reads span elements. |
+| 2 | VB-074 | `Using` on a ref structure | M | Binds `Dispose` by pattern for one kind of type, beside the slice 30b pattern for `DisposeAsync`. |
+| 3 | VB-075 | Ref structure locals in `Async` and `Iterator` methods | L | A flow check for values live across `Await` and `Yield`, in place of the blanket error. Follows VB-073 so those locals can be read. |
+| 4 | VB-076 | Attributes on lambda parameters | M | The attribute list moves from an error to the synthesized parameter. Then `EnumeratorCancellation` reaches an async iterator lambda. |
+| 5 | VB-077 | Deconstruction in `For Each` | M | Needs a design note first, because `For Each (a, b) In` could declare new names or assign existing ones. Reuses the VB-005 deconstruction from slices 5a to 5d. |

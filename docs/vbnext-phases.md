@@ -47,6 +47,12 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 32. Task-like returns | VB-070, wave 6 | An `Async Function` returns `ValueTask`, `ValueTask(Of T)`, or a type with a method builder. |
 | 33. Async lambdas and guards | VB-071, VB-072, wave 6 | Design notes for async iterator lambdas and for a type test that guards the rest of a block, then the locked forms. |
 | 34. IDE for wave 6 | Phases 30 to 33 | The editor understands any syntax that phase 33 locks. |
+| 35. Read-only references | VB-073, wave 7 | Code reads `ReadOnlySpan(Of T)` elements and other `ref readonly` returns. |
+| 36. Using on ref structures | VB-074, wave 7 | `Using` releases a ref structure through its `Dispose`. |
+| 37. Ref structures in async code | VB-075, wave 7 | `Async` and `Iterator` methods declare span locals that do not cross `Await` or `Yield`. |
+| 38. Lambda parameter attributes | VB-076, wave 7 | A lambda parameter carries attributes, including `EnumeratorCancellation`. |
+| 39. Deconstructing loops | VB-077, wave 7 | A design note for deconstruction in `For Each`, then the locked form. |
+| 40. IDE for wave 7 | Phases 35 to 39 | The editor understands any syntax that phase 39 locks. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -407,6 +413,56 @@ Wave 6 rows 4 and 5.
 | --- | --- | --- |
 | 34a | Editor | Done. On `vbnext`, completion offers `Iterator` after an `Async` that starts a lambda, beside `Function` and `Sub`, and `Into` after the type of a `TypeOf ... IsNot` that is the whole condition of an `If`, through parentheses, but not in an `ElseIf` or an `AndAlso` chain. Visual Basic 17.13 does not offer them. Enter after `Async Iterator Function()` in an expression inserts `End Function`, `Async`, `Iterator`, and `Into` classify as keywords, and smart indentation indents the lambda body and the `Then` block of a guard and keeps the statement after a single-line guard at the block's indentation. |
 
+## Phase 35 — Read-only references
+
+Wave 7 row 1. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 35a | VB-073 | On `vbnext`, a property, indexer, or function from metadata that returns `ref readonly T` reads as a value of type `T`, so `span(i)` on a `ReadOnlySpan(Of T)` and `chars(0)` on a `ReadOnlySpan(Of Char)` compile and read the element. Assigning to the result, or passing it `ByRef` where the callee could write through it, reports an error. Visual Basic 17.13 still reports BC30643. |
+
+## Phase 36 — Using on ref structures
+
+Wave 7 row 2. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 36a | VB-074 | On `vbnext`, the block and declaration forms of `Using` release a ref structure that has an accessible `Dispose` that can be called without arguments, as C# does, so `Using gate.EnterScope()` exits the lock when the block ends. Any other resource still needs `IDisposable` and still reports BC36010. |
+
+## Phase 37 — Ref structures in async code
+
+Wave 7 row 3. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 37a | VB-075 | On `vbnext`, an `Async` method or lambda declares a local of a ref structure type, such as `Span(Of T)`, when no `Await` falls between an assignment of the local and a read of it. A local that is live across an `Await` reports an error at the `Await`. |
+| 37b | VB-075 | On `vbnext`, the rule from 37a applies to `Yield` in an `Iterator` or `Async Iterator` method or lambda. |
+
+## Phase 38 — Lambda parameter attributes
+
+Wave 7 row 4.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 38a | VB-076 | On `vbnext`, attributes on the parameters of a lambda bind as they do on a method's parameters and are emitted on the parameters of the method the lambda becomes, so reflection, such as an ASP.NET Core minimal API handler, sees them. Attributes that change how a call binds, such as `<ParamArray>` and caller information, are not covered. Visual Basic 17.13 still reports BC36634. |
+| 38b | VB-076 | On `vbnext`, `<EnumeratorCancellation>` on a `CancellationToken` parameter of an `Async Iterator Function` lambda that returns `IAsyncEnumerable(Of T)` receives the token passed to `GetAsyncEnumerator`, as it does on a method. |
+
+## Phase 39 — Deconstructing loops
+
+Wave 7 row 5.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 39a | VB-077 | `docs/vbnext-vb077-syntax.md` records the proposed forms of a `For Each` that deconstructs each item into new names, and of one that assigns existing variables, and locks or defers them. No code change. |
+| 39b | VB-077 | On `vbnext`, the form locked in 39a deconstructs each item of a `For Each`, using the slice 5a to 5d deconstruction, including `Deconstruct` methods and skipped slots. |
+| 39c | VB-077 | On `vbnext`, the same form deconstructs each item of an `Await Each`. |
+
+## Phase 40 — IDE for wave 7
+
+| Slice | Area | Done when |
+| --- | --- | --- |
+| 40a | Editor | For the form locked in phase 39: its keywords classify and complete only on `vbnext`, and formatting indents the loop body. Lambda parameter attributes from phase 38 classify as attributes. |
+
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Phase 28 is done: slice 28a locks `Field` for property backing storage, and slice 28b implements it. Phase 29 is done: slice 29a brings the editor along for the wave 5 forms. Wave 5 is done. Wave 6 is planned as phases 30 to 34, from the gaps that wave 5 code meets next. Phase 30 is done: slice 30a lets `Await Each` take `WithCancellation` and `ConfigureAwait`, and slice 30b lets `Async Using` take `ConfigureAwait`. Phase 31 is done: slice 31a lets a `Catch` block await, and slice 31b lets a `Finally` block await. Phase 32 is done: slice 32a lets an `Async Function` return `ValueTask` and `ValueTask(Of T)`, and slice 32b lets it return any task-like type and choose its builder. Slices 33a and 33b are done: `Async Iterator Function` is locked for lambdas, and `If TypeOf value IsNot T Into name Then ...` is locked as a guard. Phase 33 is done: slice 33c lets an `Async Iterator Function` lambda await and yield, and slice 33d adds the `IsNot ... Into` guard. Phase 34 is done: slice 34a brings the editor along for the wave 6 forms. Wave 6 is done.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Phase 28 is done: slice 28a locks `Field` for property backing storage, and slice 28b implements it. Phase 29 is done: slice 29a brings the editor along for the wave 5 forms. Wave 5 is done. Wave 6 is planned as phases 30 to 34, from the gaps that wave 5 code meets next. Phase 30 is done: slice 30a lets `Await Each` take `WithCancellation` and `ConfigureAwait`, and slice 30b lets `Async Using` take `ConfigureAwait`. Phase 31 is done: slice 31a lets a `Catch` block await, and slice 31b lets a `Finally` block await. Phase 32 is done: slice 32a lets an `Async Function` return `ValueTask` and `ValueTask(Of T)`, and slice 32b lets it return any task-like type and choose its builder. Slices 33a and 33b are done: `Async Iterator Function` is locked for lambdas, and `If TypeOf value IsNot T Into name Then ...` is locked as a guard. Phase 33 is done: slice 33c lets an `Async Iterator Function` lambda await and yield, and slice 33d adds the `IsNot ... Into` guard. Phase 34 is done: slice 34a brings the editor along for the wave 6 forms. Wave 6 is done. Wave 7 is planned as phases 35 to 40, from the gaps that wave 6 code meets next. Slice 35a, reading `ref readonly` returns, starts now.
