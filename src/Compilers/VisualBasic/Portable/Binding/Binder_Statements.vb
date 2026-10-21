@@ -6117,7 +6117,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' A method cannot be both iterator and async, so async wins, except for an async iterator,
                 ' which returns from its body the way an iterator does, with no value.
-                isIterator = method.IsIterator AndAlso (Not isAsync OrElse methodReturnType.IsAsyncIteratorReturnType(Compilation))
+                isIterator = method.IsIterator AndAlso (Not isAsync OrElse methodReturnType.IsAsyncIteratorReturnType(Compilation) OrElse
+                                                        (method.MethodKind = MethodKind.LambdaMethod AndAlso Compilation.LanguageVersion >= LanguageVersion.VbNext))
 
                 If Not method.IsSub Then
                     If isIterator Then

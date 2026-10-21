@@ -32,7 +32,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' Decode the modifiers.
             Dim modifiers As SourceMemberFlags = DecodeModifiers(node.SubOrFunctionHeader.Modifiers, asyncIterator, ERRID.ERR_InvalidLambdaModifier, Accessibility.Public, If(diagnostics.DiagnosticBag, New DiagnosticBag())).FoundFlags And asyncIterator
 
-            If (modifiers And asyncIterator) = asyncIterator AndAlso diagnostics.AccumulatesDiagnostics Then
+            ' On vbnext, an Async Iterator Function lambda awaits and yields, as an Async Iterator Function does.
+            Dim isAsyncIterator = (modifiers And asyncIterator) = asyncIterator
+            If isAsyncIterator AndAlso diagnostics.AccumulatesDiagnostics AndAlso Compilation.LanguageVersion < LanguageVersion.VbNext Then
                 ReportModifierError(node.SubOrFunctionHeader.Modifiers, ERRID.ERR_InvalidAsyncIteratorModifiers, diagnostics.DiagnosticBag, InvalidAsyncIterator)
             End If
 
@@ -57,7 +59,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     hasErrors = True
 
                 ElseIf Not returnType.IsErrorType() Then
-                    If Not (modifiers And asyncIterator) = asyncIterator Then
+                    If isAsyncIterator Then
+                        If Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso Not returnType.IsAsyncIteratorReturnType(Compilation) Then
+                            ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.AsClause.Type, ERRID.ERR_BadAsyncIteratorReturn)
+                        End If
+                    Else
 
                         If modifiers = SourceMemberFlags.Async AndAlso
                            Not returnType.IsGenericAsyncReturnType(Compilation) AndAlso
@@ -81,7 +87,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 returnType = GetSpecialType(SpecialType.System_Void, node.SubOrFunctionHeader, diagnostics)
 
-                If modifiers = SourceMemberFlags.Iterator Then
+                If isAsyncIterator AndAlso Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.DeclarationKeyword, ERRID.ERR_BadAsyncIteratorReturn)
+                ElseIf modifiers = SourceMemberFlags.Iterator Then
                     ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.DeclarationKeyword, ERRID.ERR_BadIteratorReturn)
                 End If
             End If
@@ -178,14 +186,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 ' For Async | Iterator lambdas with nongeneric target delegate return type, we still want to do return type inference
                 ' in order to infer more specific return type Task(Of T) | IEnumerable(of T), if possible.
+                ' An Async Iterator lambda takes the target's return type, which must be an async iterator return type.
+                Dim isAsyncIterator = source.Flags = (SourceMemberFlags.Async Or SourceMemberFlags.Iterator) AndAlso
+                                      Compilation.LanguageVersion >= LanguageVersion.VbNext
+
                 If target.ReturnType.SpecialType <> SpecialType.System_Void AndAlso
-                   Not ((source.Flags And SourceMemberFlags.Async) <> 0 AndAlso target.ReturnType Is Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) AndAlso
-                   Not ((source.Flags And SourceMemberFlags.Iterator) <> 0 AndAlso (target.ReturnType.SpecialType = SpecialType.System_Collections_IEnumerable OrElse
-                                                                                    target.ReturnType.SpecialType = SpecialType.System_Collections_IEnumerator)) Then
+                   (isAsyncIterator OrElse
+                    (Not ((source.Flags And SourceMemberFlags.Async) <> 0 AndAlso target.ReturnType Is Compilation.GetWellKnownType(WellKnownType.System_Threading_Tasks_Task)) AndAlso
+                     Not ((source.Flags And SourceMemberFlags.Iterator) <> 0 AndAlso (target.ReturnType.SpecialType = SpecialType.System_Collections_IEnumerable OrElse
+                                                                                     target.ReturnType.SpecialType = SpecialType.System_Collections_IEnumerator)))) Then
 
                     targetReturnType = target.ReturnType
 
                     If Not targetReturnType.IsErrorType() Then
+                        If isAsyncIterator AndAlso Not targetReturnType.IsAsyncIteratorReturnType(Compilation) Then
+                            ReportDiagnostic(diagnostics, LambdaHeaderErrorNode(source), ERRID.ERR_BadAsyncIteratorReturn)
+                        End If
+
                         If source.Flags = SourceMemberFlags.Async Then
                             If Not targetReturnType.IsGenericAsyncReturnType(Compilation) AndAlso Not targetReturnType.IsNonGenericAsyncReturnType(Compilation) Then
                                 ReportDiagnostic(diagnostics, LambdaHeaderErrorNode(source), BadAsyncReturnErrorId)
@@ -240,7 +257,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Else
                     Dim seenReturnWithAValue As Boolean = False
                     Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
-                    delegateRelaxation = LambdaRelaxationVisitor.DetermineDelegateRelaxationLevel(lambdaSymbol, source.Flags = SourceMemberFlags.Iterator, block, seenReturnWithAValue, useSiteInfo)
+                    delegateRelaxation = LambdaRelaxationVisitor.DetermineDelegateRelaxationLevel(lambdaSymbol, (source.Flags And SourceMemberFlags.Iterator) <> 0, block, seenReturnWithAValue, useSiteInfo)
 
                     diagnostics.Add(LambdaHeaderErrorNode(source), useSiteInfo)
 
@@ -935,8 +952,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(Me Is source.Binder AndAlso source.IsFunctionLambda AndAlso
                          source.ReturnType Is Nothing AndAlso targetParameters.ReturnType.IsVoidType())
 
-            ' If both Async and Iterator are specified, we cannot really infer return type.
-            If source.Flags = (SourceMemberFlags.Async Or SourceMemberFlags.Iterator) Then
+            ' Before vbnext, both Async and Iterator is an error, and there is no return type to infer.
+            Dim isAsyncIterator = source.Flags = (SourceMemberFlags.Async Or SourceMemberFlags.Iterator)
+            If isAsyncIterator AndAlso Compilation.LanguageVersion < LanguageVersion.VbNext Then
                 ' No need to report any error because we complained about conflicting modifiers.
                 Return New KeyValuePair(Of TypeSymbol, ReadOnlyBindingDiagnostic(Of AssemblySymbol))(LambdaSymbol.ReturnTypeIsUnknown, ReadOnlyBindingDiagnostic(Of AssemblySymbol).Empty)
             End If
@@ -958,12 +976,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim lambdaReturnType As TypeSymbol
             Dim returnExpressions = ArrayBuilder(Of BoundExpression).GetInstance()
 
-            LambdaReturnStatementsVisitor.CollectReturnExpressions(block, returnExpressions, source.Flags = SourceMemberFlags.Iterator)
+            LambdaReturnStatementsVisitor.CollectReturnExpressions(block, returnExpressions, source.Flags = SourceMemberFlags.Iterator OrElse isAsyncIterator)
 
             If returnExpressions.Count = 0 AndAlso source.Flags = SourceMemberFlags.Async Then
                 ' It's fine if there were no return statements in an Async Function.
                 ' It simply returns "Task".
                 lambdaReturnType = GetWellKnownType(WellKnownType.System_Threading_Tasks_Task, source.Syntax, diagnostics)
+
+            ElseIf returnExpressions.Count = 0 AndAlso isAsyncIterator Then
+                ' An Async Iterator Function without yield statements returns IAsyncEnumerable(Of Object).
+                lambdaReturnType = GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T, source.Syntax, diagnostics).
+                    Construct(GetSpecialType(SpecialType.System_Object, source.Syntax, diagnostics))
 
             ElseIf returnExpressions.Count = 0 AndAlso source.Flags = SourceMemberFlags.Iterator Then
                 ' It's fine if there were no yield statements in an Iterator Function.
@@ -1041,6 +1064,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ElseIf source.Flags = SourceMemberFlags.Iterator Then
                     ' There were some returns with values from Iterator lambda, infer IEnumerable(Of T) as return type of the lambda.
                     lambdaReturnType = GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T, source.Syntax, diagnostics).Construct(lambdaReturnType)
+
+                ElseIf isAsyncIterator AndAlso lambdaReturnType IsNot LambdaSymbol.ReturnTypeIsUnknown Then
+                    ' An Async Iterator lambda with yield statements infers IAsyncEnumerable(Of T).
+                    lambdaReturnType = GetWellKnownType(WellKnownType.System_Collections_Generic_IAsyncEnumerable_T, source.Syntax, diagnostics).Construct(lambdaReturnType)
 
                 End If
             End If

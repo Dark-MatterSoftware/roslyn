@@ -1913,7 +1913,8 @@ DoneWithDiagnostics:
 
                 ' We don't try to infer return type of a lambda that has both Async and Iterator modifiers, let's suppress the 
                 ' signature mismatch error in this case.
-                If unboundLambda.ReturnType IsNot Nothing OrElse unboundLambda.Flags <> (SourceMemberFlags.Async Or SourceMemberFlags.Iterator) Then
+                If unboundLambda.ReturnType IsNot Nothing OrElse unboundLambda.Flags <> (SourceMemberFlags.Async Or SourceMemberFlags.Iterator) OrElse
+                   Compilation.LanguageVersion >= LanguageVersion.VbNext Then
                     Dim err As ERRID
 
                     If unboundLambda.IsFunctionLambda Then
