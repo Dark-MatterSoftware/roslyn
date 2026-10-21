@@ -276,12 +276,11 @@ Module Program
         End Using
     End Function
 
-    Async Function InFinally() As System.Threading.Tasks.Task
-        Try
-        Finally
+    Async Function InSyncLock() As System.Threading.Tasks.Task
+        SyncLock New Object()
             Async Using r As New Resource(""a"")
             End Using
-        End Try
+        End SyncLock
     End Function
 End Module
 ", parseOptions:=VbNext)

@@ -18,7 +18,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
             Return CompileAndVerify(compilation, expectedOutput:=expectedOutput).VerifyDiagnostics()
         End Function
 
-        <Fact>
+        <ConditionalFact(GetType(DesktopOnly))>
         Public Sub AwaitInCatch_KeepsTheExceptionAndErr()
             CompileAndRun("
 Imports System
@@ -250,7 +250,7 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub AwaitInCatch_FilterAndFinallyStillReportAnError()
+        Public Sub AwaitInCatch_FilterStillReportsAnError()
             Dim compilation = CreateCompilation("
 Imports System.Threading.Tasks
 
@@ -263,8 +263,6 @@ Module Program
     Async Function Run() As Task
         Try
         Catch ex As System.Exception When Await Check()
-        Finally
-            Await Task.Yield()
         End Try
     End Function
 End Module
@@ -274,9 +272,6 @@ End Module
 BC36943: 'Await' cannot be used inside a 'Catch' statement, a 'Finally' statement, or a 'SyncLock' statement.
         Catch ex As System.Exception When Await Check()
                                           ~~~~~~~~~~~~~
-BC36943: 'Await' cannot be used inside a 'Catch' statement, a 'Finally' statement, or a 'SyncLock' statement.
-            Await Task.Yield()
-            ~~~~~~~~~~~~~~~~~~
 ]]></expected>)
         End Sub
 

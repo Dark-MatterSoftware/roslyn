@@ -19,6 +19,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Visit(RewriteTryWithAwaitInCatch(node))
             End If
 
+            If _currentMethodOrLambda.IsAsync AndAlso node.FinallyBlockOpt IsNot Nothing AndAlso AwaitFinder.ContainsAwait(node.FinallyBlockOpt) Then
+                Return RewriteTryWithAwaitInFinally(node)
+            End If
+
             Dim rewrittenTryBlock = RewriteTryBlock(node)
             Dim rewrittenCatchBlocks = VisitList(node.CatchBlocks)
             Dim rewrittenFinally = RewriteFinallyBlock(node)

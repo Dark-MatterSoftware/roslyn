@@ -214,12 +214,11 @@ Module Program
         Next
     End Function
 
-    Async Function InFinally() As System.Threading.Tasks.Task
-        Try
-        Finally
+    Async Function InSyncLock() As System.Threading.Tasks.Task
+        SyncLock New Object()
             Await Each n In New Numbers(1)
             Next
-        End Try
+        End SyncLock
     End Function
 End Module
 ", parseOptions:=VbNext)
