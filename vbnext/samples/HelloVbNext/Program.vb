@@ -69,5 +69,6 @@ Module Program
         Console.WriteLine(Items({"records", "extensions"}))
         WaveFive.RunAsync().GetAwaiter().GetResult()
         WaveSix.RunAsync().GetAwaiter().GetResult()
+        WaveSeven.RunAsync().GetAwaiter().GetResult()
     End Sub
 End Module
