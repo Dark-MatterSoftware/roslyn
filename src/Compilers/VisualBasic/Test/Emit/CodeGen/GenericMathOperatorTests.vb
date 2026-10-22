@@ -71,6 +71,92 @@ End Module
   IL_0000:  ldarg.0
   IL_0001:  ldarg.1
   IL_0002:  constrained. "T"
+  IL_0008:  call       "Function System.Numerics.IAdditionOperators(Of T, T, T).op_CheckedAddition(T, T) As T"
+  IL_000d:  ret
+}
+]]>)
+        End Sub
+
+        Private Const Accumulate As String = "
+Imports System
+Imports System.Numerics
+
+Module Program
+    Function Add(Of T As INumber(Of T))(a As T, b As T) As T
+        Return a + b
+    End Function
+
+    Function SumAll(Of T As INumber(Of T))(values As T()) As T
+        Dim total = T.Zero
+        For Each value In values
+            total += value
+        Next
+        Return total
+    End Function
+
+    Function Shrink(Of T As INumber(Of T))(value As T, by As T) As T
+        Dim result = value
+        result -= by
+        result *= by
+        result /= by
+        Return -result
+    End Function
+
+    Function Negate(Of T As INumber(Of T))(value As T) As T
+        Return -value
+    End Function
+
+    Sub Main()
+        Console.Write($""{SumAll({1, 2, 3})} {Shrink(10, 2)} {Shrink(1.5, 0.5)}"")
+        Try
+            Console.Write("" "" & SumAll({Integer.MaxValue, 1}))
+        Catch ex As OverflowException
+            Console.Write("" overflow"")
+        End Try
+        Try
+            Console.Write("" "" & SumAll(Of Byte)({200, 100}))
+        Catch ex As OverflowException
+            Console.Write("" overflow"")
+        End Try
+        Try
+            Console.Write("" "" & Negate(Integer.MinValue))
+        Catch ex As OverflowException
+            Console.Write("" overflow"")
+        End Try
+    End Sub
+End Module
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub CompoundAssignmentAndCheckedOperators()
+            Dim compilation = CreateCompilation(Accumulate, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="6 -8 -1 overflow overflow overflow", verify:=Verification.Skipped).VerifyDiagnostics().
+                VerifyIL("Program.Add(Of T)", <![CDATA[
+{
+  // Code size       14 (0xe)
+  .maxstack  2
+  IL_0000:  ldarg.0
+  IL_0001:  ldarg.1
+  IL_0002:  constrained. "T"
+  IL_0008:  call       "Function System.Numerics.IAdditionOperators(Of T, T, T).op_CheckedAddition(T, T) As T"
+  IL_000d:  ret
+}
+]]>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub CompoundAssignmentWithoutOverflowChecks()
+            Dim compilation = CreateCompilation(Accumulate, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOverflowChecks(False), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="6 -8 -1 -2147483648 44 -2147483648", verify:=Verification.Skipped).VerifyDiagnostics().
+                VerifyIL("Program.Add(Of T)", <![CDATA[
+{
+  // Code size       14 (0xe)
+  .maxstack  2
+  IL_0000:  ldarg.0
+  IL_0001:  ldarg.1
+  IL_0002:  constrained. "T"
   IL_0008:  call       "Function System.Numerics.IAdditionOperators(Of T, T, T).op_Addition(T, T) As T"
   IL_000d:  ret
 }

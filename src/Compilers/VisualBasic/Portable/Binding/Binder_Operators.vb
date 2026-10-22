@@ -604,6 +604,45 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Nothing
         End Function
 
+        ''' <summary>
+        ''' With integer overflow checks on, an operator from a type parameter's constraint is replaced by the checked form
+        ''' that the same interface declares with the same signature, such as op_CheckedAddition for op_Addition, so a
+        ''' generic Sum over Integer throws on overflow as Integer addition does.
+        ''' </summary>
+        Private Function UseCheckedConstraintOperator(result As BoundExpression) As BoundExpression
+            Dim [call] = TryCast(result, BoundCall)
+            If Not CheckOverflow OrElse [call] Is Nothing OrElse [call].ReceiverOpt Is Nothing OrElse Not [call].Method.ContainingType.IsInterface Then
+                Return result
+            End If
+
+            Dim checkedName As String
+            Select Case [call].Method.Name
+                Case WellKnownMemberNames.AdditionOperatorName
+                    checkedName = WellKnownMemberNames.CheckedAdditionOperatorName
+                Case WellKnownMemberNames.SubtractionOperatorName
+                    checkedName = WellKnownMemberNames.CheckedSubtractionOperatorName
+                Case WellKnownMemberNames.MultiplyOperatorName
+                    checkedName = WellKnownMemberNames.CheckedMultiplyOperatorName
+                Case WellKnownMemberNames.DivisionOperatorName
+                    checkedName = WellKnownMemberNames.CheckedDivisionOperatorName
+                Case WellKnownMemberNames.UnaryNegationOperatorName
+                    checkedName = WellKnownMemberNames.CheckedUnaryNegationOperatorName
+                Case Else
+                    Return result
+            End Select
+
+            For Each member In [call].Method.ContainingType.GetMembers(checkedName)
+                Dim checkedMethod = TryCast(member, MethodSymbol)
+                If checkedMethod IsNot Nothing AndAlso checkedMethod.IsShared AndAlso
+                   MethodSignatureComparer.ParametersAndReturnTypeSignatureComparer.Equals(checkedMethod, [call].Method) Then
+                    Return [call].Update(checkedMethod, [call].MethodGroupOpt, [call].ReceiverOpt, [call].Arguments, [call].DefaultArguments,
+                                         [call].ConstantValueOpt, [call].IsLValue, [call].SuppressObjectClone, [call].Type)
+                End If
+            Next
+
+            Return result
+        End Function
+
         Private Function BindUserDefinedNonShortCircuitingBinaryOperator(
             node As SyntaxNode,
             opKind As BinaryOperatorKind,
@@ -632,6 +671,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                          bestCandidate,
                                                          userDefinedOperator.AsyncLambdaSubToFunctionMismatch,
                                                          diagnostics)
+
+                If constrainedReceiver IsNot Nothing Then
+                    result = UseCheckedConstraintOperator(result)
+                End If
 
                 If bestCandidate.Candidate.IsLifted Then
                     opKind = opKind Or BinaryOperatorKind.Lifted
@@ -1286,6 +1329,10 @@ Done:
                                                          bestCandidate,
                                                          userDefinedOperator.AsyncLambdaSubToFunctionMismatch,
                                                          diagnostics)
+
+                If constrainedReceiver IsNot Nothing Then
+                    result = UseCheckedConstraintOperator(result)
+                End If
 
                 If bestCandidate.Candidate.IsLifted Then
                     opKind = opKind Or UnaryOperatorKind.Lifted
