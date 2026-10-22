@@ -70,5 +70,6 @@ Module Program
         WaveFive.RunAsync().GetAwaiter().GetResult()
         WaveSix.RunAsync().GetAwaiter().GetResult()
         WaveSeven.RunAsync().GetAwaiter().GetResult()
+        WaveEight.Run()
     End Sub
 End Module
