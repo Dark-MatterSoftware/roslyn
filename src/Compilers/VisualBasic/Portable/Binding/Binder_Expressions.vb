@@ -1859,6 +1859,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim [property] = propertyAccess.PropertySymbol
                     Dim receiver = propertyAccess.ReceiverOpt
 
+                    ' On vbnext a ByRef property writes through the returned reference, so a receiver that is a value,
+                    ' such as the span that CollectionsMarshal.AsSpan returns, does not matter.
+                    If propertyAccess.IsLValue AndAlso
+                       DirectCast(expression.Syntax.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion >= LanguageVersion.VbNext Then
+                        Return True
+                    End If
+
                     Debug.Assert(propertyAccess.AccessKind <> PropertyAccessKind.Get)
                     Return propertyAccess.AccessKind <> PropertyAccessKind.Get AndAlso
                         ([property].IsShared OrElse
