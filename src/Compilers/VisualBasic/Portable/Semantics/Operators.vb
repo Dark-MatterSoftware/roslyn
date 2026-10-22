@@ -1,4 +1,4 @@
-ï»¿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -356,7 +356,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Select Case opInfo.BinaryOperatorKind
                     Case BinaryOperatorKind.LeftShift, BinaryOperatorKind.RightShift
-                        If method.Parameters(1).Type.GetNullableUnderlyingTypeOrSelf().SpecialType <> Microsoft.CodeAnalysis.SpecialType.System_Int32 Then
+                        ' A shared abstract shift operator of an interface, such as IShiftOperators(Of TSelf, TOther, TResult), may
+                        ' take its count as a type parameter.
+                        If method.Parameters(1).Type.GetNullableUnderlyingTypeOrSelf().SpecialType <> Microsoft.CodeAnalysis.SpecialType.System_Int32 AndAlso
+                           Not (containingType.IsInterface AndAlso method.Parameters(1).Type.Kind = SymbolKind.TypeParameter) Then
                             If diagnosticsOpt IsNot Nothing Then
                                 diagnosticsOpt.Add(ErrorFactory.ErrorInfo(ERRID.ERR_OperatorRequiresIntegerParameter1,
                                                                        SyntaxFacts.GetText(If(opInfo.BinaryOperatorKind = BinaryOperatorKind.LeftShift,
@@ -469,9 +472,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Shared Function OverloadedOperatorTargetsContainingType(containingType As NamedTypeSymbol, typeFromSignature As TypeSymbol) As Boolean
             If containingType.SpecialType = SpecialType.System_Nullable_T Then
                 Return typeFromSignature Is containingType
+            ElseIf containingType.IsInterface AndAlso IsSelfConstrainedTypeParameter(containingType, typeFromSignature.GetNullableUnderlyingTypeOrSelf()) Then
+                ' A shared abstract operator of an interface targets TSelf, a type parameter constrained to the interface.
+                Return True
             Else
                 Return TypeSymbol.Equals(typeFromSignature.GetNullableUnderlyingTypeOrSelf().GetTupleUnderlyingTypeOrSelf(), containingType.GetTupleUnderlyingTypeOrSelf(), TypeCompareKind.ConsiderEverything)
             End If
+        End Function
+
+        Private Shared Function IsSelfConstrainedTypeParameter(containingType As NamedTypeSymbol, type As TypeSymbol) As Boolean
+            Dim typeParameter = TryCast(type, TypeParameterSymbol)
+            If typeParameter Is Nothing OrElse typeParameter.ContainingSymbol IsNot containingType.OriginalDefinition Then
+                Return False
+            End If
+
+            For Each constraint In typeParameter.ConstraintTypesNoUseSiteDiagnostics
+                If constraint.OriginalDefinition Is containingType.OriginalDefinition Then
+                    Return True
+                End If
+            Next
+
+            Return False
         End Function
 
         Public Shared Function MapUnaryOperatorKind(opCode As SyntaxKind) As UnaryOperatorKind
@@ -529,7 +550,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If sourceType.SpecialType <> SpecialType.System_Object AndAlso
                Not sourceType.IsIntrinsicType() Then
 
-                If operandType.CanContainUserDefinedOperators(useSiteInfo) Then
+                If operandType.CanContainUserDefinedOperators(useSiteInfo) OrElse
+                   ConstraintInterfacesDeclareOperator(operandType, Nothing, TryGetOperatorName(opCode, isChecked:=False), binder, useSiteInfo) Then
                     userDefinedOperator = ResolveUserDefinedUnaryOperator(operand, opCode, binder, includeEliminatedCandidates:=False, useSiteInfo:=useSiteInfo)
 
                     If Not userDefinedOperator.BestResult.HasValue AndAlso userDefinedOperator.Candidates.Length = 0 Then
@@ -549,7 +571,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim result As UnaryOperatorKind = UnaryOperatorKind.Error
 
             If operandIsEnum AndAlso opCode = UnaryOperatorKind.Not AndAlso sourceType.IsIntegralType() Then
-                'Â§11.17 Logical Operators
+                '§11.17 Logical Operators
                 'The enumerated type operators do the bitwise operation on the underlying type of 
                 'the enumerated type, but the return value is the enumerated type.
                 result = UnaryOperatorKind.Not
@@ -581,7 +603,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Select Case opCode
                 Case UnaryOperatorKind.Not
 
-                    'Â§11.17 Logical Operators
+                    '§11.17 Logical Operators
                     'Bo	SB	By	Sh	US	In	UI	Lo	UL	De	Si	Do	Da	Ch	St	Ob
                     'Bo	SB	By	Sh	US	In	UI	Lo	UL	Lo	Lo	Lo	Err	Err	Lo	Ob
 
@@ -612,7 +634,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case UnaryOperatorKind.Plus
 
-                    'Â§11.13.1 Unary Plus Operator
+                    '§11.13.1 Unary Plus Operator
                     'Bo	SB	By	Sh	US	In	UI	Lo	UL	De	Si	Do	Da	Ch	St	Ob
                     'Sh	SB	By	Sh	US	In	UI	Lo	UL	De	Si	Do	Err	Err	Do	Ob
 
@@ -644,7 +666,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case UnaryOperatorKind.Minus
 
-                    'Â§11.13.2 Unary Minus Operator
+                    '§11.13.2 Unary Minus Operator
                     'Bo	SB	By	Sh	US	In	UI	Lo	UL	De	Si	Do	Da	Ch	St	Ob
                     'Sh	SB	Sh	Sh	In	In	Lo	Lo	De	De	Si	Do	Err	Err	Do	Ob
 
@@ -893,6 +915,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 If considerUserDefinedOrLateBound Then
                     If leftType.CanContainUserDefinedOperators(useSiteInfo) OrElse rightType.CanContainUserDefinedOperators(useSiteInfo) OrElse
+                       ConstraintInterfacesDeclareOperator(leftType, rightType, TryGetOperatorName(opCode, isChecked:=False), binder, useSiteInfo) OrElse
                        (opCode = BinaryOperatorKind.Subtract AndAlso
                         leftType.GetNullableUnderlyingTypeOrSelf().IsDateTimeType() AndAlso
                         rightType.GetNullableUnderlyingTypeOrSelf().IsDateTimeType()) Then ' Let (Date - Date) use operator overloading.
@@ -940,7 +963,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If leftIsEnum AndAlso rightIsEnum AndAlso
                (opCode = BinaryOperatorKind.Xor OrElse opCode = BinaryOperatorKind.And OrElse opCode = BinaryOperatorKind.Or) AndAlso
                leftNullableUnderlying.IsSameTypeIgnoringAll(rightNullableUnderlying) Then
-                'Â§11.17 Logical Operators
+                '§11.17 Logical Operators
                 'The enumerated type operators do the bitwise operation on the underlying 
                 'type of the enumerated type, but the return value is the enumerated type.
                 result = opCode
@@ -2085,12 +2108,12 @@ Done:
             ' -	The most encompassing type in a set of types is the one type that encompasses
             '   all other types in the set. If no single type encompasses all other types, then
             '   the set has no most encompassing type. In intuitive terms, the most encompassing
-            '   type is the "largest" type in the setâ€”the one type to which each of the other
+            '   type is the "largest" type in the set—the one type to which each of the other
             '   types can be converted through a widening conversion.
             ' -	The most encompassed type in a set of types is the one type that is encompassed
             '   by all other types in the set. If no single type is encompassed by all other types,
             '   then the set has no most encompassed type. In intuitive terms, the most encompassed
-            '   type is the "smallest" type in the setâ€”the one type that can be converted from each
+            '   type is the "smallest" type in the set—the one type that can be converted from each
             '   of the other types through a narrowing conversion.
 
             Dim viableCandidates As Integer = 0
@@ -2429,12 +2452,12 @@ Done:
             ' -	The most encompassing type in a set of types is the one type that encompasses
             '   all other types in the set. If no single type encompasses all other types, then
             '   the set has no most encompassing type. In intuitive terms, the most encompassing
-            '   type is the "largest" type in the setâ€”the one type to which each of the other
+            '   type is the "largest" type in the set—the one type to which each of the other
             '   types can be converted through a widening conversion.
             ' -	The most encompassed type in a set of types is the one type that is encompassed
             '   by all other types in the set. If no single type is encompassed by all other types,
             '   then the set has no most encompassed type. In intuitive terms, the most encompassed
-            '   type is the "smallest" type in the setâ€”the one type that can be converted from each
+            '   type is the "smallest" type in the set—the one type that can be converted from each
             '   of the other types through a narrowing conversion.
 
             Dim haveWideningInConversions As Integer = 0
@@ -2672,7 +2695,7 @@ Done:
         ''' The most encompassed type in a set of types is the one type that is encompassed
         ''' by all other types in the set. If no single type is encompassed by all other types,
         ''' then the set has no most encompassed type. In intuitive terms, the most encompassed
-        ''' type is the "smallest" type in the setâ€”the one type that can be converted from each
+        ''' type is the "smallest" type in the set—the one type that can be converted from each
         ''' of the other types through a narrowing conversion.
         ''' </summary>
         Private Shared Function MostEncompassed(typeSet As ArrayBuilder(Of TypeSymbol), <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As TypeSymbol
@@ -2717,7 +2740,7 @@ Next_i:
         ''' The most encompassing type in a set of types is the one type that encompasses
         ''' all other types in the set. If no single type encompasses all other types, then
         ''' the set has no most encompassing type. In intuitive terms, the most encompassing
-        ''' type is the "largest" type in the setâ€”the one type to which each of the other
+        ''' type is the "largest" type in the set—the one type to which each of the other
         ''' types can be converted through a widening conversion.
         ''' </summary>
         Private Shared Function MostEncompassing(typeSet As ArrayBuilder(Of TypeSymbol), <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As TypeSymbol
@@ -2903,6 +2926,83 @@ Next_i:
         End Sub
 
         ''' <summary>
+        ''' On vbnext, an operand whose type is a type parameter also offers the operators that its interface constraints,
+        ''' and their base interfaces, declare, such as op_Addition on IAdditionOperators(Of T, T, T) through INumber(Of T).
+        ''' </summary>
+        Private Shared Sub CollectInterfaceConstraintOperators(
+            type1 As TypeSymbol,
+            type2 As TypeSymbol,
+            opName As String,
+            opInfo As OperatorInfo,
+            opSet As ArrayBuilder(Of MethodSymbol),
+            <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+        )
+            Dim processed As New HashSet(Of NamedTypeSymbol)()
+
+            For Each operandType In {type1, type2}
+                Dim typeParameter = TryCast(operandType?.GetNullableUnderlyingTypeOrSelf(), TypeParameterSymbol)
+                If typeParameter Is Nothing Then
+                    Continue For
+                End If
+
+                For Each constraintInterface In GetConstraintInterfaces(typeParameter, useSiteInfo)
+                    If processed.Add(constraintInterface) Then
+                        CollectUserDefinedOperators(constraintInterface, opName, MethodKind.UserDefinedOperator, opInfo, opSet)
+                    End If
+                Next
+            Next
+        End Sub
+
+        ''' <summary>
+        ''' Whether, on vbnext, an operand's type is a type parameter whose interface constraints declare the operator.
+        ''' </summary>
+        Private Shared Function ConstraintInterfacesDeclareOperator(
+            type1 As TypeSymbol,
+            type2 As TypeSymbol,
+            opName As String,
+            binder As Binder,
+            <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+        ) As Boolean
+            If opName Is Nothing OrElse binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            For Each operandType In {type1, type2}
+                Dim typeParameter = TryCast(operandType?.GetNullableUnderlyingTypeOrSelf(), TypeParameterSymbol)
+                If typeParameter Is Nothing Then
+                    Continue For
+                End If
+
+                For Each constraintInterface In GetConstraintInterfaces(typeParameter, useSiteInfo)
+                    For Each member In constraintInterface.GetMembers(opName)
+                        If member.Kind = SymbolKind.Method AndAlso DirectCast(member, MethodSymbol).MethodKind = MethodKind.UserDefinedOperator Then
+                            Return True
+                        End If
+                    Next
+                Next
+            Next
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' The interface constraints of a type parameter and the interfaces they inherit.
+        ''' </summary>
+        Friend Shared Function GetConstraintInterfaces(typeParameter As TypeParameterSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As ImmutableArray(Of NamedTypeSymbol)
+            Dim result = ArrayBuilder(Of NamedTypeSymbol).GetInstance()
+
+            For Each constraint In typeParameter.ConstraintTypesWithDefinitionUseSiteDiagnostics(useSiteInfo)
+                If constraint.IsInterfaceType() Then
+                    Dim constraintInterface = DirectCast(constraint, NamedTypeSymbol)
+                    result.Add(constraintInterface)
+                    result.AddRange(constraintInterface.AllInterfacesWithDefinitionUseSiteDiagnostics(useSiteInfo))
+                End If
+            Next
+
+            Return result.ToImmutableAndFree()
+        End Function
+
+        ''' <summary>
         ''' Returns True if we should stop climbing inheritance hierarchy.
         ''' </summary>
         Private Shared Function CollectUserDefinedOperators(
@@ -3006,6 +3106,10 @@ Next_i:
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(opKind)
             End Select
+
+            If binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                CollectInterfaceConstraintOperators(argument.Type, Nothing, TryGetOperatorName(opKind, isChecked:=False), New OperatorInfo(opKind), opSet, useSiteInfo)
+            End If
 
             Dim result = OperatorInvocationOverloadResolution(opSet, argument, Nothing, binder, lateBindingIsAllowed:=False, includeEliminatedCandidates:=includeEliminatedCandidates,
                                                               useSiteInfo:=useSiteInfo)
@@ -3132,6 +3236,13 @@ Next_i:
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(opKind)
             End Select
+
+            If binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Dim opName = TryGetOperatorName(opKind, isChecked:=False)
+                If opName IsNot Nothing Then
+                    CollectInterfaceConstraintOperators(left.Type, right.Type, opName, New OperatorInfo(opKind), opSet, useSiteInfo)
+                End If
+            End If
 
             Dim result = OperatorInvocationOverloadResolution(opSet, left, right, binder, lateBindingIsAllowed:=True, includeEliminatedCandidates:=includeEliminatedCandidates,
                                                               useSiteInfo:=useSiteInfo)

@@ -2504,7 +2504,7 @@ End Class
             Dim comp1 = CreateCompilation(source1, targetFramework:=_supportingFramework, references:={csCompilation})
             comp1.AssertTheseDiagnostics(
 <errors>
-BC37315: Class 'Test' cannot implement interface 'I1(Of T)' because it contains shared abstract or virtual 'Function op_Implicit(x As T) As Integer'.
+BC37315: Class 'Test' cannot implement interface 'I1(Of T)' because it contains shared abstract or virtual 'Widening Operator CType(x As T) As Integer'.
     Implements I1(Of T)
                ~~~~~~~~
 </errors>

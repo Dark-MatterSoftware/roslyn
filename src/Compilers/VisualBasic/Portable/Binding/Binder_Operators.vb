@@ -584,6 +584,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                          explicitConversion:=True).MakeCompilerGenerated()
         End Function
 
+        ''' <summary>
+        ''' A shared operator of an interface is called constrained to the operand's type parameter whose constraints
+        ''' supplied it.
+        ''' </summary>
+        Private Shared Function GetOperatorConstraintReceiver(node As SyntaxNode, method As MethodSymbol, operand1 As BoundExpression, operand2 As BoundExpression) As BoundExpression
+            If Not method.IsShared OrElse Not method.ContainingType.IsInterface Then
+                Return Nothing
+            End If
+
+            For Each operand In {operand1, operand2}
+                Dim typeParameter = TryCast(operand?.Type?.GetNullableUnderlyingTypeOrSelf(), TypeParameterSymbol)
+                If typeParameter IsNot Nothing AndAlso
+                   OverloadResolution.GetConstraintInterfaces(typeParameter, CompoundUseSiteInfo(Of AssemblySymbol).Discarded).Contains(method.ContainingType) Then
+                    Return New BoundTypeExpression(node, typeParameter).MakeCompilerGenerated()
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
         Private Function BindUserDefinedNonShortCircuitingBinaryOperator(
             node As SyntaxNode,
             opKind As BinaryOperatorKind,
@@ -600,13 +620,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If userDefinedOperator.BestResult.HasValue Then
                 Dim bestCandidate As OverloadResolution.CandidateAnalysisResult = userDefinedOperator.BestResult.Value
+                Dim method = DirectCast(bestCandidate.Candidate.UnderlyingSymbol, MethodSymbol)
+                Dim constrainedReceiver = GetOperatorConstraintReceiver(node, method, left, right)
 
                 result = CreateBoundCallOrPropertyAccess(node, node, TypeCharacter.None,
                                                          New BoundMethodGroup(node, Nothing,
-                                                                              ImmutableArray.Create(Of MethodSymbol)(
-                                                                                  DirectCast(bestCandidate.Candidate.UnderlyingSymbol, MethodSymbol)),
-                                                                              LookupResultKind.Good, Nothing,
-                                                                              QualificationKind.Unqualified).MakeCompilerGenerated(),
+                                                                              ImmutableArray.Create(method),
+                                                                              LookupResultKind.Good, constrainedReceiver,
+                                                                              If(constrainedReceiver Is Nothing, QualificationKind.Unqualified, QualificationKind.QualifiedViaTypeName)).MakeCompilerGenerated(),
                                                          ImmutableArray.Create(Of BoundExpression)(left, right),
                                                          bestCandidate,
                                                          userDefinedOperator.AsyncLambdaSubToFunctionMismatch,
@@ -1253,13 +1274,14 @@ Done:
 
             If userDefinedOperator.BestResult.HasValue Then
                 Dim bestCandidate As OverloadResolution.CandidateAnalysisResult = userDefinedOperator.BestResult.Value
+                Dim method = DirectCast(bestCandidate.Candidate.UnderlyingSymbol, MethodSymbol)
+                Dim constrainedReceiver = GetOperatorConstraintReceiver(node, method, operand, Nothing)
 
                 result = CreateBoundCallOrPropertyAccess(node, node, TypeCharacter.None,
                                                          New BoundMethodGroup(node, Nothing,
-                                                                              ImmutableArray.Create(Of MethodSymbol)(
-                                                                                  DirectCast(bestCandidate.Candidate.UnderlyingSymbol, MethodSymbol)),
-                                                                              LookupResultKind.Good, Nothing,
-                                                                              QualificationKind.Unqualified).MakeCompilerGenerated(),
+                                                                              ImmutableArray.Create(method),
+                                                                              LookupResultKind.Good, constrainedReceiver,
+                                                                              If(constrainedReceiver Is Nothing, QualificationKind.Unqualified, QualificationKind.QualifiedViaTypeName)).MakeCompilerGenerated(),
                                                          ImmutableArray.Create(Of BoundExpression)(operand),
                                                          bestCandidate,
                                                          userDefinedOperator.AsyncLambdaSubToFunctionMismatch,
