@@ -1485,7 +1485,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(getMethod IsNot Nothing)
 
                 ReportUseSite(diagnostics, expr.Syntax, getMethod)
-                ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, getMethod, expr.Syntax)
+                ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, getMethod, expr.Syntax, propertyAccess.ReceiverOpt)
 
                 Select Case propertyAccess.AccessKind
                     Case PropertyAccessKind.Get

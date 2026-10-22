@@ -2479,7 +2479,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                    InternalSyntax.Feature.InitOnlySettersUsage)
                         End If
 
-                        ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, setMethod, node)
+                        ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, setMethod, node, propertyAccess.ReceiverOpt)
 
                         If ReportUseSite(diagnostics, op1.Syntax, setMethod) Then
                             isError = True

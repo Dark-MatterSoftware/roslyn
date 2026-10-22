@@ -963,7 +963,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 hasErrors = CheckSharedSymbolAccess(target, methodOrProperty.IsShared, receiver, group.QualificationKind, diagnostics)  ' give diagnostics if sharedness is wrong.
             End If
 
-            ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, methodOrProperty, node)
+            ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, methodOrProperty, node, receiver)
 
             hasErrors = hasErrors Or group.HasErrors
 

@@ -979,12 +979,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' can be reported at a later stage.
         ''' Also, check runtime/language support for the symbol.
         ''' </summary>
-        Friend Sub ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics As BindingDiagnosticBag, symbol As Symbol, node As SyntaxNode)
+        Friend Sub ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics As BindingDiagnosticBag, symbol As Symbol, node As SyntaxNode, Optional receiverOpt As BoundExpression = Nothing)
             If Not Me.SuppressObsoleteDiagnostics Then
                 ReportDiagnosticsIfObsolete(diagnostics, Me.ContainingMember, symbol, node)
             End If
 
             If Not IsNameOfArgument(node) AndAlso
+               symbol.Kind <> SymbolKind.Property AndAlso
+               If(symbol.ContainingType?.IsInterface, False) AndAlso
+               symbol.IsShared AndAlso
+               symbol.RequiresImplementation() AndAlso
+               Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+
+                ' On vbnext a shared abstract or virtual member, from any assembly, is reached through a type parameter,
+                ' which the call is constrained to.
+                If receiverOpt?.Type Is Nothing OrElse receiverOpt.Type.TypeKind <> TypeKind.TypeParameter Then
+                    ReportDiagnostic(diagnostics, node, ERRID.ERR_BadAbstractStaticMemberAccess)
+                End If
+
+            ElseIf Not IsNameOfArgument(node) AndAlso
                symbol.Kind <> SymbolKind.Property AndAlso
                Compilation.SourceModule IsNot symbol.ContainingModule AndAlso
                If(symbol.ContainingType?.IsInterface, False) Then

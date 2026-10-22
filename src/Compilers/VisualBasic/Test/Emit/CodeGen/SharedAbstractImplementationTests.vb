@@ -99,6 +99,119 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="3.75 Parse=Money.Parse TryParse=Money.TryParse", verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
 
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedAbstractPropertiesAndMethodsFromDotNet()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Numerics
+
+Module Program
+    Function Zero(Of T As INumber(Of T))() As T
+        Return T.Zero
+    End Function
+
+    Function Identities(Of T As INumber(Of T))() As String
+        Return $""{Zero(Of T)()}{T.One}""
+    End Function
+
+    Function ParseAll(Of T As IParsable(Of T))(texts As String()) As List(Of T)
+        Dim result As New List(Of T)()
+        For Each entry In texts
+            result.Add(T.Parse(entry, Globalization.CultureInfo.InvariantCulture))
+        Next
+        Return result
+    End Function
+
+    Sub Main()
+        Console.Write(Identities(Of Integer)() & "" "" & Identities(Of Decimal)())
+        Console.Write("" "" & ParseAll(Of Integer)({""4"", ""5""})(1))
+        Console.Write("" "" & ParseAll(Of Double)({""2.5""})(0).ToString(Globalization.CultureInfo.InvariantCulture))
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="01 01 5 2.5", verify:=Verification.Skipped).VerifyDiagnostics().
+                VerifyIL("Program.Zero(Of T)", <![CDATA[
+{
+  // Code size       12 (0xc)
+  .maxstack  1
+  IL_0000:  constrained. "T"
+  IL_0006:  call       "Function System.Numerics.INumberBase(Of T).get_Zero() As T"
+  IL_000b:  ret
+}
+]]>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedAbstractPropertyWithASetterFromCSharp()
+            Dim counterLibrary = CreateCSharpCompilation("
+public interface ICounter
+{
+    static abstract int Count { get; set; }
+}
+
+public struct Counter : ICounter
+{
+    public static int Count { get; set; }
+}
+", parseOptions:=CSharp.CSharpParseOptions.Default.WithLanguageVersion(CSharp.LanguageVersion.Preview),
+                compilationOptions:=New CSharp.CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90))
+
+            Dim compilation = CreateCompilation("
+Module Program
+    Function Bump(Of T As ICounter)() As Integer
+        T.Count = T.Count + 2
+        Return T.Count
+    End Function
+
+    Sub Main()
+        Bump(Of Counter)()
+        System.Console.Write(Bump(Of Counter)())
+    End Sub
+End Module
+", references:={counterLibrary.EmitToImageReference()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="4", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SharedAbstractMemberThroughTheInterfaceIsAnError()
+            Dim compilation = CreateCompilation(Shapes & "
+Module Program
+    Function Direct() As Object
+        Return IShape(Of Circle).Create()
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37314: A shared abstract or virtual interface member cannot be accessed.
+        Return IShape(Of Circle).Create()
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub SharedAbstractPropertyFromDotNetIsAnErrorOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Module Program
+    Function Zero(Of T As INumber(Of T))() As T
+        Return T.Zero
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC32098: Type parameters cannot be used as qualifiers.
+        Return T.Zero
+               ~~~~~~
+]]></expected>)
+        End Sub
+
         <Fact>
         Public Sub MetadataFlagsAndMethodImplementations()
             Dim compilation = CreateCompilation(Shapes, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)

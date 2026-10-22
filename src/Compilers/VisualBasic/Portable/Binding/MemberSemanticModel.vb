@@ -2307,7 +2307,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Public Overrides Function VisitPropertyAccess(node As BoundPropertyAccess) As BoundNode
                 Dim receiver As BoundExpression = node.ReceiverOpt
-                Debug.Assert(receiver Is Nothing OrElse Not node.PropertySymbol.IsShared OrElse receiver.HasErrors)
+                ' A shared interface property keeps its type-parameter receiver for a constrained call.
+                Debug.Assert(receiver Is Nothing OrElse Not node.PropertySymbol.IsShared OrElse receiver.HasErrors OrElse
+                             (node.PropertySymbol.ContainingType.IsInterface AndAlso receiver.Type IsNot Nothing AndAlso receiver.Type.TypeKind = TypeKind.TypeParameter))
                 Me.Visit(receiver)
 
                 Dim boundGroup As BoundPropertyGroup = node.PropertyGroupOpt
