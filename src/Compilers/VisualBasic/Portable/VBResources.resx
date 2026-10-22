@@ -6031,6 +6031,12 @@
   <data name="ERR_RefStructureAcrossSuspension" xml:space="preserve">
     <value>A value of type '{0}' cannot be kept across an 'Await' or 'Yield', because a ref structure cannot be stored while the method is suspended.</value>
   </data>
+  <data name="ERR_ByRefLocalRequiresReference" xml:space="preserve">
+    <value>A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.</value>
+  </data>
+  <data name="ERR_ByRefLocalTypeMismatch" xml:space="preserve">
+    <value>A 'ByRef' local of type '{0}' cannot refer to a variable of type '{1}'.</value>
+  </data>
   <data name="ERR_BadAsyncMethodBuilder" xml:space="preserve">
     <value>'{0}' cannot build the result of an Async function that returns '{1}'. A builder needs a 'Public Shared Function Create()' that returns the builder and a 'Public' instance property 'Task' of the return type, and has one type parameter when the return type is generic.</value>
   </data>

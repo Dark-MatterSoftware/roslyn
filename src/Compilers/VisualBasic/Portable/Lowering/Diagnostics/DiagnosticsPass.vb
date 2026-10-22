@@ -86,7 +86,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitLocal(node As BoundLocal) As BoundNode
             Dim localSymbol As LocalSymbol = node.LocalSymbol
 
-            If localSymbol.IsByRef AndAlso localSymbol.IsForEach Then
+            If localSymbol.IsByRef AndAlso (localSymbol.IsForEach OrElse localSymbol.DeclarationKind = LocalDeclarationKind.Variable) Then
                 Dim localContainingSymbol As Symbol = localSymbol.ContainingSymbol
 
                 If _containingSymbol IsNot localContainingSymbol AndAlso Not _insideNameof Then

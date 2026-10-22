@@ -310,13 +310,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public ReadOnly Property IsRef As Boolean Implements ILocalSymbol.IsRef
             Get
-                Return False
+                Return IsByRef
             End Get
         End Property
 
         Public ReadOnly Property RefKind As RefKind Implements ILocalSymbol.RefKind
             Get
-                Return RefKind.None
+                Return If(IsByRef, RefKind.Ref, RefKind.None)
             End Get
         End Property
 

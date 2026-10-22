@@ -1617,6 +1617,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_GuardThenMustLeave,
                      ERRID.ERR_GuardCannotHaveElse,
                      ERRID.ERR_RefStructureAcrossSuspension,
+                     ERRID.ERR_ByRefLocalRequiresReference,
+                     ERRID.ERR_ByRefLocalTypeMismatch,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_PossibleNullAssignment,

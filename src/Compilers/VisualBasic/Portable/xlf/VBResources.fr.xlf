@@ -87,6 +87,16 @@
         <target state="new">A base constructor argument list requires a primary constructor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ByRefLocalRequiresReference">
+        <source>A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.</source>
+        <target state="new">A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ByRefLocalTypeMismatch">
+        <source>A 'ByRef' local of type '{0}' cannot refer to a variable of type '{1}'.</source>
+        <target state="new">A 'ByRef' local of type '{0}' cannot refer to a variable of type '{1}'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_ByRefStructField2">
         <source>'{0}' is a ByRef structure and cannot be a field of '{1}'.</source>
         <target state="new">'{0}' is a ByRef structure and cannot be a field of '{1}'.</target>

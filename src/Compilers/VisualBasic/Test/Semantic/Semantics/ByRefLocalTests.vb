@@ -62,9 +62,6 @@ BC33013: Operators cannot be declared 'ByRef'.
     ByRef Shared Operator +(a As C, b As C) As C
     ~~~~~
 BC30247: 'ByRef' is not valid on a local variable declaration.
-        Dim ByRef first As Integer = values(0)
-            ~~~~~
-BC30247: 'ByRef' is not valid on a local variable declaration.
         Static ByRef count As Integer
                ~~~~~
 BC30247: 'ByRef' is not valid on a local variable declaration.

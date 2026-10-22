@@ -1018,10 +1018,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim firstStatic As SyntaxToken = Nothing
 
             For Each keywordSyntax In syntax
-                ' The vbnext parser accepts ByRef before a declaration, for ByRef functions, properties, and structures,
-                ' but it has no meaning on a local.
+                ' On vbnext ByRef before Dim declares a ByRef local. It has no meaning on a Static or Const local.
                 If keywordSyntax.Kind = SyntaxKind.ByRefKeyword Then
-                    ReportDiagnostic(diagBag, keywordSyntax, ERRID.ERR_BadLocalDimFlags1, keywordSyntax.ToString())
+                    If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse
+                       syntax.Any(SyntaxKind.StaticKeyword) OrElse syntax.Any(SyntaxKind.ConstKeyword) Then
+                        ReportDiagnostic(diagBag, keywordSyntax, ERRID.ERR_BadLocalDimFlags1, keywordSyntax.ToString())
+                    End If
+
                     Continue For
                 End If
 
@@ -1590,6 +1593,51 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return BindVariableDeclarationCore(statement.Identifier, statement.AsClause, statement.Expression, statement.Expression, diagnostics, skipAsNewInitializer:=False)
         End Function
 
+        ''' <summary>
+        ''' Dim ByRef name [As type] = reference: the local refers to the variable or ByRef result that initializes it,
+        ''' which must have the local's type.
+        ''' </summary>
+        Private Function BindByRefLocalDeclaration(
+            symbol As LocalSymbol,
+            type As TypeSymbol,
+            name As ModifiedIdentifierSyntax,
+            asClauseOpt As AsClauseSyntax,
+            valueSyntaxOpt As ExpressionSyntax,
+            reference As BoundExpression,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundLocalDeclaration
+
+            If valueSyntaxOpt Is Nothing OrElse (asClauseOpt IsNot Nothing AndAlso asClauseOpt.Kind = SyntaxKind.AsNewClause) Then
+                ReportDiagnostic(diagnostics, name, ERRID.ERR_ByRefLocalRequiresReference)
+                Return New BoundLocalDeclaration(name, symbol, Nothing, Nothing, False, hasErrors:=True)
+            End If
+
+            If reference Is Nothing Then
+                reference = BindValue(valueSyntaxOpt, diagnostics)
+            End If
+
+            If reference.HasErrors OrElse type.IsErrorType() Then
+                Return New BoundLocalDeclaration(name, symbol, MakeRValue(reference, diagnostics), Nothing, False, hasErrors:=True)
+            End If
+
+            If Not reference.IsLValue OrElse ExpressionRefersToReadonlyVariable(reference) OrElse
+               reference.Kind = BoundKind.LateMemberAccess OrElse reference.Kind = BoundKind.LateInvocation Then
+                ReportDiagnostic(diagnostics, valueSyntaxOpt, ERRID.ERR_ByRefLocalRequiresReference)
+                Return New BoundLocalDeclaration(name, symbol, MakeRValue(reference, diagnostics), Nothing, False, hasErrors:=True)
+            End If
+
+            If reference.Kind = BoundKind.PropertyAccess Then
+                reference = DirectCast(reference, BoundPropertyAccess).SetAccessKind(PropertyAccessKind.Get)
+            End If
+
+            If Not reference.Type.IsSameTypeIgnoringAll(type) Then
+                ReportDiagnostic(diagnostics, valueSyntaxOpt, ERRID.ERR_ByRefLocalTypeMismatch, type, reference.Type)
+                Return New BoundLocalDeclaration(name, symbol, reference, Nothing, False, hasErrors:=True)
+            End If
+
+            Return New BoundLocalDeclaration(name, symbol, reference, Nothing, False)
+        End Function
+
         Private Function BindVariableDeclarationCore(
             name As ModifiedIdentifierSyntax,
             asClauseOpt As AsClauseSyntax,
@@ -1632,6 +1680,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             VerifyLocalSymbolNameAndSetType(symbol, type, name, name.Identifier, diagnostics)
 
             Debug.Assert(type IsNot Nothing)
+
+            If symbol.IsByRef AndAlso symbol.DeclarationKind = LocalDeclarationKind.Variable Then
+                Return BindByRefLocalDeclaration(symbol, type, name, asClauseOpt, valueSyntaxOpt, declarationInitializer, diagnostics)
+            End If
 
             Dim isInitializedByAsNew As Boolean = asClauseOpt IsNot Nothing AndAlso asClauseOpt.Kind = SyntaxKind.AsNewClause
             Dim errSyntax = If(asClauseOpt Is Nothing, initializerSyntaxOpt, asClauseOpt.Type)

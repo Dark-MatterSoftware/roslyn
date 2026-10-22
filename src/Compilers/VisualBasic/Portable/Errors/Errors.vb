@@ -1864,8 +1864,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_GuardThenMustLeave = 37403
         ERR_GuardCannotHaveElse = 37404
         ERR_RefStructureAcrossSuspension = 37405
+        ERR_ByRefLocalRequiresReference = 37406
+        ERR_ByRefLocalTypeMismatch = 37407
 
-        ERR_NextAvailable = 37406
+        ERR_NextAvailable = 37408
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

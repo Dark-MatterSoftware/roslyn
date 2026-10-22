@@ -86,6 +86,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         End Select
                     Next
 
+                    Dim isByRef = declarationKind = LocalDeclarationKind.Variable AndAlso
+                                  localDeclSyntax.Modifiers.Any(SyntaxKind.ByRefKeyword) AndAlso
+                                  Compilation.LanguageVersion >= LanguageVersion.VbNext
+
                     For Each declarator As VariableDeclaratorSyntax In localDeclSyntax.Declarators
                         Dim asClauseOptSyntax = declarator.AsClause
                         Dim isNotAsNewAndHasInitializer = declarator.Initializer IsNot Nothing AndAlso
@@ -102,7 +106,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                              If(isNotAsNewAndHasInitializer AndAlso i = names.Count - 1,
                                                                 declarator.Initializer,
                                                                 Nothing),
-                                                             declarationKind)
+                                                             declarationKind,
+                                                             isByRef)
                             locals.Add(localVar)
                         Next
                     Next

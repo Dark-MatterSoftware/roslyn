@@ -50,7 +50,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 ' Create an initializer for the local if the local is not a constant.
-                If Not localSymbol.IsConst Then
+                If localSymbol.IsByRef Then
+                    result = RewriteLocalDeclarationAsInitializer(node, VisitExpressionNode(initializerOpt), staticLocalBackingFields)
+                ElseIf Not localSymbol.IsConst Then
                     Dim rewrittenInitializer As BoundExpression = VisitAndGenerateObjectCloneIfNeeded(initializerOpt)
                     result = RewriteLocalDeclarationAsInitializer(node, rewrittenInitializer, staticLocalBackingFields, placeholder Is Nothing)
                 End If
@@ -89,6 +91,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                             BoundObjectInitializerExpression).CreateTemporaryLocalForInitialization))
 
                 result = New BoundExpressionStatement(rewrittenInitializer.Syntax, rewrittenInitializer)
+
+            ElseIf node.LocalSymbol.IsByRef Then
+                ' Dim ByRef stores the address of the variable that initializes it.
+                result = New BoundExpressionStatement(
+                    rewrittenInitializer.Syntax,
+                    New BoundReferenceAssignment(
+                        rewrittenInitializer.Syntax,
+                        New BoundLocal(node.Syntax, node.LocalSymbol, isLValue:=True, type:=node.LocalSymbol.Type),
+                        rewrittenInitializer,
+                        isLValue:=True,
+                        type:=node.LocalSymbol.Type))
 
             Else
                 result = New BoundExpressionStatement(

@@ -31,7 +31,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub Validate()
             If InitializerOpt IsNot Nothing Then
 
-                InitializerOpt.AssertRValue()
+                ' A ByRef local is initialized with the variable it refers to.
+                If Not LocalSymbol.IsByRef Then
+                    InitializerOpt.AssertRValue()
+                End If
 
                 Debug.Assert(DeclarationInitializerOpt IsNot IdentifierInitializerOpt)
 
