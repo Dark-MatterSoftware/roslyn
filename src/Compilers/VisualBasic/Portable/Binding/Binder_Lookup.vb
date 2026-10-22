@@ -1807,6 +1807,10 @@ ExitForFor:
                     result.MergePrioritized(interfaceResult)
                     interfaceResult.Free()
                     If Not result.IsClear Then
+                        If constraintClass Is Nothing AndAlso binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                            AddBaseTypeMethodOverloads(result, typeParameter, name, arity, options, binder, tempResult, useSiteInfo)
+                        End If
+
                         Return
                     End If
                 End If
@@ -1817,6 +1821,61 @@ ExitForFor:
                     Dim baseType = GetTypeParameterBaseType(typeParameter)
                     LookupInClass(result, baseType, name, arity, options, baseType, binder, tempResult, useSiteInfo)
                 End If
+            End Sub
+
+            ''' <summary>
+            ''' On vbnext, the instance methods that interface constraints declare overload the methods of the same name in
+            ''' System.ValueType or System.Object, as in C#, so value.ToString() binds on a T As IFormattable. A base type
+            ''' method with the same signature as a constraint's method stays hidden by it.
+            ''' </summary>
+            Private Shared Sub AddBaseTypeMethodOverloads(result As LookupResult,
+                         typeParameter As TypeParameterSymbol,
+                         name As String,
+                         arity As Integer,
+                         options As LookupOptions,
+                         binder As Binder,
+                         tempResult As LookupResult,
+                         <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol))
+
+                If Not result.IsGood Then
+                    Return
+                End If
+
+                For Each symbol In result.Symbols
+                    If symbol.Kind <> SymbolKind.Method OrElse symbol.IsShared Then
+                        Return
+                    End If
+                Next
+
+                Dim baseType = GetTypeParameterBaseType(typeParameter)
+                Dim baseResult = LookupResult.GetInstance()
+                LookupInClass(baseResult, baseType, name, arity, options, baseType, binder, tempResult, useSiteInfo)
+
+                If baseResult.IsGood Then
+                    Const sameSignature = SymbolComparisonResults.AllMismatches And
+                                          Not (SymbolComparisonResults.MismatchesForConflictingMethods Or SymbolComparisonResults.NameMismatch)
+                    Dim constraintMethodCount = result.Symbols.Count
+
+                    For Each candidate In baseResult.Symbols
+                        If candidate.Kind <> SymbolKind.Method OrElse candidate.IsShared Then
+                            Continue For
+                        End If
+
+                        Dim hidden = False
+                        For i = 0 To constraintMethodCount - 1
+                            If MethodSignatureComparer.DetailedCompare(DirectCast(result.Symbols(i), MethodSymbol), DirectCast(candidate, MethodSymbol), sameSignature) = 0 Then
+                                hidden = True
+                                Exit For
+                            End If
+                        Next
+
+                        If Not hidden Then
+                            result.Symbols.Add(candidate)
+                        End If
+                    Next
+                End If
+
+                baseResult.Free()
             End Sub
 
             Private Shared Function CheckAndClearMethodsOnlyOption(ByRef options As LookupOptions) As Boolean

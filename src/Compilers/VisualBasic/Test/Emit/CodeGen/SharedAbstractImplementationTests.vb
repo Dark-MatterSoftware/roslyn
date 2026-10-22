@@ -304,6 +304,91 @@ BC32098: Type parameters cannot be used as qualifiers.
 ]]></expected>)
         End Sub
 
+        Private Const ObjectMembers As String = "
+Imports System
+Imports System.Globalization
+
+Interface INamed
+    Function ToString() As String
+End Interface
+
+Class Named
+    Implements INamed
+
+    Public Overrides Function ToString() As String Implements INamed.ToString
+        Return ""named""
+    End Function
+End Class
+
+Module Program
+    Function Show(Of T As IFormattable)(value As T) As String
+        Return value.ToString() & ""/"" & value.ToString(""N1"", CultureInfo.InvariantCulture)
+    End Function
+
+    Function Same(Of T As IEquatable(Of T))(value As T, other As T) As String
+        Return value.Equals(other).ToString() & ""/"" & value.Equals(CObj(other)).ToString() & ""/"" & (value.GetHashCode() = other.GetHashCode()).ToString()
+    End Function
+
+    Function Name(Of T As INamed)(value As T) As String
+        Return value.ToString()
+    End Function
+
+    Sub Main()
+        Console.Write(Show(3) & "" "" & Same(4, 4) & "" "" & Name(New Named()))
+    End Sub
+End Module
+"
+
+        <Fact>
+        Public Sub ObjectMembersOnATypeParameterWithInterfaceConstraints()
+            Dim compilation = CreateCompilation(ObjectMembers, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3/3.0 True/True/True named").VerifyDiagnostics().
+                VerifyIL("Program.Name(Of T)", <![CDATA[
+{
+  // Code size       14 (0xe)
+  .maxstack  1
+  IL_0000:  ldarga.s   V_0
+  IL_0002:  constrained. "T"
+  IL_0008:  callvirt   "Function INamed.ToString() As String"
+  IL_000d:  ret
+}
+]]>)
+        End Sub
+
+        <Fact>
+        Public Sub ObjectMembersOnATypeParameterWithInterfaceConstraintsOn17_13()
+            Dim compilation = CreateCompilation(ObjectMembers, options:=TestOptions.ReleaseExe, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30455: Argument not specified for parameter 'format' of 'Function ToString(format As String, formatProvider As IFormatProvider) As String'.
+        Return value.ToString() & "/" & value.ToString("N1", CultureInfo.InvariantCulture)
+                     ~~~~~~~~
+BC30455: Argument not specified for parameter 'formatProvider' of 'Function ToString(format As String, formatProvider As IFormatProvider) As String'.
+        Return value.ToString() & "/" & value.ToString("N1", CultureInfo.InvariantCulture)
+                     ~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ToStringOnAGenericNumber()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Module Program
+    Function Describe(Of T As INumber(Of T))(value As T) As String
+        Return T.Zero.ToString() & "".."" & value.ToString()
+    End Function
+
+    Sub Main()
+        System.Console.Write(Describe(7) & "" "" & Describe(2.5D))
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="0..7 0..2.5", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
         <Fact>
         Public Sub MetadataFlagsAndMethodImplementations()
             Dim compilation = CreateCompilation(Shapes, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
