@@ -235,6 +235,90 @@ BC32098: Type parameters cannot be used as qualifiers.
 ]]></expected>)
         End Sub
 
+        Private Function DescribedLibrary() As MetadataReference
+            Return CreateCSharpCompilation("
+public interface IDescribed<TSelf> where TSelf : IDescribed<TSelf>
+{
+    static abstract TSelf Create();
+    static virtual string Describe() => ""default"";
+}
+", parseOptions:=CSharp.CSharpParseOptions.Default.WithLanguageVersion(CSharp.LanguageVersion.Preview),
+                compilationOptions:=New CSharp.CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90)).EmitToImageReference()
+        End Function
+
+        Private Const Described As String = "
+Structure Plain
+    Implements IDescribed(Of Plain)
+
+    Public Shared Function Create() As Plain Implements IDescribed(Of Plain).Create
+        Return New Plain()
+    End Function
+End Structure
+
+Structure Custom
+    Implements IDescribed(Of Custom)
+
+    Public Shared Function Create() As Custom Implements IDescribed(Of Custom).Create
+        Return New Custom()
+    End Function
+
+    Public Shared Function Describe() As String Implements IDescribed(Of Custom).Describe
+        Return ""custom""
+    End Function
+End Structure
+
+Module Program
+    Function Show(Of T As IDescribed(Of T))() As String
+        Return T.Describe()
+    End Function
+
+    Sub Main()
+        System.Console.Write(Show(Of Plain)() & "" "" & Show(Of Custom)())
+    End Sub
+End Module
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedVirtualMemberWithADefaultBodyNeedNotBeSupplied()
+            Dim compilation = CreateCompilation(Described, references:={DescribedLibrary()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="default custom", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SharedAbstractMemberMustStillBeSupplied()
+            Dim compilation = CreateCompilation("
+Structure Missing
+    Implements IDescribed(Of Missing)
+End Structure
+", references:={DescribedLibrary()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37315: Structure 'Missing' cannot implement interface 'IDescribed(Of Missing)' because it contains shared abstract or virtual 'Function Create() As Missing'.
+    Implements IDescribed(Of Missing)
+               ~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub SharedVirtualMemberWithADefaultBodyIsRequiredOn17_13()
+            Dim compilation = CreateCompilation("
+Structure Missing
+    Implements IDescribed(Of Missing)
+End Structure
+", references:={DescribedLibrary()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37315: Structure 'Missing' cannot implement interface 'IDescribed(Of Missing)' because it contains shared abstract or virtual 'Function Create() As Missing'.
+    Implements IDescribed(Of Missing)
+               ~~~~~~~~~~~~~~~~~~~~~~
+BC37315: Structure 'Missing' cannot implement interface 'IDescribed(Of Missing)' because it contains shared abstract or virtual 'Function Describe() As String'.
+    Implements IDescribed(Of Missing)
+               ~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
         <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub SharedAbstractPropertyWithASetterFromCSharp()
             Dim counterLibrary = CreateCSharpCompilation("

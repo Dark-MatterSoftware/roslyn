@@ -4310,8 +4310,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                     Dim useSiteInfo = ifaceMember.GetUseSiteInfo()
 
                                     If ShouldReportImplementationError(ifaceMember) Then
+                                        ' On vbnext a shared virtual member with a default body, such as op_CheckedAddition, need not be supplied.
                                         If implementingSet.Count = 0 AndAlso
-                                           ImplementsHelper.FindMostSpecificSourceDefaultImplementation(ifaceMember, Me) Is Nothing Then
+                                           ImplementsHelper.FindMostSpecificSourceDefaultImplementation(ifaceMember, Me) Is Nothing AndAlso
+                                           Not (ifaceMember.IsShared AndAlso Not ifaceMember.IsMustOverride AndAlso
+                                                DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext) Then
                                             'member was not implemented.
                                             Dim diag = If(useSiteInfo.DiagnosticInfo, ErrorFactory.ErrorInfo(If(ifaceMember.IsShared, ERRID.ERR_UnimplementedSharedMember, ERRID.ERR_UnimplementedMember3),
                                                                             If(Me.IsStructureType(), "Structure", "Class"),
