@@ -5702,13 +5702,27 @@ class Program
                 SymbolDisplayPartKind.Space,
                 SymbolDisplayPartKind.StructName)
 
-            Verify(SymbolDisplay.ToDisplayParts(locals(1), format),
-                "r3 As R",
-                SymbolDisplayPartKind.LocalName,
-                SymbolDisplayPartKind.Space,
-                SymbolDisplayPartKind.Keyword,
-                SymbolDisplayPartKind.Space,
-                SymbolDisplayPartKind.StructName)
+            If includeScoped Then
+                Verify(SymbolDisplay.ToDisplayParts(locals(1), format),
+                    "ByRef ReadOnly r3 As R",
+                    SymbolDisplayPartKind.Keyword,
+                    SymbolDisplayPartKind.Space,
+                    SymbolDisplayPartKind.Keyword,
+                    SymbolDisplayPartKind.Space,
+                    SymbolDisplayPartKind.LocalName,
+                    SymbolDisplayPartKind.Space,
+                    SymbolDisplayPartKind.Keyword,
+                    SymbolDisplayPartKind.Space,
+                    SymbolDisplayPartKind.StructName)
+            Else
+                Verify(SymbolDisplay.ToDisplayParts(locals(1), format),
+                    "r3 As R",
+                    SymbolDisplayPartKind.LocalName,
+                    SymbolDisplayPartKind.Space,
+                    SymbolDisplayPartKind.Keyword,
+                    SymbolDisplayPartKind.Space,
+                    SymbolDisplayPartKind.StructName)
+            End If
         End Sub
 
         <Fact, WorkItem(38783, "https://github.com/dotnet/roslyn/issues/38783")>

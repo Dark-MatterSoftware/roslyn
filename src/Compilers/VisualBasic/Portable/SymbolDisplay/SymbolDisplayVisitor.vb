@@ -279,6 +279,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' a reasonable name so that tests can clearly describe what these are.
             Dim name = If(symbol.Name, "<anonymous local>")
 
+            If symbol.IsRef AndAlso Format.LocalOptions.IncludesOption(SymbolDisplayLocalOptions.IncludeRef) Then
+                AddKeyword(SyntaxKind.ByRefKeyword)
+                AddSpace()
+
+                If symbol.RefKind = RefKind.RefReadOnly Then
+                    AddKeyword(SyntaxKind.ReadOnlyKeyword)
+                    AddSpace()
+                End If
+            End If
+
             If symbol.IsConst Then
                 Builder.Add(CreatePart(SymbolDisplayPartKind.ConstantName, symbol, name, noEscaping:=False))
             Else

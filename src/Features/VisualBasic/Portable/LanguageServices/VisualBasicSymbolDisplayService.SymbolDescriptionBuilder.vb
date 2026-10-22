@@ -16,6 +16,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.LanguageServices
 
             Private Shared ReadOnly s_minimallyQualifiedFormat As SymbolDisplayFormat = SymbolDisplayFormat.MinimallyQualifiedFormat _
                 .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.UseErrorTypeSymbolName) _
+                .AddLocalOptions(SymbolDisplayLocalOptions.IncludeRef) _
                 .RemoveParameterOptions(SymbolDisplayParameterOptions.IncludeDefaultValue)
 
             Private Shared ReadOnly s_minimallyQualifiedFormatWithConstants As SymbolDisplayFormat = s_minimallyQualifiedFormat _

@@ -100,6 +100,25 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.QuickInfo
             Await TestWithImportsAsync(markupInClass, expectedResults)
         End Function
 
+        <Theory>
+        <InlineData("Dim ByRef", "ByRef")>
+        <InlineData("Dim ByRef ReadOnly", "ByRef ReadOnly")>
+        Public Async Function TestByRefLocal(declaration As String, shown As String) As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Class C
+    Sub M(values As Integer())
+        " & declaration & " first = values(0)
+        System.Console.Write(fir$$st)
+    End Sub
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.local_variable}) {shown} first As Integer"))
+            End Using
+        End Function
+
         <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",

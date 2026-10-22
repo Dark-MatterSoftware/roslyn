@@ -231,6 +231,22 @@ If TypeOf o IsNot String Into s Then Return",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestByRefLocal(testHost As TestHost) As Task
+            Await TestInMethodAsync("Dim ByRef ReadOnly first = values(0)",
+                testHost,
+                s_vbNext,
+                Keyword("Dim"),
+                Keyword("ByRef"),
+                Keyword("ReadOnly"),
+                Local("first"),
+                Operators.Equals,
+                Identifier("values"),
+                Punctuation.OpenParen,
+                Number("0"),
+                Punctuation.CloseParen)
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestForEachDeconstruction(testHost As TestHost) As Task
             Await TestInMethodAsync("For Each (name, count As Integer) In items
 Next",

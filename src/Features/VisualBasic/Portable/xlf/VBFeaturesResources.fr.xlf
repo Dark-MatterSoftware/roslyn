@@ -52,6 +52,11 @@
         <target state="translated">Changer en 'TryCast'</target>
         <note />
       </trans-unit>
+      <trans-unit id="Declares_a_local_that_refers_to_a_variable_instead_of_holding_its_own_value">
+        <source>Declares a local that refers to a variable instead of holding its own value.</source>
+        <target state="new">Declares a local that refers to a variable instead of holding its own value.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Declares_a_record_class_or_record_structure_that_compares_by_value">
         <source>Declares a record class or record structure that compares by value.</source>
         <target state="new">Declares a record class or record structure that compares by value.</target>
@@ -128,6 +133,11 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</target>
         <source>Organize Imports</source>
         <target state="translated">Organiser les Imports</target>
         <note>{Locked="Import"}</note>
+      </trans-unit>
+      <trans-unit id="Prevents_writes_through_a_ByRef_local">
+        <source>Prevents writes through a 'ByRef' local.</source>
+        <target state="new">Prevents writes through a 'ByRef' local.</target>
+        <note />
       </trans-unit>
       <trans-unit id="Project_level_Imports">
         <source>Project level 'Imports'</source>

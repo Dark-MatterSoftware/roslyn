@@ -249,6 +249,34 @@ End Module</File>, "As")
         End Sub
 
         <Fact>
+        Public Sub ByRefAfterDimAndReadOnlyAfterDimByRef()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F()
+        Dim |
+    End Sub
+End Module</File>, "ByRef")
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F()
+        Dim ByRef |
+    End Sub
+End Module</File>, "ReadOnly")
+        End Sub
+
+        <Fact>
+        Public Sub ByRefMissingAfterStaticAndOn17_13()
+            VerifyRecommendationsMissing(<File VbNext="True">Module M
+    Sub F()
+        Static |
+    End Sub
+End Module</File>, "ByRef")
+            VerifyRecommendationsMissing(<File>Module M
+    Sub F()
+        Dim |
+    End Sub
+End Module</File>, "ByRef")
+        End Sub
+
+        <Fact>
         Public Sub InAfterParenthesizedForEachControlVariableMissingOn17_13()
             VerifyRecommendationsMissing(<File>Module M
     Sub F()
