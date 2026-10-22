@@ -47,7 +47,7 @@ After the declaration, assigning the local writes to the referenced variable. Th
 
 ### `ByRef ReadOnly`
 
-`Dim ByRef ReadOnly name = reference` refers to a variable without allowing writes through it. Its initializer may also be a `ref readonly` result from phase 35, such as an element of a `ReadOnlySpan(Of T)`. Assigning such a local, or passing it `ByRef` where the callee could write, is an error. A plain `Dim ByRef` local initialized from a `ref readonly` result is an error, because it would allow writes.
+`Dim ByRef ReadOnly name = reference` refers to a variable without allowing writes through it. Its initializer may also be a `ReadOnly` field, another `ByRef ReadOnly` local, or a `ref readonly` result from phase 35, such as an element of a `ReadOnlySpan(Of T)`. Assigning or compound assigning such a local is an error. Passing it `ByRef` passes a copy, as passing a `ReadOnly` field `ByRef` does, so the callee cannot write through it. A plain `Dim ByRef` local initialized from any of these is an error, because it would allow writes.
 
 ### Lambdas, `Async` methods, and iterators
 

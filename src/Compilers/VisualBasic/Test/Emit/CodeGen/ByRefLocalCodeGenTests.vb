@@ -173,6 +173,124 @@ BC37384: 'ByRef' variable 'first' cannot be used in a lambda expression.
         End Sub
 
         <Fact>
+        Public Sub ByRefReadOnlyLocalsRead()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Class Holder
+    Public ReadOnly Fixed As Integer = 7
+    Public Count As Integer
+End Class
+
+Module Program
+    Sub Show(ByRef value As Integer)
+        value += 100
+        Console.Write(value & "" "")
+    End Sub
+
+    Sub Main()
+        Dim holder As New Holder()
+        Dim ByRef ReadOnly fixedRef = holder.Fixed
+        Dim ByRef ReadOnly countRef As Integer = holder.Count
+        holder.Count = 3
+        Show(countRef)
+        Dim ByRef ReadOnly again = countRef
+        Console.Write($""{fixedRef} {countRef} {again} {holder.Count}"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            ' Taking the address of a ReadOnly field, as C# does for ref readonly, is not verifiable.
+            CompileAndVerify(compilation, expectedOutput:="103 7 3 3 3", verify:=Verification.FailsPEVerify).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ByRefReadOnlyLocalsOverReadOnlySpans()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Sub Main()
+        Dim text = ""hello""
+        Dim ByRef ReadOnly letter = text.AsSpan()(1)
+        Dim numbers As Integer() = {1, 2, 3}
+        Dim view As ReadOnlySpan(Of Integer) = numbers
+        Dim ByRef ReadOnly second = view(1)
+        numbers(1) = 42
+        Console.Write($""{letter} {second}"")
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="e 42", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ByRefReadOnlyLocalErrors()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Class Holder
+    Public ReadOnly Fixed As Integer = 7
+End Class
+
+Module Program
+    Sub M(holder As Holder, numbers As Integer())
+        Dim ByRef ReadOnly fixedRef = holder.Fixed
+        fixedRef = 1
+        fixedRef += 1
+        Dim ByRef writable = fixedRef
+        Dim view As ReadOnlySpan(Of Integer) = numbers
+        Dim ByRef element = view(0)
+        Dim ByRef ReadOnly computed = numbers(0) + 1
+        Dim ReadOnly plain = 1
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30064: 'ReadOnly' variable cannot be the target of an assignment.
+        fixedRef = 1
+        ~~~~~~~~
+BC30064: 'ReadOnly' variable cannot be the target of an assignment.
+        fixedRef += 1
+        ~~~~~~~~
+BC37406: A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.
+        Dim ByRef writable = fixedRef
+                             ~~~~~~~~
+BC37406: A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.
+        Dim ByRef element = view(0)
+                            ~~~~~~~
+BC37406: A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.
+        Dim ByRef ReadOnly computed = numbers(0) + 1
+                                      ~~~~~~~~~~~~~~
+BC30247: 'ReadOnly' is not valid on a local variable declaration.
+        Dim ReadOnly plain = 1
+            ~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub ByRefReadOnlyLocalSemanticModel()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub M(values As Integer())
+        Dim ByRef ReadOnly first = values(0)
+        System.Console.Write(first)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim declaration = tree.GetRoot().DescendantNodes().OfType(Of Syntax.ModifiedIdentifierSyntax)().Single(Function(n) n.Identifier.ValueText = "first")
+            Dim local = DirectCast(model.GetDeclaredSymbol(declaration), ILocalSymbol)
+            Assert.True(local.IsRef)
+            Assert.Equal(Microsoft.CodeAnalysis.RefKind.RefReadOnly, local.RefKind)
+        End Sub
+
+        <Fact>
         Public Sub ByRefLocalSemanticModel()
             Dim compilation = CreateCompilation("
 Module Program

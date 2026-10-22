@@ -508,7 +508,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
             Dim tempOpt = EmitReceiverRef(fieldAccess.ReceiverOpt, isAccessConstrained:=False, addressKind:=addressKind)
 
-            Debug.Assert(HasHome(fieldAccess), "taking a ref of homeless field")
+            ' Dim ByRef ReadOnly refers to a ReadOnly field through an immutable address.
+            Debug.Assert(HasHome(fieldAccess) OrElse addressKind = AddressKind.Immutable, "taking a ref of homeless field")
             _builder.EmitOpCode(ILOpCode.Ldflda)
 
             EmitSymbolToken(field, fieldAccess.Syntax)

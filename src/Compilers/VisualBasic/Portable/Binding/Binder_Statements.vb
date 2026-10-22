@@ -1028,6 +1028,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Continue For
                 End If
 
+                ' On vbnext Dim ByRef ReadOnly declares a ByRef local that cannot be written through.
+                If keywordSyntax.Kind = SyntaxKind.ReadOnlyKeyword AndAlso
+                   Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                   syntax.Any(SyntaxKind.ByRefKeyword) AndAlso
+                   Not syntax.Any(SyntaxKind.StaticKeyword) AndAlso Not syntax.Any(SyntaxKind.ConstKeyword) Then
+                    Continue For
+                End If
+
                 Dim currentModifier As SourceMemberFlags = MapKeywordToFlag(keywordSyntax)
                 If currentModifier = SourceMemberFlags.None Then
                     Continue For
@@ -1620,7 +1628,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New BoundLocalDeclaration(name, symbol, MakeRValue(reference, diagnostics), Nothing, False, hasErrors:=True)
             End If
 
-            If Not reference.IsLValue OrElse ExpressionRefersToReadonlyVariable(reference) OrElse
+            If symbol.IsReadOnly Then
+                ' Dim ByRef ReadOnly also refers to a ReadOnly variable or a ref readonly result, which reads as a value.
+                reference = AsReadOnlyReference(reference)
+            End If
+
+            If Not reference.IsLValue OrElse
+               (ExpressionRefersToReadonlyVariable(reference) AndAlso Not symbol.IsReadOnly) OrElse
                reference.Kind = BoundKind.LateMemberAccess OrElse reference.Kind = BoundKind.LateInvocation Then
                 ReportDiagnostic(diagnostics, valueSyntaxOpt, ERRID.ERR_ByRefLocalRequiresReference)
                 Return New BoundLocalDeclaration(name, symbol, MakeRValue(reference, diagnostics), Nothing, False, hasErrors:=True)
@@ -1636,6 +1650,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundLocalDeclaration(name, symbol, reference, Nothing, False)
+        End Function
+
+        ''' <summary>
+        ''' A ref readonly call or property result, which phase 35 binds as a value, refers to a variable as the
+        ''' initializer of a Dim ByRef ReadOnly local.
+        ''' </summary>
+        Private Shared Function AsReadOnlyReference(reference As BoundExpression) As BoundExpression
+            Select Case reference.Kind
+                Case BoundKind.Call
+                    Dim [call] = DirectCast(reference, BoundCall)
+                    If Not [call].IsLValue AndAlso [call].Method.ReturnsByRef Then
+                        Return [call].Update([call].Method, [call].MethodGroupOpt, [call].ReceiverOpt, [call].Arguments, [call].DefaultArguments,
+                                             [call].ConstantValueOpt, isLValue:=True, [call].SuppressObjectClone, [call].Type)
+                    End If
+
+                Case BoundKind.PropertyAccess
+                    Dim access = DirectCast(reference, BoundPropertyAccess)
+                    If Not access.IsLValue AndAlso access.PropertySymbol.ReturnsByRef Then
+                        Return access.Update(access.PropertySymbol, access.PropertyGroupOpt, access.AccessKind, access.IsWriteable, isLValue:=True,
+                                             access.ReceiverOpt, access.Arguments, access.DefaultArguments, access.Type)
+                    End If
+
+                Case BoundKind.FieldAccess
+                    Dim access = DirectCast(reference, BoundFieldAccess)
+                    If Not access.IsLValue AndAlso access.FieldSymbol.IsReadOnly AndAlso Not access.FieldSymbol.IsConst Then
+                        Return New BoundFieldAccess(access.Syntax, access.ReceiverOpt, access.FieldSymbol, isLValue:=True, type:=access.Type)
+                    End If
+
+                Case BoundKind.Local
+                    Dim local = DirectCast(reference, BoundLocal)
+                    If Not local.IsLValue AndAlso local.LocalSymbol.IsReadOnly AndAlso Not local.LocalSymbol.IsConst Then
+                        Return New BoundLocal(local.Syntax, local.LocalSymbol, isLValue:=True, type:=local.Type)
+                    End If
+            End Select
+
+            Return reference
         End Function
 
         Private Function BindVariableDeclarationCore(

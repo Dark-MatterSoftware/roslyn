@@ -316,7 +316,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public ReadOnly Property RefKind As RefKind Implements ILocalSymbol.RefKind
             Get
-                Return If(IsByRef, RefKind.Ref, RefKind.None)
+                Return If(IsByRef, If(IsReadOnly, RefKind.RefReadOnly, RefKind.Ref), RefKind.None)
             End Get
         End Property
 
@@ -850,6 +850,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Private NotInheritable Class VariableLocalSymbol
             Inherits SourceLocalSymbol
+
+            ''' <summary>
+            ''' Dim ByRef ReadOnly declares a ByRef local that cannot be written through.
+            ''' </summary>
+            Friend Overrides ReadOnly Property IsReadOnly As Boolean
+                Get
+                    If MyBase.IsReadOnly Then
+                        Return True
+                    End If
+
+                    Dim declaration = TryCast(_modifiedIdentifierOpt?.Parent?.Parent, LocalDeclarationStatementSyntax)
+                    Return IsByRef AndAlso declaration IsNot Nothing AndAlso declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword)
+                End Get
+            End Property
 
             Private ReadOnly _modifiedIdentifierOpt As ModifiedIdentifierSyntax ' either Nothing or a modifier identifier containing the type modifiers.
             Private ReadOnly _asClauseOpt As AsClauseSyntax ' can be Nothing if no AsClause

@@ -2025,10 +2025,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             End If
         End Sub
 
+        ''' <summary>
+        ''' Dim ByRef ReadOnly never writes through its reference, so it refers to a ref readonly result or a ReadOnly field
+        ''' instead of a copy, which taking a writable or immutable address would make.
+        ''' </summary>
+        Private Function EmitReadOnlyReference(referent As BoundExpression) As LocalDefinition
+            Select Case referent.Kind
+                Case BoundKind.Call
+                    Debug.Assert(DirectCast(referent, BoundCall).Method.ReturnsByRef)
+                    EmitCallExpression(DirectCast(referent, BoundCall), UseKind.UsedAsAddress)
+                    Return Nothing
+
+                Case BoundKind.FieldAccess
+                    Return EmitFieldAddress(DirectCast(referent, BoundFieldAccess), AddressKind.Immutable)
+
+                Case Else
+                    Return EmitAddress(referent, AddressKind.Immutable)
+            End Select
+        End Function
+
         Private Sub EmitReferenceAssignment(capture As BoundReferenceAssignment, used As Boolean, Optional needReference As Boolean = False)
             Debug.Assert(Not needReference OrElse used)
 
-            Dim temp = EmitAddress(capture.LValue, addressKind:=AddressKind.Writeable)
+            Dim temp = If(capture.ByRefLocal.LocalSymbol.IsReadOnly,
+                          EmitReadOnlyReference(capture.LValue),
+                          EmitAddress(capture.LValue, addressKind:=AddressKind.Writeable))
 
             Debug.Assert(temp Is Nothing, "reference assignment should not clone the referent")
 
