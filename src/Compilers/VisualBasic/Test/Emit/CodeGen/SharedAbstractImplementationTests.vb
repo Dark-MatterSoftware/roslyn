@@ -320,6 +320,105 @@ BC37315: Structure 'Missing' cannot implement interface 'IDescribed(Of Missing)'
         End Sub
 
         <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedPropertyImplementsDotNetSharedAbstractProperty()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Structure Meters
+    Implements IAdditiveIdentity(Of Meters, Meters)
+
+    Public Value As Double
+
+    Public Shared ReadOnly Property AdditiveIdentity As Meters Implements IAdditiveIdentity(Of Meters, Meters).AdditiveIdentity
+        Get
+            Return New Meters With {.Value = 0.5}
+        End Get
+    End Property
+End Structure
+
+Module Program
+    Function Identity(Of T As IAdditiveIdentity(Of T, T))() As T
+        Return T.AdditiveIdentity
+    End Function
+
+    Sub Main()
+        System.Console.Write(Identity(Of Meters)().Value.ToString(System.Globalization.CultureInfo.InvariantCulture) & "" "" & Identity(Of Integer)())
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="0.5 0", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedPropertyWithASetterImplementsCSharpSharedAbstractProperty()
+            Dim counterLibrary = CreateCSharpCompilation("
+public interface ICounter
+{
+    static abstract int Count { get; set; }
+}
+", parseOptions:=CSharp.CSharpParseOptions.Default.WithLanguageVersion(CSharp.LanguageVersion.Preview),
+                compilationOptions:=New CSharp.CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90))
+
+            Dim compilation = CreateCompilation("
+Class Counter
+    Implements ICounter
+
+    Private Shared _count As Integer
+
+    Public Shared Property Count As Integer Implements ICounter.Count
+        Get
+            Return _count
+        End Get
+        Set(value As Integer)
+            _count = value * 10
+        End Set
+    End Property
+End Class
+
+Module Program
+    Function Bump(Of T As ICounter)() As Integer
+        T.Count = 2
+        Return T.Count
+    End Function
+
+    Sub Main()
+        System.Console.Write(Bump(Of Counter)())
+    End Sub
+End Module
+", references:={counterLibrary.EmitToImageReference()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="20", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SharedPropertyImplementsIsAnErrorOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Structure Meters
+    Implements IAdditiveIdentity(Of Meters, Meters)
+
+    Public Shared ReadOnly Property AdditiveIdentity As Meters Implements IAdditiveIdentity(Of Meters, Meters).AdditiveIdentity
+        Get
+            Return New Meters()
+        End Get
+    End Property
+End Structure
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37315: Structure 'Meters' cannot implement interface 'IAdditiveIdentity(Of Meters, Meters)' because it contains shared abstract or virtual 'ReadOnly Property AdditiveIdentity As Meters'.
+    Implements IAdditiveIdentity(Of Meters, Meters)
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC30505: Methods or events that implement interface members cannot be declared 'Shared'.
+    Public Shared ReadOnly Property AdditiveIdentity As Meters Implements IAdditiveIdentity(Of Meters, Meters).AdditiveIdentity
+           ~~~~~~
+]]></expected>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub SharedAbstractPropertyWithASetterFromCSharp()
             Dim counterLibrary = CreateCSharpCompilation("
 public interface ICounter

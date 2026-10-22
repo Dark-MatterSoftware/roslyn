@@ -1455,8 +1455,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                      syntax As PropertyStatementSyntax,
                                                      diagnostics As BindingDiagnosticBag) As ImmutableArray(Of PropertySymbol)
             If syntax.ImplementsClause IsNot Nothing Then
-                If prop.IsShared And Not containingType.IsModuleType Then
-                    ' Implementing with shared methods is illegal.
+                If prop.IsShared And Not containingType.IsModuleType AndAlso
+                   containingType.DeclaringCompilation.LanguageVersion < LanguageVersion.VbNext Then
+                    ' Implementing with shared properties is illegal below vbnext.
                     ' Module case is caught inside ProcessImplementsClause and has different message.
                     Binder.ReportDiagnostic(diagnostics,
                                             syntax.Modifiers.First(SyntaxKind.SharedKeyword),
