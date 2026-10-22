@@ -144,6 +144,98 @@ End Module
         End Sub
 
         <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub GenericAndSharedVirtualMembersFromDotNet()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Numerics
+
+Module Program
+    Function Two(Of T As INumber(Of T))() As T
+        Return T.CreateChecked(2)
+    End Function
+
+    Function Clamped(Of T As INumber(Of T))(value As Long) As T
+        Return T.CreateSaturating(Of Long)(value)
+    End Function
+
+    Function IsEven(Of T As INumber(Of T))(value As T) As Boolean
+        Return T.IsEvenInteger(value)
+    End Function
+
+    Sub Main()
+        Console.Write($""{Two(Of Double)()} {Two(Of Byte)()} {Clamped(Of Byte)(300)} {IsEven(Of Integer)(4)} {IsEven(Of Integer)(3)}"")
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="2 2 255 True False", verify:=Verification.Skipped).VerifyDiagnostics().
+                VerifyIL("Program.Two(Of T)", <![CDATA[
+{
+  // Code size       13 (0xd)
+  .maxstack  1
+  IL_0000:  ldc.i4.2
+  IL_0001:  constrained. "T"
+  IL_0007:  call       "Function System.Numerics.INumberBase(Of T).CreateChecked(Of Integer)(Integer) As T"
+  IL_000c:  ret
+}
+]]>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedVirtualMemberWithADefaultBodyFromCSharp()
+            Dim greeterLibrary = CreateCSharpCompilation("
+public interface IGreeter
+{
+    static virtual string Greet() => ""hello"";
+}
+
+public struct Plain : IGreeter
+{
+}
+
+public struct Loud : IGreeter
+{
+    static string IGreeter.Greet() => ""HELLO"";
+}
+", parseOptions:=CSharp.CSharpParseOptions.Default.WithLanguageVersion(CSharp.LanguageVersion.Preview),
+                compilationOptions:=New CSharp.CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90))
+
+            Dim compilation = CreateCompilation("
+Module Program
+    Function Greet(Of T As IGreeter)() As String
+        Return T.Greet()
+    End Function
+
+    Sub Main()
+        System.Console.Write(Greet(Of Plain)() & "" "" & Greet(Of Loud)())
+    End Sub
+End Module
+", references:={greeterLibrary.EmitToImageReference()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="hello HELLO", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub GenericSharedMemberFromDotNetIsAnErrorOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Module Program
+    Function Two(Of T As INumber(Of T))() As T
+        Return T.CreateChecked(2)
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC32098: Type parameters cannot be used as qualifiers.
+        Return T.CreateChecked(2)
+               ~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub SharedAbstractPropertyWithASetterFromCSharp()
             Dim counterLibrary = CreateCSharpCompilation("
 public interface ICounter
