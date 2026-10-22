@@ -70,6 +70,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                  ERRID.ERR_RefStructureAcrossSuspension,
                                  ERRID.ERR_CannotLiftRestrictedTypeResumable1)
                 For Each variable In lazyDisallowedCaptures.Keys
+                    If IsUserByRefLocal(variable) Then
+                        For Each node In lazyDisallowedCaptures(variable)
+                            diagnostics.Add(ERRID.ERR_ByRefLocalAcrossSuspension, node.GetLocation(), variable.Name)
+                        Next
+
+                        Continue For
+                    End If
+
                     Dim type As TypeSymbol = If(variable.Kind = SymbolKind.Local, TryCast(variable, LocalSymbol).Type, TryCast(variable, ParameterSymbol).Type)
                     For Each node In lazyDisallowedCaptures(variable)
                         diagnostics.Add(errorId, node.GetLocation(), type)
@@ -107,7 +115,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return False
                 End If
 
-                If skipByRefLocals AndAlso local.IsByRef Then
+                ' A ByRef local declared in source holds a reference that cannot be stored while the method is suspended.
+                If (skipByRefLocals AndAlso local.IsByRef) OrElse IsUserByRefLocal(local) Then
                     Return False
                 End If
 
@@ -133,7 +142,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return MyBase.Scan()
         End Function
 
+        ''' <summary>
+        ''' A Dim ByRef or For Each ByRef local, as opposed to a ByRef local that lowering synthesizes for spilling.
+        ''' </summary>
+        Private Shared Function IsUserByRefLocal(variable As Symbol) As Boolean
+            Dim local = TryCast(variable, LocalSymbol)
+            Return local IsNot Nothing AndAlso local.IsByRef AndAlso
+                   local.SynthesizedKind = SynthesizedLocalKind.UserDefined AndAlso
+                   TypeOf local IsNot SynthesizedLocal
+        End Function
+
         Private Sub CaptureVariable(variable As Symbol, syntax As SyntaxNode)
+            If IsUserByRefLocal(variable) Then
+                ' Its reference is live across an Await or Yield.
+                If _lazyDisallowedCaptures Is Nothing Then
+                    _lazyDisallowedCaptures = New MultiDictionary(Of Symbol, SyntaxNode)()
+                End If
+
+                _lazyDisallowedCaptures.Add(variable, syntax)
+                Return
+            End If
+
             Dim type As TypeSymbol = If(variable.Kind = SymbolKind.Local, TryCast(variable, LocalSymbol).Type, TryCast(variable, ParameterSymbol).Type)
             If type.IsRestrictedType() OrElse type.IsRefLikeOrAllowsRefLikeType() Then
                 ' Error has already been reported, except for the scope of a SyncLock on a System.Threading.Lock,
@@ -253,6 +282,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitReferenceAssignment(node As BoundReferenceAssignment) As BoundNode
             Dim local As LocalSymbol = node.ByRefLocal.LocalSymbol
+
+            If IsUserByRefLocal(local) Then
+                ' Setting the reference of a Dim ByRef or For Each ByRef local does not read the local.
+                VisitRvalue(node.LValue)
+                Assign(node.ByRefLocal, node.LValue)
+                Return Nothing
+            End If
 
             Debug.Assert(Not Me._byRefLocalsInitializers.ContainsKey(local))
             Me._byRefLocalsInitializers.Add(local, node.LValue)

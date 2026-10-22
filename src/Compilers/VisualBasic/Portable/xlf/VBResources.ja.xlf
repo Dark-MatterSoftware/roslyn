@@ -87,6 +87,11 @@
         <target state="new">A base constructor argument list requires a primary constructor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ByRefLocalAcrossSuspension">
+        <source>'ByRef' local '{0}' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.</source>
+        <target state="new">'ByRef' local '{0}' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_ByRefLocalRequiresReference">
         <source>A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.</source>
         <target state="new">A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.</target>

@@ -270,6 +270,91 @@ BC30247: 'ReadOnly' is not valid on a local variable declaration.
 ]]></expected>)
         End Sub
 
+        Private Const Suspending As String = "
+Imports System
+Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Module Program
+    Async Function Run(values As Integer()) As Task
+        Dim ByRef first = values(0)
+        first = 5
+        Await Task.Yield()
+        Dim ByRef second = values(1)
+        second += 10
+    End Function
+
+    Iterator Function Items(values As Integer()) As IEnumerable(Of Integer)
+        Dim ByRef first = values(0)
+        first = 7
+        Yield values(0)
+        Dim ByRef second = values(1)
+        second = 8
+        Yield values(1)
+    End Function
+
+    Sub Main()
+        Dim values = {1, 2}
+        Run(values).GetAwaiter().GetResult()
+        Console.Write(String.Join("","", values))
+        For Each item In Items({1, 2})
+            Console.Write("" "" & item)
+        Next
+    End Sub
+End Module
+"
+
+        <Theory>
+        <InlineData(OptimizationLevel.Release)>
+        <InlineData(OptimizationLevel.Debug)>
+        Public Sub ByRefLocalsBetweenSuspensions(optimization As OptimizationLevel)
+            Dim compilation = CreateCompilation(Suspending, options:=TestOptions.ReleaseExe.WithOptimizationLevel(optimization).WithOptionInfer(True), parseOptions:=VbNext)
+            CompileAndVerify(compilation, expectedOutput:="5,12 7 8").VerifyDiagnostics()
+        End Sub
+
+        <Theory>
+        <InlineData(OptimizationLevel.Release)>
+        <InlineData(OptimizationLevel.Debug)>
+        Public Sub ByRefLocalsAcrossSuspensions(optimization As OptimizationLevel)
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Module Program
+    Async Function AfterAwait(values As Integer()) As Task
+        Dim ByRef first = values(0)
+        Await Task.Yield()
+        first = 1
+    End Function
+
+    Iterator Function AfterYield(values As Integer()) As IEnumerable(Of Integer)
+        Dim ByRef first = values(0)
+        Yield 1
+        Yield first
+    End Function
+
+    Async Function EachElement(values As Integer()) As Task
+        For Each ByRef value In values
+            Await Task.Yield()
+            value += 1
+        Next
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll.WithOptimizationLevel(optimization).WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseEmitDiagnostics(<expected><![CDATA[
+BC37408: 'ByRef' local 'first' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.
+        first = 1
+        ~~~~~
+BC37408: 'ByRef' local 'first' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.
+        Yield first
+              ~~~~~
+BC37408: 'ByRef' local 'value' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.
+            value += 1
+            ~~~~~
+]]></expected>)
+        End Sub
+
         <Fact>
         Public Sub ByRefReadOnlyLocalSemanticModel()
             Dim compilation = CreateCompilation("

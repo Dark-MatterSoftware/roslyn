@@ -1866,8 +1866,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_RefStructureAcrossSuspension = 37405
         ERR_ByRefLocalRequiresReference = 37406
         ERR_ByRefLocalTypeMismatch = 37407
+        ERR_ByRefLocalAcrossSuspension = 37408
 
-        ERR_NextAvailable = 37408
+        ERR_NextAvailable = 37409
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
