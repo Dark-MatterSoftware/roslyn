@@ -2003,8 +2003,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SetSlotState(SlotKind.FunctionValue, True)
 
             Else
+                ' A Return in a ByRef Function has no exit label either, and may return another local by reference.
                 Dim functionLocal = TryCast(node.ExpressionOpt, BoundLocal)
-                If functionLocal IsNot Nothing Then
+                If functionLocal IsNot Nothing AndAlso functionLocal.LocalSymbol.IsFunctionValue Then
                     CheckAssignedFunctionValue(functionLocal.LocalSymbol, node.Syntax)
                 End If
             End If

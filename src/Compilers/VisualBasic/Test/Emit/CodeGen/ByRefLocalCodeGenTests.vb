@@ -173,6 +173,30 @@ BC37384: 'ByRef' variable 'first' cannot be used in a lambda expression.
         End Sub
 
         <Fact>
+        Public Sub ByRefFunctionReturnsAByRefLocal()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    ByRef Function First(values As Integer()) As Integer
+        Dim ByRef head = values(0)
+        Return head
+    End Function
+
+    Sub Main()
+        Dim values = {3, 7, 5}
+        First(values) = 4
+        First(values) += 1
+        Console.Write(String.Join("","", values))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            ' PEVerify does not accept ByRef return types.
+            CompileAndVerify(compilation, expectedOutput:="5,7,5", verify:=Verification.FailsPEVerify).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub ByRefReadOnlyLocalsRead()
             Dim compilation = CreateCompilation("
 Imports System
