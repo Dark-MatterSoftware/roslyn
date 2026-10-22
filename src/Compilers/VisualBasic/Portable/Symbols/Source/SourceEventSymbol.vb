@@ -769,6 +769,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Accessibility.Public,
                 diagBag)
 
+            If modifiers.Any(SyntaxKind.ByRefKeyword) Then
+                binder.ReportModifierError(modifiers, ERRID.ERR_BadEventFlags1, diagBag, SyntaxKind.ByRefKeyword)
+            End If
+
             eventModifiers = binder.ValidateEventModifiers(modifiers, eventModifiers, container, diagBag)
 
             Return eventModifiers

@@ -439,6 +439,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                 If(container.IsValueType, Accessibility.Public, Accessibility.Private),
                                                 diagBag.DiagnosticBag)
 
+            ' The vbnext parser accepts ByRef before a declaration, but it has no meaning on a field.
+            If syntax.Modifiers.Any(SyntaxKind.ByRefKeyword) Then
+                binder.ReportModifierError(syntax.Modifiers, errorId, diagBag.DiagnosticBag, SyntaxKind.ByRefKeyword)
+            End If
+
             If container IsNot Nothing Then
                 Select Case container.DeclarationKind
                     Case DeclarationKind.Structure

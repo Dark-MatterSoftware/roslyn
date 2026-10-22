@@ -1018,6 +1018,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim firstStatic As SyntaxToken = Nothing
 
             For Each keywordSyntax In syntax
+                ' The vbnext parser accepts ByRef before a declaration, for ByRef functions, properties, and structures,
+                ' but it has no meaning on a local.
+                If keywordSyntax.Kind = SyntaxKind.ByRefKeyword Then
+                    ReportDiagnostic(diagBag, keywordSyntax, ERRID.ERR_BadLocalDimFlags1, keywordSyntax.ToString())
+                    Continue For
+                End If
+
                 Dim currentModifier As SourceMemberFlags = MapKeywordToFlag(keywordSyntax)
                 If currentModifier = SourceMemberFlags.None Then
                     Continue For

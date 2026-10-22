@@ -245,6 +245,10 @@ lReportErrorOnTwoTokens:
                 Accessibility.Public,
                 diagBag)
 
+            If syntax.Modifiers.Any(SyntaxKind.ByRefKeyword) Then
+                binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadDeclareFlags1, diagBag, SyntaxKind.ByRefKeyword)
+            End If
+
             ' modifiers: Protected and Overloads in Modules and Structures:
             If container.TypeKind = TYPEKIND.Module Then
                 If (methodModifiers.FoundFlags And SourceMemberFlags.Overloads) <> 0 Then
@@ -449,6 +453,12 @@ lReportErrorOnTwoTokens:
 
             methodModifiers = binder.ValidateSharedPropertyAndMethodModifiers(modifiers, methodModifiers, False, container, diagBag)
 
+            ' On vbnext ByRef before a Function returns a reference. Before a Sub or Sub New it has no meaning.
+            Dim byRefKeyword = modifiers.FirstOrDefault(Function(m) m.Kind = SyntaxKind.ByRefKeyword)
+            If byRefKeyword.Kind = SyntaxKind.ByRefKeyword AndAlso Not byRefKeyword.Parent.IsKind(SyntaxKind.FunctionStatement) Then
+                binder.ReportModifierError(modifiers, ERRID.ERR_BadMethodFlags1, diagBag, SyntaxKind.ByRefKeyword)
+            End If
+
             ' On vbnext, Async and Iterator together declare an async iterator, which returns IAsyncEnumerable(Of T)
             ' or IAsyncEnumerator(Of T).
             Const asyncIterator As SourceMemberFlags = SourceMemberFlags.Async Or SourceMemberFlags.Iterator
@@ -474,6 +484,10 @@ lReportErrorOnTwoTokens:
                                                       SourceMemberFlags.Narrowing
 
             Dim operatorModifiers = binder.DecodeModifiers(syntax.Modifiers, allowModifiers, ERRID.ERR_BadOperatorFlags1, Accessibility.Public, diagBag)
+
+            If syntax.Modifiers.Any(SyntaxKind.ByRefKeyword) Then
+                binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadOperatorFlags1, diagBag, SyntaxKind.ByRefKeyword)
+            End If
 
             Dim foundFlags As SourceMemberFlags = operatorModifiers.FoundFlags
             Dim computedFlags As SourceMemberFlags = operatorModifiers.ComputedFlags
