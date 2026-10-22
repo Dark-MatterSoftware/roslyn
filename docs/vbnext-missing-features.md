@@ -187,6 +187,18 @@ Checked against this tree after wave 7, by compiling and running the library sha
 | VB-082 | `ByRef` locals | Done in phase 45: on `vbnext`, `Dim ByRef` and `Dim ByRef ReadOnly`, locked in `docs/vbnext-vb082-syntax.md`, declare locals that refer to variables. Before that, `Dim ByRef slot As Integer = CollectionsMarshal.GetValueRefOrAddDefault(counts, key, exists)` compiled on `vbnext` with no diagnostic, because `ByRef` was accepted as a declaration modifier and then ignored, so `slot` was a copy and `slot += 1` did not change the dictionary. A reference that several statements use, such as a dictionary slot that is read and then updated, needs a call per use. C# 7 has `ref` locals, and C# 7.3 lets them be reassigned. |
 | VB-083 | `Object` members on a type parameter with interface constraints | Done in slice 42c: on `vbnext` the `Object` methods of a name overload the constraint's methods of that name. No new syntax. Found in slice 42a. Before that, `value.ToString()` on a `T As INumber(Of T)`, or on any `T As IFormattable`, reported BC30455 for the `format` and `formatProvider` parameters, because lookup found `IFormattable.ToString(format, formatProvider)` on the constraint and stopped before `Object.ToString()`. Every .NET numeric interface includes `IFormattable`, so generic math code meets this on its first `ToString`. C# adds the `Object` members to the constraint's members. |
 
+## Wave 9
+
+Checked against this tree after wave 8, by compiling and running the shapes that wave 8 code meets next against .NET 11 with `LangVersion` `vbnext`: VB types that take part in generic math, and the storage that span code builds on. Each gap below reports an error on `vbnext` today. `ParamArray values As ReadOnlySpan(Of Integer)` already works. Declaring a `Shared Overridable` member with a body in a VB interface, and `AddressOf T.Create` through a type parameter, which reports BC37314, are not taken into this wave.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-084 | Shared virtual members with a default body | No new syntax. A structure that implements `IAdditionOperators(Of Money, Money, Money)` reports BC37315 for `op_CheckedAddition`, which the interface declares as a shared virtual member with a default body, so a type does not have to supply it. VB treats every shared abstract or virtual interface member as one the type must implement. C# 11 requires only the abstract ones. |
+| VB-085 | Implementing shared abstract properties | No new syntax. `Public Shared ReadOnly Property AdditiveIdentity As Meters Implements IAdditiveIdentity(Of Meters, Meters).AdditiveIdentity` reports BC30505, "Methods or events that implement interface members cannot be declared 'Shared'", and BC37315. Slice 9f lets a `Shared` function implement a shared abstract function, but not a property, and generic math interfaces such as `INumberBase(Of T)` declare `Zero`, `One`, and `AdditiveIdentity` as shared abstract properties. |
+| VB-086 | Implementing generic math operators | `Public Shared Operator +(left As Money, right As Money) As Money` in a structure that implements `IAdditionOperators(Of Money, Money, Money)` reports BC37315 for the interface's `+`, because a VB operator has no `Implements` clause and an operator is not matched to an interface operator by signature. A VB type cannot be used with generic math until its operators can implement the interface's. C# 11 implements such operators implicitly or explicitly. |
+| VB-087 | Ref fields | `Private ByRef _value As Integer` in a `ByRef Structure` reports BC30235. A ref structure that holds a reference to one variable, as `Span(Of T)` does internally, needs a ref field. C# 11 added `ref` fields to `ref struct` types. |
+| VB-088 | Inline arrays | No new syntax. `buffer(0)` on a structure marked `<InlineArray(4)>` reports BC30690, "Structure cannot be indexed because it has no default property". .NET 8 added `InlineArrayAttribute` for fixed-size buffers that convert to spans, and C# 12 indexes, slices, and iterates them. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -317,3 +329,15 @@ The three generic math gaps come first, in the order a test needs them: a type t
 | 5 | VB-082 | `ByRef` locals | L | Needs a design note first, because it adds a declaration form and its rules for lambdas, `Async`, and reassignment. The first slice makes today's silently ignored `Dim ByRef` an error. |
 
 VB-083, found in slice 42a, joins phase 42 as slice 42c, because it is member lookup on the same type parameters.
+
+### Wave 9 order
+
+The three generic math authoring gaps come first, smallest first, so that a VB type can implement `INumber(Of T)` step by step. Then the two storage gaps.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-084 | Shared virtual members with a default body | S | A fix to the BC37315 check. Every later generic math slice implements interfaces that declare such members. |
+| 2 | VB-085 | Implementing shared abstract properties | M | Extends slice 9f from functions to properties, with the slice 41a emit rules for their accessors. |
+| 3 | VB-086 | Implementing generic math operators | L | Needs a design note first, because it decides how a VB operator implements an interface operator. Follows VB-084 and VB-085, which a test type needs as well. |
+| 4 | VB-087 | Ref fields | L | Needs a design note first, because it adds a field form and its rules for assignment and lifetime. Reuses the `ByRef` local machinery from phase 45. |
+| 5 | VB-088 | Inline arrays | M | Element access, slicing, and `For Each` for one kind of structure, emitted through `Unsafe` and `MemoryMarshal` as C# does. |

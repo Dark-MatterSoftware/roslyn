@@ -59,6 +59,12 @@ Local test for a slice is the Visual Basic project under `src/Compilers/VisualBa
 | 44. Writing through references | VB-081, wave 8 | `AsSpan(list)(0) = 5` writes through a `ByRef` return whose receiver is a value. |
 | 45. ByRef locals | VB-082, wave 8 | A design note for `ByRef` locals, then the locked form. |
 | 46. IDE for wave 8 | Phases 41 to 45 | The editor understands any syntax that phase 45 locks. |
+| 47. Shared virtual defaults | VB-084, wave 9 | A type implements an interface without supplying its shared virtual members that have a default body. |
+| 48. Shared property implementations | VB-085, wave 9 | A `Shared` property implements a shared abstract property, such as `AdditiveIdentity`. |
+| 49. Operator implementations | VB-086, wave 9 | A design note for implementing interface operators, then the locked form. |
+| 50. Ref fields | VB-087, wave 9 | A design note for ref fields in a `ByRef Structure`, then the locked form. |
+| 51. Inline arrays | VB-088, wave 9 | Code indexes, slices, and iterates an `<InlineArray>` structure. |
+| 52. IDE for wave 9 | Phases 47 to 51 | The editor understands any syntax that phases 49 and 50 lock. |
 
 Wave 4 stays off this line. A pulled-in item uses the "fits after" row in the backlog and becomes one extra slice in that phase.
 
@@ -522,6 +528,54 @@ Wave 8 row 5.
 | --- | --- | --- |
 | 46a | Editor | Done. On `vbnext`, completion offers `ByRef` after `Dim` and `ReadOnly` after `Dim ByRef` in a local declaration, but not after `Static` or `Const`, and Visual Basic 17.13 does not offer them. `Dim`, `ByRef`, and `ReadOnly` classify as keywords and the name as a local. Quick info shows `(local variable) ByRef first As Integer` and `ByRef ReadOnly`, because the symbol display now writes `ByRef` and `ByRef ReadOnly` for a `ByRef` local when its format asks for it; symbol display does not depend on the language version, so a C# `ref readonly` local shown through Visual Basic reads `ByRef ReadOnly r3 As R` with `IncludeRef`, in place of `r3 As R`. After `T.`, completion lists the shared abstract and shared virtual properties and methods of `T`'s interface constraints, and not their instance members, and Visual Basic 17.13 lists nothing there, as before. |
 
+## Phase 47 — Shared virtual defaults
+
+Wave 9 row 1. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 47a | VB-084 | On `vbnext`, a class or structure that implements an interface does not have to supply a shared virtual member that has a default body, such as `op_CheckedAddition` on `IAdditionOperators(Of TSelf, TOther, TResult)`, and BC37315 is reported only for shared abstract members that it does not supply. A call through a type parameter reaches the default body. |
+
+## Phase 48 — Shared property implementations
+
+Wave 9 row 2. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 48a | VB-085 | On `vbnext`, `Public Shared ReadOnly Property Name As T Implements I.Name` supplies a shared abstract property from an interface declared in VB or .NET, with its accessors emitted as slice 41a emits shared implementing methods, so `T.AdditiveIdentity` reaches it through a type parameter on .NET. A property with a setter implements one with a setter. Visual Basic 17.13 still reports BC30505. |
+
+## Phase 49 — Operator implementations
+
+Wave 9 row 3.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 49a | VB-086 | A design note locks how a VB operator implements an interface operator, such as `+` on `IAdditionOperators(Of TSelf, TOther, TResult)`, and whether a checked form is declared in VB. No code change. |
+| 49b | VB-086 | On `vbnext`, the form locked in 49a lets a structure or class implement the operators of the generic math interfaces, so a VB `Money` type works with a generic `Sum` from phase 43 on .NET. |
+
+## Phase 50 — Ref fields
+
+Wave 9 row 4.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 50a | VB-087 | A design note locks the form of a ref field in a `ByRef Structure`, what it may refer to, how it is set, and whether it can be `ReadOnly`. No code change. |
+| 50b | VB-087 | On `vbnext`, the form locked in 50a declares a field that refers to a variable, set in a constructor and read and written through, with the lifetime rules of the note. |
+
+## Phase 51 — Inline arrays
+
+Wave 9 row 5. No new syntax.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 51a | VB-088 | On `vbnext`, an element of a structure marked `<InlineArray(n)>` can be read and assigned with `buffer(i)`, the structure converts to `Span(Of T)` and `ReadOnlySpan(Of T)`, and `For Each` iterates its elements, emitted as C# 12 emits them. |
+
+## Phase 52 — IDE for wave 9
+
+| Slice | Area | Done when |
+| --- | --- | --- |
+| 52a | Editor | For the forms locked in phases 49 and 50: their keywords classify and complete only on `vbnext`, and quick info shows a ref field as `ByRef`. |
+
 ## What starts now
 
-The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Phase 28 is done: slice 28a locks `Field` for property backing storage, and slice 28b implements it. Phase 29 is done: slice 29a brings the editor along for the wave 5 forms. Wave 5 is done. Wave 6 is planned as phases 30 to 34, from the gaps that wave 5 code meets next. Phase 30 is done: slice 30a lets `Await Each` take `WithCancellation` and `ConfigureAwait`, and slice 30b lets `Async Using` take `ConfigureAwait`. Phase 31 is done: slice 31a lets a `Catch` block await, and slice 31b lets a `Finally` block await. Phase 32 is done: slice 32a lets an `Async Function` return `ValueTask` and `ValueTask(Of T)`, and slice 32b lets it return any task-like type and choose its builder. Slices 33a and 33b are done: `Async Iterator Function` is locked for lambdas, and `If TypeOf value IsNot T Into name Then ...` is locked as a guard. Phase 33 is done: slice 33c lets an `Async Iterator Function` lambda await and yield, and slice 33d adds the `IsNot ... Into` guard. Phase 34 is done: slice 34a brings the editor along for the wave 6 forms. Wave 6 is done. Wave 7 is planned as phases 35 to 40, from the gaps that wave 6 code meets next. Phase 35 is done: slice 35a reads `ref readonly` returns, including `ReadOnlySpan(Of T)` elements. Phase 36 is done: slice 36a releases a ref structure in `Using` through its `Dispose`. Phase 37 is done: slice 37a lets an `Async` method declare span locals that do not cross an `Await`, and slice 37b applies the same rule to `Yield`. Phase 38 is done: slice 38a lets lambda parameters carry attributes, and slice 38b lets `EnumeratorCancellation` reach an `Async Iterator Function` lambda. Phase 39 is done: slice 39a locks `For Each (a, b) In collection`, slice 39b deconstructs each item of a `For Each`, and slice 39c does the same for `Await Each`. Phase 40 is done: slice 40a brings the editor along for the wave 7 forms. Wave 7 is done. Wave 8 is planned as phases 41 to 46, from the gaps that wave 7 code meets next. Phase 41 is done: slice 41a emits implementations of shared abstract members that .NET can load. Phase 42 is done: slices 42a and 42b reach shared abstract, shared virtual, and generic shared members from any assembly through a type parameter, and slice 42c lets `Object` members such as `ToString()` overload the constraint's members. Phase 43 is done: slice 43a binds operators through a type parameter's constraints, and slice 43b adds compound assignment and checked operators. Phase 44 is done: slice 44a writes through a `ByRef` return whose receiver is a value. Phase 45 is done: slices 45a to 45e make `ByRef` where it has no meaning an error, lock `Dim ByRef name = reference`, declare locals that refer to variables, add `Dim ByRef ReadOnly`, and apply the phase 37 rule in `Async` and `Iterator` methods. Phase 46 is done: slice 46a brings the editor along for the wave 8 forms. Wave 8 is done.
+The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders. Wave 5 is planned as phases 25 to 29. Phase 25 is done. Phase 26 is done: slice 26a locks the asynchronous stream spellings, slice 26b adds `Async Using`, slice 26c adds `Await Each`, and slice 26d adds `Async Iterator Function`. Phase 27 is done: slice 27a locks `Into` for pattern variables, and slice 27b implements it. Phase 28 is done: slice 28a locks `Field` for property backing storage, and slice 28b implements it. Phase 29 is done: slice 29a brings the editor along for the wave 5 forms. Wave 5 is done. Wave 6 is planned as phases 30 to 34, from the gaps that wave 5 code meets next. Phase 30 is done: slice 30a lets `Await Each` take `WithCancellation` and `ConfigureAwait`, and slice 30b lets `Async Using` take `ConfigureAwait`. Phase 31 is done: slice 31a lets a `Catch` block await, and slice 31b lets a `Finally` block await. Phase 32 is done: slice 32a lets an `Async Function` return `ValueTask` and `ValueTask(Of T)`, and slice 32b lets it return any task-like type and choose its builder. Slices 33a and 33b are done: `Async Iterator Function` is locked for lambdas, and `If TypeOf value IsNot T Into name Then ...` is locked as a guard. Phase 33 is done: slice 33c lets an `Async Iterator Function` lambda await and yield, and slice 33d adds the `IsNot ... Into` guard. Phase 34 is done: slice 34a brings the editor along for the wave 6 forms. Wave 6 is done. Wave 7 is planned as phases 35 to 40, from the gaps that wave 6 code meets next. Phase 35 is done: slice 35a reads `ref readonly` returns, including `ReadOnlySpan(Of T)` elements. Phase 36 is done: slice 36a releases a ref structure in `Using` through its `Dispose`. Phase 37 is done: slice 37a lets an `Async` method declare span locals that do not cross an `Await`, and slice 37b applies the same rule to `Yield`. Phase 38 is done: slice 38a lets lambda parameters carry attributes, and slice 38b lets `EnumeratorCancellation` reach an `Async Iterator Function` lambda. Phase 39 is done: slice 39a locks `For Each (a, b) In collection`, slice 39b deconstructs each item of a `For Each`, and slice 39c does the same for `Await Each`. Phase 40 is done: slice 40a brings the editor along for the wave 7 forms. Wave 7 is done. Wave 8 is planned as phases 41 to 46, from the gaps that wave 7 code meets next. Phase 41 is done: slice 41a emits implementations of shared abstract members that .NET can load. Phase 42 is done: slices 42a and 42b reach shared abstract, shared virtual, and generic shared members from any assembly through a type parameter, and slice 42c lets `Object` members such as `ToString()` overload the constraint's members. Phase 43 is done: slice 43a binds operators through a type parameter's constraints, and slice 43b adds compound assignment and checked operators. Phase 44 is done: slice 44a writes through a `ByRef` return whose receiver is a value. Phase 45 is done: slices 45a to 45e make `ByRef` where it has no meaning an error, lock `Dim ByRef name = reference`, declare locals that refer to variables, add `Dim ByRef ReadOnly`, and apply the phase 37 rule in `Async` and `Iterator` methods. Phase 46 is done: slice 46a brings the editor along for the wave 8 forms. Wave 8 is done. Wave 9 is planned as phases 47 to 52, from the gaps that wave 8 code meets next. Slice 47a, not requiring shared virtual members that have a default body, starts now.
