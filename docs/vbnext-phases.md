@@ -669,7 +669,7 @@ Wave 11 row 4.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 62a | VB-098 | A design note locks how a parameter is declared `ref readonly`, and what is passed for an argument that is not a variable. No code change. |
+| 62a | VB-098 | Done. `docs/vbnext-vb098-syntax.md` locks `ByRef ReadOnly` parameters, emitted as C# `in`: read as `ReadOnly` variables in the body, passed by reference from a variable, and copied into a temporary from a value. No code change. |
 | 62b | VB-098 | On `vbnext`, the form that 62a locks is emitted as C# emits `in` or `ref readonly` parameters, and the parameter cannot be written through. |
 
 ## Phase 63 — IDE for wave 11
