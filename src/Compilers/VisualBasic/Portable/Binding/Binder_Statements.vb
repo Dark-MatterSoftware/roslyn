@@ -1649,6 +1649,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New BoundLocalDeclaration(name, symbol, reference, Nothing, False, hasErrors:=True)
             End If
 
+            ' A write through the local follows its referent (VB-092).
+            symbol.RefersToByRefParameterOrMe = IsReachedThroughByRefParameterOrMe(reference)
+
             Return New BoundLocalDeclaration(name, symbol, reference, Nothing, False)
         End Function
 
@@ -2648,12 +2651,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         ''' <summary>
         ''' Whether an assignment target outlives the caller's locals: a ByRef parameter, or a field of a structure
-        ''' that is reached through a ByRef parameter or Me.
+        ''' that is reached through a ByRef parameter or Me, directly or through a Dim ByRef local that refers to one.
         ''' </summary>
         Private Shared Function IsReachedThroughByRefParameterOrMe(target As BoundExpression) As Boolean
             Select Case target.Kind
                 Case BoundKind.Parameter
                     Return DirectCast(target, BoundParameter).ParameterSymbol.IsByRef
+
+                Case BoundKind.Local
+                    Dim local = DirectCast(target, BoundLocal).LocalSymbol
+                    Return local.IsByRef AndAlso local.RefersToByRefParameterOrMe
 
                 Case BoundKind.FieldAccess
                     Dim receiver = DirectCast(target, BoundFieldAccess).ReceiverOpt
@@ -2671,6 +2678,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Return True
                         Case BoundKind.Parameter
                             Return DirectCast(receiver, BoundParameter).ParameterSymbol.IsByRef
+                        Case BoundKind.Local
+                            Dim local = DirectCast(receiver, BoundLocal).LocalSymbol
+                            Return local.IsByRef AndAlso local.RefersToByRefParameterOrMe
                     End Select
             End Select
 

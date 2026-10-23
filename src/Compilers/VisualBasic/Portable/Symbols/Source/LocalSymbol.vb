@@ -314,6 +314,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        ''' <summary>
+        ''' Whether a Dim ByRef local refers to a ByRef parameter, or to a field of a structure reached through one or
+        ''' through Me. Set when its declaration is bound, which comes before any statement that writes through it.
+        ''' </summary>
+        Friend Property RefersToByRefParameterOrMe As Boolean
+
         Public ReadOnly Property RefKind As RefKind Implements ILocalSymbol.RefKind
             Get
                 Return If(IsByRef, If(IsReadOnly, RefKind.RefReadOnly, RefKind.Ref), RefKind.None)

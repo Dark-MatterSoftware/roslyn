@@ -552,6 +552,54 @@ BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' paramet
         End Sub
 
         <Fact>
+        Public Sub WriteThroughByRefLocalFollowsItsReferent()
+            Dim compilation = CreateCompilation("
+ByRef Structure Cell
+    Public ByRef Value As Integer
+
+    Sub New(ByRef target As Integer)
+        Value = ByRef target
+    End Sub
+End Structure
+
+ByRef Structure Pair
+    Public First As Cell
+End Structure
+
+Module Program
+    Sub Store(ByRef c As Cell, ByRef p As Pair, other As Cell)
+        Dim local = 1
+        Dim ByRef r = c
+        r = New Cell(local)
+        Dim ByRef q = p
+        q.First = New Cell(local)
+        Dim ByRef again = r
+        again = New Cell(local)
+
+        Dim copy As Cell = other
+        Dim ByRef mine = copy
+        mine = New Cell(local)
+        Dim ByRef parameter = other
+        parameter = New Cell(local)
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
+        r = New Cell(local)
+        ~
+BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
+        q.First = New Cell(local)
+        ~~~~~~~
+BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
+        again = New Cell(local)
+        ~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub ByRefReadOnlyFieldCannotBeWrittenThrough()
             Dim compilation = CreateCompilation("
 ByRef Structure View
