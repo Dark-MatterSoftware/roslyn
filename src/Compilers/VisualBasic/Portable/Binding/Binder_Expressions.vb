@@ -751,6 +751,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Debug.Assert(node.Argument.HasErrors)
             End Select
 
+            ' On vbnext, NameOf(List(Of)) names an unbound generic type, which binds as GetType binds it.
+            Dim unboundName = TryCast(node.Argument, GenericNameSyntax)
+            If unboundName IsNot Nothing AndAlso unboundName.TypeArgumentList.Arguments.AllAreMissingIdentifierName Then
+                Dim typeOrAlias As Symbol = TypeBinder.BindTypeOrAliasSyntax(unboundName, New GetTypeBinder(unboundName, Me), diagnostics,
+                                                                             suppressUseSiteError:=False, inGetTypeContext:=True, resolvingBaseType:=False)
+                Dim aliasSym = TryCast(typeOrAlias, AliasSymbol)
+                Dim typeSym = DirectCast(If(aliasSym IsNot Nothing, aliasSym.Target, typeOrAlias), TypeSymbol)
+                Dim typeExpression = New BoundTypeExpression(unboundName, Nothing, aliasSym, typeSym, typeSym.IsErrorType())
+                Return New BoundNameOfOperator(node, typeExpression, ConstantValue.Create(value), GetSpecialType(SpecialType.System_String, node, diagnostics))
+            End If
+
             ' Bind the argument
             Dim argument As BoundExpression = BindExpression(node.Argument, diagnostics)
 

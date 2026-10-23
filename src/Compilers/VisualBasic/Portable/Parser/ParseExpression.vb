@@ -781,12 +781,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim openParen As PunctuationSyntax = Nothing
             TryGetTokenAndEatNewLine(SyntaxKind.OpenParenToken, openParen, createIfMissing:=True)
 
-            Dim nameOfName = ValidateNameOfArgument(ParseExpressionCore(), isTopLevel:=True)
+            ' On vbnext, NameOf(List(Of)) names an unbound generic type, written as GetType writes it.
+            Dim argument As ExpressionSyntax
+            If _scanner.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso NameOfArgumentHasEmptyTypeArguments() Then
+                argument = ParseGeneralType(allowEmptyGenericArguments:=True)
+            Else
+                argument = ParseExpressionCore()
+            End If
+
+            Dim nameOfName = ValidateNameOfArgument(argument, isTopLevel:=True)
 
             Dim closeParen As PunctuationSyntax = Nothing
             TryEatNewLineAndGetToken(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
 
             Return SyntaxFactory.NameOfExpression([nameOf], openParen, nameOfName, closeParen)
+        End Function
+
+        ''' <summary>
+        ''' Whether the NameOf argument has a type argument list with no types, as in List(Of) or Dictionary(Of ,).
+        ''' </summary>
+        Private Function NameOfArgumentHasEmptyTypeArguments() As Boolean
+            Dim depth = 0
+
+            For offset = 0 To 64
+                Select Case PeekToken(offset).Kind
+                    Case SyntaxKind.OpenParenToken
+                        If PeekToken(offset + 1).Kind = SyntaxKind.OfKeyword Then
+                            Dim afterOf = PeekToken(offset + 2).Kind
+                            If afterOf = SyntaxKind.CloseParenToken OrElse afterOf = SyntaxKind.CommaToken Then
+                                Return True
+                            End If
+                        End If
+
+                        depth += 1
+
+                    Case SyntaxKind.CloseParenToken
+                        If depth = 0 Then
+                            Return False
+                        End If
+
+                        depth -= 1
+
+                    Case SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken
+                        Return False
+                End Select
+            Next
+
+            Return False
         End Function
 
         Private Function ValidateNameOfArgument(argument As ExpressionSyntax, isTopLevel As Boolean) As ExpressionSyntax

@@ -3657,5 +3657,66 @@ End Module
 M
 ]]>).VerifyDiagnostics()
         End Sub
+
+        Private Const UnboundSource As String = "
+Imports System
+Imports System.Collections.Generic
+
+Module Module1
+    Const ListName As String = NameOf(List(Of))
+
+    Sub Main()
+        Console.Write(ListName & "" "" & NameOf(Dictionary(Of ,)) & "" "" & NameOf(KeyValuePair(Of ,)))
+    End Sub
+End Module
+"
+
+        <Fact>
+        Public Sub NameOfUnboundGenericType()
+            Dim comp = CreateCompilation(UnboundSource, options:=TestOptions.ReleaseExe,
+                                         parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            CompileAndVerify(comp, expectedOutput:="List Dictionary KeyValuePair").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub NameOfUnboundGenericTypeWithWrongArity()
+            Dim comp = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Module1
+    Const Name As String = NameOf(List(Of ,))
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            comp.AssertTheseDiagnostics(
+<expected>
+BC32043: Too many type arguments to 'List(Of T)'.
+    Const Name As String = NameOf(List(Of ,))
+                                  ~~~~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
+        Public Sub NameOfUnboundGenericTypeNeedsVbNext()
+            Dim comp = CreateCompilation(UnboundSource, options:=TestOptions.ReleaseExe,
+                                         parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+            comp.AssertTheseDiagnostics(
+<expected>
+BC30182: Type expected.
+    Const ListName As String = NameOf(List(Of))
+                                             ~
+BC30182: Type expected.
+        Console.Write(ListName &amp; " " &amp; NameOf(Dictionary(Of ,)) &amp; " " &amp; NameOf(KeyValuePair(Of ,)))
+                                                            ~
+BC30182: Type expected.
+        Console.Write(ListName &amp; " " &amp; NameOf(Dictionary(Of ,)) &amp; " " &amp; NameOf(KeyValuePair(Of ,)))
+                                                             ~
+BC30182: Type expected.
+        Console.Write(ListName &amp; " " &amp; NameOf(Dictionary(Of ,)) &amp; " " &amp; NameOf(KeyValuePair(Of ,)))
+                                                                                               ~
+BC30182: Type expected.
+        Console.Write(ListName &amp; " " &amp; NameOf(Dictionary(Of ,)) &amp; " " &amp; NameOf(KeyValuePair(Of ,)))
+                                                                                                ~
+</expected>)
+        End Sub
     End Class
 End Namespace
