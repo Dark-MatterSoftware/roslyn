@@ -1867,8 +1867,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ByRefLocalRequiresReference = 37406
         ERR_ByRefLocalTypeMismatch = 37407
         ERR_ByRefLocalAcrossSuspension = 37408
+        ERR_RefFieldsNotSupportedByRuntime = 37409
+        ERR_ByRefAssignmentRequiresRefField = 37410
+        ERR_RefFieldRequiresReference = 37411
+        ERR_RefFieldTypeMismatch = 37412
 
-        ERR_NextAvailable = 37409
+        ERR_NextAvailable = 37413
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -2211,5 +2215,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_AwaitEach
         FEATURE_PatternVariables
         FEATURE_ForEachDeconstruction
+        FEATURE_RefFields
     End Enum
 End Namespace

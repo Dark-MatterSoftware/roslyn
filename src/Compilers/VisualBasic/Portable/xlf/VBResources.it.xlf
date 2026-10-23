@@ -87,6 +87,11 @@
         <target state="new">A base constructor argument list requires a primary constructor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ByRefAssignmentRequiresRefField">
+        <source>'= ByRef' can only make a ref field of this structure refer to a variable, in a 'Sub New' of the structure.</source>
+        <target state="new">'= ByRef' can only make a ref field of this structure refer to a variable, in a 'Sub New' of the structure.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_ByRefLocalAcrossSuspension">
         <source>'ByRef' local '{0}' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.</source>
         <target state="new">'ByRef' local '{0}' cannot be used across an 'Await' or 'Yield', because its reference cannot be stored while the method is suspended.</target>
@@ -370,6 +375,21 @@
       <trans-unit id="ERR_RawStringLineIndent">
         <source>A line in a raw string does not start with the closing delimiter's whitespace.</source>
         <target state="new">A line in a raw string does not start with the closing delimiter's whitespace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_RefFieldRequiresReference">
+        <source>A ref field can refer only to a 'ByRef' parameter of 'Sub New', an array element, a field of a class, or the result of a 'ByRef' function, property, or indexer.</source>
+        <target state="new">A ref field can refer only to a 'ByRef' parameter of 'Sub New', an array element, a field of a class, or the result of a 'ByRef' function, property, or indexer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_RefFieldTypeMismatch">
+        <source>A ref field of type '{0}' cannot refer to a variable of type '{1}'.</source>
+        <target state="new">A ref field of type '{0}' cannot refer to a variable of type '{1}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_RefFieldsNotSupportedByRuntime">
+        <source>The target runtime does not support ref fields.</source>
+        <target state="new">The target runtime does not support ref fields.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_RefStructureAcrossSuspension">
@@ -665,6 +685,11 @@
       <trans-unit id="FEATURE_ReadOnlyStructures">
         <source>readonly structures</source>
         <target state="new">readonly structures</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FEATURE_RefFields">
+        <source>ref fields</source>
+        <target state="new">ref fields</target>
         <note />
       </trans-unit>
       <trans-unit id="FEATURE_RequiredProperty">

@@ -46,7 +46,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IFieldReferenceIsByReference As Boolean Implements IFieldReference.IsByReference
             Get
-                Return False
+                Return AdaptedFieldSymbol.FieldRefKind <> RefKind.None
             End Get
         End Property
 

@@ -37719,6 +37719,118 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents "ByRef" before the right side of an assignment that makes a ref
+    ''' field refer to a variable.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.ByRefExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class ByRefExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _expression as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), byRefKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ByRefExpressionSyntax(kind, errors, annotations, byRefKeyword, DirectCast(expression.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The "ByRef" keyword.
+        ''' </summary>
+        Public ReadOnly Property ByRefKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ByRefExpressionSyntax)._byRefKeyword, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the ByRefKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithByRefKeyword(byRefKeyword as SyntaxToken) As ByRefExpressionSyntax
+            return Update(byRefKeyword, Me.Expression)
+        End Function
+
+        ''' <summary>
+        ''' The variable that the ref field is made to refer to.
+        ''' </summary>
+        Public ReadOnly Property Expression As ExpressionSyntax
+            Get
+                Return GetRed(_expression, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Expression property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithExpression(expression as ExpressionSyntax) As ByRefExpressionSyntax
+            return Update(Me.ByRefKeyword, expression)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._expression
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me.Expression
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitByRefExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitByRefExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="byRefKeyword">
+        ''' The value for the ByRefKeyword property.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The value for the Expression property.
+        ''' </param>
+        Public Function Update(byRefKeyword As SyntaxToken, expression As ExpressionSyntax) As ByRefExpressionSyntax
+            If byRefKeyword <> Me.ByRefKeyword OrElse expression IsNot Me.Expression Then
+                Dim newNode = SyntaxFactory.ByRefExpression(byRefKeyword, expression)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Abstract class that represent structured trivia.
     ''' </summary>
     Public MustInherit Class StructuredTriviaSyntax

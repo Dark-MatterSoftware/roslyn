@@ -2911,6 +2911,85 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Sub
 
+        ''' <summary>
+        ''' Binds <c>field = ByRef variable</c>, which makes a ref field of Me refer to a variable in a Sub New of the structure.
+        ''' </summary>
+        Private Function BindRefFieldAssignment(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
+            Dim byRefExpression = DirectCast(node.Right, ByRefExpressionSyntax)
+            Dim target As BoundExpression = BindAssignmentTarget(node.Left, diagnostics)
+            Dim reference As BoundExpression = BindValue(byRefExpression.Expression, diagnostics)
+            Dim hasErrors = target.HasErrors OrElse reference.HasErrors
+
+            Dim fieldAccess = TryCast(target, BoundFieldAccess)
+            Dim method = TryCast(ContainingMember, MethodSymbol)
+
+            If Not hasErrors AndAlso
+               (fieldAccess Is Nothing OrElse
+                fieldAccess.FieldSymbol.FieldRefKind = RefKind.None OrElse
+                fieldAccess.ReceiverOpt Is Nothing OrElse
+                Not fieldAccess.ReceiverOpt.IsMeReference() OrElse
+                method Is Nothing OrElse
+                method.MethodKind <> MethodKind.Constructor OrElse
+                Not TypeSymbol.Equals(fieldAccess.FieldSymbol.ContainingType, method.ContainingType, TypeCompareKind.ConsiderEverything)) Then
+                ReportDiagnostic(diagnostics, node.Left, ERRID.ERR_ByRefAssignmentRequiresRefField)
+                hasErrors = True
+            End If
+
+            If reference.Kind = BoundKind.PropertyAccess Then
+                reference = reference.SetAccessKind(PropertyAccessKind.Get)
+            End If
+
+            If Not hasErrors AndAlso Not IsValidRefFieldReferent(reference, method) Then
+                ReportDiagnostic(diagnostics, byRefExpression.Expression, ERRID.ERR_RefFieldRequiresReference)
+                hasErrors = True
+            End If
+
+            If Not hasErrors AndAlso Not TypeSymbol.Equals(fieldAccess.Type, reference.Type, TypeCompareKind.ConsiderEverything) Then
+                ReportDiagnostic(diagnostics, byRefExpression.Expression, ERRID.ERR_RefFieldTypeMismatch, fieldAccess.Type, reference.Type)
+                hasErrors = True
+            End If
+
+            If hasErrors Then
+                Return New BoundExpressionStatement(node, New BoundBadExpression(byRefExpression, LookupResultKind.Empty, ImmutableArray(Of Symbol).Empty,
+                                                                                 ImmutableArray.Create(target, MakeRValueAndIgnoreDiagnostics(reference)),
+                                                                                 ErrorTypeSymbol.UnknownResultType, hasErrors:=True))
+            End If
+
+            Return New BoundExpressionStatement(node, New BoundRefFieldAssignment(byRefExpression, fieldAccess, reference, fieldAccess.Type))
+        End Function
+
+        ''' <summary>
+        ''' A ref field may refer to a ByRef parameter of the constructor, an array element, a field of a class,
+        ''' or the result of a ByRef function, property or indexer.
+        ''' </summary>
+        Private Shared Function IsValidRefFieldReferent(reference As BoundExpression, constructor As MethodSymbol) As Boolean
+            If Not reference.IsLValue Then
+                Return False
+            End If
+
+            Select Case reference.Kind
+                Case BoundKind.Parameter
+                    Dim parameter = DirectCast(reference, BoundParameter).ParameterSymbol
+                    Return parameter.IsByRef AndAlso parameter.ContainingSymbol Is constructor
+
+                Case BoundKind.ArrayAccess
+                    Return True
+
+                Case BoundKind.FieldAccess
+                    Dim field = DirectCast(reference, BoundFieldAccess).FieldSymbol
+                    Return field.ContainingType.IsReferenceType AndAlso Not field.IsShared
+
+                Case BoundKind.Call
+                    Return DirectCast(reference, BoundCall).Method.ReturnsByRef
+
+                Case BoundKind.PropertyAccess
+                    Return DirectCast(reference, BoundPropertyAccess).PropertySymbol.ReturnsByRef
+
+                Case Else
+                    Return False
+            End Select
+        End Function
+
         Private Function BindAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
             Debug.Assert(node IsNot Nothing)
 
@@ -2919,6 +2998,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.NullConditionalAssignment) Then
                     Return BindNullConditionalAssignment(node, diagnostics)
                 End If
+            End If
+
+            If node.Right.Kind = SyntaxKind.ByRefExpression Then
+                Return BindRefFieldAssignment(node, diagnostics)
             End If
 
             Dim op1 As BoundExpression = Me.BindAssignmentTarget(node.Left, diagnostics)

@@ -81,3 +81,17 @@ Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions
 Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions.IncludeTypeCharacter = 1 -> Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions
 Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions.None = 0 -> Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions
 Microsoft.CodeAnalysis.VisualBasic.TypedConstantExtensions.ToVisualBasicString(constant As Microsoft.CodeAnalysis.TypedConstant, options As Microsoft.CodeAnalysis.VisualBasic.TypedConstantFormattingOptions) -> String
+Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.ByRefExpression = 822 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
+Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.ByRefKeyword() -> Microsoft.CodeAnalysis.SyntaxToken
+Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.Expression() -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.Update(byRefKeyword As Microsoft.CodeAnalysis.SyntaxToken, expression As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.WithByRefKeyword(byRefKeyword As Microsoft.CodeAnalysis.SyntaxToken) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.WithExpression(expression As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
+Overridable Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor(Of TResult).VisitByRefExpression(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax) -> TResult
+Overridable Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor.VisitByRefExpression(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax) -> Void
+Overrides Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.Accept(Of TResult)(visitor As Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor(Of TResult)) -> TResult
+Overrides Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.Accept(visitor As Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor) -> Void
+Overrides Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxRewriter.VisitByRefExpression(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax) -> Microsoft.CodeAnalysis.SyntaxNode
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.ByRefExpression(byRefKeyword As Microsoft.CodeAnalysis.SyntaxToken, expression As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.ByRefExpression(expression As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax

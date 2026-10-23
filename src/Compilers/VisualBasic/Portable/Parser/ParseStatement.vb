@@ -1450,7 +1450,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 TryEatNewLine()
 
-                Dim source = ParseExpressionCore()
+                Dim source As ExpressionSyntax
+
+                ' On vbnext, field = ByRef reference makes a ref field refer to a variable.
+                If operatorToken.Kind = SyntaxKind.EqualsToken AndAlso CurrentToken.Kind = SyntaxKind.ByRefKeyword AndAlso
+                   _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                    Dim byRefKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                    GetNextToken()
+                    source = SyntaxFactory.ByRefExpression(byRefKeyword, ParseExpressionCore())
+                Else
+                    source = ParseExpressionCore()
+                End If
 
                 If source.ContainsDiagnostics Then
                     ' Sync to avoid other errors

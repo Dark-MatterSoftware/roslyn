@@ -291,6 +291,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.AwaitExpression
                     Return BindAwait(DirectCast(node, AwaitExpressionSyntax), diagnostics)
 
+                Case SyntaxKind.ByRefExpression
+                    ' Only the right side of 'field = ByRef variable' has this form; that statement binds it.
+                    Return BindExpression(DirectCast(node, ByRefExpressionSyntax).Expression, diagnostics)
+
                 Case SyntaxKind.ConditionalAccessExpression
                     Return BindConditionalAccessExpression(DirectCast(node, ConditionalAccessExpressionSyntax), diagnostics)
 

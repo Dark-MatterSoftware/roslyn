@@ -3345,6 +3345,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Represents the list of variables that a For Each statement deconstructs each item into, <c>For Each (key, value) In map</c>.
         ''' </summary>
         ForEachDeconstruction = 821                  ' ForEachDeconstructionSyntax : VisualBasicSyntaxNode
+        ByRefExpression = 822                        ' ByRefExpressionSyntax : ExpressionSyntax
 
     End Enum
 End Namespace

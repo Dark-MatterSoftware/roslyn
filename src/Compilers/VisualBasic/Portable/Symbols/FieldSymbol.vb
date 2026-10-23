@@ -450,11 +450,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         ''' <summary>
+        ''' Whether this is a ref field, which refers to a variable instead of holding its own value.
+        ''' </summary>
+        Friend Overridable ReadOnly Property FieldRefKind As RefKind
+            Get
+                Return RefKind.None
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Returns the RefKind of the field. 
         ''' </summary>
         Private ReadOnly Property IFieldSymbol_RefKind As RefKind Implements IFieldSymbol.RefKind
             Get
-                Return RefKind.None
+                Return FieldRefKind
             End Get
         End Property
 

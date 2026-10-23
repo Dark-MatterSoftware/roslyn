@@ -262,6 +262,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
         Private Function HasHome(fieldAccess As BoundFieldAccess) As Boolean
             Dim field = fieldAccess.FieldSymbol
 
+            ' A ref field's home is the variable it refers to.
+            If field.FieldRefKind = RefKind.Ref Then
+                Return True
+            End If
+
             ' const fields are literal values with no homes
             If field.IsConst AndAlso Not field.IsConstButNotMetadataConstant Then
                 Return False
@@ -502,7 +507,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             Dim field = fieldAccess.FieldSymbol
 
             ' writing to a field is considered reading a receiver, unless receiver is a struct and not "Me"
-            If addressKind = AddressKind.Writeable AndAlso IsMeReceiver(fieldAccess.ReceiverOpt) Then
+            If addressKind = AddressKind.Writeable AndAlso (IsMeReceiver(fieldAccess.ReceiverOpt) OrElse field.FieldRefKind <> RefKind.None) Then
                 addressKind = AddressKind.ReadOnly
             End If
 
@@ -510,7 +515,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
             ' Dim ByRef ReadOnly refers to a ReadOnly field through an immutable address.
             Debug.Assert(HasHome(fieldAccess) OrElse addressKind = AddressKind.Immutable, "taking a ref of homeless field")
-            _builder.EmitOpCode(ILOpCode.Ldflda)
+
+            ' The address that a ref field holds is its value.
+            _builder.EmitOpCode(If(field.FieldRefKind <> RefKind.None, ILOpCode.Ldfld, ILOpCode.Ldflda))
 
             EmitSymbolToken(field, fieldAccess.Syntax)
 

@@ -1472,6 +1472,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.AwaitExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.AwaitKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateGreenByRefExpression() As InternalSyntax.ByRefExpressionSyntax
+            return InternalSyntax.SyntaxFactory.ByRefExpression(new InternalSyntax.KeywordSyntax(SyntaxKind.ByRefKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateGreenXmlNameToken() As InternalSyntax.XmlNameTokenSyntax
             return InternalSyntax.SyntaxFactory.XmlNameToken(String.Empty, SyntaxKind.IdentifierName, InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "), InternalSyntax.SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "))
         End Function
@@ -3824,6 +3828,12 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenAwaitExpression()
             dim objectUnderTest = GenerateGreenAwaitExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenByRefExpression()
+            dim objectUnderTest = GenerateGreenByRefExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -6995,6 +7005,14 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestGreenByRefExpressionRewriter()
+            dim oldNode = GenerateGreenByRefExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
         Public Sub TestGreenSkippedTokensTriviaRewriter()
             dim oldNode = GenerateGreenSkippedTokensTrivia()
             Dim rewriter = New GreenIdentityRewriter()
@@ -9733,6 +9751,13 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenAwaitExpressionVisitor()
             Dim oldNode = GenerateGreenAwaitExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenByRefExpressionVisitor()
+            Dim oldNode = GenerateGreenByRefExpression()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -18781,6 +18806,27 @@ Partial Public Class GeneratedTests
             return SyntaxFactory.AwaitExpression(SyntaxFactory.Token(SyntaxKind.AwaitKeyword), GenerateRedKeywordEventContainer())
         End Function
 
+        Private Shared Function GenerateRedByRefExpression() As ByRefExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.ByRefExpression(SyntaxFactory.Token(SyntaxKind.ByRefKeyword), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.ByRefExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.ByRefExpression(SyntaxFactory.Token(SyntaxKind.ByRefKeyword), GenerateRedKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateRedXmlNameToken() As SyntaxToken
             Dim exceptionTest as boolean = false
             return SyntaxFactory.XmlNameToken(SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")), String.Empty, SyntaxKind.IdentifierName, SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))
@@ -23016,6 +23062,15 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedByRefExpression()
+            dim objectUnderTest = GenerateRedByRefExpression()
+            Assert.NotNull(objectUnderTest.byRefKeyword)
+            Assert.NotNull(objectUnderTest.expression)
+            Dim withObj = objectUnderTest.WithByRefKeyword(objectUnderTest.ByRefKeyword).WithExpression(objectUnderTest.Expression)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedXmlNameToken()
             dim objectUnderTest = GenerateRedXmlNameToken()
         End Sub
@@ -26256,6 +26311,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedAwaitExpressionRewriter()
             dim oldNode = GenerateRedAwaitExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedByRefExpressionRewriter()
+            dim oldNode = GenerateRedByRefExpression()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

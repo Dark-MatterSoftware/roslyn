@@ -161,6 +161,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                 Case BoundKind.ReferenceAssignment
                     EmitReferenceAssignment(DirectCast(expression, BoundReferenceAssignment), used)
 
+                Case BoundKind.RefFieldAssignment
+                    EmitRefFieldAssignment(DirectCast(expression, BoundRefFieldAssignment), used)
+
                 Case BoundKind.ValueTypeMeReference
                     ' We want to restrict the usage of BoundValueTypeMeReference to the very minimum possible,
                     ' which is to be able to pass Me reference of value type as ByRef argument in compiler
@@ -722,6 +725,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
             _builder.EmitOpCode(ILOpCode.Ldfld)
             EmitSymbolToken(field, fieldAccess.Syntax)
+
+            ' A ref field holds the address of the variable whose value is read.
+            If used AndAlso field.FieldRefKind <> RefKind.None Then
+                EmitLoadIndirect(field.Type, fieldAccess.Syntax)
+            End If
+
             EmitPopIfUnused(used)
         End Sub
 
@@ -754,7 +763,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                 Dim field As FieldSymbol = fieldAccess.FieldSymbol
 
                 If Not field.IsShared AndAlso EmitFieldLoadReceiverAddress(fieldAccess.ReceiverOpt) Then
-                    Me._builder.EmitOpCode(ILOpCode.Ldflda)
+                    Me._builder.EmitOpCode(If(field.FieldRefKind <> RefKind.None, ILOpCode.Ldfld, ILOpCode.Ldflda))
                     EmitSymbolToken(field, fieldAccess.Syntax)
                     Return True
                 End If
@@ -1946,6 +1955,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                         Dim temp = EmitReceiverRef(left.ReceiverOpt, isAccessConstrained:=False, addressKind:=AddressKind.ReadOnly)
                         Debug.Assert(temp Is Nothing, "temp is unexpected when writing to a field")
 
+                        ' Writing to a ref field writes to the variable it refers to.
+                        If left.FieldSymbol.FieldRefKind <> RefKind.None Then
+                            _builder.EmitOpCode(ILOpCode.Ldfld)
+                            EmitSymbolToken(left.FieldSymbol, left.Syntax)
+                        End If
+
                         lhsUsesStack = True
                     End If
 
@@ -2043,6 +2058,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                     Return EmitAddress(referent, AddressKind.Immutable)
             End Select
         End Function
+
+        Private Sub EmitRefFieldAssignment(node As BoundRefFieldAssignment, used As Boolean)
+            Debug.Assert(Not used)
+            Dim fieldAccess = node.FieldAccess
+
+            Dim receiverTemp = EmitReceiverRef(fieldAccess.ReceiverOpt, isAccessConstrained:=False, addressKind:=AddressKind.ReadOnly)
+            Debug.Assert(receiverTemp Is Nothing, "temp is unexpected when setting a ref field")
+
+            Dim referentTemp = EmitAddress(node.Reference, AddressKind.Writeable)
+            Debug.Assert(referentTemp Is Nothing, "the referent of a ref field must have a home")
+
+            _builder.EmitOpCode(ILOpCode.Stfld)
+            EmitSymbolToken(fieldAccess.FieldSymbol, fieldAccess.Syntax)
+        End Sub
 
         Private Sub EmitReferenceAssignment(capture As BoundReferenceAssignment, used As Boolean, Optional needReference As Boolean = False)
             Debug.Assert(Not needReference OrElse used)
@@ -2200,6 +2229,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
         Private Sub EmitFieldStore(fieldAccess As BoundFieldAccess)
             Dim field As FieldSymbol = fieldAccess.FieldSymbol
+
+            If field.FieldRefKind <> RefKind.None Then
+                EmitStoreIndirect(field.Type, fieldAccess.Syntax)
+                Return
+            End If
 
             If field.IsShared Then
                 _builder.EmitOpCode(ILOpCode.Stsfld)

@@ -32,6 +32,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         BadVariable
         ArrayAccess
         FromEndIndexExpression
+        RefFieldAssignment
         RangeExpression
         ArrayLength
         [GetType]
@@ -867,6 +868,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(operand As BoundExpression, type As TypeSymbol) As BoundFromEndIndexExpression
             If operand IsNot Me.Operand OrElse type IsNot Me.Type Then
                 Dim result = New BoundFromEndIndexExpression(Me.Syntax, operand, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundRefFieldAssignment
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, fieldAccess As BoundFieldAccess, reference As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.RefFieldAssignment, syntax, type, hasErrors OrElse fieldAccess.NonNullAndHasErrors() OrElse reference.NonNullAndHasErrors())
+
+            Debug.Assert(fieldAccess IsNot Nothing, "Field 'fieldAccess' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(reference IsNot Nothing, "Field 'reference' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._FieldAccess = fieldAccess
+            Me._Reference = reference
+        End Sub
+
+
+        Private ReadOnly _FieldAccess As BoundFieldAccess
+        Public ReadOnly Property FieldAccess As BoundFieldAccess
+            Get
+                Return _FieldAccess
+            End Get
+        End Property
+
+        Private ReadOnly _Reference As BoundExpression
+        Public ReadOnly Property Reference As BoundExpression
+            Get
+                Return _Reference
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitRefFieldAssignment(Me)
+        End Function
+
+        Public Function Update(fieldAccess As BoundFieldAccess, reference As BoundExpression, type As TypeSymbol) As BoundRefFieldAssignment
+            If fieldAccess IsNot Me.FieldAccess OrElse reference IsNot Me.Reference OrElse type IsNot Me.Type Then
+                Dim result = New BoundRefFieldAssignment(Me.Syntax, fieldAccess, reference, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9587,6 +9632,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitArrayAccess(CType(node, BoundArrayAccess), arg)
                 Case BoundKind.FromEndIndexExpression
                     Return VisitFromEndIndexExpression(CType(node, BoundFromEndIndexExpression), arg)
+                Case BoundKind.RefFieldAssignment
+                    Return VisitRefFieldAssignment(CType(node, BoundRefFieldAssignment), arg)
                 Case BoundKind.RangeExpression
                     Return VisitRangeExpression(CType(node, BoundRangeExpression), arg)
                 Case BoundKind.ArrayLength
@@ -9981,6 +10028,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitRefFieldAssignment(node As BoundRefFieldAssignment, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10704,6 +10755,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitRefFieldAssignment(node As BoundRefFieldAssignment) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11437,6 +11492,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
             Me.Visit(node.Operand)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitRefFieldAssignment(node As BoundRefFieldAssignment) As BoundNode
+            Me.Visit(node.FieldAccess)
+            Me.Visit(node.Reference)
             Return Nothing
         End Function
 
@@ -12425,6 +12486,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim operand As BoundExpression = DirectCast(Me.Visit(node.Operand), BoundExpression)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(operand, type)
+        End Function
+
+        Public Overrides Function VisitRefFieldAssignment(node As BoundRefFieldAssignment) As BoundNode
+            Dim fieldAccess As BoundFieldAccess = DirectCast(Me.Visit(node.FieldAccess), BoundFieldAccess)
+            Dim reference As BoundExpression = DirectCast(Me.Visit(node.Reference), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(fieldAccess, reference, type)
         End Function
 
         Public Overrides Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
@@ -13571,6 +13639,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression, arg As Object) As TreeDumperNode
             Return New TreeDumperNode("fromEndIndexExpression", Nothing, New TreeDumperNode() {
                 New TreeDumperNode("operand", Nothing, new TreeDumperNode() {Visit(node.Operand, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitRefFieldAssignment(node As BoundRefFieldAssignment, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("refFieldAssignment", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("fieldAccess", Nothing, new TreeDumperNode() {Visit(node.FieldAccess, Nothing)}),
+                New TreeDumperNode("reference", Nothing, new TreeDumperNode() {Visit(node.Reference, Nothing)}),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

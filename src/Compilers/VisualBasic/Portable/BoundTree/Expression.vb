@@ -244,4 +244,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
     End Class
+
+    Partial Friend Class BoundRefFieldAssignment
+        Protected Overrides ReadOnly Property Children As ImmutableArray(Of BoundNode)
+            Get
+                Return ImmutableArray.Create(Of BoundNode)(Me.FieldAccess, Me.Reference)
+            End Get
+        End Property
+    End Class
 End Namespace

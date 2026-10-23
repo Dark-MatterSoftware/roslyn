@@ -28016,6 +28016,99 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents "ByRef" before the right side of an assignment that makes a ref
+    ''' field refer to a variable.
+    ''' </summary>
+    Friend NotInheritable Class ByRefExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _byRefKeyword as KeywordSyntax
+        Friend ReadOnly _expression as ExpressionSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, byRefKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(byRefKeyword)
+            Me._byRefKeyword = byRefKeyword
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, byRefKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(byRefKeyword)
+            Me._byRefKeyword = byRefKeyword
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), byRefKeyword As InternalSyntax.KeywordSyntax, expression As ExpressionSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(byRefKeyword)
+            Me._byRefKeyword = byRefKeyword
+            AdjustFlagsAndWidth(expression)
+            Me._expression = expression
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The "ByRef" keyword.
+        ''' </summary>
+        Friend ReadOnly Property ByRefKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._byRefKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The variable that the ref field is made to refer to.
+        ''' </summary>
+        Friend ReadOnly Property Expression As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._expression
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._byRefKeyword
+                Case 1
+                    Return Me._expression
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new ByRefExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _byRefKeyword, _expression)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new ByRefExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _byRefKeyword, _expression)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitByRefExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a single syntactic token in a VB program. A token is a keyword,
     ''' punctuator, literal, identifier or XML token. The type of keyword or punctuator
     ''' can be determined from the Kind property.
@@ -32410,6 +32503,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExpression(node)
         End Function
+        Public Overridable Function VisitByRefExpression(ByVal node As ByRefExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
         Public Overridable Function VisitStructuredTrivia(ByVal node As StructuredTriviaSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitVisualBasicSyntaxNode(node)
@@ -36610,6 +36707,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New AwaitExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAwaitKeyword, newExpression)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitByRefExpression(ByVal node As ByRefExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newByRefKeyword = DirectCast(Visit(node.ByRefKeyword), KeywordSyntax)
+            If node._byRefKeyword IsNot newByRefKeyword Then anyChanges = True
+            Dim newExpression = DirectCast(Visit(node._expression), ExpressionSyntax)
+            If node._expression IsNot newExpression Then anyChanges = True
+
+            If anyChanges Then
+                Return New ByRefExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newByRefKeyword, newExpression)
             Else
                 Return node
             End If
@@ -49085,6 +49197,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New AwaitExpressionSyntax(SyntaxKind.AwaitExpression, awaitKeyword, expression)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents "ByRef" before the right side of an assignment that makes a ref
+        ''' field refer to a variable.
+        ''' </summary>
+        ''' <param name="byRefKeyword">
+        ''' The "ByRef" keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The variable that the ref field is made to refer to.
+        ''' </param>
+        Friend Shared Function ByRefExpression(byRefKeyword As KeywordSyntax, expression As ExpressionSyntax) As ByRefExpressionSyntax
+            Debug.Assert(byRefKeyword IsNot Nothing AndAlso byRefKeyword.Kind = SyntaxKind.ByRefKeyword)
+            Debug.Assert(expression IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.ByRefExpression, byRefKeyword, expression, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ByRefExpressionSyntax)
+            End If
+
+            Dim result = New ByRefExpressionSyntax(SyntaxKind.ByRefExpression, byRefKeyword, expression)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
@@ -61895,6 +62036,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New AwaitExpressionSyntax(SyntaxKind.AwaitExpression, awaitKeyword, expression, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents "ByRef" before the right side of an assignment that makes a ref
+        ''' field refer to a variable.
+        ''' </summary>
+        ''' <param name="byRefKeyword">
+        ''' The "ByRef" keyword.
+        ''' </param>
+        ''' <param name="expression">
+        ''' The variable that the ref field is made to refer to.
+        ''' </param>
+        Friend Function ByRefExpression(byRefKeyword As KeywordSyntax, expression As ExpressionSyntax) As ByRefExpressionSyntax
+            Debug.Assert(byRefKeyword IsNot Nothing AndAlso byRefKeyword.Kind = SyntaxKind.ByRefKeyword)
+            Debug.Assert(expression IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.ByRefExpression, byRefKeyword, expression, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, ByRefExpressionSyntax)
+            End If
+
+            Dim result = New ByRefExpressionSyntax(SyntaxKind.ByRefExpression, byRefKeyword, expression, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If

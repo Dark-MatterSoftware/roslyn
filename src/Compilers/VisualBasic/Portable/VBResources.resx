@@ -5998,6 +5998,21 @@
   <data name="FEATURE_ForEachDeconstruction" xml:space="preserve">
     <value>deconstruction in 'For Each'</value>
   </data>
+  <data name="FEATURE_RefFields" xml:space="preserve">
+    <value>ref fields</value>
+  </data>
+  <data name="ERR_RefFieldsNotSupportedByRuntime" xml:space="preserve">
+    <value>The target runtime does not support ref fields.</value>
+  </data>
+  <data name="ERR_ByRefAssignmentRequiresRefField" xml:space="preserve">
+    <value>'= ByRef' can only make a ref field of this structure refer to a variable, in a 'Sub New' of the structure.</value>
+  </data>
+  <data name="ERR_RefFieldRequiresReference" xml:space="preserve">
+    <value>A ref field can refer only to a 'ByRef' parameter of 'Sub New', an array element, a field of a class, or the result of a 'ByRef' function, property, or indexer.</value>
+  </data>
+  <data name="ERR_RefFieldTypeMismatch" xml:space="preserve">
+    <value>A ref field of type '{0}' cannot refer to a variable of type '{1}'.</value>
+  </data>
   <data name="ERR_AwaitEachNotInAsyncMethod" xml:space="preserve">
     <value>'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</value>
   </data>

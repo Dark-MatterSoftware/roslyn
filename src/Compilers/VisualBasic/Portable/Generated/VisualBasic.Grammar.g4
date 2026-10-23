@@ -1222,6 +1222,7 @@ expression
   | await_expression
   | binary_conditional_expression
   | binary_expression
+  | by_ref_expression
   | cast_expression
   | collection_expression
   | collection_initializer
@@ -1398,6 +1399,10 @@ right_shift_expression
 
 subtract_expression
   : expression '-' expression
+  ;
+
+by_ref_expression
+  : 'ByRef' expression
   ;
 
 cast_expression

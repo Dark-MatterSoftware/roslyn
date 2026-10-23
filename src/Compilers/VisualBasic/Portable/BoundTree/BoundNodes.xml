@@ -177,6 +177,13 @@
       <Field Name="Operand" Type="BoundExpression"/>
     </Node>
 
+    <!-- field = ByRef reference: makes a ref field of a ByRef structure refer to a variable. -->
+    <Node Name="BoundRefFieldAssignment" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+      <Field Name="FieldAccess" Type="BoundFieldAccess"/>
+      <Field Name="Reference" Type="BoundExpression"/>
+    </Node>
+
     <Node Name="BoundRangeExpression" Base="BoundExpression">
       <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
       <Field Name="LeftOperandOpt" Type="BoundExpression" Null="allow"/>

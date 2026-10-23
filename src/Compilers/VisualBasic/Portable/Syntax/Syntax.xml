@@ -8449,6 +8449,25 @@ Unify Enum declarations with other block type declarations.
       </child>
     </node-structure>
 
+    <!--****************
+      -  ByRefExpression
+      ******************-->
+    <node-structure name="ByRefExpressionSyntax" parent="ExpressionSyntax">
+      <description>Represents "ByRef" before the right side of an assignment that makes a ref field refer to a variable.</description>
+
+      <node-kind name="ByRefExpression" />
+
+      <child name="ByRefKeyword" kind="ByRefKeyword">
+        <description>The "ByRef" keyword.</description>
+      </child>
+
+      <child name="Expression" kind="@ExpressionSyntax">
+        <description>
+          The variable that the ref field is made to refer to.
+        </description>
+      </child>
+    </node-structure>
+
     <!-- ************************************************************************************************** -->
     <!-- **  TOKENS                                                                                      ** -->
     <!-- ************************************************************************************************** -->

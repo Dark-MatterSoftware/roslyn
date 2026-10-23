@@ -49,6 +49,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        ''' <summary>
+        ''' On vbnext a field of a ByRef Structure that is neither Shared nor Const may be declared ByRef.
+        ''' </summary>
+        Private Shared Function IsRefFieldAllowed(container As NamedTypeSymbol, modifiers As SyntaxTokenList) As Boolean
+            Return container.DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                   container.IsRefLikeType AndAlso
+                   Not modifiers.Any(SyntaxKind.SharedKeyword) AndAlso
+                   Not modifiers.Any(SyntaxKind.ConstKeyword)
+        End Function
+
+        Friend Overrides ReadOnly Property FieldRefKind As RefKind
+            Get
+                Dim declaration = TryCast(DeclarationSyntax, FieldDeclarationSyntax)
+                If declaration Is Nothing OrElse Not declaration.Modifiers.Any(SyntaxKind.ByRefKeyword) OrElse
+                   Not IsRefFieldAllowed(ContainingType, declaration.Modifiers) Then
+                    Return RefKind.None
+                End If
+
+                Return If(declaration.Modifiers.Any(SyntaxKind.ReadOnlyKeyword), RefKind.RefReadOnly, RefKind.Ref)
+            End Get
+        End Property
+
         Friend NotOverridable Overrides Function IsDefinedInSourceTree(tree As SyntaxTree, definedWithinSpan As TextSpan?, Optional cancellationToken As CancellationToken = Nothing) As Boolean
             Return IsDefinedInSourceTree(Me.DeclarationSyntax, tree, definedWithinSpan, cancellationToken)
         End Function
@@ -439,9 +461,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                 If(container.IsValueType, Accessibility.Public, Accessibility.Private),
                                                 diagBag.DiagnosticBag)
 
-            ' The vbnext parser accepts ByRef before a declaration, but it has no meaning on a field.
+            ' On vbnext ByRef declares a ref field of a ByRef Structure. It has no meaning on any other field.
             If syntax.Modifiers.Any(SyntaxKind.ByRefKeyword) Then
-                binder.ReportModifierError(syntax.Modifiers, errorId, diagBag.DiagnosticBag, SyntaxKind.ByRefKeyword)
+                If Not IsRefFieldAllowed(container, syntax.Modifiers) Then
+                    binder.ReportModifierError(syntax.Modifiers, errorId, diagBag.DiagnosticBag, SyntaxKind.ByRefKeyword)
+                ElseIf binder.Compilation.GetSpecialTypeMember(SpecialMember.System_Runtime_CompilerServices_RuntimeFeature__ByRefFields) Is Nothing Then
+                    binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_RefFieldsNotSupportedByRuntime, diagBag.DiagnosticBag, SyntaxKind.ByRefKeyword)
+                End If
             End If
 
             If container IsNot Nothing Then

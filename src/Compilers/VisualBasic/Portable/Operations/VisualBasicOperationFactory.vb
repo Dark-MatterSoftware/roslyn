@@ -314,6 +314,7 @@ Namespace Microsoft.CodeAnalysis.Operations
                      BoundKind.Sequence,
                      BoundKind.FromEndIndexExpression,
                      BoundKind.RangeExpression,
+                     BoundKind.RefFieldAssignment,
                      BoundKind.ArrayLength
 
                     Dim constantValue As ConstantValue = Nothing
