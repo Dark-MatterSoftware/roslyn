@@ -377,6 +377,11 @@
         <target state="new">A line in a raw string does not start with the closing delimiter's whitespace.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_RefFieldReadOnlyReferent">
+        <source>Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.</source>
+        <target state="new">Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RefFieldRequiresReference">
         <source>A ref field can refer only to a 'ByRef' parameter of 'Sub New', an array element, a field of a class, or the result of a 'ByRef' function, property, or indexer.</source>
         <target state="new">A ref field can refer only to a 'ByRef' parameter of 'Sub New', an array element, a field of a class, or the result of a 'ByRef' function, property, or indexer.</target>

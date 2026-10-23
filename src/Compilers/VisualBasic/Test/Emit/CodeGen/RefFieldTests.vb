@@ -123,20 +123,20 @@ End Module
 
             CompileAndVerify(compilation, verify:=Verification.Skipped).VerifyIL("Program.Twice", "
 {
-  // Code size       25 (0x19)
+  // Code size       24 (0x18)
   .maxstack  3
-  IL_0000:  ldarga.s   V_0
-  IL_0002:  ldfld      ""Cell.Value As Integer""
-  IL_0007:  ldarg.0
-  IL_0008:  ldfld      ""Cell.Value As Integer""
-  IL_000d:  ldind.i4
-  IL_000e:  ldc.i4.2
-  IL_000f:  mul.ovf
-  IL_0010:  stind.i4
-  IL_0011:  ldarg.0
-  IL_0012:  ldfld      ""Cell.Value As Integer""
-  IL_0017:  ldind.i4
-  IL_0018:  ret
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      ""Cell.Value As Integer""
+  IL_0006:  ldarg.0
+  IL_0007:  ldfld      ""Cell.Value As Integer""
+  IL_000c:  ldind.i4
+  IL_000d:  ldc.i4.2
+  IL_000e:  mul.ovf
+  IL_000f:  stind.i4
+  IL_0010:  ldarg.0
+  IL_0011:  ldfld      ""Cell.Value As Integer""
+  IL_0016:  ldind.i4
+  IL_0017:  ret
 }
 ")
         End Sub
@@ -262,6 +262,138 @@ BC37411: A ref field can refer only to a 'ByRef' parameter of 'Sub New', an arra
 BC37412: A ref field of type 'Long' cannot refer to a variable of type 'Integer'.
         Me.Wide = ByRef wide
                         ~~~~
+</expected>)
+        End Sub
+
+        Private Const ViewSource As String = "
+Imports System.Collections.Immutable
+
+ByRef Structure View
+    Public ByRef ReadOnly Value As Integer
+
+    Sub New(ByRef target As Integer)
+        Value = ByRef target
+    End Sub
+
+    Sub New(settings As Settings)
+        Value = ByRef settings.Limit
+    End Sub
+
+    Sub New(items As ImmutableArray(Of Integer), index As Integer)
+        Value = ByRef items.ItemRef(index)
+    End Sub
+End Structure
+
+Class Settings
+    Public ReadOnly Limit As Integer
+
+    Sub New(limit As Integer)
+        Me.Limit = limit
+    End Sub
+End Class
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ByRefReadOnlyFieldReadsItsVariable()
+            Dim compilation = CreateCompilation({ViewSource, "
+Imports System
+Imports System.Collections.Immutable
+
+Module Program
+    Sub Main()
+        Dim x = 1
+        Dim v As New View(x)
+        x = 5
+        Console.Write(v.Value)
+        Bump(v.Value)
+        Console.Write("" "" & x)
+
+        Dim ByRef ReadOnly r = v.Value
+        x = 8
+        Console.Write("" "" & r)
+
+        Console.Write("" "" & New View(New Settings(3)).Value)
+        Console.Write("" "" & New View(ImmutableArray.Create(4, 6), 1).Value)
+    End Sub
+
+    Sub Bump(ByRef value As Integer)
+        value += 1
+    End Sub
+End Module
+"}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="5 5 8 3 6", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RefFieldsReadAsRefAndRefReadOnlyFromCSharp()
+            Dim compilation = CreateCompilation({ViewSource.Replace("ByRef Structure View", "Public ByRef Structure View").Replace("Class Settings", "Public Class Settings"),
+                                                 CellSource.Replace("ByRef Structure Cell", "Public ByRef Structure Cell").Replace("Class Holder", "Public Class Holder")},
+                                                targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            compilation.AssertNoDiagnostics()
+
+            Dim csCompilation = CreateCSharpCompilation("
+class D
+{
+    static int Read(View v) => v.Value;
+    static void Write(View v) { v.Value = 1; }
+    static void WriteCell(Cell c) { c.Value = 1; }
+}
+", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90, {compilation.EmitToImageReference()}))
+
+            Dim view = DirectCast(csCompilation.GetTypeByMetadataName("View").GetMembers("Value").Single(), IFieldSymbol)
+            Assert.Equal(Microsoft.CodeAnalysis.RefKind.RefReadOnly, view.RefKind)
+            Dim cell = DirectCast(csCompilation.GetTypeByMetadataName("Cell").GetMembers("Value").Single(), IFieldSymbol)
+            Assert.Equal(Microsoft.CodeAnalysis.RefKind.Ref, cell.RefKind)
+
+            Dim errors = csCompilation.GetDiagnostics().Where(Function(d) d.Severity = DiagnosticSeverity.Error).ToArray()
+            Assert.True(errors.Length = 1, String.Join(vbLf, errors.Select(Function(d) d.ToString())))
+            Assert.Equal("v.Value", errors(0).Location.SourceTree.GetText().ToString(errors(0).Location.SourceSpan))
+            Assert.Equal(4, errors(0).Location.GetLineSpan().StartLinePosition.Line)
+        End Sub
+
+        <Fact>
+        Public Sub ByRefReadOnlyFieldCannotBeWrittenThrough()
+            Dim compilation = CreateCompilation("
+ByRef Structure View
+    Public ByRef ReadOnly Value As Integer
+    Public ByRef Cell As Integer
+
+    Sub New(ByRef target As Integer, holder As Holder)
+        Value = ByRef target
+        Value = 2
+        Value += 1
+        Cell = ByRef holder.Limit
+    End Sub
+
+    Sub Reset()
+        Value = 3
+        Dim ByRef r = Value
+    End Sub
+End Structure
+
+Class Holder
+    Public ReadOnly Limit As Integer
+End Class
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30064: 'ReadOnly' variable cannot be the target of an assignment.
+        Value = 2
+        ~~~~~
+BC30064: 'ReadOnly' variable cannot be the target of an assignment.
+        Value += 1
+        ~~~~~
+BC37413: Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.
+        Cell = ByRef holder.Limit
+                     ~~~~~~~~~~~~
+BC30064: 'ReadOnly' variable cannot be the target of an assignment.
+        Value = 3
+        ~~~~~
+BC37406: A 'ByRef' local must be initialized with a variable or with the result of a 'ByRef' function, property, or indexer.
+        Dim ByRef r = Value
+                      ~~~~~
 </expected>)
         End Sub
 

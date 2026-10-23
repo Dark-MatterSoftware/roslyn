@@ -2916,7 +2916,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Private Function BindRefFieldAssignment(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
             Dim byRefExpression = DirectCast(node.Right, ByRefExpressionSyntax)
-            Dim target As BoundExpression = BindAssignmentTarget(node.Left, diagnostics)
+
+            ' A ByRef ReadOnly field is never a target of a plain assignment, so it is bound as an expression.
+            Dim target As BoundExpression = BindExpression(node.Left, diagnostics)
             Dim reference As BoundExpression = BindValue(byRefExpression.Expression, diagnostics)
             Dim hasErrors = target.HasErrors OrElse reference.HasErrors
 
@@ -2939,9 +2941,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 reference = reference.SetAccessKind(PropertyAccessKind.Get)
             End If
 
-            If Not hasErrors AndAlso Not IsValidRefFieldReferent(reference, method) Then
-                ReportDiagnostic(diagnostics, byRefExpression.Expression, ERRID.ERR_RefFieldRequiresReference)
-                hasErrors = True
+            If Not hasErrors Then
+                Dim isReadOnlyField = fieldAccess.FieldSymbol.FieldRefKind = RefKind.RefReadOnly
+
+                Select Case ClassifyRefFieldReferent(reference, method)
+                    Case RefFieldReferentKind.Writable
+                        If isReadOnlyField Then
+                            reference = AsReadOnlyReference(reference)
+                        End If
+
+                    Case RefFieldReferentKind.ReadOnly
+                        If isReadOnlyField Then
+                            reference = AsReadOnlyReference(reference)
+                        Else
+                            ReportDiagnostic(diagnostics, byRefExpression.Expression, ERRID.ERR_RefFieldReadOnlyReferent)
+                            hasErrors = True
+                        End If
+
+                    Case Else
+                        ReportDiagnostic(diagnostics, byRefExpression.Expression, ERRID.ERR_RefFieldRequiresReference)
+                        hasErrors = True
+                End Select
             End If
 
             If Not hasErrors AndAlso Not TypeSymbol.Equals(fieldAccess.Type, reference.Type, TypeCompareKind.ConsiderEverything) Then
@@ -2958,36 +2978,54 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundExpressionStatement(node, New BoundRefFieldAssignment(byRefExpression, fieldAccess, reference, fieldAccess.Type))
         End Function
 
+        Private Enum RefFieldReferentKind
+            Invalid
+            Writable
+            [ReadOnly]
+        End Enum
+
         ''' <summary>
         ''' A ref field may refer to a ByRef parameter of the constructor, an array element, a field of a class,
-        ''' or the result of a ByRef function, property or indexer.
+        ''' or the result of a ByRef function, property or indexer. A ByRef ReadOnly field may also refer to
+        ''' a ReadOnly field of a class or a ref readonly result.
         ''' </summary>
-        Private Shared Function IsValidRefFieldReferent(reference As BoundExpression, constructor As MethodSymbol) As Boolean
-            If Not reference.IsLValue Then
-                Return False
-            End If
-
+        Private Shared Function ClassifyRefFieldReferent(reference As BoundExpression, constructor As MethodSymbol) As RefFieldReferentKind
             Select Case reference.Kind
                 Case BoundKind.Parameter
                     Dim parameter = DirectCast(reference, BoundParameter).ParameterSymbol
-                    Return parameter.IsByRef AndAlso parameter.ContainingSymbol Is constructor
+                    If reference.IsLValue AndAlso parameter.IsByRef AndAlso parameter.ContainingSymbol Is constructor Then
+                        Return RefFieldReferentKind.Writable
+                    End If
 
                 Case BoundKind.ArrayAccess
-                    Return True
+                    If reference.IsLValue Then
+                        Return RefFieldReferentKind.Writable
+                    End If
 
                 Case BoundKind.FieldAccess
                     Dim field = DirectCast(reference, BoundFieldAccess).FieldSymbol
-                    Return field.ContainingType.IsReferenceType AndAlso Not field.IsShared
+                    If field.ContainingType.IsReferenceType AndAlso Not field.IsConst Then
+                        If reference.IsLValue Then
+                            Return RefFieldReferentKind.Writable
+                        ElseIf field.IsReadOnly Then
+                            Return RefFieldReferentKind.ReadOnly
+                        End If
+                    End If
 
                 Case BoundKind.Call
-                    Return DirectCast(reference, BoundCall).Method.ReturnsByRef
+                    Dim method = DirectCast(reference, BoundCall).Method
+                    If method.ReturnsByRef Then
+                        Return If(method.ReturnsByRefReadOnly, RefFieldReferentKind.ReadOnly, RefFieldReferentKind.Writable)
+                    End If
 
                 Case BoundKind.PropertyAccess
-                    Return DirectCast(reference, BoundPropertyAccess).PropertySymbol.ReturnsByRef
-
-                Case Else
-                    Return False
+                    Dim [property] = DirectCast(reference, BoundPropertyAccess).PropertySymbol
+                    If [property].ReturnsByRef Then
+                        Return If([property].ReturnsByRefReadOnly, RefFieldReferentKind.ReadOnly, RefFieldReferentKind.Writable)
+                    End If
             End Select
+
+            Return RefFieldReferentKind.Invalid
         End Function
 
         Private Function BindAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement

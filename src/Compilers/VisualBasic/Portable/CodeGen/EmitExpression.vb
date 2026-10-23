@@ -708,8 +708,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             'TODO: access to a field on this/base has no side-effects.
 
             Dim field As FieldSymbol = fieldAccess.FieldSymbol
-            Dim receiver = fieldAccess.ReceiverOpt
 
+            EmitInstanceFieldLoadReceiver(fieldAccess.ReceiverOpt)
+
+            _builder.EmitOpCode(ILOpCode.Ldfld)
+            EmitSymbolToken(field, fieldAccess.Syntax)
+
+            ' A ref field holds the address of the variable whose value is read.
+            If used AndAlso field.FieldRefKind <> RefKind.None Then
+                EmitLoadIndirect(field.Type, fieldAccess.Syntax)
+            End If
+
+            EmitPopIfUnused(used)
+        End Sub
+
+        Private Sub EmitInstanceFieldLoadReceiver(receiver As BoundExpression)
             'ldfld can work with structs directly (taking address is optional)
             'taking address is typically cheaper, but not for homeless exprs
             'those would need to be loaded anyways.
@@ -722,16 +735,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             Else
                 EmitExpression(receiver, True)
             End If
+        End Sub
 
+        ''' <summary>
+        ''' Loads the address that a ref field holds. The receiver is only read, so it may be a value.
+        ''' </summary>
+        Private Sub EmitRefFieldReference(fieldAccess As BoundFieldAccess)
+            Debug.Assert(fieldAccess.FieldSymbol.FieldRefKind <> RefKind.None)
+            EmitInstanceFieldLoadReceiver(fieldAccess.ReceiverOpt)
             _builder.EmitOpCode(ILOpCode.Ldfld)
-            EmitSymbolToken(field, fieldAccess.Syntax)
-
-            ' A ref field holds the address of the variable whose value is read.
-            If used AndAlso field.FieldRefKind <> RefKind.None Then
-                EmitLoadIndirect(field.Type, fieldAccess.Syntax)
-            End If
-
-            EmitPopIfUnused(used)
+            EmitSymbolToken(fieldAccess.FieldSymbol, fieldAccess.Syntax)
         End Sub
 
         ' In special case of loading the sequence of field accesses we can perform all the 
@@ -1950,16 +1963,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
                 Case BoundKind.FieldAccess
                     Dim left = DirectCast(assignmentTarget, BoundFieldAccess)
-                    If Not left.FieldSymbol.IsShared Then
+                    If left.FieldSymbol.FieldRefKind <> RefKind.None Then
+                        ' Writing to a ref field writes to the variable it refers to.
+                        EmitRefFieldReference(left)
+                        lhsUsesStack = True
+
+                    ElseIf Not left.FieldSymbol.IsShared Then
                         ' we will not write to the receiver, but will write into its field.
                         Dim temp = EmitReceiverRef(left.ReceiverOpt, isAccessConstrained:=False, addressKind:=AddressKind.ReadOnly)
                         Debug.Assert(temp Is Nothing, "temp is unexpected when writing to a field")
-
-                        ' Writing to a ref field writes to the variable it refers to.
-                        If left.FieldSymbol.FieldRefKind <> RefKind.None Then
-                            _builder.EmitOpCode(ILOpCode.Ldfld)
-                            EmitSymbolToken(left.FieldSymbol, left.Syntax)
-                        End If
 
                         lhsUsesStack = True
                     End If
@@ -2066,7 +2078,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             Dim receiverTemp = EmitReceiverRef(fieldAccess.ReceiverOpt, isAccessConstrained:=False, addressKind:=AddressKind.ReadOnly)
             Debug.Assert(receiverTemp Is Nothing, "temp is unexpected when setting a ref field")
 
-            Dim referentTemp = EmitAddress(node.Reference, AddressKind.Writeable)
+            Dim referentTemp = If(fieldAccess.FieldSymbol.FieldRefKind = RefKind.RefReadOnly,
+                                  EmitReadOnlyReference(node.Reference),
+                                  EmitAddress(node.Reference, AddressKind.Writeable))
             Debug.Assert(referentTemp Is Nothing, "the referent of a ref field must have a home")
 
             _builder.EmitOpCode(ILOpCode.Stfld)

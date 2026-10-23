@@ -676,6 +676,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Friend Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
 
+            ' Other compilers read a ref field marked IsReadOnly as ref readonly.
+            If Me.FieldRefKind = RefKind.RefReadOnly Then
+                AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
+            End If
+
             If Me.IsConst Then
                 If Me.GetConstantValue(ConstantFieldsInProgress.Empty) IsNot Nothing Then
                     Dim data = GetDecodedWellKnownAttributeData()

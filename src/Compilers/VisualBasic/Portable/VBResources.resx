@@ -6013,6 +6013,9 @@
   <data name="ERR_RefFieldTypeMismatch" xml:space="preserve">
     <value>A ref field of type '{0}' cannot refer to a variable of type '{1}'.</value>
   </data>
+  <data name="ERR_RefFieldReadOnlyReferent" xml:space="preserve">
+    <value>Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.</value>
+  </data>
   <data name="ERR_AwaitEachNotInAsyncMethod" xml:space="preserve">
     <value>'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</value>
   </data>

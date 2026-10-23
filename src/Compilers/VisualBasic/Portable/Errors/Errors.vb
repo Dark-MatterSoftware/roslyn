@@ -1871,8 +1871,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ByRefAssignmentRequiresRefField = 37410
         ERR_RefFieldRequiresReference = 37411
         ERR_RefFieldTypeMismatch = 37412
+        ERR_RefFieldReadOnlyReferent = 37413
 
-        ERR_NextAvailable = 37413
+        ERR_NextAvailable = 37414
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

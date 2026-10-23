@@ -1954,6 +1954,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return False
             End If
 
+            ' A ref field refers to a variable outside the structure, so the receiver does not matter.
+            Select Case field.FieldRefKind
+                Case RefKind.Ref
+                    Return True
+                Case RefKind.RefReadOnly
+                    Return False
+            End Select
+
             If Not field.IsShared AndAlso
                 receiver IsNot Nothing AndAlso
                 receiver.IsValue() Then
