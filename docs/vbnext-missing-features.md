@@ -199,6 +199,18 @@ Checked against this tree after wave 8, by compiling and running the shapes that
 | VB-087 | Ref fields | Done in phase 50: on `vbnext`, locked in `docs/vbnext-vb087-syntax.md`, a `ByRef Structure` declares `ByRef` and `ByRef ReadOnly` fields, sets them with `field = ByRef reference` in `Sub New`, and cannot outlive what they refer to. Ref fields from other assemblies are still unsupported. Before that, `Private ByRef _value As Integer` in a `ByRef Structure` reported BC30235. A ref structure that holds a reference to one variable, as `Span(Of T)` does internally, needs a ref field. C# 11 added `ref` fields to `ref struct` types. |
 | VB-088 | Inline arrays | Done in phase 51: on `vbnext` an inline array variable is indexed with `buffer(i)`, converts to `Span(Of T)` and `ReadOnlySpan(Of T)`, and is iterated by `For Each`. No new syntax. Before that, `buffer(0)` on a structure marked `<InlineArray(4)>` reports BC30690, "Structure cannot be indexed because it has no default property". .NET 8 added `InlineArrayAttribute` for fixed-size buffers that convert to spans, and C# 12 indexes, slices, and iterates them. |
 
+## Wave 10
+
+Checked against this tree after wave 9, by compiling and running the shapes that wave 9 code meets next against .NET 11 with `LangVersion` `vbnext`: generic math through delegates, inline arrays that are not variables, and the lifetime of ref field structures. Several shapes already work: slicing a span or an inline array with a range, as in `b(1..3)`; `OverloadResolutionPriorityAttribute`; a lambda typed `Func(Of Window, Integer)` over a `ByRef Structure`; a collection expression assigned to `ReadOnlySpan(Of Integer)`; a generic inline array; `Partial` properties; and `Public Shared Function Increment(value As Ticks) As Ticks Implements IIncrementOperators(Of Ticks).op_Increment`, which supplies an operator that VB cannot declare.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-089 | `AddressOf` through a type parameter | `Return AddressOf T.Parse` for `T As IParsable(Of T)`, typed `Func(Of String, IFormatProvider, T)`, reports BC37314, "A shared abstract or virtual interface member cannot be accessed". Slice 42a calls such members through a type parameter, but a delegate cannot be made from one. C# 11 creates the delegate with `constrained. ldftn`. No new syntax. |
+| VB-090 | Inline array values | `Make()(0)` and `For Each v In Make()`, where `Make` returns an inline array, report BC37416, because slice 51a builds spans only over variables. C# 12 reads the elements of such a value by keeping it in a temporary for as long as the expression needs it. No new syntax. |
+| VB-091 | Ref fields from other assemblies | A `ref` or `ref readonly` field declared in C#, such as `public ref int Value;` in a `ref struct`, reports a use-site error in VB, because phase 50 reads only ref fields that VB declares. No new syntax. |
+| VB-092 | `ByRef` locals over ref field structures | `Dim ByRef r = c`, where `c` is a `ByRef` parameter of a structure that holds a ref field, followed by `r = New Cell(local)`, is not checked, and lets the structure outlive `local`. The rules in `docs/vbnext-vb087-syntax.md` cover `ByRef` parameters and `Me`, not `ByRef` locals. Needs a design note first. |
+| VB-093 | Returning ref field structures | A function or property cannot return a structure that holds a ref field (BC37414 since slice 50d), so a factory such as `Function Wrap(ByRef value As Integer) As Cell`, or a slicing method on a `ByRef Structure`, cannot be written. C# 11 allows it with escape analysis and `scoped` parameters. Needs a design note first. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -341,3 +353,15 @@ The three generic math authoring gaps come first, smallest first, so that a VB t
 | 3 | VB-086 | Implementing generic math operators | L | Needs a design note first, because it decides how a VB operator implements an interface operator. Follows VB-084 and VB-085, which a test type needs as well. |
 | 4 | VB-087 | Ref fields | L | Needs a design note first, because it adds a field form and its rules for assignment and lifetime. Reuses the `ByRef` local machinery from phase 45. |
 | 5 | VB-088 | Inline arrays | M | Element access, slicing, and `For Each` for one kind of structure, emitted through `Unsafe` and `MemoryMarshal` as C# does. |
+
+### Wave 10 order
+
+The three gaps that need no new rules come first, smallest first. Then the two lifetime gaps, which each need a design note.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-089 | `AddressOf` through a type parameter | S | Delegate creation with the constrained call that slice 42a already emits for calls. |
+| 2 | VB-090 | Inline array values | M | Keeps the value in a temporary that lives to the end of the statement, so the span that slice 51a builds stays valid. |
+| 3 | VB-091 | Ref fields from other assemblies | M | Reads `ref` and `ref readonly` fields from metadata, and reuses the phase 50 emitter. |
+| 4 | VB-092 | `ByRef` locals over ref field structures | S | Needs a design note first, to extend the slice 50a rules from `ByRef` parameters to `ByRef` locals. |
+| 5 | VB-093 | Returning ref field structures | L | Needs a design note first, because it replaces a fixed rule from slice 50a with rules for what a returned structure may refer to. |
