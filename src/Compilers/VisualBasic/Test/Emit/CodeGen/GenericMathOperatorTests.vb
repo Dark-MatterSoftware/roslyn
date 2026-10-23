@@ -163,6 +163,120 @@ End Module
 ]]>)
         End Sub
 
+        Private Const MoneyType As String = "
+Imports System
+Imports System.Numerics
+
+Structure Money
+    Implements IAdditionOperators(Of Money, Money, Money), IAdditiveIdentity(Of Money, Money),
+               IEqualityOperators(Of Money, Money, Boolean), IIncrementOperators(Of Money)
+
+    Public Amount As Decimal
+
+    Public Shared Operator +(left As Money, right As Money) As Money
+        Return New Money With {.Amount = left.Amount + right.Amount}
+    End Operator
+
+    Public Shared Operator =(left As Money, right As Money) As Boolean
+        Return left.Amount = right.Amount
+    End Operator
+
+    Public Shared Operator <>(left As Money, right As Money) As Boolean
+        Return left.Amount <> right.Amount
+    End Operator
+
+    Public Shared ReadOnly Property AdditiveIdentity As Money Implements IAdditiveIdentity(Of Money, Money).AdditiveIdentity
+        Get
+            Return New Money()
+        End Get
+    End Property
+
+    Public Shared Function op_Increment(value As Money) As Money Implements IIncrementOperators(Of Money).op_Increment
+        Return New Money With {.Amount = value.Amount + 1}
+    End Function
+End Structure
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub VbOperatorsImplementInterfaceOperators()
+            Dim compilation = CreateCompilation(MoneyType & "
+Module Program
+    Function Sum(Of T As {IAdditionOperators(Of T, T, T), IAdditiveIdentity(Of T, T)})(values As T()) As T
+        Dim total = T.AdditiveIdentity
+        For Each value In values
+            total += value
+        Next
+        Return total
+    End Function
+
+    Function Same(Of T As IEqualityOperators(Of T, T, Boolean))(a As T, b As T) As Boolean
+        Return a = b
+    End Function
+
+    Function Bump(Of T As IIncrementOperators(Of T))(value As T) As T
+        Return T.op_Increment(value)
+    End Function
+
+    Sub Main()
+        Dim values = {New Money With {.Amount = 1.5D}, New Money With {.Amount = 2.25D}}
+        Dim direct = values(0) + values(1)
+        Console.Write($""{Sum(values).Amount} {direct.Amount} {Same(values(0), values(0))} {Same(values(0), values(1))} {Bump(values(0)).Amount}"")
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3.75 3.75 True False 2.5", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub OperatorWithAnotherSignatureDoesNotImplement()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Structure Money
+    Implements IAdditionOperators(Of Money, Money, Money)
+
+    Public Amount As Decimal
+
+    Public Shared Operator +(left As Money, right As Integer) As Money
+        Return New Money With {.Amount = left.Amount + right}
+    End Operator
+End Structure
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37315: Structure 'Money' cannot implement interface 'IAdditionOperators(Of Money, Money, Money)' because it contains shared abstract or virtual 'Operator +(left As Money, right As Money) As Money'.
+    Implements IAdditionOperators(Of Money, Money, Money)
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
+        <Fact>
+        Public Sub VbOperatorsDoNotImplementInterfaceOperatorsOn17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Numerics
+
+Structure Money
+    Implements IAdditionOperators(Of Money, Money, Money)
+
+    Public Amount As Decimal
+
+    Public Shared Operator +(left As Money, right As Money) As Money
+        Return New Money With {.Amount = left.Amount + right.Amount}
+    End Operator
+End Structure
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37315: Structure 'Money' cannot implement interface 'IAdditionOperators(Of Money, Money, Money)' because it contains shared abstract or virtual 'Function op_CheckedAddition(left As Money, right As Money) As Money'.
+    Implements IAdditionOperators(Of Money, Money, Money)
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC37315: Structure 'Money' cannot implement interface 'IAdditionOperators(Of Money, Money, Money)' because it contains shared abstract or virtual 'Operator +(left As Money, right As Money) As Money'.
+    Implements IAdditionOperators(Of Money, Money, Money)
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
         <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub OperatorsOfTheConstraintsAreAnErrorOn17_13()
             Dim compilation = CreateCompilation("

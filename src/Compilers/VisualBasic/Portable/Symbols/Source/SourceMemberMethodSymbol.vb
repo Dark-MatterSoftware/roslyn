@@ -410,6 +410,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Function GetExplicitInterfaceImplementations(sourceModule As SourceModuleSymbol, diagBag As BindingDiagnosticBag) As ImmutableArray(Of MethodSymbol)
             Debug.Assert(Not Me.IsPartial)
+
+            If TypeOf Me.DeclarationSyntax Is OperatorStatementSyntax Then
+                Return GetImplicitlyImplementedInterfaceOperators()
+            End If
+
             Dim syntax = TryCast(Me.DeclarationSyntax, MethodStatementSyntax)
 
             If (syntax IsNot Nothing) AndAlso
@@ -432,6 +437,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Return ImmutableArray(Of MethodSymbol).Empty
+        End Function
+
+        ''' <summary>
+        ''' On vbnext an operator, which has no Implements clause, supplies the shared abstract or virtual operators of the
+        ''' same name, parameter types, and return type that the containing type's interfaces declare.
+        ''' </summary>
+        Private Function GetImplicitlyImplementedInterfaceOperators() As ImmutableArray(Of MethodSymbol)
+            Dim container = ContainingType
+            If Not Me.IsShared OrElse container.IsInterface OrElse container.IsModuleType OrElse
+               container.DeclaringCompilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return ImmutableArray(Of MethodSymbol).Empty
+            End If
+
+            Dim result = ArrayBuilder(Of MethodSymbol).GetInstance()
+            For Each implementedInterface In container.AllInterfacesNoUseSiteDiagnostics
+                For Each member In implementedInterface.GetMembers(Me.Name)
+                    Dim candidate = TryCast(member, MethodSymbol)
+                    If candidate IsNot Nothing AndAlso candidate.IsShared AndAlso
+                       (candidate.IsMustOverride OrElse candidate.IsOverridable) AndAlso
+                       MethodSignatureComparer.ParametersAndReturnTypeSignatureComparer.Equals(Me, candidate) Then
+                        result.Add(candidate)
+                    End If
+                Next
+            Next
+
+            Return result.ToImmutableAndFree()
         End Function
 
         ''' <summary>
