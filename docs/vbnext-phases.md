@@ -651,7 +651,7 @@ Wave 11 row 2.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 60a | VB-096 | A design note locks how a VB interface declares a shared virtual member with a default body. No code change. |
+| 60a | VB-096 | Done. `docs/vbnext-vb096-syntax.md` locks `Shared Overridable` for a shared interface member with a default body, which a type may supply with `Shared ... Implements` or leave out, reached through a type parameter. No code change. |
 | 60b | VB-096 | On `vbnext`, the form that 60a locks declares the member, a type may supply its own, and a call through a type parameter reaches the default body or the type's member as slice 47a does. |
 
 ## Phase 61 — `ByRef ReadOnly` functions
