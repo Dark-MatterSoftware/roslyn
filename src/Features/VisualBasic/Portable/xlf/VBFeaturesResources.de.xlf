@@ -79,6 +79,11 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</source>
 Async Iterator Function(...) As IAsyncEnumerable(Of T)</target>
         <note />
       </trans-unit>
+      <trans-unit id="Gives_a_shared_interface_member_a_default_body_that_implementing_types_may_replace">
+        <source>Gives a 'Shared' interface member a default body that implementing types may replace.</source>
+        <target state="new">Gives a 'Shared' interface member a default body that implementing types may replace.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Insert_0">
         <source>Insert '{0}'.</source>
         <target state="translated">"{0}" einfügen.</target>
@@ -152,6 +157,16 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</target>
       <trans-unit id="Prevents_writes_through_a_ByRef_local">
         <source>Prevents writes through a 'ByRef' local.</source>
         <target state="new">Prevents writes through a 'ByRef' local.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Prevents_writes_through_a_ByRef_parameter">
+        <source>Prevents writes through a 'ByRef' parameter, which refers to the caller's variable.</source>
+        <target state="new">Prevents writes through a 'ByRef' parameter, which refers to the caller's variable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Prevents_writes_through_the_reference_a_ByRef_function_returns">
+        <source>Prevents writes through the reference that a 'ByRef' function returns.</source>
+        <target state="new">Prevents writes through the reference that a 'ByRef' function returns.</target>
         <note />
       </trans-unit>
       <trans-unit id="Project_level_Imports">

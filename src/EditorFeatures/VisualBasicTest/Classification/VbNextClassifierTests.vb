@@ -284,6 +284,45 @@ End Structure",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestWaveElevenForms(testHost As TestHost) As Task
+            Await TestAsync("Interface I
+    Shared Overridable Function N() As String
+    End Function
+    ByRef ReadOnly Function F(ByRef ReadOnly v As Integer) As Integer
+End Interface",
+                testHost,
+                s_vbNext,
+                Keyword("Interface"),
+                [Interface]("I"),
+                Keyword("Shared"),
+                Keyword("Overridable"),
+                Keyword("Function"),
+                Method("N"),
+                [Static]("N"),
+                Punctuation.OpenParen,
+                Punctuation.CloseParen,
+                Keyword("As"),
+                Keyword("String"),
+                Keyword("End"),
+                Keyword("Function"),
+                Keyword("ByRef"),
+                Keyword("ReadOnly"),
+                Keyword("Function"),
+                Method("F"),
+                Punctuation.OpenParen,
+                Keyword("ByRef"),
+                Keyword("ReadOnly"),
+                Parameter("v"),
+                Keyword("As"),
+                Keyword("Integer"),
+                Punctuation.CloseParen,
+                Keyword("As"),
+                Keyword("Integer"),
+                Keyword("End"),
+                Keyword("Interface"))
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestForEachDeconstruction(testHost As TestHost) As Task
             Await TestInMethodAsync("For Each (name, count As Integer) In items
 Next",

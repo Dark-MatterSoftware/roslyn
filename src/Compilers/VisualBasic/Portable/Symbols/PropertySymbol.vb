@@ -638,7 +638,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IPropertySymbol_ByRefReturnIsReadonly As Boolean Implements IPropertySymbol.ReturnsByRefReadonly
             Get
-                Return False
+                Return Me.ReturnsByRefReadOnly
             End Get
         End Property
 

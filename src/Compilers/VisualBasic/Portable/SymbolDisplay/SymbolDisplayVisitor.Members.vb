@@ -547,6 +547,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     AddSpace()
 
                     AddCustomModifiersIfRequired(symbol.RefCustomModifiers, leadingSpace:=False, trailingSpace:=True)
+
+                    If symbol.RefKind = RefKind.In Then
+                        AddKeyword(SyntaxKind.ReadOnlyKeyword)
+                        AddSpace()
+                    End If
                 End If
 
                 If symbol.IsParamsArray Then

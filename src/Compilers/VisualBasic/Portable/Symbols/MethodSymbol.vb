@@ -1195,7 +1195,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IMethodSymbol_ReturnsByReadonlyRef As Boolean Implements IMethodSymbol.ReturnsByRefReadonly
             Get
-                Return False
+                Return Me.ReturnsByRefReadOnly
             End Get
         End Property
 

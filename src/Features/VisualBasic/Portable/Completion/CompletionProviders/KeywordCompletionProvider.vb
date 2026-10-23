@@ -48,6 +48,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 New KeywordRecommenders.Declarations.ExternalSubFunctionKeywordRecommender(),
                 New KeywordRecommenders.Declarations.FunctionKeywordRecommender(),
                 New KeywordRecommenders.Declarations.ByRefFieldKeywordRecommender(),
+                New KeywordRecommenders.Declarations.ByRefReadOnlyKeywordRecommender(),
                 New KeywordRecommenders.Declarations.GenericConstraintsKeywordRecommender(),
                 New KeywordRecommenders.Declarations.GetSetKeywordRecommender(),
                 New KeywordRecommenders.Declarations.ImplementsKeywordRecommender(),

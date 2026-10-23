@@ -141,6 +141,45 @@ End Structure", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestByRefReadOnlyFunctionAndParameter() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Class Store
+    Public Values As Integer() = {1, 2}
+
+    ByRef ReadOnly Function First() As Integer
+        Return Values(0)
+    End Function
+
+    Function Twice(ByRef ReadOnly value As Integer) As Integer
+        Return val$$ue * 2
+    End Function
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.parameter}) ByRef ReadOnly value As Integer"))
+            End Using
+
+            MarkupTestFile.GetPosition("
+Class Store
+    Public Values As Integer() = {1, 2}
+
+    ByRef ReadOnly Function First() As Integer
+        Return Values(0)
+    End Function
+
+    Sub Use()
+        System.Console.Write(Fi$$rst())
+    End Sub
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("ByRef ReadOnly Function Store.First() As Integer"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))

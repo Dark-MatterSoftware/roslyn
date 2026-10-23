@@ -321,6 +321,39 @@ End Structure</File>, "ByRef")
         End Sub
 
         <Fact>
+        Public Sub ReadOnlyAfterByRefParameter()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub F(ByRef |
+End Module</File>, "ReadOnly")
+            VerifyRecommendationsMissing(<File>Module M
+    Sub F(ByRef |
+End Module</File>, "ReadOnly")
+        End Sub
+
+        <Fact>
+        Public Sub ReadOnlyAndFunctionAfterByRefMember()
+            VerifyRecommendationsContain(<File VbNext="True">Class C
+    Public ByRef |
+End Class</File>, "ReadOnly", "Function")
+            VerifyRecommendationsContain(<File VbNext="True">Class C
+    Public ByRef ReadOnly |
+End Class</File>, "Function")
+        End Sub
+
+        <Fact>
+        Public Sub OverridableAfterSharedInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    Shared |
+End Interface</File>, "Overridable")
+            VerifyRecommendationsMissing(<File VbNext="True">Interface I
+    Shared Overridable |
+End Interface</File>, "Overridable")
+            VerifyRecommendationsMissing(<File>Interface I
+    Shared |
+End Interface</File>, "Overridable")
+        End Sub
+
+        <Fact>
         Public Sub InAfterParenthesizedForEachControlVariableMissingOn17_13()
             VerifyRecommendationsMissing(<File>Module M
     Sub F()
