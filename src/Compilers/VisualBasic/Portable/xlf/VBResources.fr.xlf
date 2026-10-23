@@ -262,11 +262,6 @@
         <target state="new">The index must be at least 0 and less than {0}, the length of the inline array.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ERR_InlineArrayNotVariable">
-        <source>An inline array can be indexed or iterated only when it is a variable.</source>
-        <target state="new">An inline array can be indexed or iterated only when it is a variable.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ERR_InterpolatedStringHandlerArgument">
         <source>The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</source>
         <target state="new">The interpolated string handler for parameter '{0}' reads '{1}', which is not the instance ("") or a ByVal parameter that comes before '{0}'.</target>

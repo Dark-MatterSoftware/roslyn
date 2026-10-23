@@ -28,8 +28,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
             Dim isReadOnly = TypeSymbol.Equals(spanType.OriginalDefinition, compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.ConsiderEverything)
 
+            ' The span refers to this storage, so a temporary that holds a value is never released.
             Dim temp = If(isReadOnly, EmitReadOnlyReference(operand), EmitAddress(operand, AddressKind.Writeable))
-            Debug.Assert(temp Is Nothing, "a span must refer to the inline array variable itself")
+            Debug.Assert(temp Is Nothing OrElse operand.Kind = BoundKind.Sequence, "a span must refer to the inline array variable itself")
 
             Dim asMethod = DirectCast(compilation.GetWellKnownTypeMember(WellKnownMember.System_Runtime_CompilerServices_Unsafe__As_T), MethodSymbol).
                 Construct(operand.Type, elementType)
@@ -44,10 +45,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                 Construct(elementType)
             _builder.EmitOpCode(ILOpCode.Call, stackAdjustment:=-1)
             EmitSymbolToken(createSpan, conversion.Syntax)
-
-            If temp IsNot Nothing Then
-                FreeTemp(temp)
-            End If
 
             EmitPopIfUnused(used)
         End Sub

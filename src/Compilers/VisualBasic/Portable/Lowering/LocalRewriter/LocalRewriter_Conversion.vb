@@ -8,6 +8,29 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend NotInheritable Class LocalRewriter
+        ''' <summary>
+        ''' Whether an inline array expression has storage that a span can refer to without a copy.
+        ''' </summary>
+        Private Shared Function IsAddressableInlineArray(expression As BoundExpression) As Boolean
+            Select Case expression.Kind
+                Case BoundKind.Local, BoundKind.Parameter, BoundKind.ArrayAccess, BoundKind.MeReference, BoundKind.ValueTypeMeReference
+                    Return True
+
+                Case BoundKind.Call
+                    Return DirectCast(expression, BoundCall).Method.ReturnsByRef
+
+                Case BoundKind.FieldAccess
+                    Dim access = DirectCast(expression, BoundFieldAccess)
+                    Dim receiver = access.ReceiverOpt
+                    Return access.FieldSymbol.IsShared OrElse
+                           receiver Is Nothing OrElse
+                           receiver.Type.IsReferenceType OrElse
+                           IsAddressableInlineArray(receiver)
+            End Select
+
+            Return False
+        End Function
+
         Public Overrides Function VisitConversion(node As BoundConversion) As BoundNode
 
             If Not _inExpressionLambda AndAlso Conversions.IsIdentityConversion(node.ConversionKind) Then
@@ -31,9 +54,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return result
             End If
 
-            ' The emitter builds the span over the operand's storage.
+            ' The emitter builds the span over the operand's storage. A value, such as a function result, is stored
+            ' in a temporary first, and the emitter keeps the temporary for the rest of the method.
             If Conversions.IsInlineArrayConversion(node.ConversionKind) Then
-                Return node.Update(DirectCast(Visit(node.Operand), BoundExpression), node.ConversionKind, node.Checked, node.ExplicitCastInCode,
+                Dim operand = DirectCast(Visit(node.Operand), BoundExpression)
+
+                If Not IsAddressableInlineArray(operand) Then
+                    Dim temp = New SynthesizedLocal(Me._currentMethodOrLambda, operand.Type, SynthesizedLocalKind.LoweringTemp)
+                    Dim store = New BoundAssignmentOperator(operand.Syntax, New BoundLocal(operand.Syntax, temp, temp.Type), operand, suppressObjectClone:=True, type:=temp.Type)
+                    operand = New BoundSequence(operand.Syntax, ImmutableArray.Create(Of LocalSymbol)(temp), ImmutableArray.Create(Of BoundExpression)(store),
+                                                New BoundLocal(operand.Syntax, temp, isLValue:=False, type:=temp.Type), temp.Type)
+                End If
+
+                Return node.Update(operand, node.ConversionKind, node.Checked, node.ExplicitCastInCode,
                                    node.ConstantValueOpt, node.ExtendedInfoOpt, node.Type)
             End If
 

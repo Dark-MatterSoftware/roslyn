@@ -86,6 +86,45 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="1 5 10 4 9 4 24 6 7 7 24 range", verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
 
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ElementsOfAnInlineArrayValue()
+            Dim compilation = CreateCompilation({BufferSource, "
+Imports System
+
+Module Program
+    Function Make(start As Integer) As Buffer4
+        Dim b As Buffer4
+        For i = 0 To 3
+            b(i) = start + i
+        Next
+        Return b
+    End Function
+
+    Sub Main()
+        Console.Write(Make(10)(2))
+
+        Dim total = 0
+        For Each v In Make(1)
+            total += v
+        Next
+        Console.Write("" "" & total)
+
+        Console.Write("" "" & Make(20)(Make(0)(1)))
+
+        Dim sum = 0
+        For Each a In Make(100)
+            For Each c In Make(1)
+                sum += c
+            Next
+        Next
+        Console.Write("" "" & sum)
+    End Sub
+End Module
+"}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="12 10 21 40", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
         <Fact>
         Public Sub SpanConversionEmitsUnsafeAsAndCreateSpan()
             Dim compilation = CreateCompilation({BufferSource, "
@@ -132,9 +171,7 @@ Module Program
         Dim b As Buffer4
         b(4) = 1
         b(-1) = 1
-        Dim x = Make()(0)
-        For Each v In Make()
-        Next
+        Make()(0) = 1
         Dim s As Span(Of Long) = b
     End Sub
 End Module
@@ -148,12 +185,9 @@ BC37417: The index must be at least 0 and less than 4, the length of the inline 
 BC37417: The index must be at least 0 and less than 4, the length of the inline array.
         b(-1) = 1
           ~~
-BC37416: An inline array can be indexed or iterated only when it is a variable.
-        Dim x = Make()(0)
-                ~~~~~~
-BC37416: An inline array can be indexed or iterated only when it is a variable.
-        For Each v In Make()
-                      ~~~~~~
+BC30068: Expression is a value and therefore cannot be the target of an assignment.
+        Make()(0) = 1
+        ~~~~~~~~~
 BC30311: Value of type 'Buffer4' cannot be converted to 'Span(Of Long)'.
         Dim s As Span(Of Long) = b
                                  ~

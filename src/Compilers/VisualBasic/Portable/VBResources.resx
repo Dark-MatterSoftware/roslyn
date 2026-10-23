@@ -6019,9 +6019,6 @@
   <data name="ERR_RefFieldHolderReturned" xml:space="preserve">
     <value>'{0}' holds a ref field, so it cannot be the return type of a function or property.</value>
   </data>
-  <data name="ERR_InlineArrayNotVariable" xml:space="preserve">
-    <value>An inline array can be indexed or iterated only when it is a variable.</value>
-  </data>
   <data name="ERR_InlineArrayIndexOutOfRange" xml:space="preserve">
     <value>The index must be at least 0 and less than {0}, the length of the inline array.</value>
   </data>

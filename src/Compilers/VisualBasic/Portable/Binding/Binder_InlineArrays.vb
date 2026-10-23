@@ -113,11 +113,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
+            ' A value, such as a function result, is read through a ReadOnlySpan(Of T) over a temporary.
             Dim isWritable = IsInlineArrayVariable(target, writable:=True)
-            If Not isWritable AndAlso Not IsInlineArrayVariable(target, writable:=False) Then
-                ReportDiagnostic(diagnostics, target.Syntax, ERRID.ERR_InlineArrayNotVariable)
-                Return BadExpression(node, ImmutableArray.Create(target).AddRange(boundArguments), ErrorTypeSymbol.UnknownResultType)
-            End If
 
             Dim spanDefinition = Compilation.GetWellKnownType(If(isWritable, WellKnownType.System_Span_T, WellKnownType.System_ReadOnlySpan_T))
             Dim spanType = spanDefinition.Construct(elementType)
@@ -174,10 +171,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim isWritable = IsInlineArrayVariable(collection, writable:=True)
-            If Not isWritable AndAlso Not IsInlineArrayVariable(collection, writable:=False) Then
-                ReportDiagnostic(diagnostics, collection.Syntax, ERRID.ERR_InlineArrayNotVariable)
-                Return BadExpression(collection.Syntax, collection, ErrorTypeSymbol.UnknownResultType)
-            End If
 
             Dim spanDefinition = Compilation.GetWellKnownType(If(isWritable, WellKnownType.System_Span_T, WellKnownType.System_ReadOnlySpan_T))
             Dim spanType = spanDefinition.Construct(elementType)
