@@ -212,6 +212,17 @@ Checked against this tree after wave 9, by compiling and running the shapes that
 | VB-093 | Returning ref field structures | Done in phase 57: on `vbnext`, locked in `docs/vbnext-vb093-syntax.md`, a function returns such a structure when it refers only to the caller's storage. Before that, a function or property could not return a structure that holds a ref field (BC37414 since slice 50d), so a factory such as `Function Wrap(ByRef value As Integer) As Cell`, or a slicing method on a `ByRef Structure`, cannot be written. C# 11 allows it with escape analysis and `scoped` parameters. Needs a design note first. |
 | VB-094 | Returning spans over inline array locals | Done in phase 57: on `vbnext` a span over local storage reports BC37418 when it would leave the method. Found in slice 54a. `Function F() As Span(Of Integer)` can `Return b`, where `b` is a local inline array, because slice 51a converts any writable variable to a span and VB does not check where a span goes. The caller gets a span over storage that no longer exists. C# 12 reports that the span cannot escape the method. Joins the VB-093 design note in phase 57, because both decide what a returned ref structure may refer to. |
 
+## Wave 11
+
+Checked against this tree after wave 10, by compiling and running the shapes that wave 10 code meets next against .NET 11 with `LangVersion` `vbnext`: declaring the reference and generic math forms that VB so far only consumes. Several shapes already work: a generic method whose type parameter is `Of T As ByRef`, which C# 13 spells `allows ref struct`; a `ByRef Structure` that implements an interface; calling `MemoryMarshal.CreateReadOnlySpan`, whose first parameter is `ref readonly`; `ParamArray values As List(Of Integer)`; an inline array of a generic element type; `Partial` constructors; and `Shared MustOverride` members declared in a VB interface.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-095 | `NameOf` an unbound generic type | `NameOf(List(Of))` reports BC30182, "Type expected". C# 14 accepts `nameof(List<>)`. VB already writes an unbound generic type as `List(Of)` in `GetType(List(Of))`. No new syntax. |
+| VB-096 | Shared virtual interface members with a body | `Shared Overridable Function DefaultName() As String` with a body in a VB interface reports BC30270 and BC30501. Slice 47a lets a type leave out such a member that another assembly declares, but VB cannot declare one. C# 11 declares them as `static virtual`. Needs a design note first, because it combines `Shared` and `Overridable`. |
+| VB-097 | Declaring `ByRef ReadOnly` functions | `ByRef ReadOnly Function FirstValue() As Integer` reports BC30242, "'ReadOnly' is not valid on a method declaration". Slice 35a reads `ref readonly` results from other assemblies, but VB cannot declare one. C# 7.2 declares `ref readonly` returns. Needs a design note first. |
+| VB-098 | Declaring `ByRef ReadOnly` parameters | `Function Twice(ByRef ReadOnly value As Integer)` reports BC30181. VB can pass arguments to `in` and `ref readonly` parameters, but cannot declare one. C# 7.2 declares `in` parameters and C# 12 `ref readonly` parameters. Needs a design note first. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -366,3 +377,14 @@ The three gaps that need no new rules come first, smallest first. Then the two l
 | 3 | VB-091 | Ref fields from other assemblies | M | Reads `ref` and `ref readonly` fields from metadata, and reuses the phase 50 emitter. |
 | 4 | VB-092 | `ByRef` locals over ref field structures | S | Needs a design note first, to extend the slice 50a rules from `ByRef` parameters to `ByRef` locals. |
 | 5 | VB-093 | Returning ref field structures | L | Needs a design note first, because it replaces a fixed rule from slice 50a with rules for what a returned structure may refer to. |
+
+### Wave 11 order
+
+The gap with a form already in the language comes first. Then the three declaration gaps, each with a design note, smallest first.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-095 | `NameOf` an unbound generic type | S | Parses the `GetType` form inside `NameOf`. |
+| 2 | VB-096 | Shared virtual interface members with a body | M | Needs a design note first. Emits the default body that slice 47a already calls. |
+| 3 | VB-097 | Declaring `ByRef ReadOnly` functions | M | Needs a design note first. Emits the `IsReadOnlyAttribute` marking that slice 35a reads. |
+| 4 | VB-098 | Declaring `ByRef ReadOnly` parameters | M | Needs a design note first, because it decides how VB passes an argument that is not a variable. |
