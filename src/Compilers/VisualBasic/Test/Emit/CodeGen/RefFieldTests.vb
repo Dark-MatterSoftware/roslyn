@@ -353,6 +353,83 @@ class D
         End Sub
 
         <Fact>
+        Public Sub StructureHoldingRefFieldCannotOutliveItsReferents()
+            Dim compilation = CreateCompilation("
+Imports System
+
+ByRef Structure Cell
+    Public ByRef Value As Integer
+
+    Sub New(ByRef target As Integer)
+        Value = ByRef target
+    End Sub
+End Structure
+
+ByRef Structure Pair
+    Public First As Cell
+
+    Sub Reset(ByRef target As Integer)
+        First = New Cell(target)
+    End Sub
+End Structure
+
+ByRef Structure Plain
+    Public Count As Integer
+End Structure
+
+Module Program
+    Function Make(ByRef x As Integer) As Cell
+        Return New Cell(x)
+    End Function
+
+    ReadOnly Property Current As Pair
+        Get
+            Return New Pair()
+        End Get
+    End Property
+
+    Function MakePlain() As Plain
+        Return New Plain()
+    End Function
+
+    Function MakeSpan(items As Integer()) As Span(Of Integer)
+        Return items.AsSpan()
+    End Function
+
+    Sub Store(ByRef c As Cell, ByRef p As Pair)
+        Dim local = 1
+        c = New Cell(local)
+        p.First = New Cell(local)
+
+        Dim copy As Cell = c
+        copy = New Cell(local)
+        Dim pair As New Pair()
+        pair.First = copy
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
+        First = New Cell(target)
+        ~~~~~
+BC37414: 'Cell' holds a ref field, so it cannot be the return type of a function or property.
+    Function Make(ByRef x As Integer) As Cell
+                                         ~~~~
+BC37414: 'Pair' holds a ref field, so it cannot be the return type of a function or property.
+    ReadOnly Property Current As Pair
+                                 ~~~~
+BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
+        c = New Cell(local)
+        ~
+BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
+        p.First = New Cell(local)
+        ~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub ByRefReadOnlyFieldCannotBeWrittenThrough()
             Dim compilation = CreateCompilation("
 ByRef Structure View

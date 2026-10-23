@@ -426,6 +426,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                             Binder.ReportDiagnostic(diagnostics, errorLocation, ERRID.ERR_RestrictedType1, restrictedType)
                         ElseIf type.IsRefLikeOrAllowsRefLikeType() AndAlso IsAutoProperty AndAlso (Me.IsShared OrElse Not Me.ContainingType.IsRefLikeType) Then
                             Binder.ReportDiagnostic(diagnostics, errorLocation, ERRID.ERR_ByRefStructField2, type, Me.ContainingType)
+                        ElseIf type.HoldsRefField() Then
+                            Binder.ReportDiagnostic(diagnostics, errorLocation, ERRID.ERR_RefFieldHolderReturned, type)
                         End If
 
                         Dim getMethod = Me.GetMethod

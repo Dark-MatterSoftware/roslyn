@@ -366,6 +366,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return this.SpecialType.IsRestrictedType()
         End Function
 
+        ''' <summary>
+        ''' Whether a ByRef Structure declares a ref field, or has an instance field of a structure that holds one.
+        ''' Ref fields from metadata are not counted, because Visual Basic does not read them.
+        ''' </summary>
+        <Extension()>
+        Friend Function HoldsRefField(this As TypeSymbol) As Boolean
+            Return HoldsRefField(this, Nothing)
+        End Function
+
+        Private Function HoldsRefField(this As TypeSymbol, ByRef visited As HashSet(Of TypeSymbol)) As Boolean
+            If this.TypeKind <> TypeKind.Structure OrElse Not this.IsRefLikeType Then
+                Return False
+            End If
+
+            If visited Is Nothing Then
+                visited = New HashSet(Of TypeSymbol)()
+            End If
+
+            If Not visited.Add(this.OriginalDefinition) Then
+                Return False
+            End If
+
+            For Each member In this.GetMembersUnordered()
+                Dim field = TryCast(member, FieldSymbol)
+                If field Is Nothing OrElse field.IsShared OrElse field.IsConst Then
+                    Continue For
+                End If
+
+                If field.FieldRefKind <> RefKind.None OrElse HoldsRefField(field.Type, visited) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
         <Extension()>
         Public Function IsRestrictedArrayType(this As TypeSymbol, <Out> ByRef restrictedType As TypeSymbol) As Boolean
             If this.Kind = SymbolKind.ArrayType Then

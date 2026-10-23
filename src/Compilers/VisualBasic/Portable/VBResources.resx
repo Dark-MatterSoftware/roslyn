@@ -6016,6 +6016,12 @@
   <data name="ERR_RefFieldReadOnlyReferent" xml:space="preserve">
     <value>Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.</value>
   </data>
+  <data name="ERR_RefFieldHolderReturned" xml:space="preserve">
+    <value>'{0}' holds a ref field, so it cannot be the return type of a function or property.</value>
+  </data>
+  <data name="ERR_RefFieldHolderAssigned" xml:space="preserve">
+    <value>'{0}' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.</value>
+  </data>
   <data name="ERR_AwaitEachNotInAsyncMethod" xml:space="preserve">
     <value>'Await Each' can only be used within an Async method. Consider marking this method with the 'Async' modifier and changing its return type to 'Task'.</value>
   </data>

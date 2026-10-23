@@ -1625,6 +1625,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_RefFieldRequiresReference,
                      ERRID.ERR_RefFieldTypeMismatch,
                      ERRID.ERR_RefFieldReadOnlyReferent,
+                     ERRID.ERR_RefFieldHolderReturned,
+                     ERRID.ERR_RefFieldHolderAssigned,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_PossibleNullAssignment,

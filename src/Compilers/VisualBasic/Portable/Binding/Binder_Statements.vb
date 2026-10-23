@@ -2631,6 +2631,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim targetType As TypeSymbol = op1.Type
             Debug.Assert(targetType IsNot Nothing OrElse isError)
 
+            If Not isError AndAlso targetType IsNot Nothing AndAlso targetType.HoldsRefField() AndAlso IsReachedThroughByRefParameterOrMe(op1) Then
+                ReportDiagnostic(diagnostics, op1.Syntax, ERRID.ERR_RefFieldHolderAssigned, targetType)
+                isError = True
+            End If
+
             If targetType IsNot Nothing Then
                 op2 = ApplyImplicitConversion(op2.Syntax, targetType, op2, diagnostics)
             Else
@@ -2639,6 +2644,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundAssignmentOperator(node, op1, op2, False, hasErrors:=isError)
+        End Function
+
+        ''' <summary>
+        ''' Whether an assignment target outlives the caller's locals: a ByRef parameter, or a field of a structure
+        ''' that is reached through a ByRef parameter or Me.
+        ''' </summary>
+        Private Shared Function IsReachedThroughByRefParameterOrMe(target As BoundExpression) As Boolean
+            Select Case target.Kind
+                Case BoundKind.Parameter
+                    Return DirectCast(target, BoundParameter).ParameterSymbol.IsByRef
+
+                Case BoundKind.FieldAccess
+                    Dim receiver = DirectCast(target, BoundFieldAccess).ReceiverOpt
+
+                    Do While receiver IsNot Nothing AndAlso receiver.Kind = BoundKind.FieldAccess AndAlso receiver.Type IsNot Nothing AndAlso receiver.Type.IsValueType
+                        receiver = DirectCast(receiver, BoundFieldAccess).ReceiverOpt
+                    Loop
+
+                    If receiver Is Nothing OrElse receiver.Type Is Nothing OrElse Not receiver.Type.IsValueType Then
+                        Return False
+                    End If
+
+                    Select Case receiver.Kind
+                        Case BoundKind.MeReference
+                            Return True
+                        Case BoundKind.Parameter
+                            Return DirectCast(receiver, BoundParameter).ParameterSymbol.IsByRef
+                    End Select
+            End Select
+
+            Return False
         End Function
 
         Private Function BindNullConditionalAssignment(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
