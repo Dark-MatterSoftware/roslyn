@@ -614,7 +614,7 @@ Wave 10 row 4.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 56a | VB-092 | A design note extends the slice 50a lifetime rules to `ByRef` locals that refer to a structure that holds a ref field. No code change. |
+| 56a | VB-092 | Done. `docs/vbnext-vb092-syntax.md` locks that a write through a `Dim ByRef` local follows its referent: assigning a structure that holds a ref field to the local, or to a field of a structure reached through it, is BC37415 when the local refers to a `ByRef` parameter, or to a field reached through one or through `Me`, following `ByRef` locals in turn. No code change. |
 | 56b | VB-092 | On `vbnext`, the rules that 56a locks are checked. |
 
 ## Phase 57 — Returning ref field structures
