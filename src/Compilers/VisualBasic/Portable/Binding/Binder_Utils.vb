@@ -1411,12 +1411,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim flags = memberModifiers.FoundFlags
 
             If (flags And SourceMemberFlags.Shared) <> 0 AndAlso (flags And SourceMemberFlags.InvalidIfShared) <> 0 Then
-                ' On vbnext, an interface method may be Shared MustOverride. MustOverride stays.
+                ' On vbnext, an interface method may be Shared MustOverride or Shared Overridable. Both keywords stay.
                 Dim invalidIfShared = SourceMemberFlags.InvalidIfShared
                 If Not isProperty AndAlso
                    container.TypeKind = TypeKind.Interface AndAlso
                    Compilation.LanguageVersion >= LanguageVersion.VbNext Then
-                    invalidIfShared = invalidIfShared And Not SourceMemberFlags.MustOverride
+                    invalidIfShared = invalidIfShared And Not SourceMemberFlags.MustOverride And Not SourceMemberFlags.Overridable
                 End If
 
                 If (flags And invalidIfShared) <> 0 Then
@@ -1457,8 +1457,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     If Not isProperty AndAlso
                        Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
                        (flags And SourceMemberFlags.Shared) <> 0 Then
-                        ' Shared MustOverride is the static abstract spelling. Both keywords stay.
-                        invalidInInterface = invalidInInterface And Not SourceMemberFlags.Shared And Not SourceMemberFlags.MustOverride
+                        ' Shared MustOverride is the static abstract spelling, and Shared Overridable the static virtual one.
+                        invalidInInterface = invalidInInterface And Not SourceMemberFlags.Shared And Not SourceMemberFlags.MustOverride And Not SourceMemberFlags.Overridable
                     End If
 
                     If (flags And invalidInInterface) <> 0 Then

@@ -988,7 +988,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                symbol.Kind <> SymbolKind.Property AndAlso
                If(symbol.ContainingType?.IsInterface, False) AndAlso
                symbol.IsShared AndAlso
-               symbol.RequiresImplementation() AndAlso
+               (symbol.RequiresImplementation() OrElse symbol.IsOverridable) AndAlso
                Compilation.LanguageVersion >= LanguageVersion.VbNext Then
 
                 ' On vbnext a shared abstract or virtual member, from any assembly, is reached through a type parameter,

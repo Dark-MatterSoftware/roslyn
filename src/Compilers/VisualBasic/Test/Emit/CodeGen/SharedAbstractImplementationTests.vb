@@ -665,6 +665,143 @@ End Module
 ")
         End Sub
 
+        Private Const SharedOverridableSource As String = "
+Imports System
+
+Public Interface INamed
+    Shared Overridable Function DefaultName() As String
+        Return ""unnamed""
+    End Function
+
+    Shared MustOverride Function Kind() As String
+End Interface
+
+Public Structure Dog
+    Implements INamed
+
+    Public Shared Function DefaultName() As String Implements INamed.DefaultName
+        Return ""dog""
+    End Function
+
+    Public Shared Function Kind() As String Implements INamed.Kind
+        Return ""animal""
+    End Function
+End Structure
+
+Public Structure Cat
+    Implements INamed
+
+    Public Shared Function Kind() As String Implements INamed.Kind
+        Return ""animal""
+    End Function
+End Structure
+
+Module Program
+    Function Describe(Of T As INamed)() As String
+        Return T.DefaultName() & ""/"" & T.Kind()
+    End Function
+
+    Sub Main()
+        Console.Write(Describe(Of Dog)() & "" "" & Describe(Of Cat)())
+    End Sub
+End Module
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SharedOverridableInterfaceMemberDefaultAndOverride()
+            Dim compilation = CreateCompilation(SharedOverridableSource, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+            CompileAndVerify(compilation, expectedOutput:="dog/animal unnamed/animal", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SharedOverridableInterfaceMemberIsStaticVirtualInMetadata()
+            Dim compilation = CreateCompilation(SharedOverridableSource, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            compilation.AssertNoDiagnostics()
+
+            Dim csCompilation = CreateCSharpCompilation("
+public static class Use
+{
+    public static string Name<T>() where T : INamed => T.DefaultName();
+}
+", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90, {compilation.EmitToImageReference()}))
+            csCompilation.VerifyDiagnostics()
+
+            Dim method = DirectCast(csCompilation.GetTypeByMetadataName("INamed").GetMembers("DefaultName").Single(), IMethodSymbol)
+            Assert.True(method.IsStatic)
+            Assert.True(method.IsVirtual)
+            Assert.False(method.IsAbstract)
+        End Sub
+
+        <Fact>
+        Public Sub SharedOverridableInterfaceMemberErrors()
+            Dim source = "
+Interface INamed
+    Shared Overridable Function DefaultName() As String
+        Return ""unnamed""
+    End Function
+
+    Shared Overridable Function NoBody() As String
+
+    Shared Function Plain() As String
+        Return ""plain""
+    End Function
+End Interface
+
+Module Program
+    Function Direct() As String
+        Return INamed.DefaultName()
+    End Function
+End Module
+"
+            Dim compilation = CreateCompilation(source, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30270: 'Overridable' is not valid on an interface method declaration.
+    Shared Overridable Function NoBody() As String
+           ~~~~~~~~~~~
+BC30270: 'Shared' is not valid on an interface method declaration.
+    Shared Function Plain() As String
+    ~~~~~~
+BC37314: A shared abstract or virtual interface member cannot be accessed.
+        Return INamed.DefaultName()
+               ~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+
+            compilation = CreateCompilation(source, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll,
+                                            parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC30270: 'Shared' is not valid on an interface method declaration.
+    Shared Overridable Function DefaultName() As String
+    ~~~~~~
+BC30501: 'Shared' cannot be combined with 'Overridable' on a method declaration.
+    Shared Overridable Function DefaultName() As String
+           ~~~~~~~~~~~
+BC30603: Statement cannot appear within an interface body.
+        Return "unnamed"
+        ~~~~~~~~~~~~~~~~
+BC30603: Statement cannot appear within an interface body.
+    End Function
+    ~~~~~~~~~~~~
+BC30270: 'Shared' is not valid on an interface method declaration.
+    Shared Overridable Function NoBody() As String
+    ~~~~~~
+BC30501: 'Shared' cannot be combined with 'Overridable' on a method declaration.
+    Shared Overridable Function NoBody() As String
+           ~~~~~~~~~~~
+BC30270: 'Shared' is not valid on an interface method declaration.
+    Shared Function Plain() As String
+    ~~~~~~
+BC30603: Statement cannot appear within an interface body.
+        Return "plain"
+        ~~~~~~~~~~~~~~
+BC30603: Statement cannot appear within an interface body.
+    End Function
+    ~~~~~~~~~~~~
+BC30469: Reference to a non-shared member requires an object reference.
+        Return INamed.DefaultName()
+               ~~~~~~~~~~~~~~~~~~
+]]></expected>)
+        End Sub
+
         <Fact>
         Public Sub AddressOfSharedAbstractMemberNeedsVbNext()
             Dim compilation = CreateCompilation(AddressOfSource, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe,

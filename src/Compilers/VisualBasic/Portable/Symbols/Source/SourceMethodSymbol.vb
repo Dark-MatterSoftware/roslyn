@@ -86,16 +86,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             ' A body on an interface method is a default implementation: virtual, not abstract.
-            ' A Shared method stays abstract. A body is not a static implementation.
-            If container.IsInterface AndAlso
-               syntax.Parent IsNot Nothing AndAlso
-               (syntax.Parent.Kind = SyntaxKind.SubBlock OrElse syntax.Parent.Kind = SyntaxKind.FunctionBlock) Then
-                If (flags And SourceMemberFlags.Shared) <> 0 Then
+            ' A Shared method with a body is a default implementation only when it is Shared Overridable on vbnext.
+            Dim hasBody = syntax.Parent IsNot Nothing AndAlso
+                          (syntax.Parent.Kind = SyntaxKind.SubBlock OrElse syntax.Parent.Kind = SyntaxKind.FunctionBlock)
+            Dim isSharedOverridable = container.IsInterface AndAlso
+                                      (flags And SourceMemberFlags.Shared) <> 0 AndAlso
+                                      syntax.Modifiers.Any(SyntaxKind.OverridableKeyword)
+
+            If container.IsInterface AndAlso hasBody Then
+                If (flags And SourceMemberFlags.Shared) <> 0 AndAlso Not isSharedOverridable Then
                     binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadInterfaceMethodFlags1, diagBag, SyntaxKind.SharedKeyword)
                     flags = flags And Not SourceMemberFlags.Shared
                 End If
 
                 flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable Or SourceMemberFlags.Overloads
+
+            ElseIf isSharedOverridable Then
+                ' Shared Overridable gives the member its default body, so it needs one.
+                binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadInterfaceMethodFlags1, diagBag, SyntaxKind.OverridableKeyword)
+                flags = flags And Not SourceMemberFlags.Overridable
             End If
 
             If syntax.HandlesClause IsNot Nothing Then
