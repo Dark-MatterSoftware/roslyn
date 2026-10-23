@@ -660,7 +660,7 @@ Wave 11 row 3.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 61a | VB-097 | A design note locks how a function or property declares a `ref readonly` return. No code change. |
+| 61a | VB-097 | Done. `docs/vbnext-vb097-syntax.md` locks `ByRef ReadOnly Function` for a `ref readonly` return, whose `Return` may also name a variable that cannot be written, and whose result callers read but cannot write through. `ByRef ReadOnly Property` keeps its meaning, so `ref readonly` properties are left for a later note. No code change. |
 | 61b | VB-097 | On `vbnext`, the form that 61a locks is emitted with `IsReadOnlyAttribute`, so C# and slice 35a read it as `ref readonly`, and the result cannot be written through. |
 
 ## Phase 62 — `ByRef ReadOnly` parameters
