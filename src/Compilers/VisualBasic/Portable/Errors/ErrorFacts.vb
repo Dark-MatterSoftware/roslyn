@@ -1627,6 +1627,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_RefFieldReadOnlyReferent,
                      ERRID.ERR_RefFieldHolderReturned,
                      ERRID.ERR_RefFieldHolderAssigned,
+                     ERRID.ERR_InlineArrayNotVariable,
+                     ERRID.ERR_InlineArrayIndexOutOfRange,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_PossibleNullAssignment,

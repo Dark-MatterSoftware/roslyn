@@ -367,6 +367,58 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' Whether the type is a structure marked InlineArray(length), with a positive length and exactly one instance
+        ''' field, whose type is the element type.
+        ''' </summary>
+        <Extension()>
+        Friend Function TryGetInlineArrayInfo(this As TypeSymbol, <Out> ByRef length As Integer, <Out> ByRef elementType As TypeSymbol) As Boolean
+            length = 0
+            elementType = Nothing
+
+            If this Is Nothing OrElse this.TypeKind <> TypeKind.Structure Then
+                Return False
+            End If
+
+            Dim named = DirectCast(this, NamedTypeSymbol)
+            Dim found = False
+
+            For Each attribute In named.OriginalDefinition.GetAttributes()
+                If attribute.IsTargetAttribute(AttributeDescription.InlineArrayAttribute) Then
+                    Dim argument = attribute.CommonConstructorArguments(0).ValueInternal
+                    If TypeOf argument Is Integer Then
+                        length = CInt(argument)
+                        found = True
+                    End If
+                End If
+            Next
+
+            If Not found OrElse length <= 0 Then
+                Return False
+            End If
+
+            Dim elementField As FieldSymbol = Nothing
+            For Each member In named.GetMembersUnordered()
+                Dim field = TryCast(member, FieldSymbol)
+                If field Is Nothing OrElse field.IsShared OrElse field.IsConst Then
+                    Continue For
+                End If
+
+                If elementField IsNot Nothing Then
+                    Return False
+                End If
+
+                elementField = field
+            Next
+
+            If elementField Is Nothing OrElse elementField.FieldRefKind <> RefKind.None Then
+                Return False
+            End If
+
+            elementType = elementField.Type
+            Return True
+        End Function
+
+        ''' <summary>
         ''' Whether a ByRef Structure declares a ref field, or has an instance field of a structure that holds one.
         ''' Ref fields from metadata are not counted, because Visual Basic does not read them.
         ''' </summary>

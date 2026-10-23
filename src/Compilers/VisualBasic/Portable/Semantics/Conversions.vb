@@ -410,6 +410,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WideningNullableTuple = WideningNullable Or Tuple
         NarrowingNullableTuple = NarrowingNullable Or Tuple
 
+        ' On vbnext, a variable of an inline array type converts to Span(Of T) or ReadOnlySpan(Of T) over its elements.
+        InlineArray = [Widening] Or (1 << 27)
+
         ' Bits 28 - 31 are reserved for failure flags.
     End Enum
 
@@ -1027,6 +1030,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New KeyValuePair(Of ConversionKind, MethodSymbol)(conv, Nothing)
             End If
 
+            conv = ClassifyInlineArrayConversion(source, destination, binder)
+            If ConversionExists(conv) Then
+                Return New KeyValuePair(Of ConversionKind, MethodSymbol)(conv, Nothing)
+            End If
+
             Dim userDefinedConversionsMightStillBeApplicable As Boolean = False
             conv = ClassifyPredefinedConversion(source, destination, binder, userDefinedConversionsMightStillBeApplicable, useSiteInfo)
 
@@ -1226,6 +1234,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return ClassifyArrayInitialization(source.Initializer, targetElementType, binder, useSiteInfo)
+        End Function
+
+        Public Shared Function IsInlineArrayConversion(conversion As ConversionKind) As Boolean
+            Return (conversion And ConversionKind.InlineArray) = ConversionKind.InlineArray
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, a writable variable of an inline array type converts to Span(Of T), and any variable of it
+        ''' converts to ReadOnlySpan(Of T), where T is the element type.
+        ''' </summary>
+        Private Shared Function ClassifyInlineArrayConversion(source As BoundExpression, destination As TypeSymbol, binder As Binder) As ConversionKind
+            If binder.Compilation.LanguageVersion < LanguageVersion.VbNext OrElse
+               source.Type Is Nothing OrElse source.Type.TypeKind <> TypeKind.Structure OrElse
+               Not Binder.IsSpanOrReadOnlySpan(binder.Compilation, destination) Then
+                Return Nothing
+            End If
+
+            Dim length As Integer
+            Dim elementType As TypeSymbol = Nothing
+            If Not source.Type.TryGetInlineArrayInfo(length, elementType) Then
+                Return Nothing
+            End If
+
+            Dim isReadOnly As Boolean
+            If Not Binder.IsInlineArraySpanType(binder.Compilation, destination, elementType, isReadOnly) Then
+                Return Nothing
+            End If
+
+            If Not Binder.IsInlineArrayVariable(source, writable:=Not isReadOnly) Then
+                Return Nothing
+            End If
+
+            Return ConversionKind.InlineArray
         End Function
 
         Public Shared Function ClassifyInterpolatedStringConversion(source As BoundInterpolatedStringExpression, destination As TypeSymbol, binder As Binder) As ConversionKind

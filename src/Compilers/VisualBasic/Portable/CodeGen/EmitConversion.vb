@@ -11,6 +11,47 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
     Partial Friend Class CodeGenerator
 
+        ''' <summary>
+        ''' Builds a span over an inline array variable as C# does:
+        ''' MemoryMarshal.CreateSpan(Unsafe.As(Of TBuffer, TElement)(buffer), length), or CreateReadOnlySpan.
+        ''' </summary>
+        Private Sub EmitInlineArrayConversion(conversion As BoundConversion, used As Boolean)
+            Dim operand = conversion.Operand
+            Dim spanType = DirectCast(conversion.Type, NamedTypeSymbol)
+            Dim elementType = spanType.TypeArgumentsNoUseSiteDiagnostics(0)
+            Dim compilation = _module.Compilation
+
+            Dim length As Integer
+            Dim inlineArrayElementType As TypeSymbol = Nothing
+            Dim isInlineArray = operand.Type.TryGetInlineArrayInfo(length, inlineArrayElementType)
+            Debug.Assert(isInlineArray)
+
+            Dim isReadOnly = TypeSymbol.Equals(spanType.OriginalDefinition, compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.ConsiderEverything)
+
+            Dim temp = If(isReadOnly, EmitReadOnlyReference(operand), EmitAddress(operand, AddressKind.Writeable))
+            Debug.Assert(temp Is Nothing, "a span must refer to the inline array variable itself")
+
+            Dim asMethod = DirectCast(compilation.GetWellKnownTypeMember(WellKnownMember.System_Runtime_CompilerServices_Unsafe__As_T), MethodSymbol).
+                Construct(operand.Type, elementType)
+            _builder.EmitOpCode(ILOpCode.Call, stackAdjustment:=0)
+            EmitSymbolToken(asMethod, conversion.Syntax)
+
+            _builder.EmitIntConstant(length)
+
+            Dim createSpan = DirectCast(compilation.GetWellKnownTypeMember(If(isReadOnly,
+                                                                              WellKnownMember.System_Runtime_InteropServices_MemoryMarshal__CreateReadOnlySpan,
+                                                                              WellKnownMember.System_Runtime_InteropServices_MemoryMarshal__CreateSpan)), MethodSymbol).
+                Construct(elementType)
+            _builder.EmitOpCode(ILOpCode.Call, stackAdjustment:=-1)
+            EmitSymbolToken(createSpan, conversion.Syntax)
+
+            If temp IsNot Nothing Then
+                FreeTemp(temp)
+            End If
+
+            EmitPopIfUnused(used)
+        End Sub
+
         Private Shared Function IsSimpleType(type As PrimitiveTypeCode) As Boolean
             Dim result = False
 
@@ -148,6 +189,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
         End Sub
 
         Private Sub EmitConversionExpression(conversion As BoundConversion, used As Boolean)
+            If Conversions.IsInlineArrayConversion(conversion.ConversionKind) Then
+                EmitInlineArrayConversion(conversion, used)
+                Return
+            End If
+
             If Not used AndAlso Not ConversionHasSideEffects(conversion) Then
                 EmitExpression(conversion.Operand, False)
                 Return

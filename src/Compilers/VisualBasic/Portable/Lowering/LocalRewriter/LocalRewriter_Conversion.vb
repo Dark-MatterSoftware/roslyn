@@ -31,6 +31,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return result
             End If
 
+            ' The emitter builds the span over the operand's storage.
+            If Conversions.IsInlineArrayConversion(node.ConversionKind) Then
+                Return node.Update(DirectCast(Visit(node.Operand), BoundExpression), node.ConversionKind, node.Checked, node.ExplicitCastInCode,
+                                   node.ConstantValueOpt, node.ExtendedInfoOpt, node.Type)
+            End If
+
             If node.Operand.Kind = BoundKind.UserDefinedConversion Then
                 If _inExpressionLambda Then
                     Return node.Update(DirectCast(Visit(node.Operand), BoundExpression),

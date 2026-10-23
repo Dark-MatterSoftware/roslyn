@@ -1874,8 +1874,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_RefFieldReadOnlyReferent = 37413
         ERR_RefFieldHolderReturned = 37414
         ERR_RefFieldHolderAssigned = 37415
+        ERR_InlineArrayNotVariable = 37416
+        ERR_InlineArrayIndexOutOfRange = 37417
 
-        ERR_NextAvailable = 37416
+        ERR_NextAvailable = 37418
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

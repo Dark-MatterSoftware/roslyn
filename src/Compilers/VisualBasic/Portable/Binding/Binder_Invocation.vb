@@ -415,6 +415,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                    suppressLateBindingResolutionDiagnostics:=(target.Kind = BoundKind.LateMemberAccess))
                 End If
 
+                Dim inlineArrayElement = TryBindInlineArrayElementAccess(node, target, boundArguments, argumentNames, argumentNamesLocations, diagnostics)
+                If inlineArrayElement IsNot Nothing Then
+                    hasIndexableTarget = True
+                    Return inlineArrayElement
+                End If
+
                 If Not target.HasErrors Then
                     ' Bind to the default property group.
                     Dim defaultPropertyGroup As BoundExpression = BindDefaultPropertyGroup(If(node.Expression, node), target, diagnostics)

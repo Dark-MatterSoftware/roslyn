@@ -5252,6 +5252,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim awaitEachStatement = GetAwaitEachStatement(collection.Syntax)
+
+            If awaitEachStatement Is Nothing Then
+                Dim inlineArraySpan = TryConvertInlineArrayCollection(collection, diagnostics)
+                If inlineArraySpan IsNot Nothing Then
+                    collection = inlineArraySpan
+                    If collection.HasErrors Then
+                        Return collection
+                    End If
+                End If
+            End If
+
             If awaitEachStatement IsNot Nothing Then
                 Return InterpretAwaitEachCollection(awaitEachStatement,
                                                     collection,
