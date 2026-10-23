@@ -585,7 +585,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                 Dim argument = arguments(i)
                 Dim parameter = parameters(i)
                 If parameter.IsByRef Then
-                    Dim temp = EmitAddress(argument, AddressKind.Writeable)
+                    ' A ByRef ReadOnly parameter cannot write through the reference, so a ReadOnly variable is passed as is.
+                    Dim temp = If(parameter.IsReadOnlyByRef, EmitReadOnlyReference(argument), EmitAddress(argument, AddressKind.Writeable))
                     Debug.Assert(temp Is Nothing, "passing args byref should not clone them into temps. That should be done in rewriter.")
                 Else
                     EmitExpression(argument, True)

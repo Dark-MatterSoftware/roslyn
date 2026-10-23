@@ -382,6 +382,11 @@
         <target state="new">A line in a raw string does not start with the closing delimiter's whitespace.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ReadOnlyParameterRequiresByRef">
+        <source>'ReadOnly' is valid only on a 'ByRef' parameter of a method, constructor, operator, or delegate.</source>
+        <target state="new">'ReadOnly' is valid only on a 'ByRef' parameter of a method, constructor, operator, or delegate.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_RefFieldHolderAssigned">
         <source>'{0}' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.</source>
         <target state="new">'{0}' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.</target>

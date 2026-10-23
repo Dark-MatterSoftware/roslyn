@@ -51,6 +51,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return _originalParam.IsReadOnlyByRef
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property IsMetadataOut As Boolean
             Get
                 Return _originalParam.IsMetadataOut

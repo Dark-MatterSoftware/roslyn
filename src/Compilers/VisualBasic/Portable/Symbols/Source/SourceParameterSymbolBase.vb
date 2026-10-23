@@ -72,6 +72,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If Me.Type.ContainsTupleNames() Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.SynthesizeTupleNamesAttribute(Type))
             End If
+
+            ' C# reads a ByRef parameter marked IsReadOnly as "in".
+            If IsReadOnlyByRef Then
+                AddSynthesizedAttribute(attributes, DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
+            End If
         End Sub
 
         Friend MustOverride Function WithTypeAndCustomModifiers(type As TypeSymbol, customModifiers As ImmutableArray(Of CustomModifier), refCustomModifiers As ImmutableArray(Of CustomModifier)) As ParameterSymbol

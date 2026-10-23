@@ -1686,6 +1686,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     If Not local.IsLValue AndAlso local.LocalSymbol.IsReadOnly AndAlso Not local.LocalSymbol.IsConst Then
                         Return New BoundLocal(local.Syntax, local.LocalSymbol, isLValue:=True, type:=local.Type)
                     End If
+
+                Case BoundKind.Parameter
+                    Dim parameter = DirectCast(reference, BoundParameter)
+                    If Not parameter.IsLValue AndAlso parameter.ParameterSymbol.IsReadOnlyByRef Then
+                        Return New BoundParameter(parameter.Syntax, parameter.ParameterSymbol, isLValue:=True, suppressVirtualCalls:=False, type:=parameter.Type)
+                    End If
             End Select
 
             Return reference

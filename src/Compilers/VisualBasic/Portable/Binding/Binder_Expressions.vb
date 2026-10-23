@@ -1951,6 +1951,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ElseIf node.Kind = BoundKind.Local Then
                 Return DirectCast(node, BoundLocal).LocalSymbol.IsReadOnly
+
+            ElseIf node.Kind = BoundKind.Parameter Then
+                Return DirectCast(node, BoundParameter).ParameterSymbol.IsReadOnlyByRef
             End If
 
             Return False
@@ -3485,7 +3488,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                     Debug.Assert(parameterSymbol.GetUseSiteInfo().IsEmpty)
-                    Return New BoundParameter(node, parameterSymbol, parameterType, hasErrors:=hasError)
+
+                    ' A ByRef ReadOnly parameter reads as a ReadOnly variable.
+                    Return New BoundParameter(node, parameterSymbol, isLValue:=Not parameterSymbol.IsReadOnlyByRef, suppressVirtualCalls:=False,
+                                              type:=parameterType, hasErrors:=hasError)
 
                 Case SymbolKind.NamedType, SymbolKind.ErrorType
                     ' Note: arity already checked by lookup process.

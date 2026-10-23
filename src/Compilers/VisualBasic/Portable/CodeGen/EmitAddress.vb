@@ -316,8 +316,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
                     Case BoundKind.Parameter
                         ' parameters can be readonly (parameters in query lambdas) 
-                        ' we ignore their read-onlyness for Dev10 compatibility
-                        Return True
+                        ' we ignore their read-onlyness for Dev10 compatibility.
+                        ' A ByRef ReadOnly parameter refers to the caller's variable, which must not be written.
+                        Return Not DirectCast(expression, BoundParameter).ParameterSymbol.IsReadOnlyByRef
 
                     Case BoundKind.PseudoVariable
                         Return True

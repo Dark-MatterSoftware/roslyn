@@ -540,6 +540,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend NotOverridable Overrides ReadOnly Property IsMetadataIn As Boolean
             Get
+                ' A ByRef ReadOnly parameter carries the metadata In flag, as C# "in" parameters do.
+                If IsReadOnlyByRef Then
+                    Return True
+                End If
+
                 Dim data = GetDecodedWellKnownAttributeData()
                 Return data IsNot Nothing AndAlso data.HasInAttribute
             End Get
@@ -553,6 +558,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         [ByRef] = 1 << 1
         [Optional] = 1 << 2
         [ParamArray] = 1 << 3
+        [ReadOnly] = 1 << 4
     End Enum
 
 End Namespace

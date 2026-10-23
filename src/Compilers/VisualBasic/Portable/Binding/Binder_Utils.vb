@@ -272,6 +272,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case SyntaxKind.ByValKeyword : foundFlag = SourceParameterFlags.ByVal
                     Case SyntaxKind.OptionalKeyword : foundFlag = SourceParameterFlags.Optional
                     Case SyntaxKind.ParamArrayKeyword : foundFlag = SourceParameterFlags.ParamArray
+                    Case SyntaxKind.ReadOnlyKeyword : foundFlag = SourceParameterFlags.ReadOnly
                 End Select
 
                 ' Report errors with the modifier
@@ -282,6 +283,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 flags = flags Or foundFlag
             Next
+
+            ' ReadOnly goes with ByRef, as in ByRef ReadOnly.
+            If (flags And SourceParameterFlags.ReadOnly) <> 0 AndAlso (flags And SourceParameterFlags.ByRef) = 0 Then
+                Dim readOnlyKeyword = modifiers.First(Function(m) m.Kind = SyntaxKind.ReadOnlyKeyword)
+                ReportDiagnostic(diagBag, readOnlyKeyword, ERRID.ERR_ReadOnlyParameterRequiresByRef)
+                flags = flags And Not SourceParameterFlags.ReadOnly
+            End If
 
             Return flags
         End Function
@@ -1245,6 +1253,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim flags As SourceParameterFlags = Nothing
 
                 flags = DecodeParameterModifiers(container, paramSyntax.Modifiers, checkModifier, diagBag)
+
+                ' A lambda parameter cannot be ByRef ReadOnly.
+                If isFromLambda AndAlso (flags And SourceParameterFlags.ReadOnly) <> 0 Then
+                    ReportDiagnostic(diagBag, paramSyntax.Modifiers.First(Function(m) m.Kind = SyntaxKind.ReadOnlyKeyword), ERRID.ERR_ReadOnlyParameterRequiresByRef)
+                    flags = flags And Not SourceParameterFlags.ReadOnly
+                End If
 
                 If (flagsOfPreviousParameters And SourceParameterFlags.Optional) = SourceParameterFlags.Optional Then
                     If (flags And SourceParameterFlags.ParamArray) = SourceParameterFlags.ParamArray AndAlso

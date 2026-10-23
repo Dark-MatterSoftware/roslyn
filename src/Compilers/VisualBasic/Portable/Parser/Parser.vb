@@ -4996,6 +4996,18 @@ checkNullable:
                         End If
                         specifier = ParameterSpecifiers.ParamArray
 
+                    Case SyntaxKind.ReadOnlyKeyword
+                        ' On vbnext, ByRef ReadOnly declares a parameter that refers to the caller's variable without writing it.
+                        If _scanner.Options.LanguageVersion < LanguageVersion.VbNext Then
+                            Dim result = keywords.ToList
+                            Me._pool.Free(keywords)
+
+                            Return result
+                        End If
+
+                        keyword = DirectCast(CurrentToken, KeywordSyntax)
+                        specifier = ParameterSpecifiers.ReadOnly
+
                     Case Else
                         Dim result = keywords.ToList
                         Me._pool.Free(keywords)
@@ -6564,6 +6576,7 @@ checkNullable:
         [ByVal] = &H2
         [Optional] = &H4
         [ParamArray] = &H8
+        [ReadOnly] = &H10
     End Enum
 
 End Namespace

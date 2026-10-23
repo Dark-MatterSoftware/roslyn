@@ -301,11 +301,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        ''' <summary>
+        ''' Whether a ByRef parameter is declared ByRef ReadOnly on vbnext, which C# declares with "in".
+        ''' </summary>
+        Friend Overridable ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
         Private ReadOnly Property IParameterSymbol_RefKind As RefKind Implements IParameterSymbol.RefKind, IParameterSymbolInternal.RefKind
             Get
                 ' TODO: Should we check if it has the <Out> attribute and return 'RefKind.Out' in
                 ' that case?
-                Return If(Me.IsByRef, RefKind.Ref, RefKind.None)
+                Return If(Me.IsByRef, If(Me.IsReadOnlyByRef, RefKind.In, RefKind.Ref), RefKind.None)
             End Get
         End Property
 

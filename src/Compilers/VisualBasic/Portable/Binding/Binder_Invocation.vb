@@ -3018,6 +3018,11 @@ ProduceBoundNode:
             ' are passed through a temp without copy-back.
             If param.IsByRef AndAlso Not forceByValueSemantics AndAlso
                (param.IsExplicitByRef OrElse (argument.Type IsNot Nothing AndAlso argument.Type.IsStringType())) Then
+                ' A ByRef ReadOnly parameter refers to a ReadOnly variable without a copy, since the callee cannot write it.
+                If param.IsReadOnlyByRef AndAlso Conversions.IsIdentityConversion(conversionTo.Key) Then
+                    argument = AsReadOnlyReference(argument)
+                End If
+
                 Return PassArgumentByRef(param.IsOut, argument, conversionTo, conversionFrom, targetType,
                                          param.Name, diagnostics)
             Else

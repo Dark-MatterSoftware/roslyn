@@ -410,9 +410,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
             Get
+                ' C# requires the InAttribute modifier on an "in" parameter of an interface, virtual, or delegate member.
+                If IsReadOnlyByRef AndAlso NeedsInModifier() Then
+                    Return ImmutableArray.Create(VisualBasicCustomModifier.CreateRequired(
+                        DeclaringCompilation.GetWellKnownType(WellKnownType.System_Runtime_InteropServices_InAttribute)))
+                End If
+
                 Return ImmutableArray(Of CustomModifier).Empty
             End Get
         End Property
+
+        Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return (_flags And SourceParameterFlags.ReadOnly) <> 0
+            End Get
+        End Property
+
+        Private Function NeedsInModifier() As Boolean
+            Dim method = TryCast(ContainingSymbol, MethodSymbol)
+            Return method IsNot Nothing AndAlso
+                   (method.IsOverridable OrElse method.IsMustOverride OrElse method.IsOverrides OrElse
+                    method.ContainingType.IsInterface OrElse method.ContainingType.TypeKind = TypeKind.Delegate)
+        End Function
 
         Friend Overrides Function WithTypeAndCustomModifiers(type As TypeSymbol, customModifiers As ImmutableArray(Of CustomModifier), refCustomModifiers As ImmutableArray(Of CustomModifier)) As ParameterSymbol
             If customModifiers.IsEmpty AndAlso refCustomModifiers.IsEmpty Then
