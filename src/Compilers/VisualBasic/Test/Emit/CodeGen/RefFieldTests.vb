@@ -104,7 +104,7 @@ End Module
   IL_0001:  initobj    ""Cell""
   IL_0007:  ldarg.0
   IL_0008:  ldarg.1
-  IL_0009:  stfld      ""Cell.Value As Integer""
+  IL_0009:  stfld      ""ByRef Cell.Value As Integer""
   IL_000e:  ret
 }
 ")
@@ -126,15 +126,15 @@ End Module
   // Code size       24 (0x18)
   .maxstack  3
   IL_0000:  ldarg.0
-  IL_0001:  ldfld      ""Cell.Value As Integer""
+  IL_0001:  ldfld      ""ByRef Cell.Value As Integer""
   IL_0006:  ldarg.0
-  IL_0007:  ldfld      ""Cell.Value As Integer""
+  IL_0007:  ldfld      ""ByRef Cell.Value As Integer""
   IL_000c:  ldind.i4
   IL_000d:  ldc.i4.2
   IL_000e:  mul.ovf
   IL_000f:  stind.i4
   IL_0010:  ldarg.0
-  IL_0011:  ldfld      ""Cell.Value As Integer""
+  IL_0011:  ldfld      ""ByRef Cell.Value As Integer""
   IL_0016:  ldind.i4
   IL_0017:  ret
 }
