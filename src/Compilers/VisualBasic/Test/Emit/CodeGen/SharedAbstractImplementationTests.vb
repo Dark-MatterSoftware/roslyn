@@ -604,5 +604,91 @@ End Module
                 Assert.Contains("Square.Create", implemented)
             End Using
         End Sub
+
+        Private Const AddressOfSource As String = "
+Imports System
+Imports System.Globalization
+
+Structure Money
+    Implements IParsable(Of Money)
+
+    Public Amount As Decimal
+
+    Public Shared Function Parse(s As String, provider As IFormatProvider) As Money Implements IParsable(Of Money).Parse
+        Return New Money With {.Amount = Decimal.Parse(s, CultureInfo.InvariantCulture)}
+    End Function
+
+    Public Shared Function TryParse(s As String, provider As IFormatProvider, ByRef result As Money) As Boolean Implements IParsable(Of Money).TryParse
+        result = Parse(s, provider)
+        Return True
+    End Function
+End Structure
+
+Module Program
+    Function Parser(Of T As IParsable(Of T))() As Func(Of String, IFormatProvider, T)
+        Return AddressOf T.Parse
+    End Function
+
+    Function LooseParser(Of T As IParsable(Of T))() As Func(Of String, IFormatProvider, Object)
+        Return AddressOf T.Parse
+    End Function
+
+    Sub Main()
+        Dim parse = Parser(Of Money)()
+        Console.Write(parse(""2.5"", Nothing).Amount.ToString(CultureInfo.InvariantCulture))
+        Dim parseInteger = Parser(Of Integer)()
+        Console.Write("" "" & parseInteger(""42"", CultureInfo.InvariantCulture))
+        Console.Write("" "" & LooseParser(Of Integer)()(""7"", CultureInfo.InvariantCulture).ToString())
+    End Sub
+End Module
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub AddressOfSharedAbstractMemberThroughTypeParameter()
+            Dim compilation = CreateCompilation(AddressOfSource, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+            CompileAndVerify(compilation, expectedOutput:="2.5 42 7", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub AddressOfSharedAbstractMemberEmitsConstrainedLdftn()
+            Dim compilation = CreateCompilation(AddressOfSource, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+            CompileAndVerify(compilation, verify:=Verification.Skipped).VerifyIL("Program.Parser(Of T)", "
+{
+  // Code size       19 (0x13)
+  .maxstack  2
+  IL_0000:  ldnull
+  IL_0001:  constrained. ""T""
+  IL_0007:  ldftn      ""Function System.IParsable(Of T).Parse(String, System.IFormatProvider) As T""
+  IL_000d:  newobj     ""Sub System.Func(Of String, System.IFormatProvider, T)..ctor(Object, System.IntPtr)""
+  IL_0012:  ret
+}
+")
+        End Sub
+
+        <Fact>
+        Public Sub AddressOfSharedAbstractMemberNeedsVbNext()
+            Dim compilation = CreateCompilation(AddressOfSource, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe,
+                                                parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37315: Structure 'Money' cannot implement interface 'IParsable(Of Money)' because it contains shared abstract or virtual 'Function Parse(s As String, provider As IFormatProvider) As Money'.
+    Implements IParsable(Of Money)
+               ~~~~~~~~~~~~~~~~~~~
+BC37315: Structure 'Money' cannot implement interface 'IParsable(Of Money)' because it contains shared abstract or virtual 'Function TryParse(s As String, provider As IFormatProvider, ByRef result As Money) As Boolean'.
+    Implements IParsable(Of Money)
+               ~~~~~~~~~~~~~~~~~~~
+BC30505: Methods or events that implement interface members cannot be declared 'Shared'.
+    Public Shared Function Parse(s As String, provider As IFormatProvider) As Money Implements IParsable(Of Money).Parse
+           ~~~~~~
+BC30505: Methods or events that implement interface members cannot be declared 'Shared'.
+    Public Shared Function TryParse(s As String, provider As IFormatProvider, ByRef result As Money) As Boolean Implements IParsable(Of Money).TryParse
+           ~~~~~~
+BC32098: Type parameters cannot be used as qualifiers.
+        Return AddressOf T.Parse
+                         ~~~~~~~
+BC32098: Type parameters cannot be used as qualifiers.
+        Return AddressOf T.Parse
+                         ~~~~~~~
+]]></expected>)
+        End Sub
     End Class
 End Namespace

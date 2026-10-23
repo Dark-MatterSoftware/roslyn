@@ -318,7 +318,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     methodConversions = methodConversions Or MethodConversionKind.Error_Unspecified
                 End If
 
-                addressOfExpression.Binder.ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, fromMethod, addressOfExpression.MethodGroup.Syntax)
+                addressOfExpression.Binder.ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, fromMethod, addressOfExpression.MethodGroup.Syntax, receiver)
             End If
 
             Dim delegateConversions As ConversionKind = Conversions.DetermineDelegateRelaxationLevel(methodConversions)
@@ -988,6 +988,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Not delegateResolutionResult.Diagnostics.Diagnostics.HasAnyErrors Then
 
                 receiver = AdjustReceiverTypeOrValue(receiver, receiver.Syntax, targetMethod.IsShared, diagnostics, resolvedTypeOrValueReceiver)
+            End If
+
+            ' A shared abstract or virtual interface member is reached through the type parameter that qualifies it,
+            ' which the delegate and any relaxation stub are constrained to.
+            If receiver Is Nothing AndAlso targetMethod.IsShared AndAlso targetMethod.ContainingType.IsInterface AndAlso
+               sourceMethodGroup.ReceiverOpt?.Kind = BoundKind.TypeExpression AndAlso
+               sourceMethodGroup.ReceiverOpt.Type.IsTypeParameter() Then
+                receiver = sourceMethodGroup.ReceiverOpt
             End If
 
             If Me.OptionStrict = OptionStrict.On AndAlso Conversions.IsNarrowingConversion(delegateResolutionResult.DelegateConversions) Then

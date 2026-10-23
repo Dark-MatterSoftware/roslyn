@@ -497,6 +497,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                 _builder.EmitOpCode(ILOpCode.Dup)
                 _builder.EmitOpCode(ILOpCode.Ldvirtftn)
             Else
+                ' A shared abstract or virtual interface member reached through a type parameter resolves to the type argument's member.
+                If method.IsShared AndAlso method.ContainingType.IsInterface AndAlso receiver?.Type IsNot Nothing AndAlso receiver.Type.IsTypeParameter() Then
+                    _builder.EmitOpCode(ILOpCode.Constrained)
+                    EmitSymbolToken(receiver.Type, receiver.Syntax)
+                End If
+
                 _builder.EmitOpCode(ILOpCode.Ldftn)
             End If
 
