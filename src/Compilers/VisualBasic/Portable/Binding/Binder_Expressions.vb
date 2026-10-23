@@ -3392,6 +3392,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         End If
                     End If
 
+                    ' Before vbnext, a ref field from another assembly has a type that Visual Basic does not support.
+                    If fieldSymbol.FieldRefKind <> RefKind.None AndAlso Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                        ReportDiagnostic(diagnostics, node, ERRID.ERR_UnsupportedField1, fieldSymbol.Name)
+                        hasError = True
+                    End If
+
                     ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, fieldSymbol, node)
 
                     ' const fields may need to determine the type because it's inferred

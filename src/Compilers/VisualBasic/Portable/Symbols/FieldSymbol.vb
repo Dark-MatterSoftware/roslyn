@@ -470,9 +470,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' <summary>
         ''' Custom modifiers associated with the ref modifier, or an empty array if there are none.
         ''' </summary>
-        Private ReadOnly Property IFieldSymbol_RefCustomModifiers As ImmutableArray(Of CustomModifier) Implements IFieldSymbol.RefCustomModifiers
+        Friend Overridable ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
             Get
                 Return ImmutableArray(Of CustomModifier).Empty
+            End Get
+        End Property
+
+        Private ReadOnly Property IFieldSymbol_RefCustomModifiers As ImmutableArray(Of CustomModifier) Implements IFieldSymbol.RefCustomModifiers
+            Get
+                Return RefCustomModifiers
             End Get
         End Property
 

@@ -40,7 +40,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IFieldReferenceRefCustomModifiers As ImmutableArray(Of ICustomModifier) Implements IFieldReference.RefCustomModifiers
             Get
-                Return ImmutableArray(Of ICustomModifier).Empty
+                Return AdaptedFieldSymbol.RefCustomModifiers.As(Of ICustomModifier)
             End Get
         End Property
 

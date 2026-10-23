@@ -171,6 +171,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property FieldRefKind As RefKind
+            Get
+                Return _originalDefinition.FieldRefKind
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+            Get
+                Return _containingType.TypeSubstitution.SubstituteCustomModifiers(_originalDefinition.RefCustomModifiers)
+            End Get
+        End Property
+
         Public Overrides Function GetHashCode() As Integer
             Dim _hash As Integer = _originalDefinition.GetHashCode()
             Return Hash.Combine(_containingType, _hash)

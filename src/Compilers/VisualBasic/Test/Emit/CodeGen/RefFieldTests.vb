@@ -265,6 +265,128 @@ BC37412: A ref field of type 'Long' cannot refer to a variable of type 'Integer'
 </expected>)
         End Sub
 
+        Private Function CSharpRefFieldLibrary() As MetadataReference
+            Dim compilation = CreateCSharpCompilation("
+public ref struct RefBox
+{
+    public ref int Value;
+    public ref readonly int Frozen;
+    public RefBox(ref int value) { Value = ref value; Frozen = ref value; }
+}
+
+public ref struct GenericBox<T>
+{
+    public ref T Item;
+    public GenericBox(ref T item) { Item = ref item; }
+}
+", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90))
+            compilation.VerifyDiagnostics()
+            Return compilation.EmitToImageReference()
+        End Function
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub RefFieldsFromCSharpReadAndWriteThrough()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Sub Main()
+        Dim x = 1
+        Dim box As New RefBox(x)
+        box.Value += 10
+        Console.Write(x)
+        Bump(box.Value)
+        Console.Write("" "" & x & "" "" & box.Frozen)
+
+        Dim s = ""a""
+        Dim g As New GenericBox(Of String)(s)
+        g.Item = ""b""
+        Console.Write("" "" & s)
+    End Sub
+
+    Sub Bump(ByRef value As Integer)
+        value += 1
+    End Sub
+End Module
+", references:={CSharpRefFieldLibrary()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="11 12 12 b", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub RefFieldOfGenericByRefStructure()
+            Dim compilation = CreateCompilation("
+Imports System
+
+ByRef Structure Slot(Of T)
+    Public ByRef Value As T
+
+    Sub New(ByRef target As T)
+        Value = ByRef target
+    End Sub
+End Structure
+
+Module Program
+    Sub Main()
+        Dim s = ""a""
+        Dim slot As New Slot(Of String)(s)
+        slot.Value = ""b""
+        Console.Write(s)
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="b", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RefFieldsFromCSharpSymbols()
+            Dim compilation = CreateCompilation("", references:={CSharpRefFieldLibrary()}, targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+
+            Dim value = DirectCast(compilation.GetTypeByMetadataName("RefBox").GetMembers("Value").Single(), IFieldSymbol)
+            Dim frozen = DirectCast(compilation.GetTypeByMetadataName("RefBox").GetMembers("Frozen").Single(), IFieldSymbol)
+            Assert.Equal(Microsoft.CodeAnalysis.RefKind.Ref, value.RefKind)
+            Assert.Equal(Microsoft.CodeAnalysis.RefKind.RefReadOnly, frozen.RefKind)
+            Assert.Equal("ByRef RefBox.Value As Integer", value.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))
+            Assert.Equal("ByRef ReadOnly RefBox.Frozen As Integer", frozen.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))
+            Assert.Null(DirectCast(value, FieldSymbol).GetUseSiteErrorInfo())
+        End Sub
+
+        <Fact>
+        Public Sub RefFieldsFromCSharpErrors()
+            Dim source = "
+Module Program
+    Sub Test(ByRef x As Integer)
+        Dim box As New RefBox(x)
+        box.Frozen = 5
+        System.Console.Write(box.Value)
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, references:={CSharpRefFieldLibrary()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30068: Expression is a value and therefore cannot be the target of an assignment.
+        box.Frozen = 5
+        ~~~~~~~~~~
+</expected>)
+
+            compilation = CreateCompilation(source, references:={CSharpRefFieldLibrary()}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll,
+                                            parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30668: 'RefBox' is obsolete: 'Types with embedded references are not supported in this version of your compiler.'.
+        Dim box As New RefBox(x)
+                       ~~~~~~
+BC30656: Field 'Frozen' is of an unsupported type.
+        box.Frozen = 5
+        ~~~~~~~~~~
+BC30656: Field 'Value' is of an unsupported type.
+        System.Console.Write(box.Value)
+                             ~~~~~~~~~
+</expected>)
+        End Sub
+
         Private Const ViewSource As String = "
 Imports System.Collections.Immutable
 

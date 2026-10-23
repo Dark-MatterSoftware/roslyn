@@ -47,9 +47,9 @@ BC30656: Field 'F' is of an unsupported type.
 </expected>)
 
             Dim field = compB.GetMember(Of FieldSymbol)("S.F")
-            VerifyFieldSymbol(field, "S(Of T).F As T modreq(?)")
-            Assert.NotNull(field.GetUseSiteErrorInfo())
-            Assert.True(field.HasUnsupportedMetadata)
+            VerifyFieldSymbol(field, "ByRef S(Of T).F As T", refCustomModifierCount:=0)
+            Assert.Null(field.GetUseSiteErrorInfo())
+            Assert.False(field.HasUnsupportedMetadata)
         End Sub
 
         <Fact, WorkItem(65392, "https://github.com/dotnet/roslyn/issues/65392")>
@@ -110,14 +110,14 @@ BC30656: Field 'F' is of an unsupported type.
 </expected>)
 
             Dim field = comp.GetMember(Of FieldSymbol)("A.F")
-            VerifyFieldSymbol(field, "A(Of T).F As T modopt(System.SByte) modopt(System.Object) modreq(?)")
-            Assert.NotNull(field.GetUseSiteErrorInfo())
-            Assert.True(field.HasUnsupportedMetadata)
+            VerifyFieldSymbol(field, "ByRef A(Of T).F As T", refCustomModifierCount:=2)
+            Assert.Null(field.GetUseSiteErrorInfo())
+            Assert.False(field.HasUnsupportedMetadata)
         End Sub
 
-        Private Shared Sub VerifyFieldSymbol(field As FieldSymbol, expectedDisplayString As String)
-            Assert.Equal(CodeAnalysis.RefKind.None, DirectCast(field, IFieldSymbol).RefKind)
-            Assert.Empty(DirectCast(field, IFieldSymbol).RefCustomModifiers)
+        Private Shared Sub VerifyFieldSymbol(field As FieldSymbol, expectedDisplayString As String, refCustomModifierCount As Integer)
+            Assert.Equal(CodeAnalysis.RefKind.Ref, DirectCast(field, IFieldSymbol).RefKind)
+            Assert.Equal(refCustomModifierCount, DirectCast(field, IFieldSymbol).RefCustomModifiers.Length)
             Assert.Equal(expectedDisplayString, field.ToTestDisplayString())
         End Sub
 
@@ -167,21 +167,25 @@ BC30656: Field 'F' is of an unsupported type.
             Dim expectedMembers =
                 {
                 "R(Of System.Object).F1 As System.Object",
-                "R(Of System.Object).F1 As System.Object modreq(?)",
-                "R(Of System.Object).F2 As System.Object modopt(System.Int32) modreq(?)",
-                "R(Of System.Object).F2 As System.Object modopt(System.Object) modreq(?)",
-                "R(Of System.Object).F3 As System.Int32 modreq(?)",
-                "R(Of System.Object).F3 As System.SByte modreq(?)"
+                "ByRef R(Of System.Object).F1 As System.Object",
+                "ByRef R(Of System.Object).F2 As System.Object",
+                "ByRef R(Of System.Object).F2 As System.Object",
+                "ByRef R(Of System.Object).F3 As System.Int32",
+                "ByRef R(Of System.Object).F3 As System.SByte"
                 }
             AssertEx.Equal(expectedMembers, fieldMembers.Select(Function(f) f.ToTestDisplayString()))
 
             Dim expectedReferences =
                 {
-                "R(Of System.Object).F1 As System.Object modreq(?)",
-                "R(Of System.Object).F2 As System.Object modopt(System.Object) modreq(?)",
-                "R(Of System.Object).F3 As System.SByte modreq(?)"
+                "ByRef R(Of System.Object).F1 As System.Object",
+                "ByRef R(Of System.Object).F2 As System.Object",
+                "ByRef R(Of System.Object).F3 As System.SByte"
                 }
             AssertEx.Equal(expectedReferences, fieldReferences.Select(Function(f) f.ToTestDisplayString()))
+
+            ' Each reference resolves to the public field, which F2 tells apart only by its ref custom modifier.
+            Assert.All(fieldReferences, Sub(f) Assert.Equal(Accessibility.Public, f.DeclaredAccessibility))
+            Assert.Equal("System.Object", DirectCast(fieldReferences(1), FieldSymbol).RefCustomModifiers.Single().Modifier.ToTestDisplayString())
         End Sub
 
     End Class

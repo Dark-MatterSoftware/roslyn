@@ -1316,8 +1316,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Dim fieldType As TypeSymbol = field.Type.GetTupleUnderlyingTypeOrSelf()
 
                     ' A ref struct which has a ref field is never considered unmanaged
-                    ' but we cannot represent ref fields in VB
-                    ' The previous line should collect an error about the fact
+                    If field.FieldRefKind <> RefKind.None Then
+                        Return (True, hasGenerics)
+                    End If
 
                     Select Case fieldType.TypeKind
                         Case TypeKind.Pointer, TypeKind.FunctionPointer

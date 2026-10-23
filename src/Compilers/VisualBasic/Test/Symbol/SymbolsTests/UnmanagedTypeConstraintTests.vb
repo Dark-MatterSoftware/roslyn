@@ -940,15 +940,15 @@ End Class
 BC37332: Type argument 'RefG(Of String)' must be a non-nullable value type, along with all fields at any level of nesting, in order to use it as type parameter 'T'.
         o.M(CType(Nothing, RefG(Of String)))
           ~
-BC30656: Field 'field' is of an unsupported type.
+BC37332: Type argument 'Ref' must be a non-nullable value type, along with all fields at any level of nesting, in order to use it as type parameter 'T'.
         o.M(CType(Nothing, Ref))
-        ~~~~~~~~~~~~~~~~~~~~~~~~
-BC30656: Field 'field' is of an unsupported type.
+          ~
+BC37332: Type argument 'StructWithIndirectRefField' must be a non-nullable value type, along with all fields at any level of nesting, in order to use it as type parameter 'T'.
         o.M(CType(Nothing, StructWithIndirectRefField))
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-BC30656: Field 'RefField' is of an unsupported type.
+          ~
+BC37332: Type argument 'StructWithIndirectRefField2' must be a non-nullable value type, along with all fields at any level of nesting, in order to use it as type parameter 'T'.
         o.M(CType(Nothing, StructWithIndirectRefField2))
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          ~
                                                 ]]></expected>)
         End Sub
 

@@ -34,6 +34,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
 
         Private _lazyCustomModifiers As ImmutableArray(Of CustomModifier)
 
+        Private _lazyRefCustomModifiers As ImmutableArray(Of CustomModifier)
+
         ''' <summary>
         ''' Retargeted custom attributes
         ''' </summary>
@@ -88,6 +90,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
         Public Overrides ReadOnly Property CustomModifiers As ImmutableArray(Of CustomModifier)
             Get
                 Return RetargetingTranslator.RetargetModifiers(_underlyingField.CustomModifiers, _lazyCustomModifiers)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property FieldRefKind As RefKind
+            Get
+                Return _underlyingField.FieldRefKind
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+            Get
+                Return RetargetingTranslator.RetargetModifiers(_underlyingField.RefCustomModifiers, _lazyRefCustomModifiers)
             End Get
         End Property
 

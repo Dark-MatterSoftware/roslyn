@@ -146,13 +146,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             Dim type As TypeSymbol = Nothing
             Dim customModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)) = Nothing
-            PEFieldSymbol.GetSignatureParts(fieldInfo, type, customModifiers)
+            Dim refCustomModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)) = Nothing
+            PEFieldSymbol.GetSignatureParts(fieldInfo, type, customModifiers, refCustomModifiers)
 
             For Each member In targetTypeSymbol.GetMembers(targetMemberName)
                 Dim field = TryCast(member, FieldSymbol)
                 If field IsNot Nothing AndAlso
+                   (field.FieldRefKind <> RefKind.None) = fieldInfo.IsByRef AndAlso
                    TypeSymbol.Equals(field.Type, type, TypeCompareKind.AllIgnoreOptionsForVB) AndAlso
-                   CustomModifiersMatch(field.CustomModifiers, customModifiers) Then
+                   CustomModifiersMatch(field.CustomModifiers, customModifiers) AndAlso
+                   CustomModifiersMatch(field.RefCustomModifiers, refCustomModifiers) Then
 
                     ' Behavior in the face of multiple matching signatures is
                     ' implementation defined - we'll just pick the first one.

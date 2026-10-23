@@ -4762,10 +4762,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' Await receiver.DisposeAsync() for a resource or an Await Each enumerator that has its own DisposeAsync without
-        ''' implementing IAsyncDisposable, as the result of ConfigureAwait(False) does. Nothing when it has none.
-        ''' </summary>
-        ''' <summary>
         ''' receiver.Dispose() for a resource that has an accessible Dispose Sub that can be called without arguments, or
         ''' Nothing when it has none.
         ''' </summary>
@@ -4796,6 +4792,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Try
         End Function
 
+        ''' <summary>
+        ''' Await receiver.DisposeAsync() for a resource or an Await Each enumerator that has its own DisposeAsync without
+        ''' implementing IAsyncDisposable, as the result of ConfigureAwait(False) does. Nothing when it has none.
+        ''' </summary>
         Private Function BindPatternDisposeAsyncAwait(syntaxNode As VisualBasicSyntaxNode, receiver As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim temporaryDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
             Try

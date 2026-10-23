@@ -25,20 +25,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
     Friend NotInheritable Class PEFieldSymbol
         Inherits FieldSymbol
 
-        ''' <summary>
-        ''' This symbol is used as a type for a "fake" required custom modifier added for ByRef fields.
-        ''' This allows us to report use site errors for ByRef fields, and, at the same time, allows us
-        ''' to accurately match them by signature (since this instance is unique and is not used for anything else)
-        ''' without adding full support for RefKind and RefCustomModifiers
-        ''' </summary>
-        Private Shared ReadOnly _byRefPlaceholder As New UnsupportedMetadataTypeSymbol()
-
         Private ReadOnly _handle As FieldDefinitionHandle
         Private ReadOnly _name As String
         Private ReadOnly _flags As FieldAttributes
         Private ReadOnly _containingType As PENamedTypeSymbol
         Private _lazyType As TypeSymbol
         Private _lazyCustomModifiers As ImmutableArray(Of CustomModifier)
+        Private _lazyRefCustomModifiers As ImmutableArray(Of CustomModifier)
+        Private _lazyRefKind As RefKind
         Private _lazyConstantValue As ConstantValue = Microsoft.CodeAnalysis.ConstantValue.Unset
         Private _lazyDocComment As Tuple(Of CultureInfo, String)
         Private _lazyCustomAttributes As ImmutableArray(Of VisualBasicAttributeData)
@@ -373,26 +367,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
                 Dim type As TypeSymbol = Nothing
                 Dim customModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)) = Nothing
-                GetSignatureParts(fieldInfo, type, customModifiers)
+                Dim refCustomModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)) = Nothing
+                GetSignatureParts(fieldInfo, type, customModifiers, refCustomModifiers)
 
                 type = TupleTypeDecoder.DecodeTupleTypesIfApplicable(type, _handle, moduleSymbol)
 
+                ' A ref field marked IsReadOnly is ref readonly, as C# declares it.
+                If fieldInfo.IsByRef Then
+                    _lazyRefKind = If(moduleSymbol.Module.HasIsReadOnlyAttribute(_handle), RefKind.RefReadOnly, RefKind.Ref)
+                End If
+
+                ImmutableInterlocked.InterlockedCompareExchange(_lazyRefCustomModifiers, VisualBasicCustomModifier.Convert(refCustomModifiers), Nothing)
                 ImmutableInterlocked.InterlockedCompareExchange(_lazyCustomModifiers, VisualBasicCustomModifier.Convert(customModifiers), Nothing)
                 Interlocked.CompareExchange(_lazyType, type, Nothing)
             End If
         End Sub
 
-        Friend Shared Sub GetSignatureParts(fieldInfo As FieldInfo(Of TypeSymbol), ByRef type As TypeSymbol, ByRef customModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)))
+        Friend Shared Sub GetSignatureParts(fieldInfo As FieldInfo(Of TypeSymbol),
+                                            ByRef type As TypeSymbol,
+                                            ByRef customModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)),
+                                            ByRef refCustomModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)))
             type = fieldInfo.Type
             customModifiers = fieldInfo.CustomModifiers.NullToEmpty
+            refCustomModifiers = fieldInfo.RefCustomModifiers.NullToEmpty
 
-            If fieldInfo.IsByRef Then
-                Dim refCustomModifiers = fieldInfo.RefCustomModifiers.NullToEmpty.Add(New ModifierInfo(Of TypeSymbol)(isOptional:=False, _byRefPlaceholder))
-                customModifiers = refCustomModifiers.AddRange(customModifiers)
-            ElseIf Not fieldInfo.RefCustomModifiers.IsDefaultOrEmpty Then
+            If Not fieldInfo.IsByRef AndAlso Not refCustomModifiers.IsEmpty Then
                 Throw ExceptionUtilities.Unreachable
             End If
         End Sub
+
+        Friend Overrides ReadOnly Property FieldRefKind As RefKind
+            Get
+                EnsureSignatureIsLoaded()
+                Return _lazyRefKind
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+            Get
+                EnsureSignatureIsLoaded()
+                Return _lazyRefCustomModifiers
+            End Get
+        End Property
 
         Public Overrides ReadOnly Property Type As TypeSymbol
             Get

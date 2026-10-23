@@ -446,7 +446,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Continue For
                 End If
 
-                If field.FieldRefKind <> RefKind.None OrElse HoldsRefField(field.Type, visited) Then
+                If (field.FieldRefKind <> RefKind.None AndAlso TypeOf field.OriginalDefinition Is SourceFieldSymbol) OrElse
+                   HoldsRefField(field.Type, visited) Then
                     Return True
                 End If
             Next
