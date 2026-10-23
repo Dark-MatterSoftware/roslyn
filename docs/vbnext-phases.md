@@ -623,8 +623,8 @@ Wave 10 row 5.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 57a | VB-093, VB-094 | A design note locks when a function or property may return a structure that holds a ref field, or a span over an inline array, and what each may refer to. No code change. |
-| 57b | VB-093 | On `vbnext`, the rules that 57a locks replace BC37414 for the cases they allow. |
+| 57a | VB-093, VB-094 | Done. `docs/vbnext-vb093-syntax.md` locks when a ref structure value refers to local storage: a span over a local, `ByVal`, `Me`, or temporary inline array, a `New` or call whose `ByRef` arguments or ref structure arguments do, and any local given such a value anywhere in the method. Such a value cannot be returned or assigned to a `ByRef` parameter or through `Me` (new BC37418), and BC37414 is lifted so that a function may return a structure that holds a ref field when it refers only to the caller's storage. No code change. |
+| 57b | VB-093, VB-094 | On `vbnext`, the rules that 57a locks are checked, and BC37414 is no longer reported. |
 
 ## Phase 58 — IDE for wave 10
 
