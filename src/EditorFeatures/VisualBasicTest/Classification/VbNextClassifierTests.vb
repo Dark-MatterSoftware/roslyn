@@ -247,6 +247,43 @@ If TypeOf o IsNot String Into s Then Return",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestRefField(testHost As TestHost) As Task
+            Await TestAsync("ByRef Structure Cell
+    Private ByRef ReadOnly _value As Integer
+    Sub New(ByRef value As Integer)
+        _value = ByRef value
+    End Sub
+End Structure",
+                testHost,
+                s_vbNext,
+                Keyword("ByRef"),
+                Keyword("Structure"),
+                Struct("Cell"),
+                Keyword("Private"),
+                Keyword("ByRef"),
+                Keyword("ReadOnly"),
+                Field("_value"),
+                Keyword("As"),
+                Keyword("Integer"),
+                Keyword("Sub"),
+                Keyword("New"),
+                Punctuation.OpenParen,
+                Keyword("ByRef"),
+                Parameter("value"),
+                Keyword("As"),
+                Keyword("Integer"),
+                Punctuation.CloseParen,
+                Identifier("_value"),
+                Operators.Equals,
+                Keyword("ByRef"),
+                Identifier("value"),
+                Keyword("End"),
+                Keyword("Sub"),
+                Keyword("End"),
+                Keyword("Structure"))
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestForEachDeconstruction(testHost As TestHost) As Task
             Await TestInMethodAsync("For Each (name, count As Integer) In items
 Next",

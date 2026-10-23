@@ -40,7 +40,9 @@ Public Class DiagnosticAnalyzerDriverTests
                 SyntaxKind.CollectionExpression,
                 SyntaxKind.ExtensionStatement,
                 SyntaxKind.ExtensionBlock,
-                SyntaxKind.GuidLiteralExpression
+                SyntaxKind.GuidLiteralExpression,
+                SyntaxKind.ForEachDeconstruction,
+                SyntaxKind.ByRefExpression
             })
             analyzer.VerifyOnCodeBlockCalledForAllSymbolAndMethodKinds(allowUnexpectedCalls:=True)
         End Using

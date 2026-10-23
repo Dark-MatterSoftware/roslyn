@@ -277,6 +277,50 @@ End Module</File>, "ByRef")
         End Sub
 
         <Fact>
+        Public Sub ByRefBeforeFieldOfByRefStructure()
+            VerifyRecommendationsContain(<File VbNext="True">ByRef Structure Cell
+    Private |
+End Structure</File>, "ByRef")
+            VerifyRecommendationsContain(<File VbNext="True">ByRef Structure Cell
+    Private ByRef |
+End Structure</File>, "ReadOnly")
+        End Sub
+
+        <Fact>
+        Public Sub ByRefFieldMissingOutsideByRefStructureAndOn17_13()
+            VerifyRecommendationsMissing(<File VbNext="True">Structure Plain
+    Private |
+End Structure</File>, "ByRef")
+            VerifyRecommendationsMissing(<File VbNext="True">ByRef Structure Cell
+    Private Shared |
+End Structure</File>, "ByRef")
+            VerifyRecommendationsMissing(<File VbNext="True">ByRef Structure Cell
+    Private ByRef |
+End Structure</File>, "ByRef")
+            VerifyRecommendationsMissing(<File>ByRef Structure Cell
+    Private |
+End Structure</File>, "ByRef")
+        End Sub
+
+        <Fact>
+        Public Sub ByRefAfterEqualsInSubNewOfByRefStructure()
+            VerifyRecommendationsContain(<File VbNext="True">ByRef Structure Cell
+    Private ByRef _value As Integer
+
+    Sub New(ByRef value As Integer)
+        _value = |
+    End Sub
+End Structure</File>, "ByRef")
+            VerifyRecommendationsMissing(<File VbNext="True">ByRef Structure Cell
+    Private ByRef _value As Integer
+
+    Sub Reset(ByRef value As Integer)
+        _value = |
+    End Sub
+End Structure</File>, "ByRef")
+        End Sub
+
+        <Fact>
         Public Sub InAfterParenthesizedForEachControlVariableMissingOn17_13()
             VerifyRecommendationsMissing(<File>Module M
     Sub F()

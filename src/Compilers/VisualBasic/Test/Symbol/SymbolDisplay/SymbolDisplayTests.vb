@@ -5583,7 +5583,9 @@ ref struct S<T>
             Dim type = comp.GlobalNamespace.GetTypeMembers("S").Single()
 
             Verify(SymbolDisplay.ToDisplayParts(type.GetMembers("F1").Single(), SymbolDisplayFormat.TestFormat),
-                "S(Of T).F1 As T",
+                "ByRef S(Of T).F1 As T",
+                SymbolDisplayPartKind.Keyword,
+                SymbolDisplayPartKind.Space,
                 SymbolDisplayPartKind.StructName,
                 SymbolDisplayPartKind.Punctuation,
                 SymbolDisplayPartKind.Keyword,
@@ -5598,7 +5600,11 @@ ref struct S<T>
                 SymbolDisplayPartKind.TypeParameterName)
 
             Verify(SymbolDisplay.ToDisplayParts(type.GetMembers("F2").Single(), SymbolDisplayFormat.TestFormat),
-                "S(Of T).F2 As T",
+                "ByRef ReadOnly S(Of T).F2 As T",
+                SymbolDisplayPartKind.Keyword,
+                SymbolDisplayPartKind.Space,
+                SymbolDisplayPartKind.Keyword,
+                SymbolDisplayPartKind.Space,
                 SymbolDisplayPartKind.StructName,
                 SymbolDisplayPartKind.Punctuation,
                 SymbolDisplayPartKind.Keyword,

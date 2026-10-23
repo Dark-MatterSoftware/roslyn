@@ -52,6 +52,11 @@
         <target state="translated">Cambiar a "TryCast"</target>
         <note />
       </trans-unit>
+      <trans-unit id="Declares_a_field_that_refers_to_a_variable_instead_of_holding_its_own_value">
+        <source>Declares a field that refers to a variable instead of holding its own value.</source>
+        <target state="new">Declares a field that refers to a variable instead of holding its own value.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Declares_a_local_that_refers_to_a_variable_instead_of_holding_its_own_value">
         <source>Declares a local that refers to a variable instead of holding its own value.</source>
         <target state="new">Declares a local that refers to a variable instead of holding its own value.</target>
@@ -109,6 +114,11 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</target>
         <target state="new">Introduces a loop that awaits each element of an asynchronous collection.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Makes_a_ref_field_refer_to_a_variable">
+        <source>Makes a ref field refer to a variable.</source>
+        <target state="new">Makes a ref field refer to a variable.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Move_the_0_statement_to_line_1">
         <source>Move the '{0}' statement to line {1}.</source>
         <target state="translated">Mueva la instrucción "{0}" a la línea {1}.</target>
@@ -133,6 +143,11 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</target>
         <source>Organize Imports</source>
         <target state="translated">Organizar Importaciones</target>
         <note>{Locked="Import"}</note>
+      </trans-unit>
+      <trans-unit id="Prevents_writes_through_a_ByRef_field">
+        <source>Prevents writes through a 'ByRef' field.</source>
+        <target state="new">Prevents writes through a 'ByRef' field.</target>
+        <note />
       </trans-unit>
       <trans-unit id="Prevents_writes_through_a_ByRef_local">
         <source>Prevents writes through a 'ByRef' local.</source>

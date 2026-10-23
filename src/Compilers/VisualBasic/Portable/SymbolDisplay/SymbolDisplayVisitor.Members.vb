@@ -14,7 +14,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             AddAccessibilityIfRequired(symbol)
             AddMemberModifiersIfRequired(symbol)
+
+            Dim includeRef = symbol.RefKind <> RefKind.None AndAlso Format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeRef)
+            If includeRef Then
+                AddKeyword(SyntaxKind.ByRefKeyword)
+                AddSpace()
+            End If
+
             AddFieldModifiersIfRequired(symbol)
+
+            If includeRef AndAlso symbol.RefKind = RefKind.RefReadOnly AndAlso
+               Not (symbol.IsReadOnly AndAlso Format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeModifiers)) Then
+                AddKeyword(SyntaxKind.ReadOnlyKeyword)
+                AddSpace()
+            End If
 
             Dim visitedParents As Boolean = False
             If Format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeContainingType) Then

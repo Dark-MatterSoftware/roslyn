@@ -119,6 +119,27 @@ End Class", code, position)
             End Using
         End Function
 
+        <Theory>
+        <InlineData("ByRef", "ByRef")>
+        <InlineData("ByRef ReadOnly", "ByRef ReadOnly")>
+        Public Async Function TestRefField(declaration As String, shown As String) As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+ByRef Structure Cell
+    Private " & declaration & " _value As Integer
+
+    Sub New(ByRef value As Integer)
+        _value = ByRef value
+        System.Console.Write(_val$$ue)
+    End Sub
+End Structure", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.field}) {shown} Cell._value As Integer"))
+            End Using
+        End Function
+
         <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
