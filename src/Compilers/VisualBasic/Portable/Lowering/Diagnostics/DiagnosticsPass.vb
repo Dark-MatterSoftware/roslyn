@@ -35,6 +35,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Try
                 Dim diagnosticPass As New DiagnosticsPass(containingSymbol.DeclaringCompilation, diagnostics, containingSymbol)
                 diagnosticPass.Visit(node)
+
+                If containingSymbol.DeclaringCompilation?.LanguageVersion >= LanguageVersion.VbNext Then
+                    RefStructEscapeAnalysis.Analyze(node, diagnostics)
+                End If
             Catch ex As CancelledByStackGuardException
                 ex.AddAnError(diagnostics)
             End Try

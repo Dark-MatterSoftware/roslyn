@@ -2653,7 +2653,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Whether an assignment target outlives the caller's locals: a ByRef parameter, or a field of a structure
         ''' that is reached through a ByRef parameter or Me, directly or through a Dim ByRef local that refers to one.
         ''' </summary>
-        Private Shared Function IsReachedThroughByRefParameterOrMe(target As BoundExpression) As Boolean
+        Friend Shared Function IsReachedThroughByRefParameterOrMe(target As BoundExpression) As Boolean
             Select Case target.Kind
                 Case BoundKind.Parameter
                     Return DirectCast(target, BoundParameter).ParameterSymbol.IsByRef

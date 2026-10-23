@@ -2673,8 +2673,6 @@ lReportErrorOnTwoTokens:
                         Dim restrictedType As TypeSymbol = Nothing
                         If retType.IsRestrictedArrayType(restrictedType) Then
                             binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_RestrictedType1, restrictedType)
-                        ElseIf retType.HoldsRefField() Then
-                            binder.ReportDiagnostic(diagBag, errorLocation, ERRID.ERR_RefFieldHolderReturned, retType)
                         End If
 
                         If Me.IsAsync AndAlso Me.IsIterator Then

@@ -1872,11 +1872,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_RefFieldRequiresReference = 37411
         ERR_RefFieldTypeMismatch = 37412
         ERR_RefFieldReadOnlyReferent = 37413
-        ERR_RefFieldHolderReturned = 37414
         ERR_RefFieldHolderAssigned = 37415
         ERR_InlineArrayIndexOutOfRange = 37417
+        ERR_RefStructValueEscapes = 37418
 
-        ERR_NextAvailable = 37418
+        ERR_NextAvailable = 37419
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

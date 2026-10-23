@@ -536,18 +536,147 @@ End Module
 BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
         First = New Cell(target)
         ~~~~~
-BC37414: 'Cell' holds a ref field, so it cannot be the return type of a function or property.
-    Function Make(ByRef x As Integer) As Cell
-                                         ~~~~
-BC37414: 'Pair' holds a ref field, so it cannot be the return type of a function or property.
-    ReadOnly Property Current As Pair
-                                 ~~~~
 BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
         c = New Cell(local)
         ~
 BC37415: 'Cell' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.
         p.First = New Cell(local)
         ~~~~~~~
+</expected>)
+        End Sub
+
+        Private Const EscapeSource As String = "
+Imports System.Runtime.CompilerServices
+
+<InlineArray(4)>
+Structure Buffer4
+    Private _element As Integer
+End Structure
+
+ByRef Structure Cell
+    Public ByRef Value As Integer
+
+    Sub New(ByRef target As Integer)
+        Value = ByRef target
+    End Sub
+End Structure
+"
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub FactoryReturnsStructureOverCallerStorage()
+            Dim compilation = CreateCompilation({EscapeSource, "
+Imports System
+
+Module Program
+    Function Wrap(ByRef value As Integer) As Cell
+        Return New Cell(value)
+    End Function
+
+    Function Tail(items As Integer()) As Span(Of Integer)
+        Dim s As Span(Of Integer) = items
+        Return s.Slice(1)
+    End Function
+
+    Sub Main()
+        Dim x = 1
+        Dim c = Wrap(x)
+        c.Value = 5
+        Console.Write(x & "" "" & Tail({1, 2, 3}).Length)
+    End Sub
+End Module
+"}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="5 2", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ValuesOverLocalStorageCannotLeaveTheMethod()
+            Dim compilation = CreateCompilation({EscapeSource, "
+Imports System
+
+Module Program
+    Function Wrap(ByRef value As Integer) As Cell
+        Return New Cell(value)
+    End Function
+
+    Function WrapElement(items As Integer()) As Cell
+        Return New Cell(items(0))
+    End Function
+
+    Function WrapLocal() As Cell
+        Dim local = 1
+        Return New Cell(local)
+    End Function
+
+    Function WrapByVal(value As Integer) As Cell
+        Return New Cell(value)
+    End Function
+
+    Function LocalSpan() As Span(Of Integer)
+        Dim b As Buffer4
+        Return b
+    End Function
+
+    Function SliceOfLocalSpan() As Span(Of Integer)
+        Dim b As Buffer4
+        Dim s As Span(Of Integer) = b
+        Return s.Slice(1)
+    End Function
+
+    Function AssignedLater(items As Integer()) As Span(Of Integer)
+        Dim s As Span(Of Integer) = items
+        Dim b As Buffer4
+        For i = 0 To 1
+            If i = 1 Then Return s
+            s = b
+        Next
+        Return Nothing
+    End Function
+
+    Function SpanOverArray(items As Integer()) As Span(Of Integer)
+        Dim s As Span(Of Integer) = items
+        Return s
+    End Function
+
+    Function SpanOverByRefParameter(ByRef b As Buffer4) As Span(Of Integer)
+        Return b
+    End Function
+
+    Function ThroughFunctionName() As Span(Of Integer)
+        Dim b As Buffer4
+        ThroughFunctionName = b
+    End Function
+
+    Sub Store(ByRef target As Span(Of Integer))
+        Dim b As Buffer4
+        target = b
+    End Sub
+End Module
+"}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+        Return New Cell(local)
+               ~~~~~~~~~~~~~~~
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+        Return New Cell(value)
+               ~~~~~~~~~~~~~~~
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+        Return b
+               ~
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+        Return s.Slice(1)
+               ~~~~~~~~~~
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+            If i = 1 Then Return s
+                                 ~
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+        ThroughFunctionName = b
+                              ~
+BC37418: This value can refer to a variable of this method, so it cannot leave the method.
+        target = b
+                 ~
 </expected>)
         End Sub
 

@@ -192,8 +192,8 @@ Module Program
 End Module
 ", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
 
-            ' PEVerify does not accept ByRef return types.
-            CompileAndVerify(compilation, expectedOutput:="5,7,5", verify:=Verification.FailsPEVerify).VerifyDiagnostics()
+            ' Neither PEVerify nor ILVerify accepts ByRef return types.
+            CompileAndVerify(compilation, expectedOutput:="5,7,5", verify:=Verification.Fails).VerifyDiagnostics()
         End Sub
 
         <Fact>

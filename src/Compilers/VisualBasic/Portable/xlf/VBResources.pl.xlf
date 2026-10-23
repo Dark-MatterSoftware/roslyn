@@ -387,11 +387,6 @@
         <target state="new">'{0}' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ERR_RefFieldHolderReturned">
-        <source>'{0}' holds a ref field, so it cannot be the return type of a function or property.</source>
-        <target state="new">'{0}' holds a ref field, so it cannot be the return type of a function or property.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ERR_RefFieldReadOnlyReferent">
         <source>Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.</source>
         <target state="new">Only a 'ByRef ReadOnly' field can refer to a 'ReadOnly' field or a read-only 'ByRef' result.</target>
@@ -410,6 +405,11 @@
       <trans-unit id="ERR_RefFieldsNotSupportedByRuntime">
         <source>The target runtime does not support ref fields.</source>
         <target state="new">The target runtime does not support ref fields.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_RefStructValueEscapes">
+        <source>This value can refer to a variable of this method, so it cannot leave the method.</source>
+        <target state="new">This value can refer to a variable of this method, so it cannot leave the method.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_RefStructureAcrossSuspension">
