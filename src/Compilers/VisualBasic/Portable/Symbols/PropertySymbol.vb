@@ -644,7 +644,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IPropertySymbol_RefKind As RefKind Implements IPropertySymbol.RefKind
             Get
-                Return If(Me.ReturnsByRef, RefKind.Ref, RefKind.None)
+                Return If(Me.ReturnsByRef, If(Me.ReturnsByRefReadOnly, RefKind.RefReadOnly, RefKind.Ref), RefKind.None)
             End Get
         End Property
 

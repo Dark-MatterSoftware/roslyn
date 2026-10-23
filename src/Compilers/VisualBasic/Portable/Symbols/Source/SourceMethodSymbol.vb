@@ -445,20 +445,40 @@ lReportErrorOnTwoTokens:
         End Function
 
         ' Decode the modifiers on the method, reporting errors where applicable.
+        ''' <summary>
+        ''' Whether a Function is declared ByRef ReadOnly on vbnext, which returns a read-only reference.
+        ''' </summary>
+        Private Shared Function IsDeclaredByRefReadOnly(modifiers As SyntaxTokenList, compilation As VisualBasicCompilation) As Boolean
+            Dim byRefKeyword = modifiers.FirstOrDefault(Function(m) m.Kind = SyntaxKind.ByRefKeyword)
+            Return byRefKeyword.Kind = SyntaxKind.ByRefKeyword AndAlso
+                   byRefKeyword.Parent.IsKind(SyntaxKind.FunctionStatement) AndAlso
+                   modifiers.Any(SyntaxKind.ReadOnlyKeyword) AndAlso
+                   compilation.LanguageVersion >= LanguageVersion.VbNext
+        End Function
+
         Private Shared Function DecodeMethodModifiers(modifiers As SyntaxTokenList,
                                                       container As SourceMemberContainerTypeSymbol,
                                                       binder As Binder,
                                                       diagBag As DiagnosticBag) As MemberModifiers
+            ' On vbnext, ByRef ReadOnly before a Function returns a read-only reference. ReadOnly sets no member flag.
+            Dim isByRefReadOnly = IsDeclaredByRefReadOnly(modifiers, binder.Compilation)
+
             ' Decode the flags.
             Dim methodModifiers = binder.DecodeModifiers(modifiers,
                 SourceMemberFlags.AllAccessibilityModifiers Or SourceMemberFlags.Overloads Or SourceMemberFlags.Partial Or
                 SourceMemberFlags.Shadows Or SourceMemberFlags.Shared Or
                 SourceMemberFlags.Overridable Or SourceMemberFlags.NotOverridable Or
                 SourceMemberFlags.Overrides Or SourceMemberFlags.MustOverride Or
-                SourceMemberFlags.Async Or SourceMemberFlags.Iterator,
+                SourceMemberFlags.Async Or SourceMemberFlags.Iterator Or
+                If(isByRefReadOnly, SourceMemberFlags.ReadOnly, SourceMemberFlags.None),
                 ERRID.ERR_BadMethodFlags1,
                 Accessibility.Public,
                 diagBag)
+
+            If isByRefReadOnly Then
+                methodModifiers = New MemberModifiers(methodModifiers.FoundFlags And Not SourceMemberFlags.ReadOnly,
+                                                      methodModifiers.ComputedFlags And Not SourceMemberFlags.ReadOnly)
+            End If
 
             methodModifiers = binder.ValidateSharedPropertyAndMethodModifiers(modifiers, methodModifiers, False, container, diagBag)
 
@@ -1320,6 +1340,13 @@ lReportErrorOnTwoTokens:
 
         Public NotOverridable Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
             Get
+                ' A ref readonly return carries the InAttribute required modifier, as C# emits it and slice 35a reads it.
+                If MethodKind <> MethodKind.PropertyGet AndAlso ReturnsByRef AndAlso
+                   IsDeclaredByRefReadOnly(Me.DeclarationSyntax.Modifiers, DeclaringCompilation) Then
+                    Return ImmutableArray.Create(VisualBasicCustomModifier.CreateRequired(
+                        DeclaringCompilation.GetWellKnownType(WellKnownType.System_Runtime_InteropServices_InAttribute)))
+                End If
+
                 Return ImmutableArray(Of CustomModifier).Empty
             End Get
         End Property
@@ -1575,6 +1602,10 @@ lReportErrorOnTwoTokens:
 
             If Me.ReturnType.ContainsTupleNames() Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.SynthesizeTupleNamesAttribute(Me.ReturnType))
+            End If
+
+            If Me.ReturnsByRefReadOnly Then
+                AddSynthesizedAttribute(attributes, DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
             End If
         End Sub
 

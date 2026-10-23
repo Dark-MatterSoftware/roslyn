@@ -195,6 +195,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 AddKeyword(SyntaxKind.ByRefKeyword)
                 AddCustomModifiersIfRequired(symbol.RefCustomModifiers)
                 AddSpace()
+
+                If symbol.ReturnsByRefReadonly Then
+                    AddKeyword(SyntaxKind.ReadOnlyKeyword)
+                    AddSpace()
+                End If
             End If
 
             AddMethodKind(symbol)

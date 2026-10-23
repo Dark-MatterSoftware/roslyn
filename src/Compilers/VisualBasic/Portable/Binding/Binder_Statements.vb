@@ -6713,7 +6713,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return New BoundReturnStatement(originalSyntax, Nothing, Nothing, Nothing, hasErrors:=True)
                 End If
 
-                Dim target = BindAssignmentTarget(expressionSyntax, diagnostics)
+                Dim target As BoundExpression
+                If currentMethod.ReturnsByRefReadOnly Then
+                    ' A ByRef ReadOnly Function may also return a variable that cannot be written.
+                    target = AsReadOnlyReference(BindValue(expressionSyntax, diagnostics))
+                    If target.Kind = BoundKind.PropertyAccess Then
+                        target = DirectCast(target, BoundPropertyAccess).SetAccessKind(PropertyAccessKind.Get)
+                    End If
+
+                    If Not target.HasErrors AndAlso Not target.IsLValue Then
+                        ReportDiagnostic(diagnostics, target.Syntax, ERRID.ERR_LValueRequired)
+                        target = BadExpression(target.Syntax, target, retType)
+                    End If
+                Else
+                    target = BindAssignmentTarget(expressionSyntax, diagnostics)
+                End If
+
                 If Not target.HasErrors AndAlso target.Type IsNot Nothing AndAlso Not target.Type.IsErrorType() AndAlso
                    Not TypeSymbol.Equals(target.Type, retType, TypeCompareKind.IgnoreCustomModifiersAndArraySizesAndLowerBounds) Then
                     ReportDiagnostic(diagnostics, target.Syntax, ERRID.ERR_TypeMismatch2, target.Type, retType)

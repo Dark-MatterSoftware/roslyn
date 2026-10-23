@@ -898,7 +898,13 @@ OtherExpressions:
 
         Private Sub EmitReturnStatement(boundReturnStatement As BoundReturnStatement)
             If _method.ReturnsByRef AndAlso boundReturnStatement.ExpressionOpt IsNot Nothing Then
-                EmitAddress(boundReturnStatement.ExpressionOpt, AddressKind.Writeable)
+                ' A ByRef ReadOnly Function may return a ReadOnly variable, whose own address is returned.
+                If _method.ReturnsByRefReadOnly Then
+                    EmitReadOnlyReference(boundReturnStatement.ExpressionOpt)
+                Else
+                    EmitAddress(boundReturnStatement.ExpressionOpt, AddressKind.Writeable)
+                End If
+
                 _builder.EmitRet(False)
                 Return
             End If

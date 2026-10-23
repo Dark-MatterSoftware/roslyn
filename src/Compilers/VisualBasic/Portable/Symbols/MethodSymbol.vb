@@ -1201,7 +1201,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IMethodSymbol_RefKind As RefKind Implements IMethodSymbol.RefKind
             Get
-                Return If(Me.ReturnsByRef, RefKind.Ref, RefKind.None)
+                Return If(Me.ReturnsByRef, If(Me.ReturnsByRefReadOnly, RefKind.RefReadOnly, RefKind.Ref), RefKind.None)
             End Get
         End Property
 
