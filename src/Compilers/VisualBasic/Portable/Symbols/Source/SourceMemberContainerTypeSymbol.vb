@@ -4406,7 +4406,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Dim lookup = MemberAndInitializerLookup
 
                 Dim structEnumerator As Dictionary(Of String, ImmutableArray(Of Symbol)).Enumerator = lookup.Members.GetEnumerator
-                Dim canDeclareOperators As Boolean = (myTypeKind <> TypeKind.Module AndAlso myTypeKind <> TypeKind.Interface)
+                ' On vbnext an interface declares shared abstract and shared virtual operators.
+                Dim canDeclareOperators As Boolean = myTypeKind <> TypeKind.Module AndAlso
+                                                     (myTypeKind <> TypeKind.Interface OrElse DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext)
 
                 While structEnumerator.MoveNext()
                     Dim memberList As ImmutableArray(Of Symbol) = structEnumerator.Current.Value

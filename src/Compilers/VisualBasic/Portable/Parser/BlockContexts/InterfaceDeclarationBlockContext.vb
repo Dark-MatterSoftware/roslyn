@@ -92,6 +92,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     Add(propertyStatement)
 
+                Case SyntaxKind.OperatorStatement
+                    ' On vbnext a Shared MustOverride operator has no body, and a Shared Overridable one has its default body.
+                    Dim operatorModifiers = DirectCast(node, OperatorStatementSyntax).Modifiers
+                    If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso operatorModifiers.Any(SyntaxKind.MustOverrideKeyword) Then
+                        Add(node)
+                    ElseIf Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso operatorModifiers.Any(SyntaxKind.OverridableKeyword) Then
+                        Return New MethodBlockContext(SyntaxKind.OperatorBlock, DirectCast(node, StatementSyntax), Me)
+                    Else
+                        Add(Parser.ReportSyntaxError(node, ERRID.ERR_InvInsideInterface))
+                    End If
+
                 Case SyntaxKind.SubNewStatement
                     ' In Dev10 this is reported in Declared
                     Add(Parser.ReportSyntaxError(node, ERRID.ERR_NewInInterface))
@@ -129,7 +140,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.InterfaceBlock,
                     SyntaxKind.SubBlock,
                     SyntaxKind.FunctionBlock,
-                    SyntaxKind.PropertyBlock
+                    SyntaxKind.PropertyBlock,
+                    SyntaxKind.OperatorBlock
                     ' Handle any block that can be created by this context
                     Add(node)
 
@@ -202,7 +214,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.InterfaceBlock
                     Return UseSyntax(node, newContext, DirectCast(node, TypeBlockSyntax).EndBlockStatement.IsMissing)
 
-                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock
+                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock, SyntaxKind.OperatorBlock
                     ' Before vbnext an interface method has no body, so a method block cannot be reused here.
                     If Parser.Options.LanguageVersion < LanguageVersion.VbNext Then
                         newContext = Me

@@ -338,8 +338,13 @@ lReportErrorOnTwoTokens:
         ) As SourceMethodSymbol
 
             ' Flags
-            Dim methodModifiers = DecodeOperatorModifiers(syntax, binder, diagBag)
+            Dim methodModifiers = DecodeOperatorModifiers(syntax, container, binder, diagBag)
             Dim flags = methodModifiers.AllFlags
+
+            ' An interface operator is abstract unless it is Shared Overridable with its default body.
+            If container.IsInterface AndAlso (flags And SourceMemberFlags.Overridable) = 0 Then
+                flags = flags Or SourceMemberFlags.MustOverride
+            End If
 
             Debug.Assert((flags And SourceMemberFlags.AccessibilityPublic) <> 0)
             Debug.Assert((flags And SourceMemberFlags.Shared) <> 0)
@@ -502,6 +507,7 @@ lReportErrorOnTwoTokens:
         ''' Decode the modifiers on a user-defined operator, reporting errors where applicable. 
         ''' </summary>
         Private Shared Function DecodeOperatorModifiers(syntax As OperatorStatementSyntax,
+                                                        container As SourceMemberContainerTypeSymbol,
                                                         binder As Binder,
                                                         diagBag As DiagnosticBag) As MemberModifiers
             ' Decode the flags.
@@ -511,6 +517,14 @@ lReportErrorOnTwoTokens:
                                                       SourceMemberFlags.Shadows Or
                                                       SourceMemberFlags.Widening Or
                                                       SourceMemberFlags.Narrowing
+
+            ' On vbnext an interface operator is Shared MustOverride or Shared Overridable, except a conversion.
+            Dim isInterfaceOperator = container.IsInterface AndAlso
+                                      binder.Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                                      syntax.OperatorToken.Kind <> SyntaxKind.CTypeKeyword
+            If isInterfaceOperator Then
+                allowModifiers = allowModifiers Or SourceMemberFlags.MustOverride Or SourceMemberFlags.Overridable
+            End If
 
             Dim operatorModifiers = binder.DecodeModifiers(syntax.Modifiers, allowModifiers, ERRID.ERR_BadOperatorFlags1, Accessibility.Public, diagBag)
 
@@ -544,6 +558,11 @@ lReportErrorOnTwoTokens:
                 binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_InvalidSpecifierOnNonConversion1, diagBag,
                                            SyntaxKind.NarrowingKeyword, SyntaxKind.WideningKeyword)
                 foundFlags = foundFlags And Not (SourceMemberFlags.Narrowing Or SourceMemberFlags.Widening)
+            End If
+
+            If isInterfaceOperator AndAlso (foundFlags And SourceMemberFlags.MustOverride) <> 0 AndAlso (foundFlags And SourceMemberFlags.Overridable) <> 0 Then
+                binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadOperatorFlags1, diagBag, SyntaxKind.OverridableKeyword)
+                foundFlags = foundFlags And Not SourceMemberFlags.Overridable
             End If
 
             Return New MemberModifiers(foundFlags, computedFlags)
