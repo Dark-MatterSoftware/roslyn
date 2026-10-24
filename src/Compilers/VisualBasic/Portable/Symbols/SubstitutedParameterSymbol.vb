@@ -119,6 +119,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return _originalDefinition.IsReadOnlyByRef
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property MarshallingInformation As MarshalPseudoCustomAttributeData
             Get
                 Return _originalDefinition.MarshallingInformation

@@ -4086,7 +4086,7 @@ Bailout:
                 Return Nothing
             End If
 
-            If candidate.UnderlyingSymbol.HasUnsupportedMetadata OrElse binder?.GetRefReadOnlyReturnUnsupportedInfo(candidate.UnderlyingSymbol) IsNot Nothing Then
+            If candidate.UnderlyingSymbol.HasUnsupportedMetadata OrElse binder?.GetReadOnlyReferenceUnsupportedInfo(candidate.UnderlyingSymbol) IsNot Nothing Then
                 Return New QuickApplicabilityInfo(candidate, CandidateAnalysisResultState.HasUnsupportedMetadata)
             End If
 

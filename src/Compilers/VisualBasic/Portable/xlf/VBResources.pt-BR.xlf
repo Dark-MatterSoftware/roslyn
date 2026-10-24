@@ -252,6 +252,11 @@
         <target state="new">The 'Then' part of an 'If' that declares '{0}' with 'IsNot' and 'Into' must end with 'Return', 'Exit', 'Continue', 'Throw', or 'GoTo'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ImplementWithReadOnlyByRef2">
+        <source>'{0}' cannot implement '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</source>
+        <target state="new">'{0}' cannot implement '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_IndexFromEndRequiresArray">
         <source>An index from the end can only be used as an array index.</source>
         <target state="new">An index from the end can only be used as an array index.</target>
@@ -315,6 +320,11 @@
       <trans-unit id="ERR_MultipleEnumeratorCancellationAttributes">
         <source>'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.</source>
         <target state="new">'EnumeratorCancellation' can be applied to only one parameter of an 'Async Iterator' function.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_OverrideWithReadOnlyByRef2">
+        <source>'{0}' cannot override '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</source>
+        <target state="new">'{0}' cannot override '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_PartialConstructorDeclarationMismatch">

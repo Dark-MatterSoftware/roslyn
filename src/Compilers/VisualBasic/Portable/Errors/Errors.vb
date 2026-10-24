@@ -1876,8 +1876,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_InlineArrayIndexOutOfRange = 37417
         ERR_RefStructValueEscapes = 37418
         ERR_ReadOnlyParameterRequiresByRef = 37419
+        ERR_OverrideWithReadOnlyByRef2 = 37420
+        ERR_ImplementWithReadOnlyByRef2 = 37421
 
-        ERR_NextAvailable = 37420
+        ERR_NextAvailable = 37422
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

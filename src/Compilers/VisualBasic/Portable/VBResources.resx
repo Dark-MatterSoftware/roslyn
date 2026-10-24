@@ -6025,6 +6025,12 @@
   <data name="ERR_ReadOnlyParameterRequiresByRef" xml:space="preserve">
     <value>'ReadOnly' is valid only on a 'ByRef' parameter of a method, constructor, operator, or delegate.</value>
   </data>
+  <data name="ERR_OverrideWithReadOnlyByRef2" xml:space="preserve">
+    <value>'{0}' cannot override '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</value>
+  </data>
+  <data name="ERR_ImplementWithReadOnlyByRef2" xml:space="preserve">
+    <value>'{0}' cannot implement '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</value>
+  </data>
   <data name="ERR_RefFieldHolderAssigned" xml:space="preserve">
     <value>'{0}' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.</value>
   </data>

@@ -908,28 +908,41 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' On vbnext, a member that returns ref readonly reads as a value. Before vbnext it is unsupported, with the error
-        ''' its metadata reported before vbnext.
+        ''' On vbnext, a member that returns ref readonly reads as a value, and a parameter with the InAttribute required
+        ''' modifier is passed as a ByRef ReadOnly parameter. Before vbnext such members are unsupported, with the error
+        ''' their metadata reported before vbnext.
         ''' </summary>
-        Friend Function GetRefReadOnlyReturnUnsupportedInfo(methodOrProperty As Symbol) As DiagnosticInfo
+        Friend Function GetReadOnlyReferenceUnsupportedInfo(methodOrProperty As Symbol) As DiagnosticInfo
             If Compilation.LanguageVersion >= LanguageVersion.VbNext Then
                 Return Nothing
             End If
 
             Select Case methodOrProperty.Kind
                 Case SymbolKind.Method
-                    If DirectCast(methodOrProperty, MethodSymbol).ReturnsByRefReadOnly Then
-                        Return ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedMethod1, CustomSymbolDisplayFormatter.ShortErrorName(methodOrProperty))
+                    Dim method = DirectCast(methodOrProperty, MethodSymbol)
+                    If method.ReturnsByRefReadOnly OrElse HasInModifierParameter(method.Parameters) Then
+                        Dim name = If(method.MethodKind = MethodKind.DelegateInvoke, CustomSymbolDisplayFormatter.ShortErrorName(method.ContainingType), CustomSymbolDisplayFormatter.ShortErrorName(methodOrProperty))
+                        Return ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedMethod1, name)
                     End If
 
                 Case SymbolKind.Property
                     Dim [property] = DirectCast(methodOrProperty, PropertySymbol)
-                    If [property].ReturnsByRefReadOnly Then
+                    If [property].ReturnsByRefReadOnly OrElse HasInModifierParameter([property].Parameters) Then
                         Return ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedProperty1, CustomSymbolDisplayFormatter.QualifiedName([property].OriginalDefinition))
                     End If
             End Select
 
             Return Nothing
+        End Function
+
+        Friend Shared Function HasInModifierParameter(parameters As ImmutableArray(Of ParameterSymbol)) As Boolean
+            For Each parameter In parameters
+                If TypeSymbolExtensions.IsRefReadOnlyReturn(parameter.IsByRef, parameter.RefCustomModifiers) Then
+                    Return True
+                End If
+            Next
+
+            Return False
         End Function
 
         Private Function CreateBoundCallOrPropertyAccess(
@@ -2129,7 +2142,7 @@ ProduceBoundNode:
                candidateAnalysisResult.State = VisualBasic.OverloadResolution.CandidateAnalysisResultState.HasUnsupportedMetadata Then
                 If lookupResult <> LookupResultKind.Inaccessible Then
                     Debug.Assert(lookupResult = LookupResultKind.Good)
-                    Dim refReadOnlyInfo = GetRefReadOnlyReturnUnsupportedInfo(candidate.UnderlyingSymbol)
+                    Dim refReadOnlyInfo = GetReadOnlyReferenceUnsupportedInfo(candidate.UnderlyingSymbol)
                     If refReadOnlyInfo IsNot Nothing AndAlso candidate.UnderlyingSymbol.GetUseSiteInfo().DiagnosticInfo Is Nothing Then
                         ReportDiagnostic(diagnostics, diagnosticLocation, refReadOnlyInfo)
                     Else
@@ -3019,7 +3032,8 @@ ProduceBoundNode:
             If param.IsByRef AndAlso Not forceByValueSemantics AndAlso
                (param.IsExplicitByRef OrElse (argument.Type IsNot Nothing AndAlso argument.Type.IsStringType())) Then
                 ' A ByRef ReadOnly parameter refers to a ReadOnly variable without a copy, since the callee cannot write it.
-                If param.IsReadOnlyByRef AndAlso Conversions.IsIdentityConversion(conversionTo.Key) Then
+                If param.IsReadOnlyByRef AndAlso Conversions.IsIdentityConversion(conversionTo.Key) AndAlso
+                   Compilation.LanguageVersion >= LanguageVersion.VbNext Then
                     argument = AsReadOnlyReference(argument)
                 End If
 

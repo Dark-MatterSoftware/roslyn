@@ -135,6 +135,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return _underlyingParameter.IsReadOnlyByRef
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property HasExplicitDefaultValue As Boolean
             Get
                 Return _underlyingParameter.HasExplicitDefaultValue

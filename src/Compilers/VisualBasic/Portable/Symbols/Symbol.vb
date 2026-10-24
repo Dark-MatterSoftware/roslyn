@@ -1055,7 +1055,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return useSiteInfo
             End If
 
-            Dim refModifiersUseSiteInfo As UseSiteInfo(Of AssemblySymbol) = DeriveUseSiteInfoFromCustomModifiers(param.RefCustomModifiers)
+            ' An "in" parameter is read through IsReadOnlyByRef. Before vbnext the binder still reports it unsupported.
+            Dim refModifiersUseSiteInfo As UseSiteInfo(Of AssemblySymbol) = DeriveUseSiteInfoFromCustomModifiers(param.RefCustomModifiers, allowInAttribute:=param.IsByRef)
 
             If refModifiersUseSiteInfo.DiagnosticInfo IsNot Nothing AndAlso IsHighestPriorityUseSiteError(refModifiersUseSiteInfo.DiagnosticInfo.Code) Then
                 Return refModifiersUseSiteInfo

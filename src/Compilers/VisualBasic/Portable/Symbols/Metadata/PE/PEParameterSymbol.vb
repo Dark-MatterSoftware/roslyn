@@ -59,6 +59,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private _lazyCallerArgumentExpressionParameterIndex As Integer = UninitializedCallerArgumentExpressionParameterIndex
 
         Private _lazyIsParamArray As ThreeState
+        Private _lazyIsReadOnlyByRef As ThreeState
 
         ''' <summary>
         ''' Attributes filtered out from m_lazyCustomAttributes, ParamArray, etc.
@@ -491,6 +492,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Friend Overrides ReadOnly Property IsMetadataIn As Boolean
             Get
                 Return (_flags And ParameterAttributes.In) <> 0
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' C# marks "in" and "ref readonly" parameters with IsReadOnlyAttribute or RequiresLocationAttribute, and with the
+        ''' InAttribute required modifier on interface, virtual, and delegate members.
+        ''' </summary>
+        Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                If Not _lazyIsReadOnlyByRef.HasValue() Then
+                    Dim result = False
+                    If IsByRef Then
+                        result = TypeSymbolExtensions.IsRefReadOnlyReturn(True, RefCustomModifiers) OrElse
+                                 (Not _handle.IsNil AndAlso
+                                  (PEModule.HasIsReadOnlyAttribute(_handle) OrElse PEModule.HasRequiresLocationAttribute(_handle)))
+                    End If
+
+                    _lazyIsReadOnlyByRef = result.ToThreeState()
+                End If
+
+                Return _lazyIsReadOnlyByRef.Value()
             End Get
         End Property
 

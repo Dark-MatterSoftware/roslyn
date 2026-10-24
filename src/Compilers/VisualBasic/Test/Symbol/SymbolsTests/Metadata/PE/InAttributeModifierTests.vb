@@ -447,7 +447,7 @@ End Class
             Dim compilation = CreateCompilationWithMscorlib40(source, references:={reference})
 
             AssertTheseDiagnostics(compilation, <expected>
-BC30643: Property 'TestRef.Item(ByRef p As Integer)' is of an unsupported type.
+BC30643: Property 'TestRef.Item(ByRef ReadOnly p As Integer)' is of an unsupported type.
         Dim value = obj(p)
                     ~~~
                                                 </expected>)
@@ -476,7 +476,7 @@ End Class
             Dim compilation = CreateCompilationWithMscorlib40(source, references:={reference})
 
             AssertTheseDiagnostics(compilation, <expected>
-BC30643: Property 'TestRef.Item(ByRef p As Integer)' is of an unsupported type.
+BC30643: Property 'TestRef.Item(ByRef ReadOnly p As Integer)' is of an unsupported type.
         Dim value = obj(p)
                     ~~~
                                                 </expected>)

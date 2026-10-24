@@ -121,7 +121,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             If Not signaturesMatch OrElse Not parametersMatch OrElse
                getEx IsNot Nothing OrElse setEx IsNot Nothing OrElse mrEx IsNot Nothing OrElse
-               propertyParams.Skip(1).Any(Function(p) p.RefCustomModifiers.AnyRequired() OrElse p.CustomModifiers.AnyRequired()) OrElse
+               propertyParams.Skip(1).Any(Function(p) (p.RefCustomModifiers.AnyRequired() AndAlso
+                                                       Not TypeSymbolExtensions.IsRefReadOnlyReturn(p.IsByRef, VisualBasicCustomModifier.Convert(p.RefCustomModifiers))) OrElse
+                                                      p.CustomModifiers.AnyRequired()) OrElse
                propertyParams(0).CustomModifiers.AnyRequired() OrElse
                (propertyParams(0).RefCustomModifiers.AnyRequired() AndAlso
                 Not TypeSymbolExtensions.IsRefReadOnlyReturn(propertyParams(0).IsByRef, VisualBasicCustomModifier.Convert(propertyParams(0).RefCustomModifiers))) Then

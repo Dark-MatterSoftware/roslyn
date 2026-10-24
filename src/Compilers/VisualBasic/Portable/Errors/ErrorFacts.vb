@@ -1629,6 +1629,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_InlineArrayIndexOutOfRange,
                      ERRID.ERR_RefStructValueEscapes,
                      ERRID.ERR_ReadOnlyParameterRequiresByRef,
+                     ERRID.ERR_OverrideWithReadOnlyByRef2,
+                     ERRID.ERR_ImplementWithReadOnlyByRef2,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_PossibleNullAssignment,

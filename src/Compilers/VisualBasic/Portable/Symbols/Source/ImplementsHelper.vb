@@ -522,6 +522,13 @@ DoneWithErrorReporting:
                 errorReported = True
             End If
 
+            If implementedSym IsNot Nothing AndAlso OverrideHidingHelper.HaveReadOnlyByRefMismatch(implementingSym, implementedSym) Then
+                Binder.ReportDiagnostic(diagBag, implementedMemberSyntax, ERRID.ERR_ImplementWithReadOnlyByRef2,
+                                        CustomSymbolDisplayFormatter.ShortErrorName(implementingSym),
+                                        implementedSym)
+                errorReported = True
+            End If
+
             ' TODO: If implementing event, check that delegate types are consistent, or maybe set the delegate type.  See Dev10 compiler
             ' TODO: in ImplementsSemantics.cpp, Bindable::BindImplements.
 

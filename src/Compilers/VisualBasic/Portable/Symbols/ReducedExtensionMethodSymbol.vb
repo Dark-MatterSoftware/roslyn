@@ -1022,6 +1022,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend NotOverridable Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return m_CurriedFromParameter.IsReadOnlyByRef
+            End Get
+        End Property
+
         Friend NotOverridable Overrides ReadOnly Property MarshallingInformation As MarshalPseudoCustomAttributeData
             Get
                 Return m_CurriedFromParameter.MarshallingInformation

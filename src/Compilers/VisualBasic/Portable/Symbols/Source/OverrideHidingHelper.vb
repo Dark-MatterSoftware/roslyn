@@ -122,6 +122,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return True
         End Function
 
+        ''' <summary>
+        ''' Whether a ByRef parameter is ByRef ReadOnly in one member and not in the other, as C# requires "in" to match.
+        ''' </summary>
+        Friend Shared Function HaveReadOnlyByRefMismatch(sym1 As Symbol, sym2 As Symbol) As Boolean
+            Dim parameters1 = sym1.GetParameters()
+            Dim parameters2 = sym2.GetParameters()
+
+            For i = 0 To Math.Min(parameters1.Length, parameters2.Length) - 1
+                If parameters1(i).IsByRef AndAlso parameters2(i).IsByRef AndAlso
+                   parameters1(i).IsReadOnlyByRef <> parameters2(i).IsReadOnlyByRef Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
         Friend Shared Function DetailedSignatureCompare(
             sym1 As Symbol,
             sym2 As Symbol,
@@ -900,6 +917,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     ReportBadOverriding(ERRID.ERR_CantOverride4, member, overriddenMember, diagnostics)
                 ElseIf (comparisonResults And SymbolComparisonResults.ParameterByrefMismatch) <> 0 Then
                     ReportBadOverriding(ERRID.ERR_OverrideWithByref2, member, overriddenMember, diagnostics)
+                ElseIf OverrideHidingHelper.HaveReadOnlyByRefMismatch(member, overriddenMember) Then
+                    ReportBadOverriding(ERRID.ERR_OverrideWithReadOnlyByRef2, member, overriddenMember, diagnostics)
                 ElseIf (comparisonResults And SymbolComparisonResults.OptionalParameterMismatch) <> 0 Then
                     ReportBadOverriding(ERRID.ERR_OverrideWithOptional2, member, overriddenMember, diagnostics)
                 ElseIf (comparisonResults And SymbolComparisonResults.ReturnTypeMismatch) <> 0 AndAlso
