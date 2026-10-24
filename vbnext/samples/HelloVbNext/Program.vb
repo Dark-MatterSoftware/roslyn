@@ -73,5 +73,6 @@ Module Program
         WaveEight.Run()
         WaveNine.Run()
         WaveTen.Run()
+        WaveEleven.Run()
     End Sub
 End Module
