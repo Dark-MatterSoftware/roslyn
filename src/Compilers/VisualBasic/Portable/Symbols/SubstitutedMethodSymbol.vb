@@ -262,6 +262,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend NotOverridable Overrides ReadOnly Property IsDeclaredReadOnly As Boolean
+            Get
+                Return OriginalDefinition.IsDeclaredReadOnly
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property IsVararg As Boolean
             Get
                 Return OriginalDefinition.IsVararg

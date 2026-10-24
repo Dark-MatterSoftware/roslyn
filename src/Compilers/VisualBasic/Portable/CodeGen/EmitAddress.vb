@@ -395,6 +395,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                     Return False
                 End If
 
+                ' A field of Me in a read-only member of a structure cannot be changed.
+                If addressKind = AddressKind.Writeable AndAlso fieldAccess.ReceiverOpt IsNot Nothing AndAlso
+                   IsMeReceiver(fieldAccess.ReceiverOpt) AndAlso _method.IsDeclaredReadOnly Then
+                    Return False
+                End If
+
                 ' fields of readonly structs are considered recursively readonly in VB
 
                 If fieldAccess.FieldSymbol.ContainingType.IsValueType Then

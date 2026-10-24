@@ -461,12 +461,29 @@ lReportErrorOnTwoTokens:
                    compilation.LanguageVersion >= LanguageVersion.VbNext
         End Function
 
+        ''' <summary>
+        ''' A read-only member is emitted with IsReadOnlyAttribute, as a ReadOnly Structure is.
+        ''' </summary>
+        Friend Shared Sub ReportMissingIsReadOnlyAttribute(binder As Binder, readOnlyKeyword As SyntaxToken, diagBag As DiagnosticBag)
+            Dim useSiteInfo As UseSiteInfo(Of AssemblySymbol) = Nothing
+            Binder.GetWellKnownTypeMember(binder.Compilation, WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor, useSiteInfo)
+            If useSiteInfo.DiagnosticInfo IsNot Nothing Then
+                diagBag.Add(New VBDiagnostic(useSiteInfo.DiagnosticInfo, readOnlyKeyword.GetLocation()))
+            End If
+        End Sub
+
         Private Shared Function DecodeMethodModifiers(modifiers As SyntaxTokenList,
                                                       container As SourceMemberContainerTypeSymbol,
                                                       binder As Binder,
                                                       diagBag As DiagnosticBag) As MemberModifiers
             ' On vbnext, ByRef ReadOnly before a Function returns a read-only reference. ReadOnly sets no member flag.
             Dim isByRefReadOnly = IsDeclaredByRefReadOnly(modifiers, binder.Compilation)
+
+            ' On vbnext, ReadOnly alone before a Function or Sub of a structure declares a read-only member.
+            Dim isReadOnlyMember = Not isByRefReadOnly AndAlso
+                                   container.TypeKind = TypeKind.Structure AndAlso
+                                   modifiers.Any(SyntaxKind.ReadOnlyKeyword) AndAlso
+                                   binder.Compilation.LanguageVersion >= LanguageVersion.VbNext
 
             ' Decode the flags.
             Dim methodModifiers = binder.DecodeModifiers(modifiers,
@@ -475,7 +492,7 @@ lReportErrorOnTwoTokens:
                 SourceMemberFlags.Overridable Or SourceMemberFlags.NotOverridable Or
                 SourceMemberFlags.Overrides Or SourceMemberFlags.MustOverride Or
                 SourceMemberFlags.Async Or SourceMemberFlags.Iterator Or
-                If(isByRefReadOnly, SourceMemberFlags.ReadOnly, SourceMemberFlags.None),
+                If(isByRefReadOnly OrElse isReadOnlyMember, SourceMemberFlags.ReadOnly, SourceMemberFlags.None),
                 ERRID.ERR_BadMethodFlags1,
                 Accessibility.Public,
                 diagBag)
@@ -483,6 +500,13 @@ lReportErrorOnTwoTokens:
             If isByRefReadOnly Then
                 methodModifiers = New MemberModifiers(methodModifiers.FoundFlags And Not SourceMemberFlags.ReadOnly,
                                                       methodModifiers.ComputedFlags And Not SourceMemberFlags.ReadOnly)
+            ElseIf isReadOnlyMember AndAlso (methodModifiers.FoundFlags And SourceMemberFlags.Shared) <> 0 Then
+                ' A Shared member has no Me to keep from changing.
+                binder.ReportModifierError(modifiers, ERRID.ERR_BadMethodFlags1, diagBag, SyntaxKind.ReadOnlyKeyword)
+                methodModifiers = New MemberModifiers(methodModifiers.FoundFlags And Not SourceMemberFlags.ReadOnly,
+                                                      methodModifiers.ComputedFlags And Not SourceMemberFlags.ReadOnly)
+            ElseIf isReadOnlyMember Then
+                ReportMissingIsReadOnlyAttribute(binder, modifiers.First(Function(m) m.Kind = SyntaxKind.ReadOnlyKeyword), diagBag)
             End If
 
             methodModifiers = binder.ValidateSharedPropertyAndMethodModifiers(modifiers, methodModifiers, False, container, diagBag)
@@ -1535,8 +1559,21 @@ lReportErrorOnTwoTokens:
             Return Me.GetAttributesBag().Attributes
         End Function
 
+        ''' <summary>
+        ''' On vbnext, an ordinary method of a structure declared ReadOnly. Accessors decide for themselves.
+        ''' </summary>
+        Friend Overrides ReadOnly Property IsDeclaredReadOnly As Boolean
+            Get
+                Return MethodKind = MethodKind.Ordinary AndAlso (m_flags And SourceMemberFlags.ReadOnly) <> 0
+            End Get
+        End Property
+
         Friend Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
+
+            If IsDeclaredReadOnly Then
+                AddSynthesizedAttribute(attributes, DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor, isOptionalUse:=True))
+            End If
 
             ' Emit synthesized STAThreadAttribute for this method if both the following requirements are met:
             ' (a) This is the entry point method.

@@ -156,11 +156,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         ''' <summary>
-        ''' Always returns false because the 'readonly members' feature is not available in VB.
+        ''' Whether an instance member of a structure is declared not to change it, as C# 8 declares readonly members.
         ''' </summary>
-        Private ReadOnly Property IMethodSymbol_IsReadOnly As Boolean Implements IMethodSymbol.IsReadOnly
+        Friend Overridable ReadOnly Property IsDeclaredReadOnly As Boolean
             Get
                 Return False
+            End Get
+        End Property
+
+        Private ReadOnly Property IMethodSymbol_IsReadOnly As Boolean Implements IMethodSymbol.IsReadOnly
+            Get
+                Return IsDeclaredReadOnly
             End Get
         End Property
 

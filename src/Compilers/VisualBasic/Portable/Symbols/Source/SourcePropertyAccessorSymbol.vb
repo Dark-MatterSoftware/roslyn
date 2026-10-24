@@ -17,6 +17,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Protected m_property As SourcePropertySymbol
         Private ReadOnly _name As String
         Private ReadOnly _isInitOnly As Boolean
+        Private ReadOnly _isDeclaredReadOnly As Boolean
         Private _lazyMetadataName As String
 
         Private _lazyExplicitImplementations As ImmutableArray(Of MethodSymbol) ' lazily populated with explicit implementations
@@ -32,7 +33,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                        flags As SourceMemberFlags,
                        syntaxRef As SyntaxReference,
                        locations As ImmutableArray(Of Location),
-                       Optional isInitOnly As Boolean = False)
+                       Optional isInitOnly As Boolean = False,
+                       Optional isDeclaredReadOnly As Boolean = False)
 
             MyBase.New(
                 propertySymbol.ContainingSourceType,
@@ -43,7 +45,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             m_property = propertySymbol
             _name = name
             _isInitOnly = isInitOnly
+            _isDeclaredReadOnly = isDeclaredReadOnly
         End Sub
+
+        ''' <summary>
+        ''' On vbnext, a Get declared ReadOnly Get in a structure, or the Get of an auto-implemented property of a structure.
+        ''' </summary>
+        Friend Overrides ReadOnly Property IsDeclaredReadOnly As Boolean
+            Get
+                If MethodKind <> MethodKind.PropertyGet Then
+                    Return False
+                End If
+
+                ' An auto-implemented getter is read-only only where IsReadOnlyAttribute can mark it.
+                Return _isDeclaredReadOnly OrElse
+                       (m_property.IsAutoProperty AndAlso Not IsShared AndAlso
+                        ContainingType.TypeKind = TypeKind.Structure AndAlso
+                        DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                        DeclaringCompilation.GetWellKnownTypeMember(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor) IsNot Nothing)
+            End Get
+        End Property
 
         Friend Sub SetAssociatedProperty(propertySymbol As SourcePropertySymbol)
             m_property = propertySymbol
@@ -89,11 +110,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                       diagnostics As DiagnosticBag) As SourcePropertyAccessorSymbol
 
             Dim syntax = blockSyntax.BlockStatement
+
+            ' On vbnext, ReadOnly Get in a structure declares a read-only getter.
+            Dim isReadOnlyGet = kindFlags.ToMethodKind() = Microsoft.CodeAnalysis.MethodKind.PropertyGet AndAlso
+                                propertySymbol.ContainingType.TypeKind = TypeKind.Structure AndAlso
+                                (propertyFlags And SourceMemberFlags.Shared) = 0 AndAlso
+                                syntax.Modifiers.Any(SyntaxKind.ReadOnlyKeyword) AndAlso
+                                binder.Compilation.LanguageVersion >= LanguageVersion.VbNext
+
             Dim modifiers = binder.DecodeModifiers(syntax.Modifiers,
-                                                   SourceMemberFlags.AllAccessibilityModifiers,
+                                                   SourceMemberFlags.AllAccessibilityModifiers Or If(isReadOnlyGet, SourceMemberFlags.ReadOnly, SourceMemberFlags.None),
                                                    ERRID.ERR_BadPropertyAccessorFlags,
                                                    Accessibility.NotApplicable,
                                                    diagnostics)
+            modifiers = New MemberModifiers(modifiers.FoundFlags And Not SourceMemberFlags.ReadOnly, modifiers.ComputedFlags And Not SourceMemberFlags.ReadOnly)
+            If isReadOnlyGet Then
+                SourceMethodSymbol.ReportMissingIsReadOnlyAttribute(binder, syntax.Modifiers.First(Function(m) m.Kind = SyntaxKind.ReadOnlyKeyword), diagnostics)
+            End If
 
             If (modifiers.FoundFlags And SourceMemberFlags.Private) <> 0 Then
                 ' Private accessors cannot be overridable.
@@ -125,7 +158,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Binder.GetAccessorName(propertySymbol.Name, methodKind, propertySymbol.IsCompilationOutputWinMdObj()),
                 flags,
                 binder.GetSyntaxReference(syntax),
-                ImmutableArray.Create(syntax.DeclarationKeyword.GetLocation()))
+                ImmutableArray.Create(syntax.DeclarationKeyword.GetLocation()),
+                isDeclaredReadOnly:=isReadOnlyGet)
 
             Return method
         End Function

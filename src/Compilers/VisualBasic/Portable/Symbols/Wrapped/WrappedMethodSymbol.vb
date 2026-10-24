@@ -225,6 +225,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property IsDeclaredReadOnly As Boolean
+            Get
+                Return Me.UnderlyingMethod.IsDeclaredReadOnly
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property Syntax As SyntaxNode
             Get
                 Return Me.UnderlyingMethod.Syntax

@@ -2000,11 +2000,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' type params have fields and readonly reference typed fields' fields can be
                 ' modified.
 
+                ' On vbnext, Me in a read-only member of a structure cannot change the structure.
                 If Not receiverType.IsTypeParameter() AndAlso
                     receiverType.IsValueType AndAlso
                     Not receiver.IsLValue() AndAlso
-                    Not receiver.IsMeReference() AndAlso
-                    Not receiver.IsMyClassReference() Then
+                    ((Not receiver.IsMeReference() AndAlso Not receiver.IsMyClassReference()) OrElse
+                     (TryCast(ContainingMember, MethodSymbol)?.IsDeclaredReadOnly).GetValueOrDefault()) Then
                     Return False
                 End If
             End If

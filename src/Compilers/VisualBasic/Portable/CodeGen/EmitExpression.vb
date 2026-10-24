@@ -1076,11 +1076,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
                         ' calling a method defined in a value type considered a "write" to the target unless the target is "Me"
                         Debug.Assert(TypeSymbol.Equals(receiverType, method.ContainingType, TypeCompareKind.ConsiderEverything))
-                        tempOpt = EmitReceiverRef(
-                            receiver,
-                            isAccessConstrained:=False, addressKind:=If(IsMeReceiver(receiver),
-                                                                         AddressKind.ReadOnly,
-                                                                         AddressKind.Writeable))
+                        If method.IsDeclaredReadOnly AndAlso
+                           (receiver.Kind <> BoundKind.Call OrElse DirectCast(receiver, BoundCall).Method.ReturnsByRef) Then
+                            ' A read-only member does not change its receiver, so a ReadOnly variable is passed as is.
+                            tempOpt = EmitReadOnlyReference(receiver)
+                        Else
+                            ' Me in a read-only member is copied before a member that may change it is called.
+                            tempOpt = EmitReceiverRef(
+                                receiver,
+                                isAccessConstrained:=False, addressKind:=If(IsMeReceiver(receiver) AndAlso Not _method.IsDeclaredReadOnly,
+                                                                             AddressKind.ReadOnly,
+                                                                             AddressKind.Writeable))
+                        End If
 
                         callKind = CallKind.Call
 

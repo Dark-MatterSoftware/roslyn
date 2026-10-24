@@ -935,6 +935,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End Get
         End Property
 
+        Private _lazyIsDeclaredReadOnly As ThreeState
+
+        ''' <summary>
+        ''' C# marks a readonly member of a structure with IsReadOnlyAttribute.
+        ''' </summary>
+        Friend Overrides ReadOnly Property IsDeclaredReadOnly As Boolean
+            Get
+                If Not _lazyIsDeclaredReadOnly.HasValue() Then
+                    Dim result = Not Me.IsShared AndAlso
+                                 _containingType.IsValueType AndAlso
+                                 _containingType.ContainingPEModule.Module.HasIsReadOnlyAttribute(_handle)
+                    _lazyIsDeclaredReadOnly = result.ToThreeState()
+                End If
+
+                Return _lazyIsDeclaredReadOnly.Value()
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property IsInitOnly As Boolean
             Get
                 If Not _packedFlags.IsInitOnlyPopulated Then
