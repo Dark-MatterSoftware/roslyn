@@ -323,6 +323,75 @@ End Interface",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestWaveTwelveForms(testHost As TestHost) As Task
+            Await TestAsync("Interface I(Of T As I(Of T))
+    Shared MustOverride Operator +(a As T, b As T) As T
+End Interface
+Structure S
+    ReadOnly Function N() As Integer
+    End Function
+    Property P As Integer
+        ReadOnly Get
+        End Get
+    End Property
+End Structure",
+                testHost,
+                s_vbNext,
+                Keyword("Interface"),
+                [Interface]("I"),
+                Punctuation.OpenParen,
+                Keyword("Of"),
+                TypeParameter("T"),
+                Keyword("As"),
+                Identifier("I"),
+                Punctuation.OpenParen,
+                Keyword("Of"),
+                Identifier("T"),
+                Punctuation.CloseParen,
+                Punctuation.CloseParen,
+                Keyword("Shared"),
+                Keyword("MustOverride"),
+                Keyword("Operator"),
+                Operators.Plus,
+                Punctuation.OpenParen,
+                Parameter("a"),
+                Keyword("As"),
+                Identifier("T"),
+                Punctuation.Comma,
+                Parameter("b"),
+                Keyword("As"),
+                Identifier("T"),
+                Punctuation.CloseParen,
+                Keyword("As"),
+                Identifier("T"),
+                Keyword("End"),
+                Keyword("Interface"),
+                Keyword("Structure"),
+                Struct("S"),
+                Keyword("ReadOnly"),
+                Keyword("Function"),
+                Method("N"),
+                Punctuation.OpenParen,
+                Punctuation.CloseParen,
+                Keyword("As"),
+                Keyword("Integer"),
+                Keyword("End"),
+                Keyword("Function"),
+                Keyword("Property"),
+                [Property]("P"),
+                Keyword("As"),
+                Keyword("Integer"),
+                Keyword("ReadOnly"),
+                Keyword("Get"),
+                Keyword("End"),
+                Keyword("Get"),
+                Keyword("End"),
+                Keyword("Property"),
+                Keyword("End"),
+                Keyword("Structure"))
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestForEachDeconstruction(testHost As TestHost) As Task
             Await TestInMethodAsync("For Each (name, count As Integer) In items
 Next",

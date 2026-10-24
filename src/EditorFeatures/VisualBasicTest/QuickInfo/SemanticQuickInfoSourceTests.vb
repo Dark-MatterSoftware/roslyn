@@ -141,6 +141,28 @@ End Structure", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestReadOnlyStructureMember() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Structure Point2
+    Public X As Integer
+
+    ReadOnly Function Length() As Integer
+        Return X
+    End Function
+
+    Sub Use()
+        System.Console.Write(Len$$gth())
+    End Sub
+End Structure", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("ReadOnly Function Point2.Length() As Integer"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestByRefReadOnlyFunctionAndParameter() As Task
             Dim code As String = Nothing
             Dim position As Integer = Nothing

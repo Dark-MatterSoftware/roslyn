@@ -354,6 +354,67 @@ End Interface</File>, "Overridable")
         End Sub
 
         <Fact>
+        Public Sub OperatorAfterSharedMustOverrideOrOverridableInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
+    Shared MustOverride |
+End Interface</File>, "Operator", "Function", "Property")
+            VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
+    Shared Overridable |
+End Interface</File>, "Operator", "Function", "Sub", "Property")
+            VerifyRecommendationsMissing(<File VbNext="True">Interface I(Of T As I(Of T))
+    |
+End Interface</File>, "Operator")
+            VerifyRecommendationsMissing(<File>Interface I(Of T As I(Of T))
+    Shared MustOverride |
+End Interface</File>, "Operator")
+        End Sub
+
+        <Fact>
+        Public Sub FunctionAndSubAfterReadOnlyInStructure()
+            VerifyRecommendationsContain(<File VbNext="True">Structure S
+    Public ReadOnly |
+End Structure</File>, "Function", "Sub", "Property")
+            VerifyRecommendationsMissing(<File VbNext="True">Class C
+    Public ReadOnly |
+End Class</File>, "Function", "Sub")
+            VerifyRecommendationsMissing(<File VbNext="True">Structure S
+    Shared ReadOnly |
+End Structure</File>, "Function", "Sub")
+            VerifyRecommendationsMissing(<File>Structure S
+    Public ReadOnly |
+End Structure</File>, "Function", "Sub")
+        End Sub
+
+        <Fact>
+        Public Sub ReadOnlyBeforeGetInStructureProperty()
+            VerifyRecommendationsContain(<File VbNext="True">Structure S
+    Property P As Integer
+        |
+    End Property
+End Structure</File>, "ReadOnly", "Get", "Set")
+            VerifyRecommendationsContain(<File VbNext="True">Structure S
+    Property P As Integer
+        ReadOnly |
+    End Property
+End Structure</File>, "Get")
+            VerifyRecommendationsMissing(<File VbNext="True">Structure S
+    Property P As Integer
+        ReadOnly |
+    End Property
+End Structure</File>, "Set")
+            VerifyRecommendationsMissing(<File VbNext="True">Class C
+    Property P As Integer
+        ReadOnly |
+    End Property
+End Class</File>, "Get")
+            VerifyRecommendationsMissing(<File>Structure S
+    Property P As Integer
+        ReadOnly |
+    End Property
+End Structure</File>, "Get")
+        End Sub
+
+        <Fact>
         Public Sub InAfterParenthesizedForEachControlVariableMissingOn17_13()
             VerifyRecommendationsMissing(<File>Module M
     Sub F()

@@ -191,6 +191,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             AddAccessibilityIfRequired(symbol)
             AddMemberModifiersIfRequired(symbol)
 
+            ' A read-only member passes Me as a read-only reference, so it is shown with the ref options, as C# shows readonly.
+            If symbol.IsReadOnly AndAlso symbol.MethodKind = MethodKind.Ordinary AndAlso
+               Format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeRef) Then
+                AddKeyword(SyntaxKind.ReadOnlyKeyword)
+                AddSpace()
+            End If
+
             If symbol.ReturnsByRef AndAlso Format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeRef) Then
                 AddKeyword(SyntaxKind.ByRefKeyword)
                 AddCustomModifiersIfRequired(symbol.RefCustomModifiers)
