@@ -275,8 +275,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case SyntaxKind.ReadOnlyKeyword : foundFlag = SourceParameterFlags.ReadOnly
                 End Select
 
-                ' Report errors with the modifier
-                If checkModifier IsNot Nothing Then
+                ' Report errors with the modifier. On vbnext an operator other than a conversion, IsTrue, or IsFalse takes
+                ' ByRef ReadOnly operands.
+                If checkModifier IsNot Nothing AndAlso
+                   Not (foundFlag = SourceParameterFlags.ByRef AndAlso checkModifier Is s_checkOperatorParameterModifierCallback AndAlso
+                        modifiers.Any(SyntaxKind.ReadOnlyKeyword) AndAlso OperatorAllowsReadOnlyByRef(TryCast(container, MethodSymbol)?.Name)) Then
                     ' check modifier will clear invalid flags
                     foundFlag = checkModifier(container, keywordSyntax, foundFlag, diagBag)
                 End If
@@ -284,10 +287,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 flags = flags Or foundFlag
             Next
 
-            ' ReadOnly goes with ByRef, as in ByRef ReadOnly.
+            ' ReadOnly goes with ByRef, as in ByRef ReadOnly. Where ByRef itself was reported, ReadOnly is not reported again.
             If (flags And SourceParameterFlags.ReadOnly) <> 0 AndAlso (flags And SourceParameterFlags.ByRef) = 0 Then
-                Dim readOnlyKeyword = modifiers.First(Function(m) m.Kind = SyntaxKind.ReadOnlyKeyword)
-                ReportDiagnostic(diagBag, readOnlyKeyword, ERRID.ERR_ReadOnlyParameterRequiresByRef)
+                If Not modifiers.Any(SyntaxKind.ByRefKeyword) Then
+                    Dim readOnlyKeyword = modifiers.First(Function(m) m.Kind = SyntaxKind.ReadOnlyKeyword)
+                    ReportDiagnostic(diagBag, readOnlyKeyword, ERRID.ERR_ReadOnlyParameterRequiresByRef)
+                End If
+
                 flags = flags And Not SourceParameterFlags.ReadOnly
             End If
 
@@ -1098,6 +1104,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Shared ReadOnly s_checkOperatorParameterModifierCallback As CheckParameterModifierDelegate = AddressOf CheckOperatorParameterModifier
+
+        ''' <summary>
+        ''' Conversions, IsTrue, and IsFalse are called without the argument passing that a ByRef ReadOnly operand needs.
+        ''' </summary>
+        Friend Shared Function OperatorAllowsReadOnlyByRef(operatorName As String) As Boolean
+            Select Case operatorName
+                Case Nothing,
+                     WellKnownMemberNames.ImplicitConversionName,
+                     WellKnownMemberNames.ExplicitConversionName,
+                     WellKnownMemberNames.TrueOperatorName,
+                     WellKnownMemberNames.FalseOperatorName
+                    Return False
+                Case Else
+                    Return True
+            End Select
+        End Function
 
         Private Shared Function CheckOperatorParameterModifier(container As Symbol, token As SyntaxToken, flag As SourceParameterFlags, diagnostics As BindingDiagnosticBag) As SourceParameterFlags
             If (flag And SourceParameterFlags.ByRef) <> 0 Then

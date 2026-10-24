@@ -378,7 +378,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     targetsContainingType = True
                 End If
 
-                If param.IsByRef Then
+                If param.IsByRef AndAlso Not (param.IsReadOnlyByRef AndAlso Binder.OperatorAllowsReadOnlyByRef(method.Name)) Then
                     If diagnosticsOpt IsNot Nothing Then
                         ' Diagnostic has been reported when we were interpreting parameter's modifiers.
                         Debug.Assert(Not method.IsMethodKindBasedOnSyntax)
@@ -3283,6 +3283,12 @@ Next_i:
                 Debug.Assert(method.Arity = 0)
                 Debug.Assert(Not method.IsSub)
 
+                ' Before vbnext an operator with ByRef ReadOnly operands is not an operator, as before vbnext.
+                Dim hasByRefOperand = method.Parameters.Any(Function(p) p.IsByRef)
+                If hasByRefOperand AndAlso (binder Is Nothing OrElse binder.Compilation.LanguageVersion < LanguageVersion.VbNext) Then
+                    Continue For
+                End If
+
                 If method.HasUnsupportedMetadata Then
                     If includeEliminatedCandidates Then
                         candidates.Add(New CandidateAnalysisResult(New OperatorCandidate(method), CandidateAnalysisResultState.HasUnsupportedMetadata))
@@ -3307,7 +3313,7 @@ Next_i:
                                   someCandidatesHaveOverloadResolutionPriority,
                                   useSiteInfo)
 
-                If liftOperators Then
+                If liftOperators AndAlso Not hasByRefOperand Then
                     Dim param1 As ParameterSymbol = method.Parameters(0)
                     Dim type1 As TypeSymbol = param1.Type
                     Dim isNullable1 As Boolean = type1.IsNullableType()
