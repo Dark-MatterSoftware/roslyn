@@ -225,7 +225,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Function IsSourceDefaultInterfaceImplementation(sym As Symbol) As Boolean
             Dim method = TryCast(sym.OriginalDefinition, SourceMethodSymbol)
-            Return method IsNot Nothing AndAlso method.BlockSyntax IsNot Nothing AndAlso method.ContainingType.IsInterface
+            If method IsNot Nothing Then
+                Return method.BlockSyntax IsNot Nothing AndAlso method.ContainingType.IsInterface
+            End If
+
+            Dim [property] = TryCast(sym.OriginalDefinition, SourcePropertySymbol)
+            Return [property] IsNot Nothing AndAlso [property].BlockSyntaxReference IsNot Nothing AndAlso [property].ContainingType.IsInterface
         End Function
 
         <Extension()>

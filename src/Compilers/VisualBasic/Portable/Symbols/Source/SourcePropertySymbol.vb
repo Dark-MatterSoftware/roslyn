@@ -97,6 +97,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                             containingType,
                                             bodyBinder,
                                             diagnostics)
+            ' On vbnext a Shared Overridable interface property has a body, its default implementation, and only it does.
+            If containingType.IsInterface AndAlso (modifiers.AllFlags And SourceMemberFlags.Shared) <> 0 Then
+                Dim isSharedOverridable = syntax.Modifiers.Any(SyntaxKind.OverridableKeyword) AndAlso (modifiers.FoundFlags And SourceMemberFlags.Overridable) <> 0
+                If blockSyntaxOpt IsNot Nothing AndAlso isSharedOverridable Then
+                    modifiers = New MemberModifiers(modifiers.FoundFlags, modifiers.ComputedFlags And Not SourceMemberFlags.MustOverride)
+                ElseIf isSharedOverridable Then
+                    bodyBinder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadInterfacePropertyFlags1, diagnostics, SyntaxKind.OverridableKeyword)
+                    modifiers = New MemberModifiers(modifiers.FoundFlags And Not SourceMemberFlags.Overridable, modifiers.ComputedFlags)
+                End If
+            End If
+
             Dim isPartialDefinition = (modifiers.AllFlags And SourceMemberFlags.Partial) <> 0 AndAlso blockSyntaxOpt Is Nothing
             Dim identifier = syntax.Identifier
             Dim name = identifier.ValueText
@@ -1091,7 +1102,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                 For Each implementedProp In implementedProperties
                     Dim accessor = If(getter, implementedProp.GetMethod, implementedProp.SetMethod)
-                    If accessor IsNot Nothing AndAlso accessor.RequiresImplementation() Then
+                    If accessor IsNot Nothing AndAlso (accessor.RequiresImplementation() OrElse IsSourceDefaultInterfaceImplementation(accessor)) Then
                         builder.Add(accessor)
                     End If
                 Next

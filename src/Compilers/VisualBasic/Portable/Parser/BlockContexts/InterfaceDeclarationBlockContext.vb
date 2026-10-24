@@ -81,8 +81,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 Case SyntaxKind.PropertyStatement
                     ' Properties in interfaces cannot be initialized
-                    node = PropertyBlockContext.ReportErrorIfHasInitializer(DirectCast(node, PropertyStatementSyntax))
-                    Add(node)
+                    Dim propertyStatement = PropertyBlockContext.ReportErrorIfHasInitializer(DirectCast(node, PropertyStatementSyntax))
+
+                    ' On vbnext a Shared Overridable property has Get and Set bodies, its default implementation.
+                    If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       propertyStatement.Modifiers.Any(SyntaxKind.SharedKeyword) AndAlso
+                       propertyStatement.Modifiers.Any(SyntaxKind.OverridableKeyword) Then
+                        Return New PropertyBlockContext(propertyStatement, Me, isPropertyBlock:=False)
+                    End If
+
+                    Add(propertyStatement)
 
                 Case SyntaxKind.SubNewStatement
                     ' In Dev10 this is reported in Declared
@@ -120,7 +128,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.StructureBlock,
                     SyntaxKind.InterfaceBlock,
                     SyntaxKind.SubBlock,
-                    SyntaxKind.FunctionBlock
+                    SyntaxKind.FunctionBlock,
+                    SyntaxKind.PropertyBlock
                     ' Handle any block that can be created by this context
                     Add(node)
 
@@ -201,6 +210,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     End If
 
                     Return UseSyntax(node, newContext, DirectCast(node, MethodBlockBaseSyntax).End.IsMissing)
+
+                Case SyntaxKind.PropertyBlock
+                    ' Before vbnext an interface property has no body, so a property block cannot be reused here.
+                    If Parser.Options.LanguageVersion < LanguageVersion.VbNext Then
+                        newContext = Me
+                        Return LinkResult.Crumble
+                    End If
+
+                    Return UseSyntax(node, newContext, DirectCast(node, PropertyBlockSyntax).EndPropertyStatement.IsMissing)
 
                 Case SyntaxKind.EnumBlock
                     Return UseSyntax(node, newContext, DirectCast(node, EnumBlockSyntax).EndEnumStatement.IsMissing)
