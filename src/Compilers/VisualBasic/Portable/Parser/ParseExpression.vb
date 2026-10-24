@@ -837,6 +837,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                      SyntaxKind.GenericName
                     Return argument
 
+                Case SyntaxKind.QualifiedName
+                    ' Only the vbnext unbound generic form parses as a type, as in NameOf(System.Collections.Generic.List(Of)).
+                    Return argument
+
                 Case SyntaxKind.MeExpression,
                      SyntaxKind.MyClassExpression,
                      SyntaxKind.MyBaseExpression,

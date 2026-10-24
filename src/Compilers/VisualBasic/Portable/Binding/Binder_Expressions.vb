@@ -746,14 +746,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.GenericName
                     value = DirectCast(node.Argument, SimpleNameSyntax).Identifier.ValueText
 
+                Case SyntaxKind.QualifiedName
+                    value = DirectCast(node.Argument, QualifiedNameSyntax).Right.Identifier.ValueText
+
                 Case Else
                     ' Must be a syntax error
                     Debug.Assert(node.Argument.HasErrors)
             End Select
 
-            ' On vbnext, NameOf(List(Of)) names an unbound generic type, which binds as GetType binds it.
-            Dim unboundName = TryCast(node.Argument, GenericNameSyntax)
-            If unboundName IsNot Nothing AndAlso unboundName.TypeArgumentList.Arguments.AllAreMissingIdentifierName Then
+            ' On vbnext, NameOf(List(Of)) and NameOf(System.Collections.Generic.List(Of)) name an unbound generic type,
+            ' which binds as GetType binds it.
+            Dim unboundName = TryCast(node.Argument, TypeSyntax)
+            Dim genericName = TryCast(node.Argument, GenericNameSyntax)
+            If node.Argument.Kind = SyntaxKind.QualifiedName OrElse
+               (genericName IsNot Nothing AndAlso genericName.TypeArgumentList.Arguments.AllAreMissingIdentifierName) Then
                 Dim typeOrAlias As Symbol = TypeBinder.BindTypeOrAliasSyntax(unboundName, New GetTypeBinder(unboundName, Me), diagnostics,
                                                                              suppressUseSiteError:=False, inGetTypeContext:=True, resolvingBaseType:=False)
                 Dim aliasSym = TryCast(typeOrAlias, AliasSymbol)

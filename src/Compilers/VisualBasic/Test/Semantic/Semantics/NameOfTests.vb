@@ -3718,5 +3718,70 @@ BC30182: Type expected.
                                                                                                 ~
 </expected>)
         End Sub
+
+        Private Const QualifiedUnboundSource As String = "
+Imports System
+Imports System.Collections.Generic
+Imports SCG = System.Collections.Generic
+
+Module Module1
+    Const ListName As String = NameOf(System.Collections.Generic.List(Of))
+
+    Sub Main()
+        Console.Write(ListName & "" "" & NameOf(Global.System.Collections.Generic.Dictionary(Of ,)) & "" "" & NameOf(SCG.HashSet(Of)) & "" "" & NameOf(Dictionary(Of ,).KeyCollection))
+    End Sub
+End Module
+"
+
+        <Fact>
+        Public Sub NameOfQualifiedUnboundGenericType()
+            Dim comp = CreateCompilation(QualifiedUnboundSource, options:=TestOptions.ReleaseExe,
+                                         parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            CompileAndVerify(comp, expectedOutput:="List Dictionary HashSet KeyCollection").VerifyDiagnostics()
+
+            Dim tree = comp.SyntaxTrees.Single()
+            Dim model = comp.GetSemanticModel(tree)
+            Dim argument = tree.GetRoot().DescendantNodes().OfType(Of NameOfExpressionSyntax)().First().Argument
+            Assert.Equal(SyntaxKind.QualifiedName, argument.Kind)
+            Assert.Equal("System.Collections.Generic.List(Of )", model.GetSymbolInfo(argument).Symbol.ToTestDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub NameOfQualifiedUnboundGenericTypeErrors()
+            Dim comp = CreateCompilation("
+Module Module1
+    Const A As String = NameOf(System.Collections.Generic.List(Of ,))
+    Const B As String = NameOf(System.Collections.Generic.Missing(Of))
+    Const C As String = NameOf(System.Collections.Generic.List(Of).Count)
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            comp.AssertTheseDiagnostics(
+<expected>
+BC32043: Too many type arguments to 'List(Of T)'.
+    Const A As String = NameOf(System.Collections.Generic.List(Of ,))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC30002: Type 'System.Collections.Generic.Missing' is not defined.
+    Const B As String = NameOf(System.Collections.Generic.Missing(Of))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC30002: Type 'System.Collections.Generic.List.Count' is not defined.
+    Const C As String = NameOf(System.Collections.Generic.List(Of).Count)
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
+        Public Sub NameOfQualifiedUnboundGenericTypeNeedsVbNext()
+            Dim comp = CreateCompilation("
+Module Module1
+    Const ListName As String = NameOf(System.Collections.Generic.List(Of))
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+            comp.AssertTheseDiagnostics(
+<expected>
+BC30182: Type expected.
+    Const ListName As String = NameOf(System.Collections.Generic.List(Of))
+                                                                        ~
+</expected>)
+        End Sub
     End Class
 End Namespace
