@@ -223,6 +223,20 @@ Checked against this tree after wave 10, by compiling and running the shapes tha
 | VB-097 | Declaring `ByRef ReadOnly` functions | Done in phase 61: on `vbnext`, locked in `docs/vbnext-vb097-syntax.md`, `ByRef ReadOnly Function` returns a `ref readonly` reference; `ref readonly` properties remain. Before that, `ByRef ReadOnly Function FirstValue() As Integer` reported BC30242, "'ReadOnly' is not valid on a method declaration". Slice 35a reads `ref readonly` results from other assemblies, but VB cannot declare one. C# 7.2 declares `ref readonly` returns. Needs a design note first. |
 | VB-098 | Declaring `ByRef ReadOnly` parameters | Done in phase 62: on `vbnext`, locked in `docs/vbnext-vb098-syntax.md`, they are emitted as C# `in` parameters. Before that, `Function Twice(ByRef ReadOnly value As Integer)` reported BC30181. VB can pass arguments to `in` and `ref readonly` parameters, but cannot declare one. C# 7.2 declares `in` parameters and C# 12 `ref readonly` parameters. Needs a design note first. |
 
+## Wave 12
+
+Checked against this tree after wave 11, by compiling and running the shapes that wave 11 code meets next against .NET 11 with `LangVersion` `vbnext`: the wave 11 forms across assemblies and on more kinds of members. Several shapes already work: `ReadOnly Structure`, emitted with `IsReadOnlyAttribute`; a `ByRef ReadOnly Function` declared in an interface and implemented by a class, or declared `MustOverride` and overridden; an `Optional ByRef ReadOnly` parameter; an extension method whose receiver is `ByRef ReadOnly`; and a C# `ref readonly` property, read directly or through `Dim ByRef ReadOnly`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-099 | `in` parameters of virtual and interface members from other assemblies | `s.Score(x)`, where C# declares `public abstract int Score(in int value)`, reports BC30657, "'Score' has a return type that is not supported or parameter types that are not supported", and so do overriding it and implementing an interface method that takes `in`. C# puts the `InAttribute` required modifier on the `in` parameters of virtual, interface, and delegate members, and VB rejects members with required modifiers it does not know. The same holds for the VB interface members that slice 62b emits, once another assembly reads them. Such parameters, and `in` parameters from metadata in general, also report `RefKind.Ref` instead of `In`. No new syntax. |
+| VB-100 | Lambdas for `ByRef ReadOnly` delegates | `Dim m As Measure = Function(v) v * 10`, where `Delegate Function Measure(ByRef ReadOnly value As Integer) As Integer`, reports BC36532, "Nested function does not have the same signature as delegate". Slice 62b declares such delegates, but no lambda converts to one, because a lambda parameter cannot be `ByRef ReadOnly` (BC37419). C# infers `in` for an untyped lambda parameter from the delegate. No new syntax. |
+| VB-101 | `NameOf` a qualified unbound generic type | `NameOf(System.Collections.Generic.List(Of))` reports BC37244, "This expression does not have a name". Slice 59a covers only an unqualified name such as `NameOf(List(Of))`. C# 14 accepts `nameof(System.Collections.Generic.List<>)`. No new syntax. |
+| VB-102 | Shared properties in interfaces | `Shared MustOverride ReadOnly Property Zero As T` in a VB interface reports BC30273, "'Shared' is not valid on an interface property declaration", and `Shared Overridable ReadOnly Property Label As String` with a `Get` body reports BC30603. VB interfaces declare shared abstract and shared virtual functions and subs, but not properties, so a VB interface cannot declare a member such as `INumberBase(Of T).Zero`. `docs/vbnext-vb096-syntax.md` already locks `Shared Overridable Property`. No new syntax. |
+| VB-103 | `ByRef ReadOnly` operator operands | `Shared Operator +(ByRef ReadOnly a As Vec, ByRef ReadOnly b As Vec) As Vec` reports BC30651, "operator parameters cannot be declared 'ByRef'", and BC37419, whose message lists operators among the places `ReadOnly` is valid. C# allows `in` on operator parameters, so large structures can pass their operands without a copy. Extends the `docs/vbnext-vb098-syntax.md` form to operators. |
+| VB-104 | Operators in interfaces | `Shared MustOverride Operator +(left As T, right As T) As T` in a VB interface reports BC30603, "Statement cannot appear within an interface body". Phase 49 implements interface operators that another assembly declares, but VB cannot declare a generic math interface of its own. C# 11 declares `static abstract` and `static virtual` operators. Needs a design note first. |
+| VB-105 | Read-only structure members | `ReadOnly Function Length() As Integer` in a `Structure` reports BC30242, "'ReadOnly' is not valid on a method declaration". C# 8 marks a member `readonly` so that it cannot change the structure and is called on a `ReadOnly` field without a copy. `ReadOnly Property` already means a property without a setter, so the spelling needs a design note first. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -388,3 +402,17 @@ The gap with a form already in the language comes first. Then the three declarat
 | 2 | VB-096 | Shared virtual interface members with a body | M | Needs a design note first. Emits the default body that slice 47a already calls. |
 | 3 | VB-097 | Declaring `ByRef ReadOnly` functions | M | Needs a design note first. Emits the `IsReadOnlyAttribute` marking that slice 35a reads. |
 | 4 | VB-098 | Declaring `ByRef ReadOnly` parameters | M | Needs a design note first, because it decides how VB passes an argument that is not a variable. |
+
+### Wave 12 order
+
+The gap that blocks calls into C# libraries comes first. Then the gaps whose forms are already in the language, smallest first, and last the two that need a design note.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-099 | `in` parameters from other assemblies | M | Blocks calling, overriding, and implementing C# members with `in` parameters, and VB's own `ByRef ReadOnly` interface members across assemblies. |
+| 2 | VB-101 | `NameOf` a qualified unbound generic type | S | Extends the slice 59a parse to qualified names. |
+| 3 | VB-100 | Lambdas for `ByRef ReadOnly` delegates | S | Lets a lambda take its parameters' `ByRef ReadOnly` from the delegate, as slice 62b's parameters read in method bodies. |
+| 4 | VB-103 | `ByRef ReadOnly` operator operands | S | Lifts BC30651 for `ByRef ReadOnly` only, and reuses the slice 62b emitter and argument passing. |
+| 5 | VB-102 | Shared properties in interfaces | M | Declares the shared properties that slice 48a implements and slice 60b's methods already match. |
+| 6 | VB-104 | Operators in interfaces | M | Needs a design note first. Declares the operators that phase 49 implements and phase 43 calls through a type parameter. |
+| 7 | VB-105 | Read-only structure members | M | Needs a design note first, because `ReadOnly` already has a meaning on properties. |
