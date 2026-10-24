@@ -129,12 +129,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
                 End If
 
+                ' On vbnext, a lambda parameter written without a modifier or with ByRef takes ByRef ReadOnly from the delegate.
+                Dim isByRef = unboundParam.IsByRef
+                Dim isReadOnlyByRef = False
+                If targetSignature.ParameterIsReadOnlyByRef(i) AndAlso Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    Dim parameterSyntax = TryCast(unboundParam.Syntax?.Parent, ParameterSyntax)
+                    If isByRef OrElse (parameterSyntax IsNot Nothing AndAlso parameterSyntax.Modifiers.Count = 0) Then
+                        isByRef = True
+                        isReadOnlyByRef = True
+                    End If
+                End If
+
                 parameters(i) = New BoundLambdaParameterSymbol(unboundParam.Name,
                                                                unboundParam.Ordinal,
                                                                unboundType,
-                                                               unboundParam.IsByRef,
+                                                               isByRef,
                                                                unboundParam.Syntax,
-                                                               unboundParam.GetFirstLocation())
+                                                               unboundParam.GetFirstLocation(),
+                                                               isReadOnlyByRef)
                 BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
             Next
 
@@ -293,7 +305,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     If Not targetForInference.ReturnType.IsVoidType() Then
                         targetForInference = New UnboundLambda.TargetSignature(targetForInference.ParameterTypes, targetForInference.ParameterIsByRef,
                                                                                Compilation.GetSpecialType(SpecialType.System_Void), ' No need to report use-site error.
-                                                                               returnsByRef:=False)
+                                                                               returnsByRef:=False,
+                                                                               parameterIsReadOnlyByRef:=targetForInference.ParameterIsReadOnlyByRef)
                     End If
 
                     Dim typeInfo As KeyValuePair(Of TypeSymbol, ReadOnlyBindingDiagnostic(Of AssemblySymbol)) = source.InferReturnType(targetForInference)

@@ -21,6 +21,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private _lambdaSymbol As LambdaSymbol
         Private ReadOnly _syntaxNode As SyntaxNode
         Private _attributes As ImmutableArray(Of VisualBasicAttributeData) = ImmutableArray(Of VisualBasicAttributeData).Empty
+        Private ReadOnly _isReadOnlyByRef As Boolean
 
         Public Sub New(
             name As String,
@@ -28,11 +29,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             type As TypeSymbol,
             isByRef As Boolean,
             syntaxNode As SyntaxNode,
-            location As Location
+            location As Location,
+            Optional isReadOnlyByRef As Boolean = False
         )
             MyBase.New(name, ordinal, type, isByRef, location)
             _syntaxNode = syntaxNode
+            _isReadOnlyByRef = isReadOnlyByRef
         End Sub
+
+        ''' <summary>
+        ''' On vbnext, a lambda parameter for a ByRef ReadOnly delegate parameter.
+        ''' </summary>
+        Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+            Get
+                Return _isReadOnlyByRef
+            End Get
+        End Property
 
         Public ReadOnly Property Syntax As SyntaxNode
             Get

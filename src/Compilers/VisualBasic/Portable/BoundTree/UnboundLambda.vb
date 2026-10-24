@@ -133,13 +133,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Public ReadOnly ReturnType As TypeSymbol
             Public ReadOnly ReturnsByRef As Boolean
             Public ReadOnly ParameterIsByRef As BitVector
+            Public ReadOnly ParameterIsReadOnlyByRef As BitVector
 
-            Public Sub New(parameterTypes As ImmutableArray(Of TypeSymbol), parameterIsByRef As BitVector, returnType As TypeSymbol, returnsByRef As Boolean)
+            Public Sub New(parameterTypes As ImmutableArray(Of TypeSymbol), parameterIsByRef As BitVector, returnType As TypeSymbol, returnsByRef As Boolean,
+                           Optional parameterIsReadOnlyByRef As BitVector = Nothing)
                 Debug.Assert(Not parameterTypes.IsDefault)
                 Debug.Assert(Not parameterIsByRef.IsNull)
                 Debug.Assert(returnType IsNot Nothing)
                 Me.ParameterTypes = parameterTypes
                 Me.ParameterIsByRef = parameterIsByRef
+                Me.ParameterIsReadOnlyByRef = If(parameterIsReadOnlyByRef.IsNull, BitVector.Empty, parameterIsReadOnlyByRef)
                 Me.ReturnType = returnType
                 Me.ReturnsByRef = returnsByRef
             End Sub
@@ -149,6 +152,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(returnType IsNot Nothing)
 
                 Dim isByRef = BitVector.Empty
+                Dim isReadOnlyByRef = BitVector.Empty
 
                 If params.Length = 0 Then
                     Me.ParameterTypes = ImmutableArray(Of TypeSymbol).Empty
@@ -160,6 +164,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         types(i) = params(i).Type
                         If params(i).IsByRef Then
                             isByRef(i) = True
+                            If params(i).IsReadOnlyByRef Then
+                                isReadOnlyByRef(i) = True
+                            End If
                         End If
                     Next
 
@@ -167,6 +174,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Me.ParameterIsByRef = isByRef
+                Me.ParameterIsReadOnlyByRef = isReadOnlyByRef
                 Me.ReturnType = returnType
                 Me.ReturnsByRef = returnsByRef
             End Sub
@@ -200,7 +208,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 For i As Integer = 0 To ParameterTypes.Length - 1
                     If Not TypeSymbol.Equals(Me.ParameterTypes(i), other.ParameterTypes(i), TypeCompareKind.ConsiderEverything) OrElse
-                       Me.ParameterIsByRef(i) <> other.ParameterIsByRef(i) Then
+                       Me.ParameterIsByRef(i) <> other.ParameterIsByRef(i) OrElse
+                       Me.ParameterIsReadOnlyByRef(i) <> other.ParameterIsReadOnlyByRef(i) Then
                         Return False
                     End If
                 Next

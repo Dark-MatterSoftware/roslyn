@@ -79,7 +79,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim params = ArrayBuilder(Of ParameterSymbol).GetInstance
             For Each curParam In _lambda.Parameters
                 Dim parameterType = curParam.Type.InternalSubstituteTypeParameters(TypeMap).Type
-                If curParam.GetAttributes().IsEmpty Then
+                If curParam.GetAttributes().IsEmpty AndAlso Not curParam.IsReadOnlyByRef Then
                     params.Add(WithNewContainerAndType(Me, parameterType, curParam))
                 Else
                     params.Add(New AttributedLambdaParameterSymbol(Me, parameterType, curParam))
@@ -251,21 +251,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         ''' <summary>
         ''' A parameter of the lambda's method that emits the attributes written on the lambda parameter, which reflection
-        ''' over the delegate's method reads.
+        ''' over the delegate's method reads, and stays ByRef ReadOnly when the lambda parameter is.
         ''' </summary>
         Private NotInheritable Class AttributedLambdaParameterSymbol
             Inherits SynthesizedParameterSymbol
 
             Private ReadOnly _attributes As ImmutableArray(Of VisualBasicAttributeData)
+            Private ReadOnly _isReadOnlyByRef As Boolean
 
             Public Sub New(container As MethodSymbol, type As TypeSymbol, lambdaParameter As ParameterSymbol)
                 MyBase.New(container, type, lambdaParameter.Ordinal, lambdaParameter.IsByRef, lambdaParameter.Name)
                 _attributes = lambdaParameter.GetAttributes()
+                _isReadOnlyByRef = lambdaParameter.IsReadOnlyByRef
             End Sub
 
             Public Overrides Function GetAttributes() As ImmutableArray(Of VisualBasicAttributeData)
                 Return _attributes
             End Function
+
+            Friend Overrides ReadOnly Property IsReadOnlyByRef As Boolean
+                Get
+                    Return _isReadOnlyByRef
+                End Get
+            End Property
         End Class
 
     End Class
