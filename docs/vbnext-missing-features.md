@@ -237,6 +237,21 @@ Checked against this tree after wave 11, by compiling and running the shapes tha
 | VB-104 | Operators in interfaces | Done in phase 69: on `vbnext`, locked in `docs/vbnext-vb104-syntax.md`, `Shared MustOverride Operator` and `Shared Overridable Operator` declare them; conversion operators remain. Before that, `Shared MustOverride Operator +(left As T, right As T) As T` in a VB interface reports BC30603, "Statement cannot appear within an interface body". Phase 49 implements interface operators that another assembly declares, but VB cannot declare a generic math interface of its own. C# 11 declares `static abstract` and `static virtual` operators. Needs a design note first. |
 | VB-105 | Read-only structure members | Done in phase 70: on `vbnext`, locked in `docs/vbnext-vb105-syntax.md`, `ReadOnly Function`, `ReadOnly Sub`, and `ReadOnly Get` declare them. Before that, `ReadOnly Function Length() As Integer` in a `Structure` reports BC30242, "'ReadOnly' is not valid on a method declaration". C# 8 marks a member `readonly` so that it cannot change the structure and is called on a `ReadOnly` field without a copy. `ReadOnly Property` already means a property without a setter, so the spelling needs a design note first. |
 
+## Wave 13
+
+Checked against this tree after wave 12, by compiling and running the shapes that wave 12 code meets next against .NET 11 with `LangVersion` `vbnext`, with a C# library alongside: interfaces as C# 8 and later fill them in, and the C# 11 to 14 forms that VB code calls. Several shapes already work: a null-conditional assignment such as `p?.Name = "set"`, and a structure that supplies `IMinMaxValue(Of T)`, `IIncrementOperators(Of T)`, and `IComparisonOperators(Of T, T, Boolean)` and is clamped through a type parameter.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-106 | Calling C# `params` collections | `Spans.Sum(1, 2, 3)`, where C# 13 declares `Sum(params ReadOnlySpan<int> values)`, reports BC30311 and BC30057, because VB expands only `ParamArray` arrays from metadata. .NET 9 and later add `params ReadOnlySpan(Of T)` overloads across the libraries. No new syntax. |
+| VB-107 | C# 14 extension members | `"one two three".WordCount`, where C# 14 declares `extension(string s) { public int WordCount => ...; }`, reports BC30456, "'WordCount' is not a member of 'String'". VB reads the extension methods of such blocks, but not extension properties or static extension members. No new syntax. |
+| VB-108 | Generic attributes | `<Tag(Of Integer)>`, where C# 11 declares `TagAttribute<T>`, reports BC30002, "Type 'Tag' is not defined", and VB cannot declare a generic attribute class of its own. C# 11 declares and applies generic attributes. No new syntax. |
+| VB-109 | Instance interface properties with a body | `ReadOnly Property Greeting As String` with a `Get` body in an interface reports BC30603. VB declares instance interface methods with a default body, and phase 68 shared properties with one, but not instance properties. C# 8 declares default interface properties. No new syntax. |
+| VB-110 | Shared interface members that are not virtual | `Shared Function Describe() As String` with a body in an interface reports BC30270. `docs/vbnext-vb096-syntax.md` keeps that form for a shared member that is not virtual, which C# 8 declares as a static interface member, but leaves it unimplemented. No new syntax. |
+| VB-111 | Conversion operators in interfaces | `Shared MustOverride Widening Operator CType(value As Integer) As T` in an interface reports BC33013. Phase 69 leaves conversions out, because a conversion through a type parameter needs the type parameter's constraints to be searched for conversion operators. C# 11 declares static abstract conversion operators. Needs a design note first. |
+| VB-112 | `ByRef ReadOnly` conversions and lifted operators | `Widening Operator CType(ByRef ReadOnly value As Big) As Long` reports BC30651, and `a + b` over `Vec?` operands with a `ByRef ReadOnly` operator reports BC30512 under `Option Strict On`, because phase 67 leaves conversions, `IsTrue`, `IsFalse`, and lifting out. C# allows `in` on all operators and lifts them. No new syntax. |
+| VB-113 | `NameOf` members of unbound generic types | `NameOf(System.Collections.Generic.List(Of).Count)` reports BC31424, a misleading forwarded-type error, in a project, where slice 65a's test reports BC30002. C# 14 accepts `nameof(List<>.Count)`. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -416,3 +431,18 @@ The gap that blocks calls into C# libraries comes first. Then the gaps whose for
 | 5 | VB-102 | Shared properties in interfaces | M | Declares the shared properties that slice 48a implements and slice 60b's methods already match. |
 | 6 | VB-104 | Operators in interfaces | M | Needs a design note first. Declares the operators that phase 49 implements and phase 43 calls through a type parameter. |
 | 7 | VB-105 | Read-only structure members | M | Needs a design note first, because `ReadOnly` already has a meaning on properties. |
+
+### Wave 13 order
+
+The gap that blocks calls into the .NET libraries comes first. Then the gaps that finish wave 11 and 12 forms, smallest first, then the C# 11 and 14 forms, and last the one that needs a design note.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-106 | Calling C# `params` collections | M | Blocks calls to library overloads that take only `params ReadOnlySpan(Of T)`. Builds the span as a collection expression already does. |
+| 2 | VB-113 | `NameOf` members of unbound generic types | S | Extends slice 65a from the type to its members, and replaces the misleading error. |
+| 3 | VB-112 | `ByRef ReadOnly` conversions and lifted operators | M | Finishes phase 67 with the conversion and lifting paths it left out. |
+| 4 | VB-109 | Instance interface properties with a body | S | Reuses the phase 68 property block in interfaces for instance properties. |
+| 5 | VB-110 | Shared interface members that are not virtual | S | Gives the plain `Shared` form that `docs/vbnext-vb096-syntax.md` keeps its meaning. |
+| 6 | VB-108 | Generic attributes | M | Applies and declares attribute classes with type parameters. |
+| 7 | VB-107 | C# 14 extension members | L | Reads extension properties and static extension members from the metadata C# 14 emits. |
+| 8 | VB-111 | Conversion operators in interfaces | L | Needs a design note first, because conversions through a type parameter need new lookup rules. |
