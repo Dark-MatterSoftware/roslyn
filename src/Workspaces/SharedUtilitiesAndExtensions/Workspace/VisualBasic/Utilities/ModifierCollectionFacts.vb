@@ -362,6 +362,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                     PossibleDeclarationTypes.Event Or
                     PossibleDeclarationTypes.Method Or
                     PossibleDeclarationTypes.Property
+
+                ' Interface properties may have accessor bodies.
+                If syntaxTree.IsVbNext() Then
+                    declarationTypes = declarationTypes Or PossibleDeclarationTypes.Accessor
+                End If
             End If
 
             If syntaxTree.IsTypeDeclarationKeywordContext(position, token, cancellationToken) Then

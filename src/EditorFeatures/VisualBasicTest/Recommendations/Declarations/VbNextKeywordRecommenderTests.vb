@@ -354,6 +354,60 @@ End Interface</File>, "Overridable")
         End Sub
 
         <Fact>
+        Public Sub WideningAndNarrowingAfterSharedMustOverrideOrOverridableInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
+    Shared MustOverride |
+End Interface</File>, "Widening", "Narrowing")
+            VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
+    Shared Overridable |
+End Interface</File>, "Widening", "Narrowing")
+            VerifyRecommendationsMissing(<File VbNext="True">Interface I(Of T As I(Of T))
+    |
+End Interface</File>, "Widening", "Narrowing")
+            VerifyRecommendationsMissing(<File>Interface I(Of T As I(Of T))
+    Shared MustOverride |
+End Interface</File>, "Widening", "Narrowing")
+        End Sub
+
+        <Fact>
+        Public Sub OperatorAfterWideningInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
+    Shared MustOverride Widening |
+End Interface</File>, "Operator")
+            VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
+    Shared Overridable Narrowing |
+End Interface</File>, "Operator")
+            VerifyRecommendationsMissing(<File>Interface I(Of T As I(Of T))
+    Shared MustOverride Widening |
+End Interface</File>, "Operator")
+        End Sub
+
+        <Fact>
+        Public Sub MembersAfterSharedInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    Shared |
+End Interface</File>, "Function", "Sub", "Property")
+        End Sub
+
+        <Fact>
+        Public Sub AccessorsInInterfaceProperty()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    Property P As Integer
+        |
+    End Property
+End Interface</File>, "Get", "Set")
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    ReadOnly Property P As Integer
+        |
+    End Property
+End Interface</File>, "Get")
+            VerifyRecommendationsMissing(<File>Interface I
+    Property P As Integer
+        |
+End Interface</File>, "Get", "Set")
+        End Sub
+
+        <Fact>
         Public Sub OperatorAfterSharedMustOverrideOrOverridableInInterface()
             VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
     Shared MustOverride |

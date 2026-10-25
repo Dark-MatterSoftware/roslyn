@@ -10,9 +10,10 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Declarations
     ''' <summary>
-    ''' On vbnext, recommends "Function", "Sub", "Property", and "Operator" after "Shared MustOverride" or
-    ''' "Shared Overridable" in an interface, "Function" and "Sub" after "ReadOnly" in a structure, and "Get" after
-    ''' "ReadOnly" where a structure property's accessor starts.
+    ''' On vbnext, recommends "Function", "Sub", "Property", "Operator", "Widening", and "Narrowing" after
+    ''' "Shared MustOverride" or "Shared Overridable" in an interface, "Operator" after "Widening" or "Narrowing" there,
+    ''' "Function" and "Sub" after "ReadOnly" in a structure, and "Get" after "ReadOnly" where a structure property's
+    ''' accessor starts.
     ''' </summary>
     Friend Class ReadOnlyMemberKeywordRecommender
         Inherits AbstractKeywordRecommender
@@ -22,8 +23,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
         Private Shared ReadOnly s_property As New RecommendedKeyword("Property", VBFeaturesResources.Declares_the_name_of_a_property_and_the_property_procedures_used_to_store_and_retrieve_the_value_of_the_property)
         Private Shared ReadOnly s_operator As New RecommendedKeyword("Operator", VBFeaturesResources.Declares_the_operator_symbol_operands_and_code_that_define_an_operator_procedure_on_a_class_or_structure)
         Private Shared ReadOnly s_get As New RecommendedKeyword("Get", VBFeaturesResources.Declares_a_Get_property_procedure_that_is_used_to_return_the_current_value_of_a_property)
+        Private Shared ReadOnly s_widening As New RecommendedKeyword("Widening", VBFeaturesResources.Indicates_that_a_conversion_operator_CType_converts_a_class_or_structure_to_a_type_that_can_hold_all_possible_values_of_the_original_class_or_structure)
+        Private Shared ReadOnly s_narrowing As New RecommendedKeyword("Narrowing", VBFeaturesResources.Indicates_that_a_conversion_operator_CType_converts_a_class_or_structure_to_a_type_that_might_not_be_able_to_hold_some_of_the_possible_values_of_the_original_class_or_structure)
 
-        Private Shared ReadOnly s_sharedInterfaceMembers As ImmutableArray(Of RecommendedKeyword) = ImmutableArray.Create(s_function, s_sub, s_property, s_operator)
+        Private Shared ReadOnly s_sharedInterfaceMembers As ImmutableArray(Of RecommendedKeyword) = ImmutableArray.Create(s_function, s_sub, s_property, s_operator, s_widening, s_narrowing)
         Private Shared ReadOnly s_readOnlyMethods As ImmutableArray(Of RecommendedKeyword) = ImmutableArray.Create(s_function, s_sub)
 
         Protected Overrides Function RecommendKeywords(context As VisualBasicSyntaxContext, cancellationToken As CancellationToken) As ImmutableArray(Of RecommendedKeyword)
@@ -42,6 +45,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                     ' Interface I : Shared MustOverride |
                     If modifiers.Any(SyntaxKind.SharedKeyword) AndAlso IsDirectlyIn(Of InterfaceBlockSyntax)(token) Then
                         Return s_sharedInterfaceMembers
+                    End If
+
+                Case SyntaxKind.WideningKeyword, SyntaxKind.NarrowingKeyword
+                    ' Interface I : Shared MustOverride Widening |
+                    If modifiers.Any(SyntaxKind.SharedKeyword) AndAlso
+                       (modifiers.Any(SyntaxKind.MustOverrideKeyword) OrElse modifiers.Any(SyntaxKind.OverridableKeyword)) AndAlso
+                       IsDirectlyIn(Of InterfaceBlockSyntax)(token) Then
+                        Return ImmutableArray.Create(s_operator)
                     End If
 
                 Case SyntaxKind.ReadOnlyKeyword

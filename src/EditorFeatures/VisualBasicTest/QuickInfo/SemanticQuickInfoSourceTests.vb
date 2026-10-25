@@ -162,6 +162,59 @@ End Structure", code, position)
             End Using
         End Function
 
+        Private Shared Function WithCSharpLibrary(csharpSource As String, vbSource As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <MetadataReferenceFromSource Language=""C#"" CommonReferences=""true"" LanguageVersion=""preview"">
+            <Document><![CDATA[" & csharpSource & "]]></Document>
+        </MetadataReferenceFromSource>
+        <Document><![CDATA[" & vbSource & "]]></Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function TestParamsCollectionParameter() As Task
+            Await TestFromXmlAsync(WithCSharpLibrary("
+public static class Numbers
+{
+    public static int Sum(params System.Collections.Generic.IEnumerable<int> values) => 0;
+}", "
+Module M
+    Sub Use()
+        System.Console.Write(Numbers.Su$$m(1, 2, 3))
+    End Sub
+End Module"), MainDescription("Function Numbers.Sum(ParamArray values As IEnumerable(Of Integer)) As Integer"))
+        End Function
+
+        <Fact>
+        Public Async Function TestExtensionProperty() As Task
+            Await TestFromXmlAsync(WithCSharpLibrary("
+public static class TextExtensions
+{
+    extension(string s)
+    {
+        public int WordCount => s.Split(' ').Length;
+    }
+}", "
+Module M
+    Sub Use()
+        System.Console.Write(""one two"".Word$$Count)
+    End Sub
+End Module"), MainDescription("ReadOnly Property TextExtensions.WordCount As Integer"))
+        End Function
+
+        <Fact>
+        Public Async Function TestGenericAttributeByShortName() As Task
+            Await TestFromXmlAsync(WithCSharpLibrary("
+public class TagAttribute<T> : System.Attribute
+{
+}", "
+<Ta$$g(Of Integer)>
+Class C
+End Class"), MainDescription("Class TagAttribute(Of T) (+ 1 overload)"))
+        End Function
+
         <Fact>
         Public Async Function TestByRefReadOnlyFunctionAndParameter() As Task
             Dim code As String = Nothing
