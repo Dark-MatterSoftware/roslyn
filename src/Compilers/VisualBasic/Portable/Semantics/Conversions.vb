@@ -920,6 +920,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim predefinedConversion As ConversionKind = ClassifyPredefinedConversion(source, destination, useSiteInfo)
 
             If ConversionExists(predefinedConversion) Then
+                ' A conversion that a type parameter's interface constraints declare takes precedence over a predefined
+                ' narrowing conversion.
+                If Not IsWideningConversion(predefinedConversion) AndAlso
+                   (OverloadResolution.ConstraintInterfacesDeclareConversion(source, useSiteInfo) OrElse
+                    OverloadResolution.ConstraintInterfacesDeclareConversion(destination, useSiteInfo)) Then
+                    Dim userDefined = ClassifyUserDefinedConversion(source, destination, useSiteInfo)
+                    If ConversionExists(userDefined.Key) Then
+                        Return userDefined
+                    End If
+                End If
+
                 Return New KeyValuePair(Of ConversionKind, MethodSymbol)(predefinedConversion, Nothing)
             End If
 
@@ -1038,7 +1049,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim userDefinedConversionsMightStillBeApplicable As Boolean = False
             conv = ClassifyPredefinedConversion(source, destination, binder, userDefinedConversionsMightStillBeApplicable, useSiteInfo)
 
-            If ConversionExists(conv) OrElse Not userDefinedConversionsMightStillBeApplicable Then
+            ' A conversion that a type parameter's interface constraints declare takes precedence over a predefined
+            ' narrowing conversion.
+            If ConversionExists(conv) AndAlso Not IsWideningConversion(conv) AndAlso source.Type IsNot Nothing AndAlso
+               (OverloadResolution.ConstraintInterfacesDeclareConversion(source.Type, useSiteInfo) OrElse
+                OverloadResolution.ConstraintInterfacesDeclareConversion(destination, useSiteInfo)) Then
+                Dim userDefined = ClassifyUserDefinedConversion(source, destination, binder, useSiteInfo)
+                If ConversionExists(userDefined.Key) Then
+                    Return userDefined
+                End If
+            End If
+
+            If ConversionExists(conv) OrElse
+               Not (userDefinedConversionsMightStillBeApplicable OrElse
+                    (source.Type IsNot Nothing AndAlso OverloadResolution.ConstraintInterfacesDeclareConversion(source.Type, useSiteInfo)) OrElse
+                    OverloadResolution.ConstraintInterfacesDeclareConversion(destination, useSiteInfo)) Then
                 Return New KeyValuePair(Of ConversionKind, MethodSymbol)(conv, Nothing)
             End If
 
@@ -2141,7 +2166,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If IsInterfaceType(source) OrElse
                IsInterfaceType(destination) OrElse
-               Not (source.CanContainUserDefinedOperators(useSiteInfo) OrElse destination.CanContainUserDefinedOperators(useSiteInfo)) Then
+               Not (source.CanContainUserDefinedOperators(useSiteInfo) OrElse destination.CanContainUserDefinedOperators(useSiteInfo) OrElse
+                    OverloadResolution.ConstraintInterfacesDeclareConversion(source, useSiteInfo) OrElse
+                    OverloadResolution.ConstraintInterfacesDeclareConversion(destination, useSiteInfo)) Then
 
                 Return Nothing 'ConversionKind.NoConversion
             End If

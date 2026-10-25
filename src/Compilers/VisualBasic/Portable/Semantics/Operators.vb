@@ -2860,7 +2860,58 @@ Next_i:
                                         WellKnownMemberNames.ImplicitConversionName, New OperatorInfo(UnaryOperatorKind.Implicit),
                                         WellKnownMemberNames.ExplicitConversionName, New OperatorInfo(UnaryOperatorKind.Explicit),
                                         opSet, useSiteInfo)
+
+            ' A type parameter also offers the conversions that its interface constraints declare.
+            Dim processed As New HashSet(Of NamedTypeSymbol)()
+            For Each operandType In {source, destination}
+                Dim typeParameter = TryCast(operandType, TypeParameterSymbol)
+                If Not OffersConstraintConversions(typeParameter) Then
+                    Continue For
+                End If
+
+                For Each constraintInterface In GetConstraintInterfaces(typeParameter, useSiteInfo)
+                    If processed.Add(constraintInterface) Then
+                        CollectUserDefinedOperators(constraintInterface, WellKnownMemberNames.ImplicitConversionName, MethodKind.Conversion, New OperatorInfo(UnaryOperatorKind.Implicit), opSet)
+                        CollectUserDefinedOperators(constraintInterface, WellKnownMemberNames.ExplicitConversionName, MethodKind.Conversion, New OperatorInfo(UnaryOperatorKind.Explicit), opSet)
+                    End If
+                Next
+            Next
         End Sub
+
+        ''' <summary>
+        ''' Whether a type parameter's interface constraints declare conversion operators, which then take precedence over
+        ''' the narrowing conversions that every type parameter has.
+        ''' </summary>
+        Friend Shared Function ConstraintInterfacesDeclareConversion(type As TypeSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+            Dim typeParameter = TryCast(type, TypeParameterSymbol)
+            If Not OffersConstraintConversions(typeParameter) Then
+                Return False
+            End If
+
+            For Each constraintInterface In GetConstraintInterfaces(typeParameter, useSiteInfo)
+                For Each name In {WellKnownMemberNames.ImplicitConversionName, WellKnownMemberNames.ExplicitConversionName}
+                    For Each member In constraintInterface.GetMembers(name)
+                        If member.Kind = SymbolKind.Method AndAlso DirectCast(member, MethodSymbol).MethodKind = MethodKind.Conversion Then
+                            Return True
+                        End If
+                    Next
+                Next
+            Next
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Conversions classify without a binder, so the language version comes from the compilation that declares the type parameter.
+        ''' </summary>
+        Private Shared Function OffersConstraintConversions(typeParameter As TypeParameterSymbol) As Boolean
+            If typeParameter Is Nothing Then
+                Return False
+            End If
+
+            Dim compilation = typeParameter.DeclaringCompilation
+            Return compilation IsNot Nothing AndAlso compilation.LanguageVersion >= LanguageVersion.VbNext
+        End Function
 
         ''' <summary>
         ''' Collect user-defined operators.

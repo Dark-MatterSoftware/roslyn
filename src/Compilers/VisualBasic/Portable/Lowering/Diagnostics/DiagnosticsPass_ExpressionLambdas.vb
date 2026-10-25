@@ -263,6 +263,12 @@ lSelect:
                 GenerateDiagnostic(ERRID.ERR_RefReturningCallInExpressionTree, node)
             End If
 
+            ' An expression tree can only name the interface's own method, which cannot be called.
+            If IsInExpressionLambda AndAlso method.IsShared AndAlso method.ContainingType.IsInterface AndAlso
+               (method.IsMustOverride OrElse method.IsOverridable) Then
+                GenerateExpressionTreeNotSupportedDiagnostic(node)
+            End If
+
             Me.VisitList(node.Arguments)
             Return Nothing
         End Function

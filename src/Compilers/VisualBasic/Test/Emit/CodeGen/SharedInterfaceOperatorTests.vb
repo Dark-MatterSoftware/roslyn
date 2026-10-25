@@ -156,9 +156,6 @@ End Structure
 BC30603: Statement cannot appear within an interface body.
     Shared Operator *(left As T, right As T) As T
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-BC33013: Operators cannot be declared 'MustOverride'.
-    Shared MustOverride Widening Operator CType(value As T) As Integer
-           ~~~~~~~~~~~~
 BC33033: Matching '>' operator is required for 'Operator &lt;(left As T, right As T) As Boolean'.
     Shared MustOverride Operator &lt;(left As T, right As T) As Boolean
                                  ~

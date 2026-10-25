@@ -1669,17 +1669,34 @@ DoneWithDiagnostics:
 
             ReportUseSite(diagnostics, tree, convKind.Value)
 
-            ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, convKind.Value, tree)
-
             Debug.Assert(convKind.Value.IsUserDefinedOperator())
             If Me.ContainingMember Is convKind.Value Then
                 ReportDiagnostic(diagnostics, argumentSyntax, ERRID.WRN_RecursiveOperatorCall, convKind.Value)
             End If
 
+            ' A conversion that a type parameter's interface constraint declares is called constrained to the type parameter.
+            Dim constrainedReceiver As BoundExpression = Nothing
+            If convKind.Value.ContainingType.IsInterface Then
+                If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                    ReportDiagnostic(diagnostics, argumentSyntax, ERRID.ERR_TypeMismatch2, originalArgumentType, targetType)
+                End If
+
+                For Each candidate In {originalArgumentType, targetType}
+                    Dim typeParameter = TryCast(candidate, TypeParameterSymbol)
+                    If typeParameter IsNot Nothing AndAlso
+                       OverloadResolution.GetConstraintInterfaces(typeParameter, CompoundUseSiteInfo(Of AssemblySymbol).Discarded).Contains(convKind.Value.ContainingType) Then
+                        constrainedReceiver = New BoundTypeExpression(tree, typeParameter).MakeCompilerGenerated()
+                        Exit For
+                    End If
+                Next
+            End If
+
+            ReportDiagnosticsIfObsoleteOrNotSupported(diagnostics, convKind.Value, tree, constrainedReceiver)
+
             argument = New BoundCall(tree,
                                      method:=convKind.Value,
                                      methodGroupOpt:=Nothing,
-                                     receiverOpt:=Nothing,
+                                     receiverOpt:=constrainedReceiver,
                                      arguments:=ImmutableArray.Create(Of BoundExpression)(argument),
                                      constantValueOpt:=Nothing,
                                      suppressObjectClone:=True,

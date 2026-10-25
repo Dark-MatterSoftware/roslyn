@@ -547,10 +547,9 @@ lReportErrorOnTwoTokens:
                                                       SourceMemberFlags.Widening Or
                                                       SourceMemberFlags.Narrowing
 
-            ' On vbnext an interface operator is Shared MustOverride or Shared Overridable, except a conversion.
+            ' On vbnext an interface operator, including a conversion, is Shared MustOverride or Shared Overridable.
             Dim isInterfaceOperator = container.IsInterface AndAlso
-                                      binder.Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
-                                      syntax.OperatorToken.Kind <> SyntaxKind.CTypeKeyword
+                                      binder.Compilation.LanguageVersion >= LanguageVersion.VbNext
             If isInterfaceOperator Then
                 allowModifiers = allowModifiers Or SourceMemberFlags.MustOverride Or SourceMemberFlags.Overridable
             End If
