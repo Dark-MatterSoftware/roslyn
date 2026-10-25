@@ -126,6 +126,147 @@ BC30057: Too many arguments to 'Public Shared Overloads Function Count(ParamArra
 </expected>)
         End Sub
 
+        Private Const OtherCollectionsLibrary As String = "
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+
+public class IntBag : IEnumerable<int>
+{
+    private readonly List<int> _items = new List<int>();
+    public void Add(int item) => _items.Add(item * 10);
+    public IEnumerator<int> GetEnumerator() => _items.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public static class Bags
+{
+    public static int CountImm(params ImmutableArray<int> values) => values.Length;
+    public static int CountSet(params HashSet<int> values) => values.Count;
+    public static int AddOne(params ICollection<int> values) { values.Add(0); return values.Count; }
+    public static T Last<T>(params IReadOnlyList<T> values) => values[values.Count - 1];
+    public static int Sum(params IntBag values) { var s = 0; foreach (var v in values) s += v; return s; }
+}
+"
+
+        Private Function OtherCollectionsReference() As MetadataReference
+            Return CreateCSharpCompilation(OtherCollectionsLibrary, referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90)).EmitToImageReference()
+        End Function
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub CallsOtherParamsCollectionTypes()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Sub Main()
+        Console.Write(Bags.CountImm(1, 2, 3) & "" "" & Bags.CountImm() & "" "" & Bags.CountSet(1, 2, 2))
+        Console.Write("" "" & Bags.AddOne(1, 2) & "" "" & Bags.Last(""x"", ""y"") & "" "" & Bags.Sum(1, 2))
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, references:={OtherCollectionsReference()}, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3 0 2 3 y 30", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub DeclaresOtherParamArrayCollectionTypes()
+            Dim library = CreateCompilation("
+Imports System.Collections.Generic
+Imports System.Collections.Immutable
+
+Public Module Collect
+    Public Function Distinct(ParamArray values As HashSet(Of Integer)) As Integer
+        Return values.Count
+    End Function
+
+    Public Function Grow(ParamArray values As ICollection(Of Integer)) As Integer
+        values.Add(0)
+        Return values.Count
+    End Function
+
+    Public Function Frozen(ParamArray values As ImmutableArray(Of Integer)) As Integer
+        Return values.Length
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+            library.AssertNoDiagnostics()
+
+            Dim program = CreateCompilation("
+Module Program
+    Sub Main()
+        System.Console.Write(Collect.Distinct(1, 1, 2) & "" "" & Collect.Grow(5) & "" "" & Collect.Frozen(1, 2, 3, 4))
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, references:={library.EmitToImageReference()}, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+            CompileAndVerify(program, expectedOutput:="2 2 4", verify:=Verification.Skipped).VerifyDiagnostics()
+
+            Dim csCompilation = CreateCSharpCompilation("
+public static class Use
+{
+    public static int Call() => Collect.Distinct(1, 2) + Collect.Grow(1) + Collect.Frozen(1, 2);
+}
+", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90, {library.EmitToImageReference()}))
+            csCompilation.VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub OtherParamArrayCollectionErrors()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Function Text(ParamArray values As String) As Integer
+        Return 0
+    End Function
+
+    Function Pairs(ParamArray values As Stack(Of Integer)) As Integer
+        Return 0
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30050: ParamArray parameter must be an array.
+    Function Text(ParamArray values As String) As Integer
+                             ~~~~~~
+BC30050: ParamArray parameter must be an array.
+    Function Pairs(ParamArray values As Stack(Of Integer)) As Integer
+                              ~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
+        Public Sub OtherParamsCollectionsNeedVbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Function Use() As Integer
+        Return Bags.CountSet(1, 2)
+    End Function
+
+    Function Distinct(ParamArray values As HashSet(Of Integer)) As Integer
+        Return values.Count
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, references:={OtherCollectionsReference()}, options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular17_13)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30311: Value of type 'Integer' cannot be converted to 'HashSet(Of Integer)'.
+        Return Bags.CountSet(1, 2)
+                             ~
+BC30057: Too many arguments to 'Public Shared Overloads Function CountSet(ParamArray values As HashSet(Of Integer)) As Integer'.
+        Return Bags.CountSet(1, 2)
+                                ~
+BC30050: ParamArray parameter must be an array.
+    Function Distinct(ParamArray values As HashSet(Of Integer)) As Integer
+                                 ~~~~~~
+</expected>)
+        End Sub
+
     End Class
 
 End Namespace

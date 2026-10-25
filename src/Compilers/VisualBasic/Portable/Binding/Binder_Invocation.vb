@@ -2768,8 +2768,9 @@ ProduceBoundNode:
         End Function
 
         ''' <summary>
-        ''' An expanded ParamArray of List(Of T) is created and filled with Add.
-        ''' An expanded ParamArray of IEnumerable(Of T) is an array of T.
+        ''' An expanded ParamArray of a type with a collection builder is built by the builder from a ReadOnlySpan(Of T).
+        ''' An expanded ParamArray of ICollection(Of T) or IList(Of T) is a List(Of T), and of the other interfaces an array of T.
+        ''' An expanded ParamArray of any other class or structure is created and filled with Add.
         ''' </summary>
         Private Function CreateCollectionParamArrayArgument(syntax As SyntaxNode, paramType As TypeSymbol, elementType As TypeSymbol, items As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim named = TryCast(paramType, NamedTypeSymbol)
@@ -2800,12 +2801,41 @@ ProduceBoundNode:
                 End If
             End If
 
-            If named IsNot Nothing AndAlso named.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T Then
-                Dim arrayType = ArrayTypeSymbol.CreateSZArray(elementType, ImmutableArray(Of CustomModifier).Empty, Compilation)
-                Dim boundCount = New BoundLiteral(syntax, ConstantValue.Create(items.Length), GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)).MakeCompilerGenerated()
-                Dim initializer = New BoundArrayInitialization(syntax, items, Nothing).MakeCompilerGenerated()
-                Dim arrayCreation = New BoundArrayCreation(syntax, ImmutableArray.Create(Of BoundExpression)(boundCount), initializer, arrayType).MakeCompilerGenerated()
-                Return ApplyImplicitConversion(syntax, paramType, arrayCreation, diagnostics)
+            If named IsNot Nothing AndAlso Not named.IsInterfaceType() Then
+                Dim builder = GetCollectionBuilderMethod(named, elementType)
+                If builder IsNot Nothing Then
+                    Dim spanType = Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T).Construct(elementType)
+                    Dim span = CreateCollectionParamArrayArgument(syntax, spanType, elementType, items, diagnostics)
+                    Return New BoundCall(syntax,
+                                         method:=builder,
+                                         methodGroupOpt:=Nothing,
+                                         receiverOpt:=Nothing,
+                                         arguments:=ImmutableArray.Create(span),
+                                         constantValueOpt:=Nothing,
+                                         type:=builder.ReturnType).MakeCompilerGenerated()
+                End If
+            End If
+
+            If named IsNot Nothing AndAlso named.IsInterfaceType() Then
+                Select Case named.OriginalDefinition.Name
+                    Case "ICollection", "IList"
+                        ' A mutable interface gets a List(Of T), as C# gives it.
+                        Dim listType = Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_List_T).Construct(elementType)
+                        Dim list = TryBindCollectionInitializerFromElements(syntax, listType, items, diagnostics)
+                        If list Is Nothing Then
+                            Return BadExpression(syntax, items, paramType)
+                        End If
+
+                        list.SetWasCompilerGenerated()
+                        Return ApplyImplicitConversion(syntax, paramType, list, diagnostics)
+
+                    Case Else
+                        Dim arrayType = ArrayTypeSymbol.CreateSZArray(elementType, ImmutableArray(Of CustomModifier).Empty, Compilation)
+                        Dim boundCount = New BoundLiteral(syntax, ConstantValue.Create(items.Length), GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)).MakeCompilerGenerated()
+                        Dim initializer = New BoundArrayInitialization(syntax, items, Nothing).MakeCompilerGenerated()
+                        Dim arrayCreation = New BoundArrayCreation(syntax, ImmutableArray.Create(Of BoundExpression)(boundCount), initializer, arrayType).MakeCompilerGenerated()
+                        Return ApplyImplicitConversion(syntax, paramType, arrayCreation, diagnostics)
+                End Select
             End If
 
             Dim created = TryBindCollectionInitializerFromElements(syntax, paramType, items, diagnostics)

@@ -456,11 +456,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' List(Of T) and IEnumerable(Of T) are ParamArray types on vbnext. The element type is T.
+        ''' Spans, List(Of T), the interfaces List(Of T) implements, and the classes and structures VB can build from their
+        ''' elements are ParamArray types on vbnext.
         ''' </summary>
         Friend Shared Function GetCollectionParamArrayElementType(compilation As VisualBasicCompilation, paramType As TypeSymbol) As TypeSymbol
             Dim named = TryCast(paramType, NamedTypeSymbol)
-            If named Is Nothing OrElse named.Arity <> 1 Then
+            If named Is Nothing OrElse named.IsErrorType() Then
                 Return Nothing
             End If
 
@@ -484,6 +485,72 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return named.TypeArgumentsNoUseSiteDiagnostics(0)
             End If
 
+            ' The other collection types that C# 13 allows, where VB can build them.
+            Dim elementType = GetCollectionParamArrayElementTypeByName(paramType)
+            If elementType IsNot Nothing AndAlso
+               (named.IsInterfaceType() OrElse GetCollectionBuilderMethod(named, elementType) IsNot Nothing OrElse HasCollectionInitializerShape(named)) Then
+                Return elementType
+            End If
+
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' A structure, or a class that is not abstract and has a public parameterless constructor, with an Add method.
+        ''' </summary>
+        Private Shared Function HasCollectionInitializerShape(type As NamedTypeSymbol) As Boolean
+            If type.TypeKind = TypeKind.Class Then
+                If type.IsMustInherit OrElse
+                   Not type.InstanceConstructors.Any(Function(c) c.ParameterCount = 0 AndAlso c.DeclaredAccessibility = Accessibility.Public) Then
+                    Return False
+                End If
+            ElseIf type.TypeKind <> TypeKind.Structure Then
+                Return False
+            End If
+
+            Return type.GetMembers(WellKnownMemberNames.CollectionInitializerAddMethodName).Any(Function(m) m.Kind = SymbolKind.Method AndAlso Not m.IsShared)
+        End Function
+
+        ''' <summary>
+        ''' The static method that a type's CollectionBuilderAttribute names, constructed for the element type, which builds the
+        ''' collection from a ReadOnlySpan(Of T).
+        ''' </summary>
+        Friend Shared Function GetCollectionBuilderMethod(type As NamedTypeSymbol, elementType As TypeSymbol) As MethodSymbol
+            Dim definition = type.OriginalDefinition
+            For Each attribute In definition.GetAttributes()
+                Dim attributeClass = attribute.AttributeClass
+                If attributeClass Is Nothing OrElse attributeClass.Name <> "CollectionBuilderAttribute" OrElse
+                   attributeClass.ContainingNamespace?.ToDisplayString() <> "System.Runtime.CompilerServices" OrElse
+                   attribute.CommonConstructorArguments.Length <> 2 Then
+                    Continue For
+                End If
+
+                Dim builderType = TryCast(attribute.CommonConstructorArguments(0).ValueInternal, NamedTypeSymbol)
+                Dim methodName = TryCast(attribute.CommonConstructorArguments(1).ValueInternal, String)
+                If builderType Is Nothing OrElse methodName Is Nothing Then
+                    Return Nothing
+                End If
+
+                For Each member In builderType.GetMembers(methodName)
+                    Dim method = TryCast(member, MethodSymbol)
+                    If method Is Nothing OrElse Not method.IsShared OrElse method.ParameterCount <> 1 OrElse method.Arity <> definition.Arity OrElse
+                       method.Parameters(0).IsByRef Then
+                        Continue For
+                    End If
+
+                    Dim constructed = If(method.Arity = 0, method, method.Construct(type.TypeArgumentsNoUseSiteDiagnostics.As(Of TypeSymbol)()))
+                    Dim spanType = TryCast(constructed.Parameters(0).Type, NamedTypeSymbol)
+                    If spanType IsNot Nothing AndAlso spanType.Arity = 1 AndAlso spanType.Name = "ReadOnlySpan" AndAlso
+                       spanType.ContainingNamespace?.ToDisplayString() = "System" AndAlso
+                       spanType.TypeArgumentsNoUseSiteDiagnostics(0).IsSameTypeIgnoringAll(elementType) AndAlso
+                       constructed.ReturnType.IsSameTypeIgnoringAll(type) Then
+                        Return constructed
+                    End If
+                Next
+
+                Return Nothing
+            Next
+
             Return Nothing
         End Function
 
@@ -493,17 +560,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Friend Shared Function GetCollectionParamArrayElementTypeByName(paramType As TypeSymbol) As TypeSymbol
             Dim named = TryCast(paramType, NamedTypeSymbol)
-            If named Is Nothing OrElse named.Arity <> 1 Then
+            If named Is Nothing OrElse named.IsErrorType() Then
                 Return Nothing
             End If
 
             Dim definition = named.OriginalDefinition
             Dim namespaceName = If(definition.ContainingType Is Nothing, definition.ContainingNamespace?.ToDisplayString(), Nothing)
-            Dim isCollection = definition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T OrElse
-                               (definition.Name = "List" AndAlso namespaceName = "System.Collections.Generic") OrElse
-                               ((definition.Name = "Span" OrElse definition.Name = "ReadOnlySpan") AndAlso namespaceName = "System")
+            If named.Arity = 1 Then
+                Dim isCollection = definition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T OrElse
+                                   (namespaceName = "System.Collections.Generic" AndAlso
+                                    (definition.Name = "List" OrElse definition.Name = "ICollection" OrElse definition.Name = "IList" OrElse
+                                     definition.Name = "IReadOnlyCollection" OrElse definition.Name = "IReadOnlyList")) OrElse
+                                   ((definition.Name = "Span" OrElse definition.Name = "ReadOnlySpan") AndAlso namespaceName = "System")
+                If isCollection Then
+                    Return named.TypeArgumentsNoUseSiteDiagnostics(0)
+                End If
+            End If
 
-            Return If(isCollection, named.TypeArgumentsNoUseSiteDiagnostics(0), Nothing)
+            ' A class or structure is a collection of the T of the one IEnumerable(Of T) it implements.
+            If named.TypeKind <> TypeKind.Class AndAlso named.TypeKind <> TypeKind.Structure OrElse named.SpecialType = SpecialType.System_String Then
+                Return Nothing
+            End If
+
+            Dim elementType As TypeSymbol = Nothing
+            For Each implemented In named.AllInterfacesNoUseSiteDiagnostics
+                If implemented.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T Then
+                    If elementType IsNot Nothing Then
+                        Return Nothing
+                    End If
+                    elementType = implemented.TypeArgumentsNoUseSiteDiagnostics(0)
+                End If
+            Next
+
+            Return elementType
         End Function
 
         ''' <summary>
