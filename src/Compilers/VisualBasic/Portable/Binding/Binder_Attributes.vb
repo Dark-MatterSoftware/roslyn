@@ -126,7 +126,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     container As NamespaceOrTypeSymbol,
                     name As String,
                     options As LookupOptions,
-                    <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol))
+                    <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol),
+                    Optional arity As Integer = 0)
 
             Debug.Assert(lookupResult.IsClear)
             Debug.Assert(options.IsValid())
@@ -137,7 +138,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             options = options Or LookupOptions.IgnoreExtensionMethods
 
-            Lookup(lookupResult, container, name & "Attribute", options, useSiteInfo)
+            Lookup(lookupResult, container, name & "Attribute", options, useSiteInfo, arity)
 
             ' If no result is found then do a second lookup without the attribute suffix. 
             ' The result is that namespace symbols or inaccessible symbols with the attribute 
@@ -145,7 +146,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If lookupResult.IsClear OrElse lookupResult.IsWrongArity Then
                 lookupResult.Clear()
-                Lookup(lookupResult, container, name, options, useSiteInfo)
+                Lookup(lookupResult, container, name, options, useSiteInfo, arity)
             End If
 
             If Not lookupResult.IsGood Then
@@ -154,19 +155,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             ' Found a good symbol, now check that it is appropriate to use as an attribute.
-            CheckAttributeTypeViability(lookupResult, useSiteInfo)
+            CheckAttributeTypeViability(lookupResult, useSiteInfo, arity)
         End Sub
 
         Private Sub Lookup(lookupResult As LookupResult,
              container As NamespaceOrTypeSymbol,
              name As String,
              options As LookupOptions,
-             <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol))
+             <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol),
+             arity As Integer)
 
             If container IsNot Nothing Then
-                LookupMember(lookupResult, container, name, 0, options, useSiteInfo)
+                LookupMember(lookupResult, container, name, arity, options, useSiteInfo)
             Else
-                Lookup(lookupResult, name, 0, options, useSiteInfo)
+                Lookup(lookupResult, name, arity, options, useSiteInfo)
             End If
         End Sub
 
@@ -207,7 +209,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return ContainsTypeParameter(namedType.ContainingType)
         End Function
 
-        Private Sub CheckAttributeTypeViability(lookupResult As LookupResult, ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol))
+        Private Sub CheckAttributeTypeViability(lookupResult As LookupResult, ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol), Optional arity As Integer = 0)
             Debug.Assert(lookupResult.HasSingleSymbol AndAlso lookupResult.IsGood)
 
             ' For error reporting, check the unwrapped symbol. However, return the unwrapped alias symbol if it is an alias.  
@@ -231,8 +233,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim namedType = DirectCast(symbol, NamedTypeSymbol)
                 Dim localUseSiteInfo = If(useSiteInfo.AccumulatesDependencies, New CompoundUseSiteInfo(Of AssemblySymbol)(Compilation.Assembly), CompoundUseSiteInfo(Of AssemblySymbol).DiscardedDependencies)
 
-                ' An open generic, or a generic type whose arguments use a type parameter, cannot be an attribute.
-                If namedType.IsGenericType AndAlso Not IsClosedGenericAttributeType(namedType) Then
+                ' An open generic, or a generic type whose arguments use a type parameter, cannot be an attribute. A generic
+                ' definition found for Tag(Of Integer) is constructed afterwards, and the constructed type is checked then.
+                If namedType.IsGenericType AndAlso Not IsClosedGenericAttributeType(namedType) AndAlso
+                   Not (arity > 0 AndAlso namedType.IsDefinition AndAlso
+                        InternalSyntax.Parser.CheckFeatureAvailability(Compilation.LanguageVersion, InternalSyntax.Feature.GenericAttributes)) Then
                     errorId = ERRID.ERR_AttrCannotBeGenerics
 
                     ' type must be a class

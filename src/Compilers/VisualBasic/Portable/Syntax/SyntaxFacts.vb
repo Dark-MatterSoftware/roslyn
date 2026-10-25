@@ -637,7 +637,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Select Case nextNode.Kind()
 
-                    Case SyntaxKind.IdentifierName, SyntaxKind.QualifiedName
+                    Case SyntaxKind.IdentifierName, SyntaxKind.QualifiedName, SyntaxKind.GenericName
                         nextNode = nextNode.Parent
 
                     Case SyntaxKind.Attribute

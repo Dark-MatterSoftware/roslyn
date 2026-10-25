@@ -933,9 +933,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim typeArgumentsSyntax = genericNameSyntax.TypeArgumentList
                 Dim arity As Integer = typeArgumentsSyntax.Arguments.Count
 
-                ' Bind the generic symbol with the current binder.
+                ' Bind the generic symbol with the current binder. A generic attribute name may leave off the Attribute suffix.
                 Dim useSiteInfo = binder.GetNewCompoundUseSiteInfo(diagBag)
-                binder.Lookup(lookupResult, idText, arity, LookupOptions.NamespacesOrTypesOnly, useSiteInfo)
+                If SyntaxFacts.IsAttributeName(genericNameSyntax) Then
+                    binder.LookupAttributeType(lookupResult, Nothing, idText, LookupOptions.AttributeTypeOnly, useSiteInfo, arity)
+                Else
+                    binder.Lookup(lookupResult, idText, arity, LookupOptions.NamespacesOrTypesOnly, useSiteInfo)
+                End If
 
                 diagBag.Add(genericNameSyntax, useSiteInfo)
 
@@ -1118,15 +1122,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 binder.ReportDiagnosticsIfObsoleteOrNotSupported(diagBag, leftSymbol, leftNameSyntax)
                 binder.AddTypesAssemblyAsDependency(leftSymbol, diagBag)
 
-                ' Lookup the generic type.
+                ' Lookup the generic type. A generic attribute name may leave off the Attribute suffix.
                 lookupResult.Clear()
                 Dim useSiteInfo = binder.GetNewCompoundUseSiteInfo(diagBag)
-                binder.LookupMember(lookupResult,
-                                    leftSymbol,
-                                    rightIdentSyntax.ValueText,
-                                    arity,
-                                    LookupOptions.NamespacesOrTypesOnly,
-                                    useSiteInfo)
+                If SyntaxFacts.IsAttributeName(right) Then
+                    binder.LookupAttributeType(lookupResult, leftSymbol, rightIdentSyntax.ValueText, LookupOptions.AttributeTypeOnly, useSiteInfo, arity)
+                Else
+                    binder.LookupMember(lookupResult,
+                                        leftSymbol,
+                                        rightIdentSyntax.ValueText,
+                                        arity,
+                                        LookupOptions.NamespacesOrTypesOnly,
+                                        useSiteInfo)
+                End If
 
                 diagBag.Add(leftNameSyntax, useSiteInfo)
 
