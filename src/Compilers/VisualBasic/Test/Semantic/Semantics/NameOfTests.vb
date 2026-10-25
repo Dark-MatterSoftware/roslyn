@@ -3752,7 +3752,7 @@ End Module
 Module Module1
     Const A As String = NameOf(System.Collections.Generic.List(Of ,))
     Const B As String = NameOf(System.Collections.Generic.Missing(Of))
-    Const C As String = NameOf(System.Collections.Generic.List(Of).Count)
+    Const C As String = NameOf(System.Collections.Generic.List(Of).Nope)
 End Module
 ", options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
             comp.AssertTheseDiagnostics(
@@ -3763,10 +3763,30 @@ BC32043: Too many type arguments to 'List(Of T)'.
 BC30002: Type 'System.Collections.Generic.Missing' is not defined.
     Const B As String = NameOf(System.Collections.Generic.Missing(Of))
                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-BC30002: Type 'System.Collections.Generic.List.Count' is not defined.
-    Const C As String = NameOf(System.Collections.Generic.List(Of).Count)
-                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC30456: 'Nope' is not a member of 'List(Of T)'.
+    Const C As String = NameOf(System.Collections.Generic.List(Of).Nope)
+                                                                   ~~~~
 </expected>)
+        End Sub
+
+        <Fact>
+        Public Sub NameOfMemberOfUnboundGenericType()
+            Dim source = "
+Imports System
+Imports System.Collections.Generic
+
+Module Module1
+    Const CountName As String = NameOf(List(Of).Count)
+
+    Sub Main()
+        Console.Write(CountName & "" "" & NameOf(System.Collections.Generic.Dictionary(Of ,).Keys) & "" "" & NameOf(List(Of).Add) & "" "" &
+                      NameOf(Dictionary(Of ,).KeyCollection) & "" "" & NameOf(List(Of).Enumerator.Current))
+    End Sub
+End Module
+"
+            Dim comp = CreateCompilation(source, options:=TestOptions.ReleaseExe,
+                                         parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            CompileAndVerify(comp, expectedOutput:="Count Keys Add KeyCollection Current").VerifyDiagnostics()
         End Sub
 
         <Fact>

@@ -754,6 +754,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Debug.Assert(node.Argument.HasErrors)
             End Select
 
+            ' On vbnext, NameOf(List(Of).Count) names a member of an unbound generic type, looked up in its definition.
+            Dim memberOfUnbound = TryBindNameOfMemberOfUnboundType(node, value, diagnostics)
+            If memberOfUnbound IsNot Nothing Then
+                Return memberOfUnbound
+            End If
+
             ' On vbnext, NameOf(List(Of)) and NameOf(System.Collections.Generic.List(Of)) name an unbound generic type,
             ' which binds as GetType binds it.
             Dim unboundName = TryCast(node.Argument, TypeSyntax)
@@ -812,6 +818,59 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Select
 
             Return New BoundNameOfOperator(node, argument, ConstantValue.Create(value), GetSpecialType(SpecialType.System_String, node, diagnostics))
+        End Function
+
+        ''' <summary>
+        ''' Binds NameOf(List(Of).Count), where the qualifier names an unbound generic type and the last name is one of its
+        ''' members other than a nested type. Returns Nothing for any other argument.
+        ''' </summary>
+        Private Function TryBindNameOfMemberOfUnboundType(node As NameOfExpressionSyntax, value As String, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim qualified = TryCast(node.Argument, QualifiedNameSyntax)
+            If qualified Is Nothing OrElse qualified.Right.Kind <> SyntaxKind.IdentifierName OrElse
+               Not qualified.Left.DescendantNodesAndSelf().OfType(Of GenericNameSyntax)().Any(Function(g) g.TypeArgumentList.Arguments.AllAreMissingIdentifierName) Then
+                Return Nothing
+            End If
+
+            Dim left = qualified.Left
+            Dim leftOrAlias As Symbol = TypeBinder.BindTypeOrAliasSyntax(left, New GetTypeBinder(left, Me), diagnostics,
+                                                                         suppressUseSiteError:=False, inGetTypeContext:=True, resolvingBaseType:=False)
+            Dim aliasSym = TryCast(leftOrAlias, AliasSymbol)
+            Dim leftType = DirectCast(If(aliasSym IsNot Nothing, aliasSym.Target, leftOrAlias), TypeSymbol)
+            Dim stringType = GetSpecialType(SpecialType.System_String, node, diagnostics)
+            Dim leftExpression = New BoundTypeExpression(left, Nothing, aliasSym, leftType, leftType.IsErrorType())
+
+            If leftType.IsErrorType() Then
+                Return New BoundNameOfOperator(node, leftExpression, ConstantValue.Create(value), stringType, hasErrors:=True)
+            End If
+
+            Dim lookup = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(lookup, leftType.OriginalDefinition, value, 0, LookupOptions.AllMethodsOfAnyArity Or LookupOptions.IgnoreExtensionMethods, useSiteInfo)
+            diagnostics.Add(qualified.Right, useSiteInfo)
+
+            Try
+                ' A nested type, as in NameOf(Dictionary(Of ,).KeyCollection), binds as a type.
+                If lookup.HasSymbol AndAlso lookup.Symbols(0).Kind = SymbolKind.NamedType Then
+                    Return Nothing
+                End If
+
+                Dim hasErrors = False
+                If Not lookup.HasSymbol Then
+                    ReportDiagnostic(diagnostics, qualified.Right, ERRID.ERR_NameNotMember2, value, leftType.OriginalDefinition)
+                    hasErrors = True
+                ElseIf lookup.Kind = LookupResultKind.Inaccessible Then
+                    ReportDiagnostic(diagnostics, qualified.Right, GetInaccessibleErrorInfo(lookup.Symbols(0)))
+                    hasErrors = True
+                Else
+                    For Each member In lookup.Symbols
+                        diagnostics.AddDependency(member.ContainingAssembly)
+                    Next
+                End If
+
+                Return New BoundNameOfOperator(node, leftExpression, ConstantValue.Create(value), stringType, hasErrors)
+            Finally
+                lookup.Free()
+            End Try
         End Function
 
         Private Function BindTypeOfExpression(node As TypeOfExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
