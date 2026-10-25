@@ -7,6 +7,7 @@ Imports System.Reflection.Metadata
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.CodeGen
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
@@ -579,19 +580,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             End While
         End Sub
 
-        Private Sub EmitArguments(arguments As ImmutableArray(Of BoundExpression), parameters As ImmutableArray(Of ParameterSymbol))
+        ''' <summary>
+        ''' Returns the temps that values passed to ByRef ReadOnly parameters were copied into, to be freed after the call.
+        ''' </summary>
+        Private Function EmitArguments(arguments As ImmutableArray(Of BoundExpression), parameters As ImmutableArray(Of ParameterSymbol)) As ArrayBuilder(Of LocalDefinition)
             Debug.Assert(arguments.Length = parameters.Length)
+            Dim readOnlyArgumentTemps As ArrayBuilder(Of LocalDefinition) = Nothing
+
             For i = 0 To arguments.Length - 1
                 Dim argument = arguments(i)
                 Dim parameter = parameters(i)
                 If parameter.IsByRef Then
-                    ' A ByRef ReadOnly parameter cannot write through the reference, so a ReadOnly variable is passed as is.
-                    Dim temp = If(parameter.IsReadOnlyByRef, EmitReadOnlyReference(argument), EmitAddress(argument, AddressKind.Writeable))
-                    Debug.Assert(temp Is Nothing, "passing args byref should not clone them into temps. That should be done in rewriter.")
+                    If parameter.IsReadOnlyByRef Then
+                        ' A ByRef ReadOnly parameter cannot write through the reference, so a ReadOnly variable is passed as is,
+                        ' and a value that the lowering of a lifted operator or conversion passes is copied into a temp.
+                        Dim temp = If(argument.Kind = BoundKind.Call AndAlso Not DirectCast(argument, BoundCall).Method.ReturnsByRef,
+                                      EmitAddressOfTempClone(argument),
+                                      EmitReadOnlyReference(argument))
+                        If temp IsNot Nothing Then
+                            readOnlyArgumentTemps = If(readOnlyArgumentTemps, ArrayBuilder(Of LocalDefinition).GetInstance())
+                            readOnlyArgumentTemps.Add(temp)
+                        End If
+                    Else
+                        Dim temp = EmitAddress(argument, AddressKind.Writeable)
+                        Debug.Assert(temp Is Nothing, "passing args byref should not clone them into temps. That should be done in rewriter.")
+                    End If
                 Else
                     EmitExpression(argument, True)
                 End If
             Next
+
+            Return readOnlyArgumentTemps
+        End Function
+
+        Private Sub FreeArgumentTemps(temps As ArrayBuilder(Of LocalDefinition))
+            If temps Is Nothing Then
+                Return
+            End If
+
+            For Each temp In temps
+                FreeTemp(temp)
+            Next
+
+            temps.Free()
         End Sub
 
         Private Sub EmitArrayElementLoad(arrayAccess As BoundArrayAccess, used As Boolean)
@@ -1145,7 +1176,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
                 End If
             End If
 
-            EmitArguments(arguments, method.Parameters)
+            Dim argumentTemps = EmitArguments(arguments, method.Parameters)
             Select Case callKind
                 Case CallKind.Call
                     _builder.EmitOpCode(ILOpCode.Call, stackBehavior)
@@ -1166,6 +1197,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             End Select
 
             EmitSymbolToken(method, [call].Syntax)
+            FreeArgumentTemps(argumentTemps)
             If Not method.IsSub Then
                 EmitPopIfUnused(useKind <> UseKind.Unused)
             ElseIf _ilEmitStyle = ILEmitStyle.Debug Then
@@ -1739,9 +1771,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             Debug.Assert(Not constructor.IsDefaultValueTypeConstructor(),
                          "do not call synthesized struct constructors, they do not exist")
 
-            EmitArguments(arguments, constructor.Parameters)
+            Dim argumentTemps = EmitArguments(arguments, constructor.Parameters)
             _builder.EmitOpCode(ILOpCode.Newobj, ILOpCode.Newobj.StackPushCount() - arguments.Length)
             EmitSymbolToken(constructor, syntaxNode)
+            FreeArgumentTemps(argumentTemps)
             EmitPopIfUnused(used)
         End Sub
 
@@ -1922,12 +1955,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
             Debug.Assert(temp Is Nothing, "temp is not expected when in-place assigning")
 
             Dim constructor As MethodSymbol = objCreation.ConstructorOpt
-            Me.EmitArguments(objCreation.Arguments, constructor.Parameters)
+            Dim argumentTemps = Me.EmitArguments(objCreation.Arguments, constructor.Parameters)
 
             ' +1 to adjust for consumed target address
             Dim stackAdjustment As Integer = constructor.ParameterCount + 1
             Me._builder.EmitOpCode(ILOpCode.[Call], -stackAdjustment)
             Me.EmitSymbolToken(constructor, objCreation.Syntax)
+            FreeArgumentTemps(argumentTemps)
 
             If used Then
                 Debug.Assert(Me.TargetIsNotOnHeap(target), "cannot read-back the target since it could have been modified")

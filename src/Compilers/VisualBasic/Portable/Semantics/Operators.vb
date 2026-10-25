@@ -3313,7 +3313,7 @@ Next_i:
                                   someCandidatesHaveOverloadResolutionPriority,
                                   useSiteInfo)
 
-                If liftOperators AndAlso Not hasByRefOperand Then
+                If liftOperators Then
                     Dim param1 As ParameterSymbol = method.Parameters(0)
                     Dim type1 As TypeSymbol = param1.Type
                     Dim isNullable1 As Boolean = type1.IsNullableType()

@@ -1106,19 +1106,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Shared ReadOnly s_checkOperatorParameterModifierCallback As CheckParameterModifierDelegate = AddressOf CheckOperatorParameterModifier
 
         ''' <summary>
-        ''' Conversions, IsTrue, and IsFalse are called without the argument passing that a ByRef ReadOnly operand needs.
+        ''' On vbnext every operator, including conversions, IsTrue, and IsFalse, takes ByRef ReadOnly operands.
         ''' </summary>
         Friend Shared Function OperatorAllowsReadOnlyByRef(operatorName As String) As Boolean
-            Select Case operatorName
-                Case Nothing,
-                     WellKnownMemberNames.ImplicitConversionName,
-                     WellKnownMemberNames.ExplicitConversionName,
-                     WellKnownMemberNames.TrueOperatorName,
-                     WellKnownMemberNames.FalseOperatorName
-                    Return False
-                Case Else
-                    Return True
-            End Select
+            Return operatorName IsNot Nothing
         End Function
 
         Private Shared Function CheckOperatorParameterModifier(container As Symbol, token As SyntaxToken, flag As SourceParameterFlags, diagnostics As BindingDiagnosticBag) As SourceParameterFlags

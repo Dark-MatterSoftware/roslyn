@@ -1620,7 +1620,12 @@ DoneWithDiagnostics:
         ) As BoundConversion
             Debug.Assert((convKind.Key And ConversionKind.UserDefined) <> 0 AndAlso convKind.Value IsNot Nothing AndAlso
                          convKind.Value.ParameterCount = 1 AndAlso Not convKind.Value.IsSub AndAlso
-                         Not convKind.Value.Parameters(0).IsByRef AndAlso convKind.Value.IsShared)
+                         (Not convKind.Value.Parameters(0).IsByRef OrElse convKind.Value.Parameters(0).IsReadOnlyByRef) AndAlso convKind.Value.IsShared)
+
+            ' A conversion with a ByRef ReadOnly operand is not a conversion before vbnext.
+            If convKind.Value.Parameters(0).IsByRef AndAlso Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                ReportDiagnostic(diagnostics, argument.Syntax, ERRID.ERR_TypeMismatch2, argument.Type, targetType)
+            End If
 
             ' Suppress any Option Strict diagnostics.
             Dim conversionBinder = New OptionStrictOffBinder(Me)
