@@ -5225,6 +5225,17 @@ ContinueCandidatesLoop:
                         Return True
                     End If
 
+                    ' A ParamArray array is preferred to a params collection, as before params collections were callable.
+                    Dim leftIsArray = left.Candidate.Parameters(left.Candidate.ParameterCount - 1).Type.Kind = SymbolKind.ArrayType
+                    Dim rightIsArray = right.Candidate.Parameters(right.Candidate.ParameterCount - 1).Type.Kind = SymbolKind.ArrayType
+                    If leftIsArray AndAlso Not rightIsArray Then
+                        leftWins = True
+                        Return True
+                    ElseIf rightIsArray AndAlso Not leftIsArray Then
+                        rightWins = True
+                        Return True
+                    End If
+
                 Else
                     rightWins = True
                     Return True
@@ -5245,12 +5256,22 @@ ContinueCandidatesLoop:
             Dim paramType As TypeSymbol = candidate.Candidate.Parameters(paramIndex).Type
 
             If candidate.IsExpandedParamArrayForm AndAlso
-               paramIndex = candidate.Candidate.ParameterCount - 1 AndAlso
-               paramType.Kind = SymbolKind.ArrayType Then
-                paramType = DirectCast(paramType, ArrayTypeSymbol).ElementType
+               paramIndex = candidate.Candidate.ParameterCount - 1 Then
+                paramType = GetExpandedParamArrayElementType(paramType)
             End If
 
             Return paramType
+        End Function
+
+        ''' <summary>
+        ''' The type of each argument of an expanded ParamArray, an array or a params collection.
+        ''' </summary>
+        Private Shared Function GetExpandedParamArrayElementType(paramType As TypeSymbol) As TypeSymbol
+            If paramType.Kind = SymbolKind.ArrayType Then
+                Return DirectCast(paramType, ArrayTypeSymbol).ElementType
+            End If
+
+            Return If(Binder.GetCollectionParamArrayElementTypeByName(paramType), paramType)
         End Function
 
         Private Shared Function GetParameterTypeFromVirtualSignature(
@@ -5272,10 +5293,9 @@ ContinueCandidatesLoop:
             typeForGenericityCheck = paramForGenericityCheck.Type
 
             If candidate.IsExpandedParamArrayForm AndAlso
-               paramIndex = candidate.Candidate.ParameterCount - 1 AndAlso
-               paramType.Kind = SymbolKind.ArrayType Then
-                paramType = DirectCast(paramType, ArrayTypeSymbol).ElementType
-                typeForGenericityCheck = DirectCast(typeForGenericityCheck, ArrayTypeSymbol).ElementType
+               paramIndex = candidate.Candidate.ParameterCount - 1 Then
+                paramType = GetExpandedParamArrayElementType(paramType)
+                typeForGenericityCheck = GetExpandedParamArrayElementType(typeForGenericityCheck)
             End If
 
             Return paramType

@@ -66,6 +66,23 @@ End Module
         End Sub
 
         <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub FixedArgumentOverloadsBeatParamsSpans()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Sub Main()
+        Dim n = 3
+        Console.Write($""number {n + 1}"" & "" "" & $""{n}{n}{n}{n}{n}"")
+        Console.Write("" "" & String.Format(""a{0}"", n) & "" "" & String.Format(""{0}{1}{2}{3}"", 1, 2, 3, 4))
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="number 4 33333 a3 1234", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub CSharpCallsVisualBasicParamArrayCollection()
             Dim library = CreateCompilation("
 Public Module Collect
