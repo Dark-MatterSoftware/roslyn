@@ -15,11 +15,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Inherits DeclarationContext
 
         Private ReadOnly _isPropertyBlock As Boolean
+        Private ReadOnly _isInInterface As Boolean
 
-        Friend Sub New(statement As StatementSyntax, prevContext As BlockContext, isPropertyBlock As Boolean)
+        Friend Sub New(statement As StatementSyntax, prevContext As BlockContext, isPropertyBlock As Boolean, Optional isInInterface As Boolean = False)
             MyBase.New(SyntaxKind.PropertyBlock, statement, prevContext)
 
             _isPropertyBlock = isPropertyBlock
+            _isInInterface = isInInterface
         End Sub
 
         Private ReadOnly Property IsPropertyBlock As Boolean
@@ -121,8 +123,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim beginBlockStmt As PropertyStatementSyntax = DirectCast(BeginStatement, PropertyStatementSyntax)
 
-            ' Check if auto property has params
-            If beginBlockStmt.ParameterList IsNot Nothing AndAlso beginBlockStmt.ParameterList.Parameters.Count > 0 Then
+            ' Check if auto property has params. A property without a body in an interface is abstract, not auto-implemented.
+            If Not _isInInterface AndAlso beginBlockStmt.ParameterList IsNot Nothing AndAlso beginBlockStmt.ParameterList.Parameters.Count > 0 Then
                 beginBlockStmt = New PropertyStatementSyntax(beginBlockStmt.Kind,
                                                              beginBlockStmt.AttributeLists.Node,
                                                              beginBlockStmt.Modifiers.Node,

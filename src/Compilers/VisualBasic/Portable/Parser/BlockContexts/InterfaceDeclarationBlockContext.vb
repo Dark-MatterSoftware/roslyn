@@ -83,11 +83,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     ' Properties in interfaces cannot be initialized
                     Dim propertyStatement = PropertyBlockContext.ReportErrorIfHasInitializer(DirectCast(node, PropertyStatementSyntax))
 
-                    ' On vbnext a Shared Overridable property has Get and Set bodies, its default implementation.
+                    ' On vbnext a property may have Get and Set bodies, its default implementation. Without them it stays a
+                    ' statement, so existing interfaces keep their shape.
                     If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
-                       propertyStatement.Modifiers.Any(SyntaxKind.SharedKeyword) AndAlso
-                       propertyStatement.Modifiers.Any(SyntaxKind.OverridableKeyword) Then
-                        Return New PropertyBlockContext(propertyStatement, Me, isPropertyBlock:=False)
+                       Not propertyStatement.Modifiers.Any(SyntaxKind.MustOverrideKeyword) Then
+                        Return New PropertyBlockContext(propertyStatement, Me, isPropertyBlock:=False, isInInterface:=True)
                     End If
 
                     Add(propertyStatement)
