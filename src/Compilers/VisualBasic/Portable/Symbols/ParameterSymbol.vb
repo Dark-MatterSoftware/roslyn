@@ -124,11 +124,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' <summary>
         ''' Returns true if this parameter was declared as a ParamArray. 
         ''' </summary>
-        Public MustOverride ReadOnly Property IsParamArray As Boolean Implements IParameterSymbol.IsParams, IParameterSymbol.IsParamsArray
+        Public MustOverride ReadOnly Property IsParamArray As Boolean Implements IParameterSymbol.IsParams
 
+        Private ReadOnly Property IsParamsArray As Boolean Implements IParameterSymbol.IsParamsArray
+            Get
+                Return IsParamArray AndAlso Type.Kind = SymbolKind.ArrayType
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' On vbnext, a ParamArray of a collection type, as C# 13 declares params collections.
+        ''' </summary>
         Private ReadOnly Property IsParamsCollection As Boolean Implements IParameterSymbol.IsParamsCollection
             Get
-                Return False
+                Return IsParamArray AndAlso Type.Kind <> SymbolKind.ArrayType
             End Get
         End Property
 

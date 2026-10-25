@@ -925,10 +925,13 @@ HandleAsAGeneralExpression:
 
                     If param.IsParamArray AndAlso paramIndex = candidate.ParameterCount - 1 Then
 
+                        ' A params collection from metadata reaches here only where overload resolution expands it.
                         Dim declaringCompilation = candidate.DeclaringCompilation
-                        Dim collectionElementType = If(targetType.Kind = SymbolKind.ArrayType OrElse declaringCompilation Is Nothing OrElse declaringCompilation.LanguageVersion < LanguageVersion.VbNext,
+                        Dim collectionElementType = If(targetType.Kind = SymbolKind.ArrayType OrElse (declaringCompilation IsNot Nothing AndAlso declaringCompilation.LanguageVersion < LanguageVersion.VbNext),
                                                        Nothing,
-                                                       Binder.GetCollectionParamArrayElementType(declaringCompilation, targetType))
+                                                       If(declaringCompilation Is Nothing,
+                                                          Binder.GetCollectionParamArrayElementTypeByName(targetType),
+                                                          Binder.GetCollectionParamArrayElementType(declaringCompilation, targetType)))
                         If targetType.Kind <> SymbolKind.ArrayType Then
                             If collectionElementType Is Nothing Then
                                 Continue For

@@ -561,7 +561,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
                 End If
 
-                If symbol.IsParamsArray Then
+                If symbol.IsParams Then
                     AddKeyword(SyntaxKind.ParamArrayKeyword)
                     AddSpace()
                 End If

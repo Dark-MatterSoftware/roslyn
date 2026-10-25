@@ -3045,7 +3045,8 @@ Done:
             arguments As ImmutableArray(Of BoundExpression),
             argumentNames As ImmutableArray(Of String),
             ByRef parameterToArgumentMap As ArrayBuilder(Of Integer),
-            ByRef paramArrayItems As ArrayBuilder(Of Integer)
+            ByRef paramArrayItems As ArrayBuilder(Of Integer),
+            binder As Binder
         )
             Debug.Assert(Not arguments.IsDefault)
             Debug.Assert(argumentNames.IsDefault OrElse (argumentNames.Length > 0 AndAlso argumentNames.Length = arguments.Length))
@@ -3112,7 +3113,7 @@ Done:
                 If arguments(i).Kind = BoundKind.OmittedArgument Then
 
                     If paramIndex = candidate.Candidate.ParameterCount - 1 AndAlso
-                       candidate.Candidate.Parameters(paramIndex).IsParamArray Then
+                       IsParamArrayHere(candidate.Candidate.Parameters(paramIndex), binder) Then
                         ' Omitted ParamArray argument at the call site
                         ' ERRID_OmittedParamArrayArgument
                         candidate.State = CandidateAnalysisResultState.ArgumentMismatch
@@ -3161,7 +3162,7 @@ Done:
                 End If
 
                 If paramIndex = candidate.Candidate.ParameterCount - 1 AndAlso
-                    candidate.Candidate.Parameters(paramIndex).IsParamArray Then
+                    IsParamArrayHere(candidate.Candidate.Parameters(paramIndex), binder) Then
                     ' ERRID_NamedParamArrayArgument
                     candidate.State = CandidateAnalysisResultState.ArgumentMismatch
                     GoTo Bailout
@@ -3245,7 +3246,7 @@ Bailout:
             Dim optionalArguments As OptionalArgument() = Nothing
             Dim defaultValueDiagnostics As BindingDiagnosticBag = Nothing
 
-            BuildParameterToArgumentMap(candidate, arguments, argumentNames, parameterToArgumentMap, paramArrayItems)
+            BuildParameterToArgumentMap(candidate, arguments, argumentNames, parameterToArgumentMap, paramArrayItems, binder)
 
             If candidate.State <> CandidateAnalysisResultState.Applicable Then
                 Debug.Assert(Not candidate.IgnoreExtensionMethods)
@@ -3301,7 +3302,7 @@ Bailout:
                 Dim isByRef As Boolean = param.IsByRef
                 Dim targetType As TypeSymbol = param.Type
 
-                If param.IsParamArray AndAlso paramIndex = candidate.Candidate.ParameterCount - 1 Then
+                If paramIndex = candidate.Candidate.ParameterCount - 1 AndAlso binder.IsUsableParamArray(param) Then
 
                     Dim collectionElementType As TypeSymbol = Nothing
                     If targetType.Kind <> SymbolKind.ArrayType Then
@@ -4109,6 +4110,15 @@ Bailout:
 
             candidate.GetAllParameterCounts(requiredCount, maxCount, hasParamArray)
 
+            ' A params collection that cannot take separate arguments here is an ordinary parameter.
+            If hasParamArray AndAlso candidate.Parameters(maxCount - 1).Type.Kind <> SymbolKind.ArrayType AndAlso
+               (binder Is Nothing OrElse Not binder.IsUsableParamArray(candidate.Parameters(maxCount - 1))) Then
+                hasParamArray = False
+                If Not candidate.Parameters(maxCount - 1).IsOptional Then
+                    requiredCount = maxCount
+                End If
+            End If
+
             '§11.8.2 Applicable Methods
             'If there are more positional arguments than parameters and the last parameter is not a paramarray,
             'the method is not applicable. Otherwise, the paramarray parameter is expanded with parameters of
@@ -4158,6 +4168,14 @@ Bailout:
             End If
 
             Return New QuickApplicabilityInfo(candidate, CandidateAnalysisResultState.Applicable, applicableInNormalForm, applicableInParamArrayForm)
+        End Function
+
+        ''' <summary>
+        ''' A ParamArray array, or a params collection that takes separate arguments here.
+        ''' </summary>
+        Private Shared Function IsParamArrayHere(param As ParameterSymbol, binder As Binder) As Boolean
+            Return param.IsParamArray AndAlso
+                   (param.Type.Kind = SymbolKind.ArrayType OrElse (binder IsNot Nothing AndAlso binder.IsUsableParamArray(param)))
         End Function
 
         Private Shared Sub CollectOverloadedCandidate(
@@ -5287,7 +5305,7 @@ ContinueCandidatesLoop:
             Dim parameterToArgumentMap As ArrayBuilder(Of Integer) = Nothing
             Dim paramArrayItems As ArrayBuilder(Of Integer) = Nothing
 
-            BuildParameterToArgumentMap(candidate, arguments, argumentNames, parameterToArgumentMap, paramArrayItems)
+            BuildParameterToArgumentMap(candidate, arguments, argumentNames, parameterToArgumentMap, paramArrayItems, binder)
 
             If candidate.State = CandidateAnalysisResultState.Applicable Then
 

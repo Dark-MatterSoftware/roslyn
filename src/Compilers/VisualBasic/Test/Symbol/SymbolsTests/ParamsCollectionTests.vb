@@ -51,11 +51,15 @@ End Class
 BC30311: Value of type 'Integer' cannot be converted to 'IEnumerable(Of Integer)'.
         C1.M1(1, 2, 3)
               ~
-BC30057: Too many arguments to 'Public Shared Overloads Sub M1(a As IEnumerable(Of Integer))'.
+BC30057: Too many arguments to 'Public Shared Overloads Sub M1(ParamArray a As IEnumerable(Of Integer))'.
         C1.M1(1, 2, 3)
                  ~
 </expected>
             )
+
+            Dim comp2 = CreateCompilation(source1, targetFramework:=TargetFramework.Standard, references:={csCompilation}, options:=TestOptions.DebugExe,
+                                          parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            comp2.AssertNoDiagnostics()
         End Sub
 
         <Fact>
@@ -77,7 +81,7 @@ public class C1
             Dim m1 = DirectCast(csCompilation, Compilation).GetTypeByMetadataName("C1").GetMembers().Where(Function(s) s.Name = "M1").Single()
             Dim m2 = DirectCast(csCompilation, Compilation).GetTypeByMetadataName("C1").GetMembers().Where(Function(s) s.Name = "M2").Single()
 
-            AssertEx.Equal("Public Shared Sub M1(a As System.Collections.Generic.IEnumerable(Of Integer))", SymbolDisplay.ToDisplayString(m1))
+            AssertEx.Equal("Public Shared Sub M1(ParamArray a As System.Collections.Generic.IEnumerable(Of Integer))", SymbolDisplay.ToDisplayString(m1))
             AssertEx.Equal("Public Shared Sub M2(ParamArray a As Integer())", SymbolDisplay.ToDisplayString(m2))
 
             Dim source1 =
@@ -92,7 +96,7 @@ End Class
 
             Dim comp1 = CreateCompilation(source1, targetFramework:=TargetFramework.Standard, references:={csCompilation.EmitToImageReference()}, options:=TestOptions.DebugExe)
 
-            AssertEx.Equal("Sub C1.M1(a As System.Collections.Generic.IEnumerable(Of System.Int32))", comp1.GetMember("C1.M1").ToTestDisplayString())
+            AssertEx.Equal("Sub C1.M1(ParamArray a As System.Collections.Generic.IEnumerable(Of System.Int32))", comp1.GetMember("C1.M1").ToTestDisplayString())
             AssertEx.Equal("Sub C1.M2(ParamArray a As System.Int32())", comp1.GetMember("C1.M2").ToTestDisplayString())
         End Sub
 
@@ -127,19 +131,19 @@ End Class
 
             Dim comp1 = CreateCompilation(source1, targetFramework:=TargetFramework.Standard, references:={csCompilation}, options:=TestOptions.DebugDll)
 
-            VerifyParams(comp1.GetMember("C1.M1").GetParameters().Last(), isParamArray:=False)
+            VerifyParams(comp1.GetMember("C1.M1").GetParameters().Last(), isParamArray:=True, isCollection:=True)
             VerifyParams(comp1.GetMember("C1.M2").GetParameters().Last(), isParamArray:=False)
             VerifyParams(comp1.GetMember("C1.M3").GetParameters().Last(), isParamArray:=True)
             VerifyParams(comp1.GetMember("C2.M4").GetParameters().Last(), isParamArray:=True)
             VerifyParams(comp1.GetMember("C2.M5").GetParameters().Last(), isParamArray:=False)
         End Sub
 
-        Private Shared Sub VerifyParams(parameter As ParameterSymbol, isParamArray As Boolean)
+        Private Shared Sub VerifyParams(parameter As ParameterSymbol, isParamArray As Boolean, Optional isCollection As Boolean = False)
             Assert.Equal(isParamArray, parameter.IsParamArray)
 
             Dim iParameter = DirectCast(parameter, IParameterSymbol)
-            Assert.Equal(isParamArray, iParameter.IsParamsArray)
-            Assert.False(iParameter.IsParamsCollection)
+            Assert.Equal(isParamArray AndAlso Not isCollection, iParameter.IsParamsArray)
+            Assert.Equal(isParamArray AndAlso isCollection, iParameter.IsParamsCollection)
             Assert.Equal(isParamArray, iParameter.IsParams)
         End Sub
 

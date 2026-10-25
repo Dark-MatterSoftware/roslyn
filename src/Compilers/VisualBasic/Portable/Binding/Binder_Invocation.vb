@@ -2193,7 +2193,7 @@ ProduceBoundNode:
                             Exit For
                         End If
 
-                        If paramIndex = candidate.ParameterCount - 1 AndAlso candidate.Parameters(paramIndex).IsParamArray Then
+                        If paramIndex = candidate.ParameterCount - 1 AndAlso IsUsableParamArray(candidate.Parameters(paramIndex)) Then
                             Exit For
                         End If
 
@@ -2217,7 +2217,7 @@ ProduceBoundNode:
                         End If
 
                     ElseIf paramIndex = candidate.ParameterCount - 1 AndAlso
-                           candidate.Parameters(paramIndex).IsParamArray Then
+                           IsUsableParamArray(candidate.Parameters(paramIndex)) Then
 
                         ' Collect ParamArray arguments
                         While i < arguments.Length
@@ -2287,7 +2287,7 @@ ProduceBoundNode:
                     End If
 
                     If paramIndex = candidate.ParameterCount - 1 AndAlso
-                        candidate.Parameters(paramIndex).IsParamArray Then
+                        IsUsableParamArray(candidate.Parameters(paramIndex)) Then
                         ' ERRID_NamedParamArrayArgument
                         ReportDiagnostic(diagnostics, GetNamedArgumentIdentifier(arguments(i).Syntax), ERRID.ERR_NamedParamArrayArgument)
                         someArgumentsBad = True
@@ -2440,7 +2440,7 @@ ProduceBoundNode:
 
                     Dim argument As BoundExpression = Nothing
 
-                    If param.IsParamArray AndAlso paramIndex = candidate.ParameterCount - 1 Then
+                    If paramIndex = candidate.ParameterCount - 1 AndAlso IsUsableParamArray(param) Then
 
                         Dim collectionElementType = If(targetType.Kind = SymbolKind.ArrayType, Nothing, TryGetCollectionParamArrayElementType(targetType))
                         If targetType.Kind <> SymbolKind.ArrayType AndAlso collectionElementType Is Nothing Then

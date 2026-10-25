@@ -447,7 +447,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Public Overrides ReadOnly Property IsParamArray As Boolean
             Get
                 If Not _lazyIsParamArray.HasValue() Then
-                    _lazyIsParamArray = Me.PEModule.HasParamArrayAttribute(_handle).ToThreeState()
+                    ' C# 13 marks a params collection with ParamCollectionAttribute. VB takes the collection types it builds.
+                    Dim result = Me.PEModule.HasParamArrayAttribute(_handle) OrElse
+                                 (_type.Kind <> SymbolKind.ArrayType AndAlso
+                                  Me.PEModule.HasParamCollectionAttribute(_handle) AndAlso
+                                  Binder.GetCollectionParamArrayElementTypeByName(_type) IsNot Nothing)
+                    _lazyIsParamArray = result.ToThreeState()
                 End If
                 Return _lazyIsParamArray.Value()
             End Get

@@ -42,11 +42,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Friend NotOverridable Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
 
-            ' Create the ParamArrayAttribute
+            ' Create the ParamArrayAttribute. C# 13 reads a collection that is not an array through ParamCollectionAttribute.
             If IsParamArray AndAlso Not HasParamArrayAttribute Then
                 Dim compilation = Me.DeclaringCompilation
-                AddSynthesizedAttribute(attributes, compilation.TrySynthesizeAttribute(
-                    WellKnownMember.System_ParamArrayAttribute__ctor))
+                Dim paramCollection = If(Type.Kind = SymbolKind.ArrayType, Nothing,
+                                         compilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_ParamCollectionAttribute__ctor, isOptionalUse:=True))
+                AddSynthesizedAttribute(attributes, If(paramCollection, compilation.TrySynthesizeAttribute(
+                    WellKnownMember.System_ParamArrayAttribute__ctor)))
             End If
 
             ' Create the default attribute

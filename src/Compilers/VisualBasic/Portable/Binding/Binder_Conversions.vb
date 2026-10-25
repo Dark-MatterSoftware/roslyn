@@ -487,6 +487,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Nothing
         End Function
 
+        ''' <summary>
+        ''' The ParamArray collection types of GetCollectionParamArrayElementType, recognized by name where no compilation is
+        ''' at hand, as for a parameter read from metadata.
+        ''' </summary>
+        Friend Shared Function GetCollectionParamArrayElementTypeByName(paramType As TypeSymbol) As TypeSymbol
+            Dim named = TryCast(paramType, NamedTypeSymbol)
+            If named Is Nothing OrElse named.Arity <> 1 Then
+                Return Nothing
+            End If
+
+            Dim definition = named.OriginalDefinition
+            Dim namespaceName = If(definition.ContainingType Is Nothing, definition.ContainingNamespace?.ToDisplayString(), Nothing)
+            Dim isCollection = definition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T OrElse
+                               (definition.Name = "List" AndAlso namespaceName = "System.Collections.Generic") OrElse
+                               ((definition.Name = "Span" OrElse definition.Name = "ReadOnlySpan") AndAlso namespaceName = "System")
+
+            Return If(isCollection, named.TypeArgumentsNoUseSiteDiagnostics(0), Nothing)
+        End Function
+
+        ''' <summary>
+        ''' Whether a ParamArray parameter can take separate arguments here. A C# params collection from metadata cannot
+        ''' before vbnext, and is then an ordinary parameter.
+        ''' </summary>
+        Friend Function IsUsableParamArray(param As ParameterSymbol) As Boolean
+            ' A ParamArray of any other type stays a ParamArray, so that it is reported as one.
+            Return param.IsParamArray AndAlso
+                   (param.Type.Kind = SymbolKind.ArrayType OrElse param.Type.Kind = SymbolKind.ErrorType OrElse
+                    GetCollectionParamArrayElementTypeByName(param.Type) Is Nothing OrElse
+                    TryGetCollectionParamArrayElementType(param.Type) IsNot Nothing)
+        End Function
+
         Private Function TryBindCollectionInitializerFromElements(argument As BoundExpression, targetType As TypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
             Return TryBindCollectionInitializerFromElements(argument.Syntax, targetType, elements, diagnostics)
         End Function
