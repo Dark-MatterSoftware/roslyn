@@ -252,6 +252,19 @@ Checked against this tree after wave 12, by compiling and running the shapes tha
 | VB-112 | `ByRef ReadOnly` conversions and lifted operators | Done in phase 74: on `vbnext` every operator takes `ByRef ReadOnly` operands and such operators lift. Before that, `Widening Operator CType(ByRef ReadOnly value As Big) As Long` reported BC30651, and `a + b` over `Vec?` operands with a `ByRef ReadOnly` operator reports BC30512 under `Option Strict On`, because phase 67 leaves conversions, `IsTrue`, `IsFalse`, and lifting out. C# allows `in` on all operators and lifts them. No new syntax. |
 | VB-113 | `NameOf` members of unbound generic types | Done in phase 73: on `vbnext` they give the member's name. Before that, `NameOf(System.Collections.Generic.List(Of).Count)` reported BC31424, a misleading forwarded-type error, in a project, where slice 65a's test reports BC30002. C# 14 accepts `nameof(List<>.Count)`. No new syntax. |
 
+## Wave 14
+
+Checked against this tree after wave 13, by compiling and running the shapes that wave 13 code meets next against .NET 11 with `LangVersion` `vbnext`, with a C# library alongside: the `params`, extension, and operator forms that wave 13 left open, and the C# 13 and 14 forms around them. Several shapes already work: `OverloadResolutionPriorityAttribute` choosing between C# overloads, `SyncLock` on a `System.Threading.Lock`, which calls `Lock.Enter`, a `Span(Of Integer)` passed to a C# method whose type parameter `allows ref struct`, a `ByRef Structure` that implements `IDisposable` in a `Using` block, and a VB generic attribute class applied by its short name.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-114 | Other `params` collection types | `Bags.CountImm(1, 2, 3)`, where C# 13 declares `CountImm(params ImmutableArray<int> values)`, reports BC30311 and BC30057, as do `params HashSet<int>` and `params ICollection<int>`, because phase 72 covers only spans, `List(Of T)`, and `IEnumerable(Of T)`. VB's own `ParamArray values As HashSet(Of Integer)` reports BC30050. No new syntax. |
+| VB-115 | C# 14 compound assignment operators | `c += 5`, where C# 14 declares `public void operator +=(int amount)` on `Counter` and no `operator +`, reports BC30452, "Operator '+' is not defined for types 'Counter' and 'Integer'", because VB rewrites `+=` as `c = c + 5`. No new syntax. |
+| VB-116 | C# 14 extension operators | `a + b` over `Vec` operands, where C# 14 declares `operator +` in `extension(Vec)`, reports BC30452, because VB looks for operators only in the operand types. No new syntax. |
+| VB-117 | Generic C# 14 extension blocks | `numbers.Tail` and `List(Of Integer).Empty()`, where C# 14 declares them in `extension<T>(List<T> list)`, report BC30456, because phase 78 reads only blocks that are not generic. No new syntax. |
+| VB-118 | Ref structures for interface constraints | `Generic.Use(New Wrapper())`, where C# 13 declares `Use<T>(T value) where T : IDisposable, allows ref struct` and `Wrapper` is a `ByRef Structure` that implements `IDisposable`, reports BC32044, because VB checks the constraint as a boxing conversion. No new syntax. |
+| VB-119 | `allows ref struct` type parameters | `Echo(span)`, where VB declares `Function Echo(Of T)(value As T) As T` and `span` is a `Span(Of Integer)`, reports BC37376, and VB has no form for C# 13's `allows ref struct`, so generic VB code cannot take spans. Needs a design note first. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -446,3 +459,29 @@ The gap that blocks calls into the .NET libraries comes first. Then the gaps tha
 | 6 | VB-108 | Generic attributes | M | Applies and declares attribute classes with type parameters. |
 | 7 | VB-107 | C# 14 extension members | L | Reads extension properties and static extension members from the metadata C# 14 emits. |
 | 8 | VB-111 | Conversion operators in interfaces | L | Needs a design note first, because conversions through a type parameter need new lookup rules. |
+
+### Wave 14 order
+
+The gap that blocks calls into the .NET libraries comes first. Then the C# 14 operator forms, smallest first, then the gap that finishes phase 78, then the ref structure forms, last the one that needs a design note.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-114 | Other `params` collection types | M | Finishes phase 72 with the collection types that `ImmutableArray(Of T)` and other library overloads take. |
+| 2 | VB-115 | C# 14 compound assignment operators | M | Types that declare only `+=` cannot be used with `+=` from VB at all. |
+| 3 | VB-116 | C# 14 extension operators | M | Adds the extension blocks of phase 78 to operator lookup. |
+| 4 | VB-117 | Generic C# 14 extension blocks | M | Finishes phase 78 for blocks with type parameters, which most library extensions use. |
+| 5 | VB-118 | Ref structures for interface constraints | M | Lets VB ref structures reach generic library code that C# 13 opened to them. |
+| 6 | VB-119 | `allows ref struct` type parameters | L | Needs a design note first, because VB has no form for the anti-constraint. |
+
+### Wave 14 order
+
+The gap that blocks calls into the .NET libraries comes first. Then the C# 14 operator forms, smallest first, then the gap that finishes phase 78, then the ref structure forms, last the one that needs a design note.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-114 | Other `params` collection types | M | Finishes phase 72 with the collection types that `ImmutableArray(Of T)` and other library overloads take. |
+| 2 | VB-115 | C# 14 compound assignment operators | M | Types that declare only `+=` cannot be used with `+=` from VB at all. |
+| 3 | VB-116 | C# 14 extension operators | M | Adds the extension blocks of phase 78 to operator lookup. |
+| 4 | VB-117 | Generic C# 14 extension blocks | M | Finishes phase 78 for blocks with type parameters, which most library extensions use. |
+| 5 | VB-118 | Ref structures for interface constraints | M | Lets VB ref structures reach generic library code that C# 13 opened to them. |
+| 6 | VB-119 | `allows ref struct` type parameters | L | Needs a design note first, because VB has no form for the anti-constraint. |
