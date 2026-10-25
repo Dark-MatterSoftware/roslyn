@@ -1303,6 +1303,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Continue For
                         End If
 
+                        ' Static members of C# 14 extension blocks are read on vbnext.
+                        If (TypeOf candidate Is Symbols.Metadata.PE.PEExtensionPropertySymbol OrElse TypeOf candidate Is Symbols.Metadata.PE.PEMethodSymbol) AndAlso
+                           binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                            Continue For
+                        End If
+
                         Dim extendedType As TypeSymbol
                         If candidate.Kind = SymbolKind.Method Then
                             extendedType = DirectCast(candidate, MethodSymbol).StaticExtensionType
@@ -1358,6 +1364,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     For Each candidate In properties
                         If (options And LookupOptions.IgnoreAccessibility) = 0 AndAlso
                            Not AccessCheck.IsSymbolAccessible(candidate.ContainingType, binder.Compilation.Assembly, useSiteInfo) Then
+                            Continue For
+                        End If
+
+                        ' C# 14 extension properties are read on vbnext.
+                        If TypeOf candidate Is Symbols.Metadata.PE.PEExtensionPropertySymbol AndAlso binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
                             Continue For
                         End If
 

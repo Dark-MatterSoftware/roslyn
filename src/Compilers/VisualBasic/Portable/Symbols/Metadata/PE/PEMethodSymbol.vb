@@ -938,6 +938,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private _lazyIsDeclaredReadOnly As ThreeState
 
         ''' <summary>
+        ''' A static method that implements a static member of a C# 14 extension block is a static extension member of the
+        ''' block's receiver type.
+        ''' </summary>
+        Friend Overrides ReadOnly Property IsStaticExtensionMember As Boolean
+            Get
+                Return StaticExtensionType IsNot Nothing
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property StaticExtensionType As TypeSymbol
+            Get
+                Return If(Me.IsShared, _containingType.GetStaticExtensionType(Me), Nothing)
+            End Get
+        End Property
+
+        ''' <summary>
         ''' C# marks a readonly member of a structure with IsReadOnlyAttribute.
         ''' </summary>
         Friend Overrides ReadOnly Property IsDeclaredReadOnly As Boolean

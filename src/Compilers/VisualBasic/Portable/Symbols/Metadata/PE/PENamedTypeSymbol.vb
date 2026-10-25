@@ -1619,6 +1619,163 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Return ContainingPEModule.Module.HasAttribute(Handle, AttributeDescription.RequiredMemberAttribute)
             End Get
         End Property
+
+#Region "C# 14 extension members"
+        ''' <summary>
+        ''' The members that C# 14 extension blocks of this type declare, other than instance extension methods, which C#
+        ''' also emits as classic extension methods.
+        ''' </summary>
+        Private NotInheritable Class ExtensionMembers
+            Public ReadOnly InstanceProperties As New List(Of PropertySymbol)()
+            Public ReadOnly StaticProperties As New List(Of PropertySymbol)()
+            Public ReadOnly StaticMethods As New Dictionary(Of MethodSymbol, TypeSymbol)()
+        End Class
+
+        Private _lazyExtensionMembers As ExtensionMembers
+
+        Private Function GetExtensionMembers() As ExtensionMembers
+            If _lazyExtensionMembers Is Nothing Then
+                Interlocked.CompareExchange(_lazyExtensionMembers, BuildExtensionMembers(), Nothing)
+            End If
+
+            Return _lazyExtensionMembers
+        End Function
+
+        ''' <summary>
+        ''' C# 14 emits an extension block as a nested grouping type whose members are declarations marked with
+        ''' ExtensionMarkerAttribute, naming a nested marker type whose &lt;Extension&gt;$ method takes the receiver.
+        ''' The members are implemented by static methods of this type, which take the receiver first unless static.
+        ''' </summary>
+        Private Function BuildExtensionMembers() As ExtensionMembers
+            Dim result As New ExtensionMembers()
+            If Not Me.MightContainExtensionMethods Then
+                Return result
+            End If
+
+            For Each grouping In GetTypeMembersUnordered()
+                If Not grouping.Name.StartsWith("<G>$", StringComparison.Ordinal) OrElse grouping.Arity <> 0 Then
+                    Continue For
+                End If
+
+                Dim receivers As New Dictionary(Of String, ParameterSymbol)(StringComparer.Ordinal)
+                For Each marker In grouping.GetTypeMembersUnordered()
+                    For Each markerMethod In marker.GetMembers("<Extension>$").OfType(Of MethodSymbol)()
+                        If markerMethod.ParameterCount = 1 Then
+                            receivers(marker.Name) = markerMethod.Parameters(0)
+                        End If
+                    Next
+                Next
+
+                For Each declaration In grouping.GetMembersUnordered()
+                    Dim markerName = GetExtensionMarkerName(declaration)
+                    Dim receiver As ParameterSymbol = Nothing
+                    If markerName Is Nothing OrElse Not receivers.TryGetValue(markerName, receiver) Then
+                        Continue For
+                    End If
+
+                    Select Case declaration.Kind
+                        Case SymbolKind.Property
+                            Dim [property] = DirectCast(declaration, PropertySymbol)
+                            Dim getter = FindExtensionImplementation([property].GetMethod, receiver)
+                            Dim setter = FindExtensionImplementation([property].SetMethod, receiver)
+                            If getter IsNot Nothing OrElse setter IsNot Nothing Then
+                                Dim implemented = New PEExtensionPropertySymbol(Me, [property], getter, setter, receiver.Type)
+                                If [property].IsShared Then
+                                    result.StaticProperties.Add(implemented)
+                                Else
+                                    result.InstanceProperties.Add(implemented)
+                                End If
+                            End If
+
+                        Case SymbolKind.Method
+                            Dim method = DirectCast(declaration, MethodSymbol)
+                            If method.IsShared AndAlso method.MethodKind = MethodKind.Ordinary Then
+                                Dim implementation = FindExtensionImplementation(method, receiver)
+                                If implementation IsNot Nothing Then
+                                    result.StaticMethods(implementation) = receiver.Type
+                                End If
+                            End If
+                    End Select
+                Next
+            Next
+
+            Return result
+        End Function
+
+        Private Shared Function GetExtensionMarkerName(declaration As Symbol) As String
+            For Each attribute In declaration.GetAttributes()
+                If attribute.AttributeClass?.Name = "ExtensionMarkerAttribute" AndAlso
+                   attribute.CommonConstructorArguments.Length = 1 Then
+                    Return TryCast(attribute.CommonConstructorArguments(0).ValueInternal, String)
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Finds the static method of this type that implements a declaration: the same name, and the declaration's
+        ''' parameters after the receiver unless the declaration is static.
+        ''' </summary>
+        Private Function FindExtensionImplementation(declaration As MethodSymbol, receiver As ParameterSymbol) As MethodSymbol
+            If declaration Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim offset = If(declaration.IsShared, 0, 1)
+            For Each candidate In GetMembers(declaration.Name).OfType(Of MethodSymbol)()
+                If Not candidate.IsShared OrElse candidate.ParameterCount <> declaration.ParameterCount + offset OrElse
+                   candidate.Arity <> declaration.Arity OrElse
+                   Not candidate.ReturnType.IsSameType(declaration.ReturnType, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                    Continue For
+                End If
+
+                If offset = 1 AndAlso Not candidate.Parameters(0).Type.IsSameType(receiver.Type, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                    Continue For
+                End If
+
+                Dim matches = True
+                For i = 0 To declaration.ParameterCount - 1
+                    If Not candidate.Parameters(i + offset).Type.IsSameType(declaration.Parameters(i).Type, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                        matches = False
+                        Exit For
+                    End If
+                Next
+
+                If matches Then
+                    Return candidate
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' The receiver type of a static method that implements a static member of a C# 14 extension block.
+        ''' </summary>
+        Friend Function GetStaticExtensionType(method As MethodSymbol) As TypeSymbol
+            Dim extendedType As TypeSymbol = Nothing
+            Return If(GetExtensionMembers().StaticMethods.TryGetValue(method, extendedType), extendedType, Nothing)
+        End Function
+
+        Friend Overrides Sub AppendProbableExtensionProperties(name As String, properties As ArrayBuilder(Of PropertySymbol))
+            MyBase.AppendProbableExtensionProperties(name, properties)
+            For Each [property] In GetExtensionMembers().InstanceProperties
+                If IdentifierComparison.Equals([property].Name, name) Then
+                    properties.Add([property])
+                End If
+            Next
+        End Sub
+
+        Friend Overrides Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))
+            MyBase.AppendProbableStaticExtensionMembers(name, members)
+            For Each [property] In GetExtensionMembers().StaticProperties
+                If IdentifierComparison.Equals([property].Name, name) Then
+                    members.Add([property])
+                End If
+            Next
+        End Sub
+#End Region
     End Class
 
 End Namespace
