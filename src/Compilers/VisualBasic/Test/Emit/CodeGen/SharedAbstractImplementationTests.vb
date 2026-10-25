@@ -758,9 +758,6 @@ End Module
 BC30270: 'Overridable' is not valid on an interface method declaration.
     Shared Overridable Function NoBody() As String
            ~~~~~~~~~~~
-BC30270: 'Shared' is not valid on an interface method declaration.
-    Shared Function Plain() As String
-    ~~~~~~
 BC37314: A shared abstract or virtual interface member cannot be accessed.
         Return INamed.DefaultName()
                ~~~~~~~~~~~~~~~~~~~~

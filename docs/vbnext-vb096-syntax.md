@@ -54,4 +54,4 @@ Visual Basic 17.13 still reports BC30270.
 
 ## Not locked
 
-Non-virtual shared members with a body in an interface, and calling a shared virtual member through the interface's name, are not covered by this note.
+Calling a shared virtual member through the interface's name is not covered by this note. Non-virtual shared members with a body, the plain `Shared` form this note keeps, are declared in slice 76a.

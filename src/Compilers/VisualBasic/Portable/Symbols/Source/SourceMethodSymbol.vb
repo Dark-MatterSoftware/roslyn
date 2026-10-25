@@ -93,7 +93,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                       (flags And SourceMemberFlags.Shared) <> 0 AndAlso
                                       syntax.Modifiers.Any(SyntaxKind.OverridableKeyword)
 
-            If container.IsInterface AndAlso hasBody Then
+            If container.IsInterface AndAlso hasBody AndAlso (flags And SourceMemberFlags.Shared) <> 0 AndAlso Not isSharedOverridable AndAlso
+               binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                ' On vbnext a plain Shared method with a body is a static interface member that is not virtual.
+                flags = flags And Not SourceMemberFlags.MustOverride
+
+            ElseIf container.IsInterface AndAlso hasBody Then
                 If (flags And SourceMemberFlags.Shared) <> 0 AndAlso Not isSharedOverridable Then
                     binder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadInterfaceMethodFlags1, diagBag, SyntaxKind.SharedKeyword)
                     flags = flags And Not SourceMemberFlags.Shared

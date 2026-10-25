@@ -999,6 +999,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ElseIf Not IsNameOfArgument(node) AndAlso
                symbol.Kind <> SymbolKind.Property AndAlso
+               If(symbol.ContainingType?.IsInterface, False) AndAlso
+               symbol.IsShared AndAlso
+               receiverOpt?.Type IsNot Nothing AndAlso receiverOpt.Type.TypeKind = TypeKind.TypeParameter AndAlso
+               Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+
+                ' A shared interface member that is not abstract or virtual is reached through the interface's name.
+                ReportDiagnostic(diagnostics, node, ERRID.ERR_TypeParamQualifierDisallowed)
+
+            ElseIf Not IsNameOfArgument(node) AndAlso
+               symbol.Kind <> SymbolKind.Property AndAlso
                Compilation.SourceModule IsNot symbol.ContainingModule AndAlso
                If(symbol.ContainingType?.IsInterface, False) Then
 

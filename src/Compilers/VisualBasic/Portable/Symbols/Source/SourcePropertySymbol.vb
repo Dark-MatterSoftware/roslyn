@@ -106,8 +106,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     bodyBinder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadInterfacePropertyFlags1, diagnostics, SyntaxKind.OverridableKeyword)
                     modifiers = New MemberModifiers(modifiers.FoundFlags And Not SourceMemberFlags.Overridable, modifiers.ComputedFlags)
                 ElseIf blockSyntaxOpt IsNot Nothing Then
-                    ' A plain Shared property with a body is not a shared virtual member.
-                    bodyBinder.ReportModifierError(syntax.Modifiers, ERRID.ERR_BadInterfacePropertyFlags1, diagnostics, SyntaxKind.SharedKeyword)
+                    ' A plain Shared property with a body is a static interface member that is not virtual.
+                    modifiers = New MemberModifiers(modifiers.FoundFlags, modifiers.ComputedFlags And Not SourceMemberFlags.MustOverride)
                 End If
             ElseIf containingType.IsInterface AndAlso blockSyntaxOpt IsNot Nothing Then
                 ' On vbnext an instance interface property with a body is its default implementation: virtual, not abstract.

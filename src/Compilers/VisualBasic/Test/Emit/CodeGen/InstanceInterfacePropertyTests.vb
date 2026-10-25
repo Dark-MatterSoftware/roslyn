@@ -120,9 +120,6 @@ End Class
 
             compilation.AssertTheseDiagnostics(
 <expected>
-BC30273: 'Shared' is not valid on an interface property declaration.
-    Shared ReadOnly Property Count As Integer
-    ~~~~~~
 BC30149: Class 'Missing' must implement 'Property Item(index As Integer) As String' for interface 'IGreeter'.
     Implements IGreeter
                ~~~~~~~~
