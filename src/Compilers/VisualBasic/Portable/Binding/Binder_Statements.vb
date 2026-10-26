@@ -3094,6 +3094,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BindRefFieldAssignment(node, diagnostics)
             End If
 
+            Dim compoundOperatorCall = TryBindUserDefinedCompoundAssignment(node, diagnostics)
+            If compoundOperatorCall IsNot Nothing Then
+                Return New BoundExpressionStatement(node, compoundOperatorCall.MakeCompilerGenerated())
+            End If
+
             Dim op1 As BoundExpression = Me.BindAssignmentTarget(node.Left, diagnostics)
             Dim op2 As BoundExpression = Me.BindValue(node.Right, diagnostics)
             Debug.Assert(op1 IsNot Nothing)
@@ -3157,6 +3162,124 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundExpressionStatement(node, expr.MakeCompilerGenerated())
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, c += 5 calls the instance operator += that C# 14 declares on the type of c, op_AdditionAssignment, when
+        ''' c is a class instance or a variable and an operator applies to the value; otherwise c = c + 5 applies as before.
+        ''' With integer overflow checks on, the checked form is tried first. The class instance is only read, so it may be
+        ''' a ReadOnly property.
+        ''' </summary>
+        Private Function TryBindUserDefinedCompoundAssignment(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return Nothing
+            End If
+
+            Select Case node.Kind
+                Case SyntaxKind.AddAssignmentStatement, SyntaxKind.SubtractAssignmentStatement, SyntaxKind.MultiplyAssignmentStatement,
+                     SyntaxKind.DivideAssignmentStatement, SyntaxKind.LeftShiftAssignmentStatement, SyntaxKind.RightShiftAssignmentStatement
+                Case Else
+                    Return Nothing
+            End Select
+
+            Dim bindingDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
+            Dim target = BindExpression(node.Left, bindingDiagnostics)
+            If Not target.IsLValue AndAlso Not target.HasErrors Then
+                target = MakeRValue(target, bindingDiagnostics)
+            End If
+
+            Dim value = BindValue(node.Right, bindingDiagnostics)
+            Dim result As BoundExpression = Nothing
+            If Not target.HasErrors AndAlso Not value.HasErrors AndAlso Not bindingDiagnostics.HasAnyErrors() Then
+                result = TryBindUserDefinedCompoundAssignment(node, target, value, bindingDiagnostics)
+            End If
+
+            If result IsNot Nothing Then
+                diagnostics.AddRange(bindingDiagnostics)
+            End If
+
+            bindingDiagnostics.Free()
+            Return result
+        End Function
+
+        Private Function TryBindUserDefinedCompoundAssignment(node As AssignmentStatementSyntax, target As BoundExpression, value As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+
+            Dim name As String
+            Dim checkedName As String = Nothing
+            Select Case node.Kind
+                Case SyntaxKind.AddAssignmentStatement
+                    name = WellKnownMemberNames.AdditionAssignmentOperatorName
+                    checkedName = WellKnownMemberNames.CheckedAdditionAssignmentOperatorName
+                Case SyntaxKind.SubtractAssignmentStatement
+                    name = WellKnownMemberNames.SubtractionAssignmentOperatorName
+                    checkedName = WellKnownMemberNames.CheckedSubtractionAssignmentOperatorName
+                Case SyntaxKind.MultiplyAssignmentStatement
+                    name = WellKnownMemberNames.MultiplicationAssignmentOperatorName
+                    checkedName = WellKnownMemberNames.CheckedMultiplicationAssignmentOperatorName
+                Case SyntaxKind.DivideAssignmentStatement
+                    name = WellKnownMemberNames.DivisionAssignmentOperatorName
+                    checkedName = WellKnownMemberNames.CheckedDivisionAssignmentOperatorName
+                Case SyntaxKind.LeftShiftAssignmentStatement
+                    name = WellKnownMemberNames.LeftShiftAssignmentOperatorName
+                Case SyntaxKind.RightShiftAssignmentStatement
+                    name = WellKnownMemberNames.RightShiftAssignmentOperatorName
+                Case Else
+                    Return Nothing
+            End Select
+
+            Dim type = target.Type
+            If type Is Nothing OrElse type.IsErrorType() OrElse (type.TypeKind <> TypeKind.Class AndAlso type.TypeKind <> TypeKind.Structure) Then
+                Return Nothing
+            End If
+
+            ' A structure is changed in place, so it must be a variable.
+            Dim receiver As BoundExpression
+            If type.IsReferenceType Then
+                receiver = MakeRValue(target, BindingDiagnosticBag.Discarded)
+            ElseIf target.IsLValue Then
+                receiver = target
+            Else
+                Return Nothing
+            End If
+
+            If CheckOverflow AndAlso checkedName IsNot Nothing Then
+                Dim checkedCall = TryBindCompoundOperatorCall(node, receiver, type, checkedName, value, diagnostics)
+                If checkedCall IsNot Nothing Then
+                    Return checkedCall
+                End If
+            End If
+
+            Return TryBindCompoundOperatorCall(node, receiver, type, name, value, diagnostics)
+        End Function
+
+        Private Function TryBindCompoundOperatorCall(node As AssignmentStatementSyntax, receiver As BoundExpression, type As TypeSymbol, name As String, value As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim lookup = LookupResult.GetInstance()
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            LookupMember(lookup, type, name, 0, LookupOptions.MustBeInstance Or LookupOptions.MethodsOnly Or LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+
+            Dim methods = If(lookup.IsGood,
+                             lookup.Symbols.OfType(Of MethodSymbol)().Where(Function(m) m.IsSub AndAlso m.ParameterCount = 1 AndAlso Not m.IsShared).ToImmutableArray(),
+                             ImmutableArray(Of MethodSymbol).Empty)
+            Dim resultKind = lookup.Kind
+            lookup.Free()
+
+            If methods.IsEmpty Then
+                Return Nothing
+            End If
+
+            Dim group = New BoundMethodGroup(node, Nothing, methods, resultKind, receiver, QualificationKind.QualifiedViaValue).MakeCompilerGenerated()
+            Dim callDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=diagnostics.AccumulatesDependencies)
+            Dim result = BindInvocationExpression(node, node, TypeCharacter.None, group, ImmutableArray.Create(value), Nothing, callDiagnostics, callerInfoOpt:=Nothing)
+
+            If result.HasErrors OrElse callDiagnostics.HasAnyErrors() Then
+                callDiagnostics.Free()
+                Return Nothing
+            End If
+
+            diagnostics.Add(node, useSiteInfo)
+            diagnostics.AddRange(callDiagnostics)
+            callDiagnostics.Free()
+            Return result
         End Function
 
         Private Function BindMidAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement

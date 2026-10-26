@@ -920,7 +920,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Select Case methodOrProperty.Kind
                 Case SymbolKind.Method
                     Dim method = DirectCast(methodOrProperty, MethodSymbol)
-                    If method.ReturnsByRefReadOnly OrElse HasInModifierParameter(method.Parameters) Then
+                    If method.ReturnsByRefReadOnly OrElse HasInModifierParameter(method.Parameters) OrElse IsCompoundAssignmentOperatorFromMetadata(method) Then
                         Dim name = If(method.MethodKind = MethodKind.DelegateInvoke, CustomSymbolDisplayFormatter.ShortErrorName(method.ContainingType), CustomSymbolDisplayFormatter.ShortErrorName(methodOrProperty))
                         Return ErrorFactory.ErrorInfo(ERRID.ERR_UnsupportedMethod1, name)
                     End If
@@ -933,6 +933,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Select
 
             Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' An instance operator such as op_AdditionAssignment that C# 14 declares and marks as requiring compiler support.
+        ''' </summary>
+        Private Shared Function IsCompoundAssignmentOperatorFromMetadata(method As MethodSymbol) As Boolean
+            If method.IsShared OrElse TypeOf method.OriginalDefinition IsNot Symbols.Metadata.PE.PEMethodSymbol Then
+                Return False
+            End If
+
+            Select Case method.Name
+                Case WellKnownMemberNames.AdditionAssignmentOperatorName,
+                     WellKnownMemberNames.SubtractionAssignmentOperatorName,
+                     WellKnownMemberNames.MultiplicationAssignmentOperatorName,
+                     WellKnownMemberNames.DivisionAssignmentOperatorName,
+                     WellKnownMemberNames.ModulusAssignmentOperatorName,
+                     WellKnownMemberNames.BitwiseAndAssignmentOperatorName,
+                     WellKnownMemberNames.BitwiseOrAssignmentOperatorName,
+                     WellKnownMemberNames.ExclusiveOrAssignmentOperatorName,
+                     WellKnownMemberNames.LeftShiftAssignmentOperatorName,
+                     WellKnownMemberNames.RightShiftAssignmentOperatorName,
+                     WellKnownMemberNames.UnsignedRightShiftAssignmentOperatorName,
+                     WellKnownMemberNames.IncrementAssignmentOperatorName,
+                     WellKnownMemberNames.DecrementAssignmentOperatorName,
+                     WellKnownMemberNames.CheckedAdditionAssignmentOperatorName,
+                     WellKnownMemberNames.CheckedSubtractionAssignmentOperatorName,
+                     WellKnownMemberNames.CheckedMultiplicationAssignmentOperatorName,
+                     WellKnownMemberNames.CheckedDivisionAssignmentOperatorName,
+                     WellKnownMemberNames.CheckedIncrementAssignmentOperatorName,
+                     WellKnownMemberNames.CheckedDecrementAssignmentOperatorName
+                    Return True
+            End Select
+
+            Return False
         End Function
 
         Friend Shared Function HasInModifierParameter(parameters As ImmutableArray(Of ParameterSymbol)) As Boolean
