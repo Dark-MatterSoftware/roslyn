@@ -263,7 +263,7 @@ Checked against this tree after wave 13, by compiling and running the shapes tha
 | VB-116 | C# 14 extension operators | Done in phase 83: on `vbnext` for unary and binary operators of extension blocks that are not generic. Before that, `a + b` over `Vec` operands, where C# 14 declares `operator +` in `extension(Vec)`, reported BC30452, because VB looks for operators only in the operand types. No new syntax. |
 | VB-117 | Generic C# 14 extension blocks | Done in phase 84: on `vbnext` for properties and static methods of generic blocks, inferring the block's type arguments from the receiver; generic members and operators of generic blocks remain. Before that, `numbers.Tail` and `List(Of Integer).Empty()`, where C# 14 declares them in `extension<T>(List<T> list)`, reported BC30456, because phase 78 reads only blocks that are not generic. No new syntax. |
 | VB-118 | Ref structures for interface constraints | Done in phase 85: on `vbnext` a ref structure meets an interface constraint by implementing it. Before that, `Generic.Use(New Wrapper())`, where C# 13 declares `Use<T>(T value) where T : IDisposable, allows ref struct` and `Wrapper` is a `ByRef Structure` that implements `IDisposable`, reported BC32044, because VB checks the constraint as a boxing conversion. No new syntax. |
-| VB-119 | `allows ref struct` type parameters | `Echo(span)`, where VB declares `Function Echo(Of T)(value As T) As T` and `span` is a `Span(Of Integer)`, reports BC37376, and VB has no form for C# 13's `allows ref struct`, so generic VB code cannot take spans. Needs a design note first. |
+| VB-119 | `allows ref struct` type parameters | Done before wave 14 by slice 7m: `Function Echo(Of T As ByRef)(value As T) As T` takes a `Span(Of Integer)`, and phase 85 lets `{IDisposable, ByRef}` take a `ByRef Structure` that implements the interface. The probe declared `Function Echo(Of T)` without the `ByRef` constraint, where `Echo(span)` reports BC37376 as designed. No new syntax. |
 
 ## Parked
 
@@ -471,17 +471,4 @@ The gap that blocks calls into the .NET libraries comes first. Then the C# 14 op
 | 3 | VB-116 | C# 14 extension operators | M | Adds the extension blocks of phase 78 to operator lookup. |
 | 4 | VB-117 | Generic C# 14 extension blocks | M | Finishes phase 78 for blocks with type parameters, which most library extensions use. |
 | 5 | VB-118 | Ref structures for interface constraints | M | Lets VB ref structures reach generic library code that C# 13 opened to them. |
-| 6 | VB-119 | `allows ref struct` type parameters | L | Needs a design note first, because VB has no form for the anti-constraint. |
-
-### Wave 14 order
-
-The gap that blocks calls into the .NET libraries comes first. Then the C# 14 operator forms, smallest first, then the gap that finishes phase 78, then the ref structure forms, last the one that needs a design note.
-
-| # | Id | Feature | Rank | Why this slot |
-| --- | --- | --- | --- | --- |
-| 1 | VB-114 | Other `params` collection types | M | Finishes phase 72 with the collection types that `ImmutableArray(Of T)` and other library overloads take. |
-| 2 | VB-115 | C# 14 compound assignment operators | M | Types that declare only `+=` cannot be used with `+=` from VB at all. |
-| 3 | VB-116 | C# 14 extension operators | M | Adds the extension blocks of phase 78 to operator lookup. |
-| 4 | VB-117 | Generic C# 14 extension blocks | M | Finishes phase 78 for blocks with type parameters, which most library extensions use. |
-| 5 | VB-118 | Ref structures for interface constraints | M | Lets VB ref structures reach generic library code that C# 13 opened to them. |
-| 6 | VB-119 | `allows ref struct` type parameters | L | Needs a design note first, because VB has no form for the anti-constraint. |
+| 6 | VB-119 | `allows ref struct` type parameters | S | Already declared by slice 7m's `ByRef` constraint; phase 86 records it and tests it with phase 85. |

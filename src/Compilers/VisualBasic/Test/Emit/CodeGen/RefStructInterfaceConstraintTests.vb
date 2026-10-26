@@ -69,6 +69,35 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="disposed hi vb hi too", verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
 
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub VisualBasicTypeParametersThatTakeRefStructures()
+            Dim csharp = CSharpLibrary()
+            Dim program = CreateCompilation({WrapperSource, "
+Imports System
+
+Public Module Generics
+    Public Function Echo(Of T As ByRef)(value As T) As T
+        Return value
+    End Function
+
+    Public Sub Close(Of T As {IDisposable, ByRef})(value As T)
+        value.Dispose()
+    End Sub
+
+    Sub Main()
+        Dim span As Span(Of Integer) = New Integer() {1, 2}
+        Console.Write(Echo(span).Length & "" "" & Echo(5) & "" "")
+        Close(New Wrapper())
+    End Sub
+End Module
+"}, targetFramework:=TargetFramework.Net90, references:={csharp}, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+            CompileAndVerify(program, expectedOutput:="2 5 disposed", verify:=Verification.Skipped).VerifyDiagnostics()
+
+            Dim csCompilation = CreateCSharpCompilation("", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90, {program.EmitToImageReference(), csharp}))
+            Dim close = csCompilation.GetTypeByMetadataName("Generics").GetMembers("Close").OfType(Of IMethodSymbol)().Single()
+            Assert.True(close.TypeParameters(0).AllowsRefLikeType)
+        End Sub
+
         <Fact>
         Public Sub RefStructureConstraintErrors()
             Dim compilation = CreateCompilation({WrapperSource, "
