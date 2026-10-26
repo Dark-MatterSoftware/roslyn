@@ -265,6 +265,19 @@ Checked against this tree after wave 13, by compiling and running the shapes tha
 | VB-118 | Ref structures for interface constraints | Done in phase 85: on `vbnext` a ref structure meets an interface constraint by implementing it. Before that, `Generic.Use(New Wrapper())`, where C# 13 declares `Use<T>(T value) where T : IDisposable, allows ref struct` and `Wrapper` is a `ByRef Structure` that implements `IDisposable`, reported BC32044, because VB checks the constraint as a boxing conversion. No new syntax. |
 | VB-119 | `allows ref struct` type parameters | Done before wave 14 by slice 7m: `Function Echo(Of T As ByRef)(value As T) As T` takes a `Span(Of Integer)`, and phase 85 lets `{IDisposable, ByRef}` take a `ByRef Structure` that implements the interface. The probe declared `Function Echo(Of T)` without the `ByRef` constraint, where `Echo(span)` reports BC37376 as designed. No new syntax. |
 
+## Wave 15
+
+Checked against this tree after wave 14, by compiling and running the shapes that wave 14 code meets next against .NET 11 with `LangVersion` `vbnext`, with a C# library alongside: the interface members that C# 8 completes, the C# 12 lambda and alias forms, and the generic extension members that wave 14 left open. Several shapes already work: `CallerArgumentExpressionAttribute`, as `ArgumentNullException.ThrowIfNull(value)` reports `value`, generic methods of generic C# 14 extension blocks, which C# also emits as classic extension methods, and `With` on a `Record Structure`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-120 | Interface member accessibility | `Private Function Secret() As Integer` with a body in an interface reports BC30270, "'Private' is not valid on an interface method declaration", as do `Friend` and `Protected`. C# 8 declares private, internal, and protected interface members with a body. No new syntax. |
+| VB-121 | Shared interface fields and constructors | `Shared Counter As Integer` in an interface reports BC30602, and `Shared Sub New()` reports BC30363, "'Sub New' cannot be declared in an interface". C# 8 declares static fields and static constructors in interfaces. No new syntax. |
+| VB-122 | Interface custom events | `Custom Event Changed As EventHandler` with accessor bodies in an interface reports BC31121, "'Custom' modifier is not valid on events declared in interfaces". C# 8 declares default event accessors in interfaces. No new syntax. |
+| VB-123 | Lambda optional and ParamArray parameters | `Function(Optional x As Integer = 3) x` reports BC33010, and `Function(ParamArray xs() As Integer) xs.Length` reports BC33009. C# 12 allows default values and `params` in lambdas. No new syntax. |
+| VB-124 | Generic extension operators | `a + b` over `Box(Of Integer)` operands, where C# 14 declares `operator +` in `extension<T>(Box<T>)`, reports BC30452, because phase 84 leaves the operators of generic blocks out. No new syntax. |
+| VB-125 | Tuple type aliases | `Imports Pair = (Left As Integer, Right As Integer)` reports BC30203, "Identifier expected", because an `Imports` alias names only a namespace or a named type. C# 12 aliases any type. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -472,3 +485,16 @@ The gap that blocks calls into the .NET libraries comes first. Then the C# 14 op
 | 4 | VB-117 | Generic C# 14 extension blocks | M | Finishes phase 78 for blocks with type parameters, which most library extensions use. |
 | 5 | VB-118 | Ref structures for interface constraints | M | Lets VB ref structures reach generic library code that C# 13 opened to them. |
 | 6 | VB-119 | `allows ref struct` type parameters | S | Already declared by slice 7m's `ByRef` constraint; phase 86 records it and tests it with phase 85. |
+
+### Wave 15 order
+
+The interface members that C# 8 completes come first, smallest first, then the lambda forms, then the gap that finishes phases 83 and 84, then the alias, which changes `Imports` parsing.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-120 | Interface member accessibility | S | Extends the interface bodies of phases 75 and 76 with the accessibility C# 8 gives them. |
+| 2 | VB-121 | Shared interface fields and constructors | M | Gives shared interface members the state and initialization that C# 8 interfaces have. |
+| 3 | VB-122 | Interface custom events | M | Finishes default interface members with the last member kind. |
+| 4 | VB-123 | Lambda optional and ParamArray parameters | M | Lets VB lambdas take the parameter forms that VB methods already take. |
+| 5 | VB-124 | Generic extension operators | S | Finishes phase 83 for generic blocks with phase 84's inference. |
+| 6 | VB-125 | Tuple type aliases | M | Changes how `Imports` aliases parse, so it comes last. |
