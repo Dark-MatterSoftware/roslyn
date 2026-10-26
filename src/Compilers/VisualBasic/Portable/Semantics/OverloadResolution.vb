@@ -4171,6 +4171,16 @@ Bailout:
         End Function
 
         ''' <summary>
+        ''' A static method of a generic C# 14 extension block, already constructed with the type arguments that lookup
+        ''' inferred from the type it is used on.
+        ''' </summary>
+        Private Shared Function IsConstructedStaticExtensionMethod(symbol As Symbol) As Boolean
+            Dim method = TryCast(symbol, MethodSymbol)
+            Return method IsNot Nothing AndAlso method.IsGenericMethod AndAlso method IsNot method.ConstructedFrom AndAlso
+                   method.OriginalDefinition.IsStaticExtensionMember
+        End Function
+
+        ''' <summary>
         ''' A ParamArray array, or a params collection that takes separate arguments here.
         ''' </summary>
         Private Shared Function IsParamArrayHere(param As ParameterSymbol, binder As Binder) As Boolean
@@ -4290,7 +4300,8 @@ Bailout:
             <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
         )
 
-            If typeArguments.Length = 0 AndAlso newCandidate.Candidate.Arity > 0 Then
+            If typeArguments.Length = 0 AndAlso newCandidate.Candidate.Arity > 0 AndAlso
+               Not IsConstructedStaticExtensionMethod(newCandidate.Candidate.UnderlyingSymbol) Then
 
                 '§11.8.2 Applicable Methods
                 'Section 4.

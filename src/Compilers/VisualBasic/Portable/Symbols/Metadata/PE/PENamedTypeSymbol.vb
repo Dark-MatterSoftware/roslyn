@@ -1654,7 +1654,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End If
 
             For Each grouping In GetTypeMembersUnordered()
-                If Not grouping.Name.StartsWith("<G>$", StringComparison.Ordinal) OrElse grouping.Arity <> 0 Then
+                If Not grouping.Name.StartsWith("<G>$", StringComparison.Ordinal) Then
                     Continue For
                 End If
 
@@ -1677,10 +1677,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                     Select Case declaration.Kind
                         Case SymbolKind.Property
                             Dim [property] = DirectCast(declaration, PropertySymbol)
-                            Dim getter = FindExtensionImplementation([property].GetMethod, receiver)
-                            Dim setter = FindExtensionImplementation([property].SetMethod, receiver)
+                            Dim getter = FindExtensionImplementation([property].GetMethod, receiver, grouping)
+                            Dim setter = FindExtensionImplementation([property].SetMethod, receiver, grouping)
                             If getter IsNot Nothing OrElse setter IsNot Nothing Then
-                                Dim implemented = New PEExtensionPropertySymbol(Me, [property], getter, setter, receiver.Type)
+                                Dim extendedType = SubstituteGroupingTypeParameters(receiver.Type, grouping, If(getter, setter))
+                                Dim implemented = New PEExtensionPropertySymbol(Me, [property], getter, setter, extendedType)
                                 If [property].IsShared Then
                                     result.StaticProperties.Add(implemented)
                                 Else
@@ -1695,13 +1696,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                             End If
 
                             Dim isOperator = method.HasSpecialName AndAlso method.Name.StartsWith("op_", StringComparison.Ordinal)
+                            If isOperator AndAlso grouping.Arity <> 0 Then
+                                Continue For
+                            End If
+
                             If isOperator OrElse method.MethodKind = MethodKind.Ordinary Then
-                                Dim implementation = FindExtensionImplementation(method, receiver)
+                                Dim implementation = FindExtensionImplementation(method, receiver, grouping)
                                 If implementation IsNot Nothing Then
+                                    Dim extendedType = SubstituteGroupingTypeParameters(receiver.Type, grouping, implementation)
                                     If isOperator Then
-                                        result.Operators(implementation) = receiver.Type
+                                        result.Operators(implementation) = extendedType
                                     Else
-                                        result.StaticMethods(implementation) = receiver.Type
+                                        result.StaticMethods(implementation) = extendedType
                                     End If
                                 End If
                             End If
@@ -1725,28 +1731,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
         ''' <summary>
         ''' Finds the static method of this type that implements a declaration: the same name, and the declaration's
-        ''' parameters after the receiver unless the declaration is static.
+        ''' parameters after the receiver unless the declaration is static. The implementation of a member of a generic
+        ''' block takes the block's type parameters as its own first type parameters; generic members of generic blocks
+        ''' are not read.
         ''' </summary>
-        Private Function FindExtensionImplementation(declaration As MethodSymbol, receiver As ParameterSymbol) As MethodSymbol
-            If declaration Is Nothing Then
+        Private Function FindExtensionImplementation(declaration As MethodSymbol, receiver As ParameterSymbol, grouping As NamedTypeSymbol) As MethodSymbol
+            If declaration Is Nothing OrElse (grouping.Arity <> 0 AndAlso declaration.Arity <> 0) Then
                 Return Nothing
             End If
 
             Dim offset = If(declaration.IsShared, 0, 1)
             For Each candidate In GetMembers(declaration.Name).OfType(Of MethodSymbol)()
                 If Not candidate.IsShared OrElse candidate.ParameterCount <> declaration.ParameterCount + offset OrElse
-                   candidate.Arity <> declaration.Arity OrElse
-                   Not candidate.ReturnType.IsSameType(declaration.ReturnType, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                   candidate.Arity <> declaration.Arity + grouping.Arity OrElse
+                   Not candidate.ReturnType.IsSameType(SubstituteGroupingTypeParameters(declaration.ReturnType, grouping, candidate), TypeCompareKind.AllIgnoreOptionsForVB) Then
                     Continue For
                 End If
 
-                If offset = 1 AndAlso Not candidate.Parameters(0).Type.IsSameType(receiver.Type, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                If offset = 1 AndAlso Not candidate.Parameters(0).Type.IsSameType(SubstituteGroupingTypeParameters(receiver.Type, grouping, candidate), TypeCompareKind.AllIgnoreOptionsForVB) Then
                     Continue For
                 End If
 
                 Dim matches = True
                 For i = 0 To declaration.ParameterCount - 1
-                    If Not candidate.Parameters(i + offset).Type.IsSameType(declaration.Parameters(i).Type, TypeCompareKind.AllIgnoreOptionsForVB) Then
+                    If Not candidate.Parameters(i + offset).Type.IsSameType(SubstituteGroupingTypeParameters(declaration.Parameters(i).Type, grouping, candidate), TypeCompareKind.AllIgnoreOptionsForVB) Then
                         matches = False
                         Exit For
                     End If
@@ -1758,6 +1766,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Next
 
             Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' A type of a generic extension block's declaration, in terms of the implementation method's type parameters.
+        ''' </summary>
+        Private Shared Function SubstituteGroupingTypeParameters(type As TypeSymbol, grouping As NamedTypeSymbol, implementation As MethodSymbol) As TypeSymbol
+            If grouping.Arity = 0 OrElse implementation.Arity < grouping.Arity Then
+                Return type
+            End If
+
+            Dim substitution = TypeSubstitution.Create(grouping,
+                                                       grouping.TypeParameters,
+                                                       implementation.TypeParameters.Take(grouping.Arity).Cast(Of TypeSymbol)().ToImmutableArray(),
+                                                       allowAlphaRenamedTypeParametersAsArguments:=True)
+            Return type.InternalSubstituteTypeParameters(substitution).Type
         End Function
 
         ''' <summary>

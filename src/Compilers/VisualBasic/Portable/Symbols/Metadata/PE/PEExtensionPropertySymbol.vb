@@ -51,9 +51,45 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
         Public Overrides ReadOnly Property Type As TypeSymbol
             Get
-                Return _declaration.Type
+                If _getMethod IsNot Nothing Then
+                    Return _getMethod.ReturnType
+                End If
+
+                Return _setMethod.Parameters(_setMethod.ParameterCount - 1).Type
             End Get
         End Property
+
+        ''' <summary>
+        ''' The type parameters of a generic extension block, as the accessors declare them. Empty once constructed.
+        ''' </summary>
+        Friend ReadOnly Property ExtensionTypeParameters As ImmutableArray(Of TypeParameterSymbol)
+            Get
+                Dim accessor = If(_getMethod, _setMethod)
+                Return If(accessor.IsDefinition, accessor.TypeParameters, ImmutableArray(Of TypeParameterSymbol).Empty)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The type that a generic extension block extends, as the accessors declare it.
+        ''' </summary>
+        Friend ReadOnly Property ExtendedType As TypeSymbol
+            Get
+                Return _extendedType
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The property of a generic extension block for the type arguments inferred from the receiver.
+        ''' </summary>
+        Friend Function Construct(typeArguments As ImmutableArray(Of TypeSymbol)) As PEExtensionPropertySymbol
+            Dim typeParameters = ExtensionTypeParameters
+            Dim substitution = TypeSubstitution.Create(If(_getMethod, _setMethod), typeParameters, typeArguments)
+            Return New PEExtensionPropertySymbol(_containingType,
+                                                 _declaration,
+                                                 _getMethod?.Construct(typeArguments),
+                                                 _setMethod?.Construct(typeArguments),
+                                                 _extendedType.InternalSubstituteTypeParameters(substitution).Type)
+        End Function
 
         Public Overrides ReadOnly Property Parameters As ImmutableArray(Of ParameterSymbol)
             Get

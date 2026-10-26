@@ -1311,13 +1311,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                         Dim extendedType As TypeSymbol
                         If candidate.Kind = SymbolKind.Method Then
-                            extendedType = DirectCast(candidate, MethodSymbol).StaticExtensionType
+                            Dim method = DirectCast(candidate, MethodSymbol)
+                            extendedType = method.StaticExtensionType
+
+                            ' A static method of a generic block takes the block's type arguments from the type.
+                            If extendedType IsNot Nothing AndAlso method.IsGenericMethod AndAlso
+                               method.TypeParameters.Any(Function(p) TypeReferencesTypeParameter(extendedType, p)) Then
+                                Dim typeArguments = InferExtensionTypeArguments(method.TypeParameters, extendedType, container, useSiteInfo)
+                                If typeArguments.IsDefault Then
+                                    Continue For
+                                End If
+
+                                Dim constructed = method.Construct(typeArguments)
+                                If Not SatisfiesConstraints(constructed, binder, useSiteInfo) Then
+                                    Continue For
+                                End If
+
+                                extendedType = extendedType.InternalSubstituteTypeParameters(TypeSubstitution.Create(method, method.TypeParameters, typeArguments)).Type
+                                candidate = constructed
+                            End If
                         ElseIf candidate.Kind = SymbolKind.Property Then
                             If arity <> 0 Then
                                 Continue For
                             End If
 
                             extendedType = DirectCast(candidate, PropertySymbol).StaticExtensionType
+
+                            Dim extension = TryCast(candidate, Symbols.Metadata.PE.PEExtensionPropertySymbol)
+                            If extendedType IsNot Nothing AndAlso extension IsNot Nothing AndAlso Not extension.ExtensionTypeParameters.IsEmpty Then
+                                Dim constructed = ConstructGenericExtensionProperty(extension, container, binder, useSiteInfo)
+                                If constructed Is Nothing Then
+                                    Continue For
+                                End If
+
+                                extendedType = constructed.StaticExtensionType
+                                candidate = constructed
+                            End If
                         Else
                             Continue For
                         End If
@@ -1372,6 +1401,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Continue For
                         End If
 
+                        Dim extension = TryCast(candidate, Symbols.Metadata.PE.PEExtensionPropertySymbol)
+                        If extension IsNot Nothing AndAlso Not extension.ExtensionTypeParameters.IsEmpty Then
+                            candidate = ConstructGenericExtensionProperty(extension, container, binder, useSiteInfo)
+                            If candidate Is Nothing Then
+                                Continue For
+                            End If
+                        End If
+
                         Dim reduced = ReduceExtensionProperty(candidate, container, useSiteInfo)
                         If reduced IsNot Nothing Then
                             lookupResult.MergePrioritized(binder.CheckViability(reduced, arity, options, reduced.ContainingType, useSiteInfo))
@@ -1383,6 +1420,127 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 properties.Free()
             End Sub
+
+            ''' <summary>
+            ''' The property of a generic C# 14 extension block for the type arguments inferred from the type it is used on.
+            ''' </summary>
+            Private Shared Function ConstructGenericExtensionProperty(
+                extension As Symbols.Metadata.PE.PEExtensionPropertySymbol,
+                type As TypeSymbol,
+                binder As Binder,
+                <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+            ) As Symbols.Metadata.PE.PEExtensionPropertySymbol
+                Dim typeArguments = InferExtensionTypeArguments(extension.ExtensionTypeParameters, extension.ExtendedType, type, useSiteInfo)
+                If typeArguments.IsDefault Then
+                    Return Nothing
+                End If
+
+                Dim constructed = extension.Construct(typeArguments)
+                If Not SatisfiesConstraints(If(constructed.GetMethod, constructed.SetMethod), binder, useSiteInfo) Then
+                    Return Nothing
+                End If
+
+                Return constructed
+            End Function
+
+            Private Shared Function SatisfiesConstraints(method As MethodSymbol, binder As Binder, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+                Dim diagnosticsBuilder = ArrayBuilder(Of TypeParameterDiagnosticInfo).GetInstance()
+                Dim useSiteDiagnosticsBuilder As ArrayBuilder(Of TypeParameterDiagnosticInfo) = Nothing
+                Dim satisfied = method.CheckConstraints(binder.Compilation.LanguageVersion, diagnosticsBuilder, useSiteDiagnosticsBuilder, template:=useSiteInfo)
+                diagnosticsBuilder.Free()
+                Return satisfied
+            End Function
+
+            ''' <summary>
+            ''' Infers the type arguments of a generic C# 14 extension block from the type it is used on, which must match the
+            ''' extended type itself, or else the nearest base type that does, or else exactly one of its interfaces.
+            ''' </summary>
+            Friend Shared Function InferExtensionTypeArguments(
+                typeParameters As ImmutableArray(Of TypeParameterSymbol),
+                extendedType As TypeSymbol,
+                type As TypeSymbol,
+                <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+            ) As ImmutableArray(Of TypeSymbol)
+                Dim current = type
+                While current IsNot Nothing
+                    Dim inferred = TryUnifyExtensionType(typeParameters, extendedType, current)
+                    If Not inferred.IsDefault Then
+                        Return inferred
+                    End If
+
+                    current = current.BaseTypeWithDefinitionUseSiteDiagnostics(useSiteInfo)
+                End While
+
+                Dim result As ImmutableArray(Of TypeSymbol) = Nothing
+                For Each implemented In type.AllInterfacesWithDefinitionUseSiteDiagnostics(useSiteInfo)
+                    Dim inferred = TryUnifyExtensionType(typeParameters, extendedType, implemented)
+                    If inferred.IsDefault Then
+                        Continue For
+                    End If
+
+                    If result.IsDefault Then
+                        result = inferred
+                    ElseIf Not result.SequenceEqual(inferred, Function(a, b) a.IsSameType(b, TypeCompareKind.AllIgnoreOptionsForVB)) Then
+                        Return Nothing
+                    End If
+                Next
+
+                Return result
+            End Function
+
+            Private Shared Function TryUnifyExtensionType(typeParameters As ImmutableArray(Of TypeParameterSymbol), extendedType As TypeSymbol, type As TypeSymbol) As ImmutableArray(Of TypeSymbol)
+                Dim map(typeParameters.Length - 1) As TypeSymbol
+                If Not UnifyExtensionType(extendedType, type, typeParameters, map) OrElse map.Any(Function(t) t Is Nothing) Then
+                    Return Nothing
+                End If
+
+                Return map.ToImmutableArray()
+            End Function
+
+            Private Shared Function UnifyExtensionType(pattern As TypeSymbol, actual As TypeSymbol, typeParameters As ImmutableArray(Of TypeParameterSymbol), map As TypeSymbol()) As Boolean
+                If pattern.Kind = SymbolKind.TypeParameter Then
+                    Dim index = typeParameters.IndexOf(DirectCast(pattern, TypeParameterSymbol))
+                    If index >= 0 Then
+                        If map(index) Is Nothing Then
+                            map(index) = actual
+                            Return True
+                        End If
+
+                        Return map(index).IsSameType(actual, TypeCompareKind.AllIgnoreOptionsForVB)
+                    End If
+                End If
+
+                If pattern.Kind = SymbolKind.ArrayType Then
+                    Dim patternArray = DirectCast(pattern, ArrayTypeSymbol)
+                    Dim actualArray = TryCast(actual, ArrayTypeSymbol)
+                    Return actualArray IsNot Nothing AndAlso patternArray.Rank = actualArray.Rank AndAlso
+                           UnifyExtensionType(patternArray.ElementType, actualArray.ElementType, typeParameters, map)
+                End If
+
+                Dim patternNamed = TryCast(pattern, NamedTypeSymbol)
+                Dim actualNamed = TryCast(actual, NamedTypeSymbol)
+                If patternNamed IsNot Nothing AndAlso actualNamed IsNot Nothing AndAlso patternNamed.IsGenericType Then
+                    If Not patternNamed.OriginalDefinition.Equals(actualNamed.OriginalDefinition) Then
+                        Return False
+                    End If
+
+                    Dim patternArguments = patternNamed.TypeArgumentsNoUseSiteDiagnostics
+                    Dim actualArguments = actualNamed.TypeArgumentsNoUseSiteDiagnostics
+                    For i = 0 To patternArguments.Length - 1
+                        If Not UnifyExtensionType(patternArguments(i), actualArguments(i), typeParameters, map) Then
+                            Return False
+                        End If
+                    Next
+
+                    Return True
+                End If
+
+                Return pattern.IsSameType(actual, TypeCompareKind.AllIgnoreOptionsForVB)
+            End Function
+
+            Private Shared Function TypeReferencesTypeParameter(type As TypeSymbol, typeParameter As TypeParameterSymbol) As Boolean
+                Return type.VisitType(Function(t, p) t Is p, typeParameter) IsNot Nothing
+            End Function
 
             Private Shared Function ReduceExtensionProperty(
                 candidate As PropertySymbol,
