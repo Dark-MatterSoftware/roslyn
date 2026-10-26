@@ -87,6 +87,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _memberFlags = modifiers.AllFlags
             _isPartialDefinition = (_memberFlags And SourceMemberFlags.Partial) <> 0 AndAlso blockSyntaxOpt Is Nothing
 
+            ' On vbnext a Custom event in an interface has accessors, its default implementation: virtual, not abstract.
+            If containingType.IsInterfaceType AndAlso blockSyntaxOpt IsNot Nothing Then
+                _memberFlags = (_memberFlags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable
+            End If
+
             Dim identifier = syntax.Identifier
             _name = identifier.ValueText
 
@@ -369,6 +374,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Case SyntaxKind.RaiseEventAccessorBlock
                     flags = flags Or SourceMemberFlags.MethodKindEventRaise Or SourceMemberFlags.MethodIsSub
 
+                    ' RaiseEvent is always private, so in an interface it is a helper that is not virtual.
+                    If _containingType.IsInterfaceType Then
+                        flags = flags And Not (SourceMemberFlags.Overridable Or SourceMemberFlags.MustOverride)
+                    End If
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(blockSyntax.Kind)
             End Select
@@ -420,7 +430,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                             Throw ExceptionUtilities.UnexpectedValue(kind)
                     End Select
 
-                    If accessor IsNot Nothing Then
+                    ' The RaiseEvent accessor of an interface's Custom event is a private helper, not part of the contract.
+                    If accessor IsNot Nothing AndAlso
+                       Not (kind = MethodKind.EventRaise AndAlso accessor.ContainingType.IsInterface AndAlso Not accessor.IsMustOverride AndAlso Not accessor.IsOverridable) Then
                         builder.Add(accessor)
                     End If
                 Next
@@ -589,8 +601,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsOverridable As Boolean
             Get
-                Debug.Assert((_memberFlags And SourceMemberFlags.Overridable) = 0)
-                Return False
+                ' Only a Custom event in an interface, which gives its default accessors, is Overridable.
+                Debug.Assert((_memberFlags And SourceMemberFlags.Overridable) = 0 OrElse _containingType.IsInterfaceType)
+                Return (_memberFlags And SourceMemberFlags.Overridable) <> 0
             End Get
         End Property
 

@@ -235,7 +235,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Dim [property] = TryCast(sym.OriginalDefinition, SourcePropertySymbol)
-            Return [property] IsNot Nothing AndAlso [property].BlockSyntaxReference IsNot Nothing AndAlso [property].ContainingType.IsInterface
+            If [property] IsNot Nothing Then
+                Return [property].BlockSyntaxReference IsNot Nothing AndAlso [property].ContainingType.IsInterface
+            End If
+
+            ' A Custom event in an interface gives its accessors as the default implementation.
+            Dim [event] = TryCast(sym.OriginalDefinition, SourceEventSymbol)
+            Return [event] IsNot Nothing AndAlso [event].ContainingType.IsInterface AndAlso TypeOf [event].AddMethod Is CustomEventAccessorSymbol
         End Function
 
         <Extension()>

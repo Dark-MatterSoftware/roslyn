@@ -115,8 +115,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 Case SyntaxKind.EventStatement
                     Dim eventStatement = DirectCast(node, EventStatementSyntax)
-                    ' 'Custom' modifier invalid on event declared in an interface.
                     If eventStatement.CustomKeyword IsNot Nothing Then
+                        ' On vbnext a Custom event's accessors are its default implementation, as for a class.
+                        If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                           eventStatement.AsClause IsNot Nothing AndAlso Not eventStatement.AsClause.AsKeyword.IsMissing Then
+                            Return New EventBlockContext(eventStatement, Me)
+                        End If
+
+                        ' 'Custom' modifier invalid on event declared in an interface.
                         eventStatement = Parser.ReportSyntaxError(eventStatement, ERRID.ERR_CustomEventInvInInterface)
                     End If
                     Add(eventStatement)
@@ -155,7 +161,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.FunctionBlock,
                     SyntaxKind.PropertyBlock,
                     SyntaxKind.OperatorBlock,
-                    SyntaxKind.ConstructorBlock
+                    SyntaxKind.ConstructorBlock,
+                    SyntaxKind.EventBlock
                     ' Handle any block that can be created by this context
                     Add(node)
 
@@ -236,6 +243,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     End If
 
                     Return UseSyntax(node, newContext, DirectCast(node, MethodBlockBaseSyntax).End.IsMissing)
+
+                Case SyntaxKind.EventBlock
+                    ' Before vbnext an interface event has no accessors, so an event block cannot be reused here.
+                    If Parser.Options.LanguageVersion < LanguageVersion.VbNext Then
+                        newContext = Me
+                        Return LinkResult.Crumble
+                    End If
+
+                    Return UseSyntax(node, newContext, DirectCast(node, EventBlockSyntax).EndEventStatement.IsMissing)
 
                 Case SyntaxKind.PropertyBlock
                     ' Before vbnext an interface property has no body, so a property block cannot be reused here.
