@@ -216,9 +216,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             AddMethodReturnType(symbol)
         End Sub
 
+        ''' <summary>
+        ''' The implementation of a C# 14 extension operator is read as an ordinary method, and shown as the operator.
+        ''' </summary>
+        Private Shared Function GetDisplayMethodKind(symbol As IMethodSymbol) As MethodKind
+            Dim method = TryCast(symbol, MethodSymbol)
+            If method IsNot Nothing AndAlso method.MethodKind = MethodKind.Ordinary AndAlso
+               Symbols.Metadata.PE.PENamedTypeSymbol.IsExtensionOperator(method) Then
+                Return MethodKind.UserDefinedOperator
+            End If
+
+            Return symbol.MethodKind
+        End Function
+
         Private Sub AddMethodKind(symbol As IMethodSymbol)
             If Format.KindOptions.IncludesOption(SymbolDisplayKindOptions.IncludeMemberKeyword) Then
-                Select Case symbol.MethodKind
+                Select Case GetDisplayMethodKind(symbol)
                     Case MethodKind.Constructor, MethodKind.StaticConstructor
                         AddKeyword(SyntaxKind.SubKeyword)
                         AddSpace()
@@ -332,7 +345,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
-            Select Case symbol.MethodKind
+            Select Case GetDisplayMethodKind(symbol)
                 Case MethodKind.Ordinary, MethodKind.DelegateInvoke, MethodKind.DeclareMethod
                     Builder.Add(CreatePart(SymbolDisplayPartKind.MethodName, symbol, symbol.Name, visitedParents))
 

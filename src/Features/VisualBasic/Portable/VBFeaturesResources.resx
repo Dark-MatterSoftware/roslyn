@@ -775,6 +775,9 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</value>
   <data name="Prevents_writes_through_a_ByRef_field" xml:space="preserve">
     <value>Prevents writes through a 'ByRef' field.</value>
   </data>
+  <data name="Lets_the_type_arguments_of_a_generic_type_parameter_be_ByRef_structures" xml:space="preserve">
+    <value>Lets the type arguments of a generic type parameter be 'ByRef' structures, such as 'Span(Of T)'.</value>
+  </data>
   <data name="Prevents_writes_through_a_ByRef_parameter" xml:space="preserve">
     <value>Prevents writes through a 'ByRef' parameter, which refers to the caller's variable.</value>
   </data>

@@ -354,6 +354,30 @@ End Interface</File>, "Overridable")
         End Sub
 
         <Fact>
+        Public Sub ByRefInTypeParameterConstraint()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Function Echo(Of T As |)(value As T) As T
+    End Function
+End Module</File>, "ByRef", "Class", "Structure", "New")
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub Close(Of T As {System.IDisposable, |})(value As T)
+    End Sub
+End Module</File>, "ByRef")
+            VerifyRecommendationsMissing(<File VbNext="True">Module M
+    Sub Close(Of T As {Class, |})(value As T)
+    End Sub
+End Module</File>, "ByRef")
+            VerifyRecommendationsMissing(<File VbNext="True">Module M
+    Sub Close(Of T As {ByRef, |})(value As T)
+    End Sub
+End Module</File>, "ByRef")
+            VerifyRecommendationsMissing(<File>Module M
+    Function Echo(Of T As |)(value As T) As T
+    End Function
+End Module</File>, "ByRef")
+        End Sub
+
+        <Fact>
         Public Sub WideningAndNarrowingAfterSharedMustOverrideOrOverridableInInterface()
             VerifyRecommendationsContain(<File VbNext="True">Interface I(Of T As I(Of T))
     Shared MustOverride |

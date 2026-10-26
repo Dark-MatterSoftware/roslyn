@@ -119,6 +119,11 @@ Async Iterator Function(...) As IAsyncEnumerable(Of T)</target>
         <target state="new">Introduces a loop that awaits each element of an asynchronous collection.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Lets_the_type_arguments_of_a_generic_type_parameter_be_ByRef_structures">
+        <source>Lets the type arguments of a generic type parameter be 'ByRef' structures, such as 'Span(Of T)'.</source>
+        <target state="new">Lets the type arguments of a generic type parameter be 'ByRef' structures, such as 'Span(Of T)'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Makes_a_ref_field_refer_to_a_variable">
         <source>Makes a ref field refer to a variable.</source>
         <target state="new">Makes a ref field refer to a variable.</target>

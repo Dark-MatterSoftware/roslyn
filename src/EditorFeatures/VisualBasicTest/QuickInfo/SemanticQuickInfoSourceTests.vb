@@ -205,6 +205,44 @@ End Module"), MainDescription("ReadOnly Property TextExtensions.WordCount As Int
         End Function
 
         <Fact>
+        Public Async Function TestExtensionOperator() As Task
+            Await TestFromXmlAsync(WithCSharpLibrary("
+public struct Vec { public int X; }
+public static class VecOperators
+{
+    extension(Vec)
+    {
+        public static Vec operator +(Vec a, Vec b) => a;
+    }
+}", "
+Module M
+    Function Add(a As Vec, b As Vec) As Vec
+        Return a $$+ b
+    End Function
+End Module"), MainDescription("Operator VecOperators.+(a As Vec, b As Vec) As Vec"))
+        End Function
+
+        <Fact>
+        Public Async Function TestGenericExtensionProperty() As Task
+            Await TestFromXmlAsync(WithCSharpLibrary("
+using System.Collections.Generic;
+public static class ListExtensions
+{
+    extension<T>(List<T> list)
+    {
+        public T Tail => list[list.Count - 1];
+    }
+}", "
+Imports System.Collections.Generic
+
+Module M
+    Function Use(numbers As List(Of Integer)) As Integer
+        Return numbers.Ta$$il
+    End Function
+End Module"), MainDescription("ReadOnly Property ListExtensions.Tail As Integer"))
+        End Function
+
+        <Fact>
         Public Async Function TestGenericAttributeByShortName() As Task
             Await TestFromXmlAsync(WithCSharpLibrary("
 public class TagAttribute<T> : System.Attribute

@@ -25,6 +25,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
             recommendations.Add(New RecommendedKeyword("Structure", VBFeaturesResources.Constrains_a_generic_type_parameter_to_require_that_any_type_argument_passed_to_it_be_a_value_type))
             recommendations.Add(New RecommendedKeyword("New", VBFeaturesResources.Specifies_a_constructor_constraint_on_a_generic_type_parameter))
 
+            ' (Of T As ByRef) lets the type arguments be ByRef structures on vbnext.
+            If context.SyntaxTree.IsVbNext() Then
+                recommendations.Add(New RecommendedKeyword("ByRef", VBFeaturesResources.Lets_the_type_arguments_of_a_generic_type_parameter_be_ByRef_structures))
+            End If
+
             If targetToken.IsChildToken(Of TypeParameterSingleConstraintClauseSyntax)(Function(constraint) constraint.AsKeyword) Then
                 Return recommendations.ToImmutableArray()
             ElseIf TypeOf targetToken.Parent Is TypeParameterMultipleConstraintClauseSyntax Then
@@ -46,11 +51,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                         recommendations.RemoveAll(Function(k) k.Keyword = "New")
                     End If
 
+                    ' No ref structure meets Class, and ByRef is listed once.
+                    If previousConstraints.Any(Function(constraint) constraint.IsKind(SyntaxKind.ClassConstraint) OrElse IsByRefConstraint(constraint)) Then
+                        recommendations.RemoveAll(Function(k) k.Keyword = "ByRef")
+                    End If
+
                     Return recommendations.ToImmutableArray()
                 End If
             End If
 
             Return ImmutableArray(Of RecommendedKeyword).Empty
+        End Function
+
+        Private Shared Function IsByRefConstraint(constraint As ConstraintSyntax) As Boolean
+            Dim typeConstraint = TryCast(constraint, TypeConstraintSyntax)
+            Dim name = TryCast(typeConstraint?.Type, IdentifierNameSyntax)
+            Return name IsNot Nothing AndAlso Not name.Identifier.IsBracketed() AndAlso
+                   String.Equals(name.Identifier.ValueText, "ByRef", StringComparison.OrdinalIgnoreCase)
         End Function
     End Class
 End Namespace
