@@ -104,6 +104,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     End If
 
                 Case SyntaxKind.SubNewStatement
+                    ' On vbnext a Shared Sub New is the interface's static constructor.
+                    If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       DirectCast(node, SubNewStatementSyntax).Modifiers.Any(SyntaxKind.SharedKeyword) Then
+                        Return New MethodBlockContext(SyntaxKind.ConstructorBlock, DirectCast(node, StatementSyntax), Me)
+                    End If
+
                     ' In Dev10 this is reported in Declared
                     Add(Parser.ReportSyntaxError(node, ERRID.ERR_NewInInterface))
 
@@ -128,7 +134,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     Return New InterfaceDeclarationBlockContext(DirectCast(node, StatementSyntax), Me)
 
                 Case SyntaxKind.FieldDeclaration
-                    Add(Parser.ReportSyntaxError(node, ERRID.ERR_InterfaceMemberSyntax))
+                    ' On vbnext an interface declares Shared fields and constants, as C# 8 declares static fields.
+                    Dim fieldModifiers = DirectCast(node, FieldDeclarationSyntax).Modifiers
+                    If Parser.Options.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                       (fieldModifiers.Any(SyntaxKind.SharedKeyword) OrElse fieldModifiers.Any(SyntaxKind.ConstKeyword)) Then
+                        Add(node)
+                    Else
+                        Add(Parser.ReportSyntaxError(node, ERRID.ERR_InterfaceMemberSyntax))
+                    End If
 
                 Case SyntaxKind.LabelStatement
                     node = Parser.ReportSyntaxError(node, ERRID.ERR_InvOutsideProc)
@@ -141,7 +154,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.SubBlock,
                     SyntaxKind.FunctionBlock,
                     SyntaxKind.PropertyBlock,
-                    SyntaxKind.OperatorBlock
+                    SyntaxKind.OperatorBlock,
+                    SyntaxKind.ConstructorBlock
                     ' Handle any block that can be created by this context
                     Add(node)
 
@@ -214,7 +228,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                     SyntaxKind.InterfaceBlock
                     Return UseSyntax(node, newContext, DirectCast(node, TypeBlockSyntax).EndBlockStatement.IsMissing)
 
-                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock, SyntaxKind.OperatorBlock
+                Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock, SyntaxKind.OperatorBlock, SyntaxKind.ConstructorBlock
                     ' Before vbnext an interface method has no body, so a method block cannot be reused here.
                     If Parser.Options.LanguageVersion < LanguageVersion.VbNext Then
                         newContext = Me

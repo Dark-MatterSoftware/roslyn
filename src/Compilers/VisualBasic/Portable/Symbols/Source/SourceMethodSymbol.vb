@@ -459,6 +459,11 @@ lReportErrorOnTwoTokens:
 
             Dim flags = modifiers.AllFlags Or SourceMemberFlags.MethodIsSub
 
+            ' An interface's Shared Sub New is its static constructor, never abstract.
+            If container.IsInterface Then
+                flags = flags And Not (SourceMemberFlags.MustOverride Or SourceMemberFlags.Overridable)
+            End If
+
             ' Name, Kind
             Dim name As String
             If (flags And SourceMemberFlags.Shared) <> 0 Then

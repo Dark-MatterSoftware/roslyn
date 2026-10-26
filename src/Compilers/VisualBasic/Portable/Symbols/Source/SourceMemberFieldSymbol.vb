@@ -455,10 +455,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 errorId = ERRID.ERR_BadDimFlags1
             End If
 
+            ' Interface members are Public unless they say otherwise, as fields of structures are.
             Dim modifiers = binder.DecodeModifiers(syntax.Modifiers,
                                                 validFlags,
                                                 errorId,
-                                                If(container.IsValueType, Accessibility.Public, Accessibility.Private),
+                                                If(container.IsValueType OrElse container.IsInterface, Accessibility.Public, Accessibility.Private),
                                                 diagBag.DiagnosticBag)
 
             ' On vbnext ByRef declares a ref field of a ByRef Structure. It has no meaning on any other field.
