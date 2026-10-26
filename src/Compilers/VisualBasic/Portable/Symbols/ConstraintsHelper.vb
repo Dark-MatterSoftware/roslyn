@@ -726,6 +726,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             For Each t In typeParameter.ConstraintTypesWithDefinitionUseSiteDiagnostics(useSiteInfo)
                 Dim constraintType = t.InternalSubstituteTypeParameters(substitution).Type
 
+                ' A ref structure cannot be boxed, so it meets an interface constraint by implementing the interface, as C# 13
+                ' checks it. Where the type parameter does not allow ref structures, ERR_ByRefTypeArgument2 is reported above.
+                If languageVersion >= LanguageVersion.VbNext AndAlso
+                   typeArgument.IsRefLikeType AndAlso constraintType.IsInterfaceType() AndAlso
+                   typeArgument.AllInterfacesWithDefinitionUseSiteDiagnostics(useSiteInfo).Any(Function(i) i.IsSameType(constraintType, TypeCompareKind.AllIgnoreOptionsForVB)) Then
+                    Continue For
+                End If
+
                 If Not SatisfiesTypeConstraint(typeArgument, constraintType, useSiteInfo) Then
                     If diagnosticsBuilder IsNot Nothing Then
                         ' "Type argument '{0}' does not inherit from or implement the constraint type '{1}'."
