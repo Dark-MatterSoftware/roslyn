@@ -1629,6 +1629,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Public ReadOnly InstanceProperties As New List(Of PropertySymbol)()
             Public ReadOnly StaticProperties As New List(Of PropertySymbol)()
             Public ReadOnly StaticMethods As New Dictionary(Of MethodSymbol, TypeSymbol)()
+            Public ReadOnly Operators As New Dictionary(Of MethodSymbol, TypeSymbol)()
         End Class
 
         Private _lazyExtensionMembers As ExtensionMembers
@@ -1689,10 +1690,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
                         Case SymbolKind.Method
                             Dim method = DirectCast(declaration, MethodSymbol)
-                            If method.IsShared AndAlso method.MethodKind = MethodKind.Ordinary Then
+                            If Not method.IsShared Then
+                                Continue For
+                            End If
+
+                            Dim isOperator = method.HasSpecialName AndAlso method.Name.StartsWith("op_", StringComparison.Ordinal)
+                            If isOperator OrElse method.MethodKind = MethodKind.Ordinary Then
                                 Dim implementation = FindExtensionImplementation(method, receiver)
                                 If implementation IsNot Nothing Then
-                                    result.StaticMethods(implementation) = receiver.Type
+                                    If isOperator Then
+                                        result.Operators(implementation) = receiver.Type
+                                    Else
+                                        result.StaticMethods(implementation) = receiver.Type
+                                    End If
                                 End If
                             End If
                     End Select
@@ -1767,11 +1777,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Next
         End Sub
 
+        ''' <summary>
+        ''' The receiver type of a static method that implements an operator of a C# 14 extension block.
+        ''' </summary>
+        Friend Function GetExtensionOperatorType(method As MethodSymbol) As TypeSymbol
+            Dim extendedType As TypeSymbol = Nothing
+            Return If(GetExtensionMembers().Operators.TryGetValue(method, extendedType), extendedType, Nothing)
+        End Function
+
+        ''' <summary>
+        ''' Whether a method, read from metadata as an ordinary method, implements an operator of a C# 14 extension block.
+        ''' </summary>
+        Friend Shared Function IsExtensionOperator(method As MethodSymbol) As Boolean
+            Return TryCast(method.ContainingType, PENamedTypeSymbol)?.GetExtensionOperatorType(method) IsNot Nothing
+        End Function
+
         Friend Overrides Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))
             MyBase.AppendProbableStaticExtensionMembers(name, members)
             For Each [property] In GetExtensionMembers().StaticProperties
                 If IdentifierComparison.Equals([property].Name, name) Then
                     members.Add([property])
+                End If
+            Next
+
+            ' Operators are collected here too, and have no StaticExtensionType, so member access does not find them.
+            For Each [operator] In GetExtensionMembers().Operators.Keys
+                If String.Equals([operator].Name, name, StringComparison.Ordinal) Then
+                    members.Add([operator])
                 End If
             Next
         End Sub

@@ -3159,7 +3159,9 @@ Next_i:
             End Select
 
             If binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
-                CollectInterfaceConstraintOperators(argument.Type, Nothing, TryGetOperatorName(opKind, isChecked:=False), New OperatorInfo(opKind), opSet, useSiteInfo)
+                Dim opName = TryGetOperatorName(opKind, isChecked:=False)
+                CollectInterfaceConstraintOperators(argument.Type, Nothing, opName, New OperatorInfo(opKind), opSet, useSiteInfo)
+                CollectExtensionOperators(argument.Type, Nothing, opName, binder, opSet, useSiteInfo)
             End If
 
             Dim result = OperatorInvocationOverloadResolution(opSet, argument, Nothing, binder, lateBindingIsAllowed:=False, includeEliminatedCandidates:=includeEliminatedCandidates,
@@ -3292,6 +3294,7 @@ Next_i:
                 Dim opName = TryGetOperatorName(opKind, isChecked:=False)
                 If opName IsNot Nothing Then
                     CollectInterfaceConstraintOperators(left.Type, right.Type, opName, New OperatorInfo(opKind), opSet, useSiteInfo)
+                    CollectExtensionOperators(left.Type, right.Type, opName, binder, opSet, useSiteInfo)
                 End If
             End If
 
@@ -3299,6 +3302,43 @@ Next_i:
                                                               useSiteInfo:=useSiteInfo)
             opSet.Free()
             Return result
+        End Function
+
+        ''' <summary>
+        ''' Where the operand types declare no such operator, the operators that C# 14 extension blocks in scope declare for a
+        ''' type that an operand converts to by identity, reference, or boxing conversion.
+        ''' </summary>
+        Private Shared Sub CollectExtensionOperators(
+            type1 As TypeSymbol,
+            type2 As TypeSymbol,
+            name As String,
+            binder As Binder,
+            opSet As ArrayBuilder(Of MethodSymbol),
+            <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+        )
+            If opSet.Count > 0 OrElse name Is Nothing OrElse binder Is Nothing Then
+                Return
+            End If
+
+            Dim found = ArrayBuilder(Of KeyValuePair(Of MethodSymbol, TypeSymbol)).GetInstance()
+            binder.CollectExtensionOperators(name, found, useSiteInfo)
+
+            For Each entry In found
+                If OperandExtends(type1, entry.Value, useSiteInfo) OrElse OperandExtends(type2, entry.Value, useSiteInfo) Then
+                    opSet.Add(entry.Key)
+                End If
+            Next
+
+            found.Free()
+        End Sub
+
+        Private Shared Function OperandExtends(operandType As TypeSymbol, extendedType As TypeSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Boolean
+            If operandType Is Nothing Then
+                Return False
+            End If
+
+            Dim conversion = Conversions.ClassifyConversion(operandType.GetNullableUnderlyingTypeOrSelf(), extendedType, useSiteInfo).Key
+            Return Conversions.IsWideningConversion(conversion) AndAlso (conversion And ConversionKind.UserDefined) = 0
         End Function
 
         Private Shared Function OperatorInvocationOverloadResolution(

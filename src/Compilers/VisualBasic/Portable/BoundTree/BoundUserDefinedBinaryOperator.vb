@@ -38,9 +38,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If UnderlyingExpression.Kind = BoundKind.Call Then
                 Dim underlyingCall = DirectCast(UnderlyingExpression, BoundCall)
-                ' The checked form of a constraint's operator, such as op_CheckedAddition, is read from metadata as an ordinary method.
+                ' The checked form of a constraint's operator, such as op_CheckedAddition, and the implementation of a C# 14
+                ' extension operator are read from metadata as ordinary methods.
                 Debug.Assert((underlyingCall.Method.MethodKind = MethodKind.UserDefinedOperator OrElse
-                              (underlyingCall.Method.IsShared AndAlso underlyingCall.Method.ContainingType.IsInterface)) AndAlso
+                              (underlyingCall.Method.IsShared AndAlso underlyingCall.Method.ContainingType.IsInterface) OrElse
+                              Symbols.Metadata.PE.PENamedTypeSymbol.IsExtensionOperator(underlyingCall.Method)) AndAlso
                              underlyingCall.Method.ParameterCount = 2)
 
                 If (OperatorKind And BinaryOperatorKind.Lifted) <> 0 Then

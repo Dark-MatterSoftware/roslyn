@@ -241,6 +241,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(members.Count = 0)
         End Sub
 
+        ''' <summary>
+        ''' The operators with the given name that C# 14 extension blocks in scope declare, with the type each block extends.
+        ''' </summary>
+        Friend Sub CollectExtensionOperators(name As String,
+                                             operators As ArrayBuilder(Of KeyValuePair(Of MethodSymbol, TypeSymbol)),
+                                             <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol))
+            Dim members = ArrayBuilder(Of Symbol).GetInstance()
+            Dim currentBinder = Me
+
+            Do
+                members.Clear()
+                currentBinder.CollectProbableStaticExtensionMembersInSingleBinder(name, members, Me)
+
+                For Each member In members
+                    Dim method = TryCast(member, MethodSymbol)
+                    Dim extendedType = If(method Is Nothing, Nothing, TryCast(method.ContainingType, Symbols.Metadata.PE.PENamedTypeSymbol)?.GetExtensionOperatorType(method))
+                    If extendedType Is Nothing OrElse
+                       Not AccessCheck.IsSymbolAccessible(method, Compilation.Assembly, useSiteInfo) OrElse
+                       operators.Any(Function(found) found.Key Is method) Then
+                        Continue For
+                    End If
+
+                    operators.Add(New KeyValuePair(Of MethodSymbol, TypeSymbol)(method, extendedType))
+                Next
+
+                currentBinder = currentBinder.m_containingBinder
+            Loop While currentBinder IsNot Nothing
+
+            members.Free()
+        End Sub
+
         Protected Overridable Sub CollectProbableExtensionDefaultPropertiesInSingleBinder(properties As ArrayBuilder(Of PropertySymbol),
                                                                                           originalBinder As Binder)
             Debug.Assert(properties.Count = 0)
