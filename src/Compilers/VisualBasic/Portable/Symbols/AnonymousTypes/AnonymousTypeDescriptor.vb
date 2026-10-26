@@ -50,7 +50,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Me.Fields = fields
             Me.Location = location
             Me.IsImplicitlyDeclared = isImplicitlyDeclared
-            Me.Key = ComputeKey(fields, Function(f) f.Name, Function(f) f.IsKey)
+            Me.Key = ComputeKey(fields, Function(f) f.Name & f.KeySuffix, Function(f) f.IsKey)
         End Sub
 
         Friend Shared Function ComputeKey(Of T)(fields As ImmutableArray(Of T), getName As Func(Of T, String), getIsKey As Func(Of T, Boolean)) As String
@@ -126,7 +126,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 newFields(i) = New AnonymousTypeField(current.Name,
                                                       current.Type.InternalSubstituteTypeParameters(substitution).Type,
                                                       current.Location,
-                                                      current.IsKey)
+                                                      current.IsKey,
+                                                      current.DefaultValue,
+                                                      current.IsParamArray)
                 If Not anyChange Then
                     anyChange = current.Type IsNot newFields(i).Type
                 End If
@@ -182,12 +184,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Public Sub New(name As String, type As TypeSymbol, location As Location, Optional isKeyOrByRef As Boolean = False)
+        ''' <summary>
+        ''' On vbnext, the default value of an Optional parameter of an anonymous delegate, which a lambda declares.
+        ''' </summary>
+        Public ReadOnly DefaultValue As ConstantValue
+
+        ''' <summary>
+        ''' On vbnext, whether a parameter of an anonymous delegate is a ParamArray, which a lambda declares.
+        ''' </summary>
+        Public ReadOnly IsParamArray As Boolean
+
+        Public Sub New(name As String, type As TypeSymbol, location As Location, Optional isKeyOrByRef As Boolean = False,
+                       Optional defaultValue As ConstantValue = Nothing, Optional isParamArray As Boolean = False)
             Me.Name = If(String.IsNullOrWhiteSpace(name), "<Empty Name>", name)
             Me._type = type
             Me.IsKey = isKeyOrByRef
             Me.Location = location
+            Me.DefaultValue = defaultValue
+            Me.IsParamArray = isParamArray
         End Sub
+
+        ''' <summary>
+        ''' The part of an anonymous delegate's key that tells parameters with a default value or ParamArray apart, so such a
+        ''' delegate does not share its template with one whose parameters have none. The value is written as character
+        ''' codes, because the key is compared without case.
+        ''' </summary>
+        Friend ReadOnly Property KeySuffix As String
+            Get
+                If IsParamArray Then
+                    Return "*"
+                End If
+
+                If DefaultValue Is Nothing Then
+                    Return ""
+                End If
+
+                Dim text = If(DefaultValue.IsNothing, "", Convert.ToString(DefaultValue.Value, Globalization.CultureInfo.InvariantCulture))
+                Return "=" & CInt(DefaultValue.Discriminator).ToString(Globalization.CultureInfo.InvariantCulture) & ":" &
+                       String.Join(".", text.Select(Function(c) AscW(c).ToString(Globalization.CultureInfo.InvariantCulture)))
+            End Get
+        End Property
 
         Public Sub New(name As String, location As Location, isKey As Boolean)
             Me.New(name, Nothing, location, isKey)

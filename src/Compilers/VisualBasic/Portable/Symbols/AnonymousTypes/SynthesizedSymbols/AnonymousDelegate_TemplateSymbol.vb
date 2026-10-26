@@ -54,7 +54,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                                               i,
                                                                               parameterDescriptors(i).IsByRef,
                                                                               parameterDescriptors(i).Name,
-                                                                              i))
+                                                                              i,
+                                                                              parameterDescriptors(i).DefaultValue,
+                                                                              parameterDescriptors(i).IsParamArray))
                 Next
 
                 delegateInvoke.SetParameters(parameters.ToImmutable())
@@ -125,7 +127,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Sub
 
             Friend Overrides Function GetAnonymousTypeKey() As AnonymousTypeKey
-                Dim parameters = TypeDescr.Parameters.SelectAsArray(Function(p) New AnonymousTypeKeyField(p.Name, isKey:=p.IsByRef, ignoreCase:=True))
+                Dim parameters = TypeDescr.Parameters.SelectAsArray(Function(p) New AnonymousTypeKeyField(p.Name & p.KeySuffix, isKey:=p.IsByRef, ignoreCase:=True))
                 Return New AnonymousTypeKey(parameters, isDelegate:=True)
             End Function
 

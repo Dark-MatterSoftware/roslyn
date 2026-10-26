@@ -131,8 +131,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Property
 
             Private Shared Function ParameterFromField(container As SynthesizedDelegateMethodSymbol, field As AnonymousTypeField, ordinal As Integer) As ParameterSymbol
+                If field.DefaultValue IsNot Nothing OrElse field.IsParamArray Then
+                    Return New LambdaDelegateParameterSymbol(container, field, ordinal)
+                End If
+
                 Return New SynthesizedParameterWithLocationSymbol(container, field.Type, ordinal, field.IsByRef, field.Name, field.Location)
             End Function
+
+            ''' <summary>
+            ''' On vbnext, the Invoke parameter of a delegate inferred for a lambda whose parameter is Optional or a ParamArray.
+            ''' </summary>
+            Private NotInheritable Class LambdaDelegateParameterSymbol
+                Inherits SynthesizedParameterSymbol
+
+                Private ReadOnly _locations As ImmutableArray(Of Location)
+                Private ReadOnly _isParamArray As Boolean
+
+                Public Sub New(container As MethodSymbol, field As AnonymousTypeField, ordinal As Integer)
+                    MyBase.New(container, field.Type, ordinal, field.IsByRef, field.Name, isOptional:=field.DefaultValue IsNot Nothing, defaultValue:=field.DefaultValue)
+                    _locations = ImmutableArray.Create(field.Location)
+                    _isParamArray = field.IsParamArray
+                End Sub
+
+                Public Overrides ReadOnly Property IsParamArray As Boolean
+                    Get
+                        Return _isParamArray
+                    End Get
+                End Property
+
+                Public Overrides ReadOnly Property Locations As ImmutableArray(Of Location)
+                    Get
+                        Return _locations
+                    End Get
+                End Property
+            End Class
 
             Public Overrides Function GetMembers() As ImmutableArray(Of Symbol)
                 Return StaticCast(Of Symbol).From(_members)

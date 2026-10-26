@@ -27,9 +27,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             location As Location,
             flags As SourceParameterFlags,
             identifierSyntax As ModifiedIdentifierSyntax,
-            typeSyntax As SyntaxNodeOrToken
+            typeSyntax As SyntaxNodeOrToken,
+            defaultValue As ConstantValue,
+            isParamArray As Boolean
         )
-            MyBase.New(name, ordinal, type, ((flags And SourceParameterFlags.ByRef) <> 0), location)
+            MyBase.New(name, ordinal, type, ((flags And SourceParameterFlags.ByRef) <> 0), location, defaultValue, isParamArray)
 
             _identifierSyntax = identifierSyntax
             _typeSyntax = typeSyntax
@@ -66,14 +68,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                 ordinal As Integer,
                                                 binder As Binder,
                                                 diagBag As BindingDiagnosticBag) As ParameterSymbol
-            If (flags And SourceParameterFlags.ParamArray) <> 0 Then
+            ' On vbnext a lambda parameter may be Optional or a ParamArray, as C# 12 allows defaults and params in lambdas.
+            Dim isVbNext = binder.Compilation.LanguageVersion >= LanguageVersion.VbNext
+            Dim isOptional = (flags And SourceParameterFlags.Optional) <> 0
+            Dim isParamArray = (flags And SourceParameterFlags.ParamArray) <> 0
+
+            If isParamArray AndAlso Not isVbNext Then
                 ' 'Lambda' parameters cannot be declared 'ParamArray'.
                 Binder.ReportDiagnostic(diagBag, GetModifierToken(syntax.Modifiers, SyntaxKind.ParamArrayKeyword), ERRID.ERR_ParamArrayIllegal1, StringConstants.Lambda)
+                isParamArray = False
             End If
 
-            If (flags And SourceParameterFlags.Optional) <> 0 Then
+            ' An Optional lambda parameter needs an As clause, which gives its default value a type.
+            If isOptional AndAlso (Not isVbNext OrElse syntax.AsClause Is Nothing) Then
                 ' 'Lambda' parameters cannot be declared 'Optional'.
                 Binder.ReportDiagnostic(diagBag, GetModifierToken(syntax.Modifiers, SyntaxKind.OptionalKeyword), ERRID.ERR_OptionalIllegal1, StringConstants.Lambda)
+                isOptional = False
             End If
 
             ' On vbnext, the attributes bind with the lambda's parameters and are emitted on the method the lambda becomes.
@@ -94,9 +104,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 paramType = Nothing
             End If
 
+            Dim defaultValue As ConstantValue = Nothing
+            If isOptional Then
+                If syntax.Default Is Nothing Then
+                    Binder.ReportDiagnostic(diagBag, syntax, ERRID.ERR_ObsoleteOptionalWithoutValue)
+                Else
+                    binder.BindParameterDefaultValue(paramType, syntax.Default, diagBag, defaultValue)
+                End If
+            End If
+
+            If isParamArray AndAlso paramType IsNot Nothing AndAlso
+               Not (paramType.IsArrayType() AndAlso DirectCast(paramType, ArrayTypeSymbol).IsSZArray) Then
+                Binder.ReportDiagnostic(diagBag, syntax.Identifier, ERRID.ERR_ParamArrayNotArray)
+                isParamArray = False
+            End If
+
             Return New UnboundLambdaParameterSymbol(name, ordinal, paramType, syntax.Identifier.Identifier.GetLocation(), flags,
                                                     syntax.Identifier,
-                                                    If(syntax.AsClause Is Nothing, CType(syntax.Identifier, SyntaxNodeOrToken), syntax.AsClause.Type))
+                                                    If(syntax.AsClause Is Nothing, CType(syntax.Identifier, SyntaxNodeOrToken), syntax.AsClause.Type),
+                                                    defaultValue, isParamArray)
         End Function
 
         Private Shared Function GetModifierToken(modifiers As SyntaxTokenList, tokenKind As SyntaxKind) As SyntaxToken

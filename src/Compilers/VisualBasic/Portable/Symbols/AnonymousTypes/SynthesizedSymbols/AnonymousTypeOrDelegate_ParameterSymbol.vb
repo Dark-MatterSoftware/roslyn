@@ -17,17 +17,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Inherits SynthesizedParameterSymbol
 
             Public ReadOnly CorrespondingInvokeParameterOrProperty As Integer
+            Private ReadOnly _isParamArray As Boolean
 
             Public Sub New(
                 container As MethodSymbol,
                 type As TypeSymbol, ordinal As Integer,
                 isByRef As Boolean,
                 name As String,
-                Optional correspondingInvokeParameterOrProperty As Integer = -1
+                Optional correspondingInvokeParameterOrProperty As Integer = -1,
+                Optional defaultValue As ConstantValue = Nothing,
+                Optional isParamArray As Boolean = False
             )
-                MyBase.New(container, type, ordinal, isByRef, name)
+                MyBase.New(container, type, ordinal, isByRef, name, isOptional:=defaultValue IsNot Nothing, defaultValue:=defaultValue)
                 Me.CorrespondingInvokeParameterOrProperty = correspondingInvokeParameterOrProperty
+                _isParamArray = isParamArray
             End Sub
+
+            ''' <summary>
+            ''' On vbnext, the Invoke parameter of a delegate inferred for a lambda whose parameter is a ParamArray.
+            ''' </summary>
+            Public Overrides ReadOnly Property IsParamArray As Boolean
+                Get
+                    Return _isParamArray
+                End Get
+            End Property
 
             Public Overrides ReadOnly Property MetadataName As String
                 Get

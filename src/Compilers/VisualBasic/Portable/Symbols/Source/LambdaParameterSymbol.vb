@@ -17,13 +17,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _type As TypeSymbol ' Can be Nothing for UnboundLambdaParameterSymbol.
         Private ReadOnly _ordinal As UShort
         Private ReadOnly _isByRef As Boolean
+        Private ReadOnly _defaultValue As ConstantValue
+        Private ReadOnly _isParamArray As Boolean
 
         Protected Sub New(
             name As String,
             ordinal As Integer,
             type As TypeSymbol,
             isByRef As Boolean,
-            location As Location
+            location As Location,
+            Optional defaultValue As ConstantValue = Nothing,
+            Optional isParamArray As Boolean = False
         )
             _name = name
             _ordinal = CType(ordinal, UShort)
@@ -36,7 +40,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             _isByRef = isByRef
+            _defaultValue = defaultValue
+            _isParamArray = isParamArray
         End Sub
+
+        ''' <summary>
+        ''' On vbnext, the default value of an Optional lambda parameter.
+        ''' </summary>
+        Friend ReadOnly Property DefaultValueOpt As ConstantValue
+            Get
+                Return _defaultValue
+            End Get
+        End Property
 
         Public NotOverridable Overrides ReadOnly Property Name As String
             Get
@@ -52,19 +67,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public NotOverridable Overrides ReadOnly Property HasExplicitDefaultValue As Boolean
             Get
-                Return False
+                Return _defaultValue IsNot Nothing
             End Get
         End Property
 
         Friend Overrides ReadOnly Property ExplicitDefaultConstantValue(inProgress As SymbolsInProgress(Of ParameterSymbol)) As ConstantValue
             Get
-                Return Nothing
+                Return _defaultValue
             End Get
         End Property
 
         Public NotOverridable Overrides ReadOnly Property IsOptional As Boolean
             Get
-                Return False
+                Return _defaultValue IsNot Nothing
             End Get
         End Property
 
@@ -130,7 +145,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public NotOverridable Overrides ReadOnly Property IsParamArray As Boolean
             Get
-                Return False
+                Return _isParamArray
             End Get
         End Property
 

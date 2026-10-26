@@ -146,7 +146,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                isByRef,
                                                                unboundParam.Syntax,
                                                                unboundParam.GetFirstLocation(),
-                                                               isReadOnlyByRef)
+                                                               isReadOnlyByRef,
+                                                               unboundParam.DefaultValueOpt,
+                                                               unboundParam.IsParamArray)
                 BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
             Next
 
@@ -172,7 +174,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                    unboundType,
                                                                    unboundParam.IsByRef,
                                                                    unboundParam.Syntax,
-                                                                   unboundParam.GetFirstLocation())
+                                                                   unboundParam.GetFirstLocation(),
+                                                                   defaultValue:=unboundParam.DefaultValueOpt,
+                                                                   isParamArray:=unboundParam.IsParamArray)
                     BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
                 Next
             End If
@@ -939,7 +943,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For i = 0 To parameters.Length - 1
                 Dim sourceParameter = DirectCast(source.Parameters(i), UnboundLambdaParameterSymbol)
                 parameterDescriptors(i) = New AnonymousTypeField(
-                    parameters(i).Name, parameters(i).Type, sourceParameter.Syntax.GetLocation(), parameters(i).IsByRef)
+                    parameters(i).Name, parameters(i).Type, sourceParameter.Syntax.GetLocation(), parameters(i).IsByRef,
+                    parameters(i).DefaultValueOpt, parameters(i).IsParamArray)
 
                 ' Verify for restricted types.
                 If parameters(i).Type.IsRestrictedType() Then

@@ -30,9 +30,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             isByRef As Boolean,
             syntaxNode As SyntaxNode,
             location As Location,
-            Optional isReadOnlyByRef As Boolean = False
+            Optional isReadOnlyByRef As Boolean = False,
+            Optional defaultValue As ConstantValue = Nothing,
+            Optional isParamArray As Boolean = False
         )
-            MyBase.New(name, ordinal, type, isByRef, location)
+            MyBase.New(name, ordinal, type, isByRef, location, defaultValue, isParamArray)
             _syntaxNode = syntaxNode
             _isReadOnlyByRef = isReadOnlyByRef
         End Sub
