@@ -73,6 +73,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
 #Region "Factories"
+        ''' <summary>
+        ''' On vbnext an interface member with a body may be Private, Friend, or Protected, as C# 8 allows. A member without
+        ''' a body is abstract, so a type must be able to implement it: such accessibility is reported and the member stays
+        ''' Public.
+        ''' </summary>
+        Friend Shared Function CheckInterfaceMemberAccessibility(flags As SourceMemberFlags,
+                                                                 hasBody As Boolean,
+                                                                 modifiers As SyntaxTokenList,
+                                                                 isProperty As Boolean,
+                                                                 binder As Binder,
+                                                                 diagBag As DiagnosticBag) As SourceMemberFlags
+            Dim access = flags And SourceMemberFlags.AccessibilityMask
+            If binder.Compilation.LanguageVersion < LanguageVersion.VbNext OrElse
+               hasBody OrElse access = SourceMemberFlags.AccessibilityPublic OrElse access = 0 Then
+                Return flags
+            End If
+
+            binder.ReportModifierError(modifiers, If(isProperty, ERRID.ERR_BadInterfacePropertyFlags1, ERRID.ERR_BadInterfaceMethodFlags1), diagBag,
+                                       SyntaxKind.PrivateKeyword, SyntaxKind.FriendKeyword, SyntaxKind.ProtectedKeyword)
+            Return (flags And Not SourceMemberFlags.AccessibilityMask) Or SourceMemberFlags.AccessibilityPublic
+        End Function
+
         ' Create a regular method, with the given, name, declarator, and declaration syntax.
         Friend Shared Function CreateRegularMethod(container As SourceMemberContainerTypeSymbol,
                                                    syntax As MethodStatementSyntax,
@@ -93,6 +115,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                       (flags And SourceMemberFlags.Shared) <> 0 AndAlso
                                       syntax.Modifiers.Any(SyntaxKind.OverridableKeyword)
 
+            If container.IsInterface Then
+                flags = CheckInterfaceMemberAccessibility(flags, hasBody, syntax.Modifiers, isProperty:=False, binder, diagBag)
+            End If
+
             If container.IsInterface AndAlso hasBody AndAlso (flags And SourceMemberFlags.Shared) <> 0 AndAlso Not isSharedOverridable AndAlso
                binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
                 ' On vbnext a plain Shared method with a body is a static interface member that is not virtual.
@@ -104,7 +130,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     flags = flags And Not SourceMemberFlags.Shared
                 End If
 
-                flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable Or SourceMemberFlags.Overloads
+                If (flags And SourceMemberFlags.AccessibilityMask) = SourceMemberFlags.AccessibilityPrivate AndAlso
+                   binder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    ' A Private body is called only from the interface's other bodies, so it is not virtual.
+                    flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overloads
+                Else
+                    flags = (flags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable Or SourceMemberFlags.Overloads
+                End If
 
             ElseIf isSharedOverridable Then
                 ' Shared Overridable gives the member its default body, so it needs one.

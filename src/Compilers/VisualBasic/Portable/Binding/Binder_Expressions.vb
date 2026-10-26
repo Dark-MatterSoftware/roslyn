@@ -2816,6 +2816,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                         currentType = currentType.BaseTypeNoUseSiteDiagnostics
                     Loop
+
+                    ' A body in an interface reaches the members of the interfaces it inherits through Me.
+                    If type.IsInterface AndAlso container.IsInterface AndAlso type.AllInterfacesNoUseSiteDiagnostics.Contains(container) Then
+                        Return True
+                    End If
             End Select
 
             Return False

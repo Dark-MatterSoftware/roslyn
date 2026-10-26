@@ -224,8 +224,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Friend Function IsSourceDefaultInterfaceImplementation(sym As Symbol) As Boolean
-            ' A Shared member with a body that is not Overridable is not a default implementation; no type supplies it.
-            If sym.IsShared AndAlso Not sym.IsOverridable Then
+            ' A Shared or Private member with a body that is not Overridable is not a default implementation; no type supplies it.
+            If (sym.IsShared OrElse sym.DeclaredAccessibility = Accessibility.Private) AndAlso Not sym.IsOverridable Then
                 Return False
             End If
 

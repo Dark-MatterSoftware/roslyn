@@ -1486,6 +1486,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         invalidInInterface = invalidInInterface And Not SourceMemberFlags.Shared And Not SourceMemberFlags.MustOverride And Not SourceMemberFlags.Overridable
                     End If
 
+                    ' On vbnext a member with a body may say its accessibility; the member's factory reports it without one.
+                    If Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                        invalidInInterface = invalidInInterface And Not SourceMemberFlags.AllAccessibilityModifiers
+                    End If
+
                     If (flags And invalidInInterface) <> 0 Then
                         ReportModifierError(modifierList, If(isProperty, ERRID.ERR_BadInterfacePropertyFlags1, ERRID.ERR_BadInterfaceMethodFlags1), diagBag, InvalidModifiersInInterface)
                         flags = flags And Not invalidInInterface

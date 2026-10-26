@@ -110,8 +110,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     modifiers = New MemberModifiers(modifiers.FoundFlags, modifiers.ComputedFlags And Not SourceMemberFlags.MustOverride)
                 End If
             ElseIf containingType.IsInterface AndAlso blockSyntaxOpt IsNot Nothing Then
-                ' On vbnext an instance interface property with a body is its default implementation: virtual, not abstract.
-                modifiers = New MemberModifiers(modifiers.FoundFlags, (modifiers.ComputedFlags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable)
+                If (modifiers.ComputedFlags And SourceMemberFlags.AccessibilityMask) = SourceMemberFlags.AccessibilityPrivate AndAlso
+                   bodyBinder.Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    ' A Private property with a body is used only from the interface's other bodies, so it is not virtual.
+                    modifiers = New MemberModifiers(modifiers.FoundFlags, modifiers.ComputedFlags And Not SourceMemberFlags.MustOverride)
+                Else
+                    ' On vbnext an instance interface property with a body is its default implementation: virtual, not abstract.
+                    modifiers = New MemberModifiers(modifiers.FoundFlags, (modifiers.ComputedFlags And Not SourceMemberFlags.MustOverride) Or SourceMemberFlags.Overridable)
+                End If
+            End If
+
+            If containingType.IsInterface Then
+                Dim checkedFlags = SourceMethodSymbol.CheckInterfaceMemberAccessibility(modifiers.ComputedFlags, blockSyntaxOpt IsNot Nothing, syntax.Modifiers,
+                                                                                        isProperty:=True, bodyBinder, diagnostics)
+                modifiers = New MemberModifiers(modifiers.FoundFlags, checkedFlags)
             End If
 
             Dim isPartialDefinition = (modifiers.AllFlags And SourceMemberFlags.Partial) <> 0 AndAlso blockSyntaxOpt Is Nothing
