@@ -328,6 +328,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
+            If argument.Kind = BoundKind.ArrayLiteral AndAlso argument.Syntax.Kind = SyntaxKind.CollectionInitializer Then
+                Return TryBindArrayLiteralCollection(DirectCast(argument, BoundArrayLiteral), targetType, diagnostics)
+            End If
+
             Dim elements As ImmutableArray(Of BoundExpression) = Nothing
             If Not TryGetParenthesizedCollectionElements(argument, targetType, elements) Then
                 Return Nothing
@@ -358,6 +362,39 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return ReportUnconsumedSpreads(elements, diagnostics)
+        End Function
+
+        ''' <summary>
+        ''' {1, 2, 3} builds a List(Of Integer), a HashSet(Of Integer), an ImmutableArray(Of Integer), or another collection
+        ''' type that a ParamArray accepts on vbnext, as C# 12 collection expressions build them. Arrays, spans, and the
+        ''' types an array literal already converts to keep that conversion.
+        ''' </summary>
+        Private Function TryBindArrayLiteralCollection(arrayLiteral As BoundArrayLiteral, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If targetType.IsArrayType() OrElse arrayLiteral.InferredType.Rank <> 1 Then
+                Return Nothing
+            End If
+
+            Dim initializers = arrayLiteral.Initializer.Initializers
+            If initializers.Any(Function(element) element.Kind = BoundKind.ArrayInitialization) Then
+                Return Nothing
+            End If
+
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            If Conversions.ConversionExists(Conversions.ClassifyConversion(arrayLiteral, targetType, Me, useSiteInfo).Key) Then
+                Return Nothing
+            End If
+
+            Dim elementType = GetCollectionParamArrayElementType(Compilation, targetType)
+            If elementType Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim items = ArrayBuilder(Of BoundExpression).GetInstance(initializers.Length)
+            For Each element In initializers
+                items.Add(ApplyImplicitConversion(element.Syntax, elementType, element, diagnostics))
+            Next
+
+            Return CreateCollectionParamArrayArgument(arrayLiteral.Syntax, targetType, elementType, items.ToImmutableAndFree(), diagnostics)
         End Function
 
         Private Function TryGetParenthesizedCollectionElements(argument As BoundExpression, targetType As TypeSymbol, ByRef elements As ImmutableArray(Of BoundExpression)) As Boolean
