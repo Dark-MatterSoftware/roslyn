@@ -5201,8 +5201,11 @@ checkNullable:
                     GetNextToken() ' Get off the '='
                     TryEatNewLine() ' Dev10_496850 Allow implicit line continuation after the '=', e.g. Imports a=
 
-                    If CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
-                        ' On vbnext, Imports Pair = (Left As Integer, Right As Integer) aliases a tuple type.
+                    Dim aliasesTypes = _scanner.Options.LanguageVersion >= LanguageVersion.VbNext
+
+                    If aliasesTypes AndAlso
+                       (CurrentToken.Kind = SyntaxKind.OpenParenToken OrElse SyntaxFacts.IsPredefinedTypeKeyword(CurrentToken.Kind)) Then
+                        ' On vbnext, an alias names any type, such as (Left As Integer, Right As Integer), Integer, or Integer().
                         Dim type = ParseGeneralType()
                         importsClause = SyntaxFactory.TypeAliasImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), type)
                     Else
@@ -5211,7 +5214,24 @@ checkNullable:
                             allowGlobalNameSpace:=False,
                             allowGenericArguments:=True,
                             allowGenericsWithoutOf:=True)
-                        importsClause = SyntaxFactory.SimpleImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), name)
+
+                        If aliasesTypes AndAlso
+                           (CurrentToken.Kind = SyntaxKind.QuestionToken OrElse CurrentToken.Kind = SyntaxKind.OpenParenToken) Then
+                            Dim type As TypeSyntax = name
+
+                            If CurrentToken.Kind = SyntaxKind.QuestionToken Then
+                                type = SyntaxFactory.NullableType(type, DirectCast(CurrentToken, PunctuationSyntax))
+                                GetNextToken()
+                            End If
+
+                            If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
+                                type = SyntaxFactory.ArrayType(type, ParseArrayRankSpecifiers())
+                            End If
+
+                            importsClause = SyntaxFactory.TypeAliasImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), type)
+                        Else
+                            importsClause = SyntaxFactory.SimpleImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), name)
+                        End If
                     End If
                 Else
                     Dim name = ParseName(

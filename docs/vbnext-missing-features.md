@@ -284,7 +284,7 @@ Checked against this tree after wave 15, by compiling and running the shapes tha
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-126 | Aliases for predefined and array types | `Imports Num = Integer` and `Imports Ints = Integer()` report BC30183, "Keyword is not valid as an identifier", because phase 93 aliases only types that start with `(`. C# 12 aliases any type. No new syntax: the alias uses phase 93's `TypeAliasImportsClauseSyntax`. |
+| VB-126 | Aliases for predefined and array types | Done in phase 95: on `vbnext` for predefined, array, and nullable types. Before that, `Imports Num = Integer` and `Imports Ints = Integer()` reported BC30183, "Keyword is not valid as an identifier", because phase 93 aliased only types that start with `(`. C# 12 aliases any type. No new syntax: the alias uses phase 93's `TypeAliasImportsClauseSyntax`. |
 | VB-127 | Tuple equality | `(1, 2) = (1, 2)` reports BC30452, "Operator '=' is not defined for types '(Integer, Integer)' and '(Integer, Integer)'". C# 7.3 compares tuples element by element with `==` and `!=`. No new syntax. |
 | VB-128 | `With` on structures | `p With {.Y = 5}` on a `Structure` that is not a record reports BC37377, "'Point' is not a record, so it cannot be copied with 'With'". C# 10 copies any structure with `with`. No new syntax. |
 | VB-129 | `With` on anonymous types | `a With {.Y = 5}` on `New With {.X = 1, .Y = 2}` reports BC37377. C# 10 copies anonymous types with `with`. No new syntax. |
