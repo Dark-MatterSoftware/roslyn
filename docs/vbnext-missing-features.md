@@ -291,6 +291,18 @@ Checked against this tree after wave 15, by compiling and running the shapes tha
 | VB-130 | Null-conditional compound assignment | Done in phase 99: on `vbnext` for the compound operators, including chains of `?.`. Before that, `b?.Count += 1` reported BC30068, "Expression is a value and therefore cannot be the target of an assignment", though `b?.Name = value` already assigns. C# 14 allows compound assignment through `?.`. No new syntax. |
 | VB-131 | Array literals for collection types | Done in phase 100: on `vbnext` wherever the target type is known; method arguments, for this form and the parenthesized one, are left for overload resolution to learn. Before that, `Dim list As List(Of Integer) = {1, 2, 3}` reported BC30311, as do `HashSet(Of Integer)` and `ImmutableArray(Of Integer)`, though `ReadOnlySpan(Of Integer)` converts. C# 12 collection expressions build any collection type that has a collection initializer or a `CollectionBuilder`. No new syntax. |
 
+## Wave 17
+
+Checked against this tree after wave 16, by compiling the shapes that wave 16 code meets next against .NET 11 with `LangVersion` `vbnext`, with a C# library alongside. The parenthesized spread `(..a, 3)` already builds a `List(Of Integer)`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-132 | Collection literals as arguments | `Use({1, 2})` and `Use((1, 2))`, where `Use` takes a `List(Of Integer)`, report BC30311, because overload resolution does not consider the collections that phase 100 and the parenthesized form build. C# 12 passes collection expressions to any collection parameter. No new syntax. |
+| VB-133 | Spreads in array literals | `Dim b As List(Of Integer) = {..a, 3}` reports BC37359, "A range can only be used to slice a one-dimensional array", though `(..a, 3)` spreads `a`. C# 12 spreads with `..` in collection expressions. No new syntax. |
+| VB-134 | Null-conditional nothing-coalescing assignment | `box?.Name ?= "x"` reports BC30068, because phase 99 leaves `?=` out of the assignments through `?.`. C# 14 allows `box?.Name ??= "x"`. No new syntax. |
+| VB-135 | Nullable tuple equality | `t = (1, 2)`, where `t` is `(Integer, Integer)?`, reports BC30452, because phase 96 compares only tuples that are not nullable. C# lifts tuple `==` and `!=` to nullable tuples. No new syntax. |
+| VB-136 | Span receivers for extension methods | `a.CountOf(2)`, where `a` is an `Integer()` and C# declares `CountOf<T>(this ReadOnlySpan<T> span, T value)`, reports BC30456, because an extension method's receiver does not convert from an array to a span. C# 14 first-class spans call such extensions on arrays. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -524,3 +536,15 @@ The gap that finishes phase 93 comes first, then the operator and copy forms, sm
 | 4 | VB-129 | `With` on anonymous types | S | Extends the same copy to anonymous types. |
 | 5 | VB-130 | Null-conditional compound assignment | M | Finishes the `?.` assignment that already works for `=`. |
 | 6 | VB-131 | Array literals for collection types | L | Changes how array literals convert, so it comes last. |
+
+### Wave 17 order
+
+The gaps that finish phases 100, 96, and 99 come first, smallest first, then the span receivers, last the change to overload resolution, which touches every call.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-133 | Spreads in array literals | S | Gives `{...}` the spreads that `(...)` already has. |
+| 2 | VB-135 | Nullable tuple equality | S | Lifts phase 96 to nullable tuples. |
+| 3 | VB-134 | Null-conditional nothing-coalescing assignment | M | Finishes phase 99 with `?=`. |
+| 4 | VB-136 | Span receivers for extension methods | M | Opens the span extensions of the .NET libraries to arrays. |
+| 5 | VB-132 | Collection literals as arguments | L | Changes overload resolution, so it comes last. |
