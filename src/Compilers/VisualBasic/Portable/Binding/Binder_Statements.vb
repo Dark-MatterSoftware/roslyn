@@ -2694,26 +2694,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function BindNullConditionalAssignment(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
-            Dim accessSyntax = DirectCast(node.Left, ConditionalAccessExpressionSyntax)
+            Return New BoundExpressionStatement(node, BindNullConditionalAssignmentAccess(node, DirectCast(node.Left, ConditionalAccessExpressionSyntax), Me, diagnostics))
+        End Function
+
+        ''' <summary>
+        ''' box?.Inner?.Count = 1 nests a conditional access for each ?. in the target, so the assignment is the
+        ''' access of the innermost one, and the value binds where the statement does.
+        ''' </summary>
+        Private Function BindNullConditionalAssignmentAccess(
+            node As AssignmentStatementSyntax,
+            accessSyntax As ConditionalAccessExpressionSyntax,
+            valueBinder As Binder,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundConditionalAccess
+
             Dim placeholder As BoundRValuePlaceholder = Nothing
             Dim receiver = BindConditionalAccessReceiver(accessSyntax, diagnostics, placeholder)
             Dim accessBinder As New ConditionalAccessBinder(Me, accessSyntax, placeholder)
+            Dim voidType = GetSpecialType(SpecialType.System_Void, node, diagnostics)
+
+            If accessSyntax.WhenNotNull.Kind = SyntaxKind.ConditionalAccessExpression Then
+                Dim innerAccess = accessBinder.BindNullConditionalAssignmentAccess(node, DirectCast(accessSyntax.WhenNotNull, ConditionalAccessExpressionSyntax), valueBinder, diagnostics)
+                Return New BoundConditionalAccess(accessSyntax, receiver, placeholder, innerAccess, voidType, hasErrors:=receiver.HasErrors OrElse innerAccess.HasErrors)
+            End If
+
             Dim target = accessBinder.BindAssignmentTarget(accessSyntax.WhenNotNull, diagnostics)
-            Dim value = BindValue(node.Right, diagnostics)
+            Dim value = valueBinder.BindValue(node.Right, diagnostics)
 
             Dim assignment As BoundExpression
             If receiver.HasErrors OrElse target.HasErrors OrElse value.HasErrors Then
                 value = MakeRValueAndIgnoreDiagnostics(value)
                 assignment = New BoundAssignmentOperator(node, target, value, suppressObjectClone:=False, If(target.Type, ErrorTypeSymbol.UnknownResultType), hasErrors:=True)
-            Else
+            ElseIf node.Kind = SyntaxKind.SimpleAssignmentStatement Then
                 assignment = BindAssignment(node, target, value, diagnostics)
+            Else
+                ' box?.Count += 1 reads and writes Count only when box is not Nothing, as C# 14 allows.
+                Dim compound = GetCompoundAssignmentOperator(node.Kind)
+                assignment = BindCompoundAssignment(node, target, value, compound.TokenKind, compound.OperatorKind, diagnostics)
             End If
 
             ' The statement stands for the assignment. The conditional access stands for box?.Value.
             assignment.SetWasCompilerGenerated()
-            Dim voidType = GetSpecialType(SpecialType.System_Void, node, diagnostics)
-            Dim conditional = New BoundConditionalAccess(accessSyntax, receiver, placeholder, assignment, voidType, hasErrors:=receiver.HasErrors OrElse assignment.HasErrors)
-            Return New BoundExpressionStatement(node, conditional)
+            Return New BoundConditionalAccess(accessSyntax, receiver, placeholder, assignment, voidType, hasErrors:=receiver.HasErrors OrElse assignment.HasErrors)
         End Function
 
         Private Function BindNothingCoalescingAssignment(
@@ -3083,7 +3105,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function BindAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
             Debug.Assert(node IsNot Nothing)
 
-            If node.Kind = SyntaxKind.SimpleAssignmentStatement AndAlso node.Left.Kind = SyntaxKind.ConditionalAccessExpression Then
+            If node.Left.Kind = SyntaxKind.ConditionalAccessExpression AndAlso node.Kind <> SyntaxKind.NothingCoalescingAssignmentStatement Then
                 Dim languageVersion = DirectCast(node.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
                 If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.NullConditionalAssignment) Then
                     Return BindNullConditionalAssignment(node, diagnostics)
@@ -3123,45 +3145,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ElseIf node.Kind = SyntaxKind.NothingCoalescingAssignmentStatement Then
                 expr = BindNothingCoalescingAssignment(node, op1, op2, diagnostics)
             Else
-                Dim operatorKind As BinaryOperatorKind
-                Dim binaryTokenKind As SyntaxKind
-
-                Select Case node.Kind
-                    Case SyntaxKind.AddAssignmentStatement
-                        operatorKind = BinaryOperatorKind.Add
-                        binaryTokenKind = SyntaxKind.PlusToken
-                    Case SyntaxKind.SubtractAssignmentStatement
-                        operatorKind = BinaryOperatorKind.Subtract
-                        binaryTokenKind = SyntaxKind.MinusToken
-                    Case SyntaxKind.MultiplyAssignmentStatement
-                        operatorKind = BinaryOperatorKind.Multiply
-                        binaryTokenKind = SyntaxKind.AsteriskToken
-                    Case SyntaxKind.DivideAssignmentStatement
-                        operatorKind = BinaryOperatorKind.Divide
-                        binaryTokenKind = SyntaxKind.SlashToken
-                    Case SyntaxKind.IntegerDivideAssignmentStatement
-                        operatorKind = BinaryOperatorKind.IntegerDivide
-                        binaryTokenKind = SyntaxKind.BackslashToken
-                    Case SyntaxKind.ExponentiateAssignmentStatement
-                        operatorKind = BinaryOperatorKind.Power
-                        binaryTokenKind = SyntaxKind.CaretToken
-                    Case SyntaxKind.LeftShiftAssignmentStatement
-                        operatorKind = BinaryOperatorKind.LeftShift
-                        binaryTokenKind = SyntaxKind.LessThanLessThanToken
-                    Case SyntaxKind.RightShiftAssignmentStatement
-                        operatorKind = BinaryOperatorKind.RightShift
-                        binaryTokenKind = SyntaxKind.GreaterThanGreaterThanToken
-                    Case SyntaxKind.ConcatenateAssignmentStatement
-                        operatorKind = BinaryOperatorKind.Concatenate
-                        binaryTokenKind = SyntaxKind.AmpersandToken
-                    Case Else
-                        Throw ExceptionUtilities.UnexpectedValue(node.Kind)
-                End Select
-
-                expr = BindCompoundAssignment(node, op1, op2, binaryTokenKind, operatorKind, diagnostics)
+                Dim compound = GetCompoundAssignmentOperator(node.Kind)
+                expr = BindCompoundAssignment(node, op1, op2, compound.TokenKind, compound.OperatorKind, diagnostics)
             End If
 
             Return New BoundExpressionStatement(node, expr.MakeCompilerGenerated())
+        End Function
+
+        Private Shared Function GetCompoundAssignmentOperator(kind As SyntaxKind) As (TokenKind As SyntaxKind, OperatorKind As BinaryOperatorKind)
+            Select Case kind
+                Case SyntaxKind.AddAssignmentStatement
+                    Return (SyntaxKind.PlusToken, BinaryOperatorKind.Add)
+                Case SyntaxKind.SubtractAssignmentStatement
+                    Return (SyntaxKind.MinusToken, BinaryOperatorKind.Subtract)
+                Case SyntaxKind.MultiplyAssignmentStatement
+                    Return (SyntaxKind.AsteriskToken, BinaryOperatorKind.Multiply)
+                Case SyntaxKind.DivideAssignmentStatement
+                    Return (SyntaxKind.SlashToken, BinaryOperatorKind.Divide)
+                Case SyntaxKind.IntegerDivideAssignmentStatement
+                    Return (SyntaxKind.BackslashToken, BinaryOperatorKind.IntegerDivide)
+                Case SyntaxKind.ExponentiateAssignmentStatement
+                    Return (SyntaxKind.CaretToken, BinaryOperatorKind.Power)
+                Case SyntaxKind.LeftShiftAssignmentStatement
+                    Return (SyntaxKind.LessThanLessThanToken, BinaryOperatorKind.LeftShift)
+                Case SyntaxKind.RightShiftAssignmentStatement
+                    Return (SyntaxKind.GreaterThanGreaterThanToken, BinaryOperatorKind.RightShift)
+                Case SyntaxKind.ConcatenateAssignmentStatement
+                    Return (SyntaxKind.AmpersandToken, BinaryOperatorKind.Concatenate)
+                Case Else
+                    Throw ExceptionUtilities.UnexpectedValue(kind)
+            End Select
         End Function
 
         ''' <summary>
