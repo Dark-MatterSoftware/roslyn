@@ -1053,6 +1053,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim recordType = TryCast(receiver.Type, NamedTypeSymbol)
+            If recordType IsNot Nothing AndAlso Not recordType.IsRecord AndAlso recordType.IsStructureType() AndAlso
+               Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Return BindStructureWithCopy(node, receiver, recordType, diagnostics)
+            End If
+
             If recordType Is Nothing OrElse Not recordType.IsRecord Then
                 ReportDiagnostic(diagnostics, node.Initializer, ErrorFactory.ErrorInfo(ERRID.ERR_WithCopyNotRecord, receiver.Type))
                 Return BadExpression(node, receiver, If(recordType, ErrorTypeSymbol.UnknownResultType))
@@ -1162,6 +1167,75 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 creation,
                 recordType).MakeCompilerGenerated()
         End Function
+
+        ''' <summary>
+        ''' A With copy of a structure that is not a record, as C# 10 copies any structure: the value is copied
+        ''' into a temporary, the listed members are assigned on the temporary, and the temporary is the result.
+        ''' </summary>
+        Private Function BindStructureWithCopy(
+            node As WithExpressionSyntax,
+            receiver As BoundExpression,
+            structureType As NamedTypeSymbol,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim copy As LocalSymbol = New SynthesizedLocal(ContainingMember, structureType, SynthesizedLocalKind.LoweringTemp)
+            Dim placeholder = New BoundWithLValueExpressionPlaceholder(node, structureType)
+            placeholder.SetWasCompilerGenerated()
+            Dim initializerBinder = New ObjectInitializerBinder(Me, placeholder)
+            Dim replacer = New WithPlaceholderReplacer(placeholder, New BoundLocal(node, copy, structureType).MakeCompilerGenerated())
+            Dim mentioned = New HashSet(Of String)(CaseInsensitiveComparison.Comparer)
+            Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+
+            sideEffects.Add(New BoundAssignmentOperator(
+                node,
+                New BoundLocal(node, copy, structureType).MakeCompilerGenerated(),
+                receiver,
+                suppressObjectClone:=True,
+                type:=structureType).MakeCompilerGenerated())
+
+            For Each initializer In node.Initializer.Initializers
+                Dim named = TryCast(initializer, NamedFieldInitializerSyntax)
+                If named Is Nothing Then
+                    Continue For
+                End If
+
+                Dim target = BindRecordInitializerTarget(named.Name, placeholder, diagnostics)
+                If target.Kind = BoundKind.FieldAccess OrElse target.Kind = BoundKind.PropertyAccess Then
+                    Dim identifierName = named.Name.Identifier.ValueText
+                    If Not mentioned.Add(identifierName) Then
+                        ReportDiagnostic(diagnostics, named.Name, ErrorFactory.ErrorInfo(ERRID.ERR_DuplicateAggrMemberInit1, identifierName))
+                    End If
+                End If
+
+                Dim value = initializerBinder.BindValue(named.Expression, diagnostics)
+                sideEffects.Add(DirectCast(replacer.Visit(BindAssignment(named, target, value, diagnostics)), BoundExpression))
+            Next
+
+            ' The copy stands for the With expression.
+            Return New BoundSequence(
+                node,
+                ImmutableArray.Create(copy),
+                sideEffects.ToImmutableAndFree(),
+                New BoundLocal(node, copy, structureType).MakeCompilerGenerated().MakeRValue(),
+                structureType).MakeCompilerGenerated()
+        End Function
+
+        Private NotInheritable Class WithPlaceholderReplacer
+            Inherits BoundTreeRewriterWithStackGuard
+
+            Private ReadOnly _placeholder As BoundWithLValueExpressionPlaceholder
+            Private ReadOnly _replacement As BoundExpression
+
+            Public Sub New(placeholder As BoundWithLValueExpressionPlaceholder, replacement As BoundExpression)
+                _placeholder = placeholder
+                _replacement = replacement
+            End Sub
+
+            Public Overrides Function VisitWithLValueExpressionPlaceholder(node As BoundWithLValueExpressionPlaceholder) As BoundNode
+                Return If(node Is _placeholder, _replacement, node)
+            End Function
+        End Class
 
         ''' <summary>
         ''' A With copy of a record class: the copy constructor copies every field of the original, then the
