@@ -278,6 +278,19 @@ Checked against this tree after wave 14, by compiling and running the shapes tha
 | VB-124 | Generic extension operators | Done in phase 92: on `vbnext`, inferring the block's type arguments from the operands. Before that, `a + b` over `Box(Of Integer)` operands, where C# 14 declares `operator +` in `extension<T>(Box<T>)`, reported BC30452, because phase 84 leaves the operators of generic blocks out. No new syntax. |
 | VB-125 | Tuple type aliases | Done in phase 93: on `vbnext` through a new `TypeAliasImportsClauseSyntax` node, which also takes a nullable tuple. Before that, `Imports Pair = (Left As Integer, Right As Integer)` reported BC30203, "Identifier expected", because an `Imports` alias names only a namespace or a named type. C# 12 aliases any type. No new keyword. |
 
+## Wave 16
+
+Checked against this tree after wave 15, by compiling and running the shapes that wave 15 code meets next against .NET 11 with `LangVersion` `vbnext`, with a C# library alongside. Several shapes already work: `Async Function Main`, the `ModuleInitializer` attribute, covariant return types on `Overrides`, `OverloadResolutionPriority`, interpolated string handlers, `SyncLock` on `System.Threading.Lock` through `EnterScope`, `UnscopedRef` members, `Partial Property`, `b?.Name = value`, and an array literal converted to `ReadOnlySpan(Of T)`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-126 | Aliases for predefined and array types | `Imports Num = Integer` and `Imports Ints = Integer()` report BC30183, "Keyword is not valid as an identifier", because phase 93 aliases only types that start with `(`. C# 12 aliases any type. No new syntax: the alias uses phase 93's `TypeAliasImportsClauseSyntax`. |
+| VB-127 | Tuple equality | `(1, 2) = (1, 2)` reports BC30452, "Operator '=' is not defined for types '(Integer, Integer)' and '(Integer, Integer)'". C# 7.3 compares tuples element by element with `==` and `!=`. No new syntax. |
+| VB-128 | `With` on structures | `p With {.Y = 5}` on a `Structure` that is not a record reports BC37377, "'Point' is not a record, so it cannot be copied with 'With'". C# 10 copies any structure with `with`. No new syntax. |
+| VB-129 | `With` on anonymous types | `a With {.Y = 5}` on `New With {.X = 1, .Y = 2}` reports BC37377. C# 10 copies anonymous types with `with`. No new syntax. |
+| VB-130 | Null-conditional compound assignment | `b?.Count += 1` reports BC30068, "Expression is a value and therefore cannot be the target of an assignment", though `b?.Name = value` already assigns. C# 14 allows compound assignment through `?.`. No new syntax. |
+| VB-131 | Array literals for collection types | `Dim list As List(Of Integer) = {1, 2, 3}` reports BC30311, as do `HashSet(Of Integer)` and `ImmutableArray(Of Integer)`, though `ReadOnlySpan(Of Integer)` converts. C# 12 collection expressions build any collection type that has a collection initializer or a `CollectionBuilder`. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -498,3 +511,16 @@ The interface members that C# 8 completes come first, smallest first, then the l
 | 4 | VB-123 | Lambda optional and ParamArray parameters | M | Lets VB lambdas take the parameter forms that VB methods already take. |
 | 5 | VB-124 | Generic extension operators | S | Finishes phase 83 for generic blocks with phase 84's inference. |
 | 6 | VB-125 | Tuple type aliases | M | Changes how `Imports` aliases parse, so it comes last. |
+
+### Wave 16 order
+
+The gap that finishes phase 93 comes first, then the operator and copy forms, smallest first, then the assignment form, last the conversion that touches every array literal.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-126 | Aliases for predefined and array types | S | Finishes phase 93 for the other types that are not names. |
+| 2 | VB-127 | Tuple equality | M | Lets tuples compare as C# compares them, element by element. |
+| 3 | VB-128 | `With` on structures | S | Extends the record `With` to every structure. |
+| 4 | VB-129 | `With` on anonymous types | S | Extends the same copy to anonymous types. |
+| 5 | VB-130 | Null-conditional compound assignment | M | Finishes the `?.` assignment that already works for `=`. |
+| 6 | VB-131 | Array literals for collection types | L | Changes how array literals convert, so it comes last. |
