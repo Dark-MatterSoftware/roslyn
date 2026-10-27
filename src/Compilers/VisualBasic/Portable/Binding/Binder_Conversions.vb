@@ -370,7 +370,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' types an array literal already converts to keep that conversion.
         ''' </summary>
         Private Function TryBindArrayLiteralCollection(arrayLiteral As BoundArrayLiteral, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
-            If targetType.IsArrayType() OrElse arrayLiteral.InferredType.Rank <> 1 Then
+            If arrayLiteral.InferredType.Rank <> 1 Then
                 Return Nothing
             End If
 
@@ -379,14 +379,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
-            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
-            If Conversions.ConversionExists(Conversions.ClassifyConversion(arrayLiteral, targetType, Me, useSiteInfo).Key) Then
-                Return Nothing
+            ' {..items, 3} spreads items, as (..items, 3) does.
+            Dim hasSpread = HasSpreadElement(initializers)
+            Dim arrayType = TryCast(targetType, ArrayTypeSymbol)
+            If arrayType IsNot Nothing Then
+                If Not hasSpread OrElse Not arrayType.IsSZArray Then
+                    Return Nothing
+                End If
+
+                Return BindArrayFromSpreadElements(arrayLiteral, arrayType, initializers, diagnostics)
+            End If
+
+            If Not hasSpread Then
+                Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+                If Conversions.ConversionExists(Conversions.ClassifyConversion(arrayLiteral, targetType, Me, useSiteInfo).Key) Then
+                    Return Nothing
+                End If
             End If
 
             Dim elementType = GetCollectionParamArrayElementType(Compilation, targetType)
             If elementType Is Nothing Then
                 Return Nothing
+            End If
+
+            If hasSpread Then
+                Return BindCollectionFromSpreadElements(arrayLiteral, DirectCast(targetType, NamedTypeSymbol), elementType, initializers, diagnostics)
             End If
 
             Dim items = ArrayBuilder(Of BoundExpression).GetInstance(initializers.Length)
@@ -395,6 +412,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             Return CreateCollectionParamArrayArgument(arrayLiteral.Syntax, targetType, elementType, items.ToImmutableAndFree(), diagnostics)
+        End Function
+
+        ''' <summary>
+        ''' A collection built from elements that include spreads. Spans and arrays come from the elements gathered in a
+        ''' List(Of T), a type with a collection builder gets that array as a ReadOnlySpan(Of T), and other types add each element.
+        ''' </summary>
+        Private Function BindCollectionFromSpreadElements(argument As BoundExpression, targetType As NamedTypeSymbol, elementType As TypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim span = TryBindSpanFromElements(argument, targetType, elements, diagnostics)
+            If span IsNot Nothing Then
+                Return span
+            End If
+
+            Dim arrayType = ArrayTypeSymbol.CreateVBArray(elementType, Nothing, 1, Compilation)
+
+            If targetType.IsInterfaceType() Then
+                Select Case targetType.OriginalDefinition.Name
+                    Case "ICollection", "IList"
+                        Dim listType = Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_List_T).Construct(elementType)
+                        Dim list = TryBindCollectionInitializerFromElements(argument, listType, elements, diagnostics)
+                        Return If(list Is Nothing, Nothing, ApplyImplicitConversion(argument.Syntax, targetType, list.MakeCompilerGenerated(), diagnostics))
+                    Case Else
+                        Return ApplyImplicitConversion(argument.Syntax, targetType, BindArrayFromSpreadElements(argument, arrayType, elements, diagnostics), diagnostics)
+                End Select
+            End If
+
+            Dim builder = GetCollectionBuilderMethod(targetType, elementType)
+            If builder IsNot Nothing Then
+                Dim spanType = Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T).Construct(elementType)
+                Dim builderSpan = TryBindSpanFromElements(argument, spanType, elements, diagnostics)
+                If builderSpan Is Nothing Then
+                    Return Nothing
+                End If
+
+                Return New BoundCall(argument.Syntax,
+                                     method:=builder,
+                                     methodGroupOpt:=Nothing,
+                                     receiverOpt:=Nothing,
+                                     arguments:=ImmutableArray.Create(builderSpan),
+                                     constantValueOpt:=Nothing,
+                                     type:=builder.ReturnType).MakeCompilerGenerated()
+            End If
+
+            Return TryBindCollectionInitializerFromElements(argument, targetType, elements, diagnostics)
         End Function
 
         Private Function TryGetParenthesizedCollectionElements(argument As BoundExpression, targetType As TypeSymbol, ByRef elements As ImmutableArray(Of BoundExpression)) As Boolean
@@ -973,6 +1033,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim parenthesizedCollection = TryBindParenthesizedCollection(argument, targetType, diagnostics)
             If parenthesizedCollection IsNot Nothing Then
                 argument = parenthesizedCollection
+            ElseIf argument.Kind = BoundKind.ArrayLiteral AndAlso argument.Syntax.Kind = SyntaxKind.CollectionInitializer AndAlso Not targetType.IsErrorType() Then
+                ' No collection consumed the spreads of {..items}.
+                If ReportUnconsumedSpreads(DirectCast(argument, BoundArrayLiteral).Initializer.Initializers, diagnostics) IsNot Nothing Then
+                    Return BadExpression(node, argument, targetType)
+                End If
             End If
 
             ' Deal with erroneous arguments

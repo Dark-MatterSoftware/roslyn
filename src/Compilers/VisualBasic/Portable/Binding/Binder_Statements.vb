@@ -2024,6 +2024,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                 diagnostics.Add(ERRID.ERR_CollectionExpressionRequiresTarget, arrayLiteral.Syntax.GetLocation())
                                 inferredType = ErrorTypeSymbol.UnknownResultType
                                 arrayLiteral = Nothing
+                            ElseIf ReportUnconsumedSpreads(arrayLiteral.Initializer.Initializers, diagnostics) IsNot Nothing Then
+                                ' Dim items = {..other} has no collection type to spread into.
+                                inferredType = ErrorTypeSymbol.UnknownResultType
+                                arrayLiteral = Nothing
                             Else
                                 inferredType = arrayLiteral.InferredType
                             End If

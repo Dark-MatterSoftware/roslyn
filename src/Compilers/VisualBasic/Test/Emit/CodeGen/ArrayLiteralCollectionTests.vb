@@ -63,6 +63,106 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="7,8 2 A,B 0 3 5 Int32[] Int32[] List`1").VerifyDiagnostics()
         End Sub
 
+        <Fact>
+        Public Sub SpreadsInArrayLiterals()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Module Program
+    Sub Main()
+        Dim a As Integer() = {1, 2}
+        Dim more As New List(Of Integer) From {7, 8}
+        Dim list As List(Of Integer) = {..a, 3}
+        Dim array As Integer() = {0, ..a, ..more}
+        Dim sequence As IEnumerable(Of Integer) = {..more}
+        Dim indexed As IList(Of Integer) = {..a, 4}
+        Console.Write($""{String.Join("","", list)} {String.Join("","", array)} {String.Join("","", sequence)} {indexed.GetType().Name}{indexed.Count}"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="1,2,3 0,1,2,7,8 7,8 List`13").VerifyDiagnostics()
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SpreadsWithCollectionBuilder()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Immutable
+
+Module Program
+    Sub Main()
+        Dim a As Integer() = {1, 2}
+        Dim frozen As ImmutableArray(Of Integer) = {..a, 3}
+        Dim span As ReadOnlySpan(Of Integer) = {..a, 9}
+        Console.Write($""{frozen.Length} {frozen(2)} {span.Length}{span(2)}"")
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3 3 39", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub SpreadsInArrayLiteralErrors()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim a As Integer() = {1, 2}
+        Dim b = {..a, 3}
+        Dim c As String = {..a}
+        Dim d As Integer(,) = {..a}
+        Dim e As System.Collections.Generic.HashSet(Of Integer) = {..a, 5}
+        Dim f As Object = {..a}
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC37359: A range can only be used to slice a one-dimensional array.
+        Dim b = {..a, 3}
+                 ~~~
+BC37359: A range can only be used to slice a one-dimensional array.
+        Dim c As String = {..a}
+                           ~~~
+BC37359: A range can only be used to slice a one-dimensional array.
+        Dim d As Integer(,) = {..a}
+                               ~~~
+BC30456: 'AddRange' is not a member of 'HashSet(Of Integer)'.
+        Dim e As System.Collections.Generic.HashSet(Of Integer) = {..a, 5}
+                                                                   ~~~
+BC37359: A range can only be used to slice a one-dimensional array.
+        Dim f As Object = {..a}
+                           ~~~
+</expected>)
+        End Sub
+
+        <Fact>
+        Public Sub SpreadsInArrayLiteralsNotAvailableBeforeVbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Sub Main()
+        Dim a As Integer() = {1, 2}
+        Dim list As List(Of Integer) = {..a, 3}
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30157: Leading '.' or '!' can only appear inside a 'With' statement.
+        Dim list As List(Of Integer) = {..a, 3}
+                                        ~
+BC30203: Identifier expected.
+        Dim list As List(Of Integer) = {..a, 3}
+                                         ~
+</expected>)
+        End Sub
+
         <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub ArrayLiteralBuildsWithCollectionBuilder()
             Dim compilation = CreateCompilation("

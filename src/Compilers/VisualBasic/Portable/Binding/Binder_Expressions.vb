@@ -1868,6 +1868,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BadExpression(arrayLiteral.Syntax, arrayLiteral, ErrorTypeSymbol.UnknownResultType)
             End If
 
+            If ReportUnconsumedSpreads(arrayLiteral.Initializer.Initializers, diagnostics) IsNot Nothing Then
+                Return BadExpression(arrayLiteral.Syntax, arrayLiteral, ErrorTypeSymbol.UnknownResultType)
+            End If
+
             Return ApplyImplicitConversion(arrayLiteral.Syntax,
                                            arrayLiteral.InferredType,
                                            arrayLiteral,
@@ -4329,11 +4333,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' On vbnext, ..items as a tuple element is a spread. A parenthesized range stays a range.
+        ''' On vbnext, ..items as a tuple element or an element of a one-dimensional array literal is a spread.
+        ''' A parenthesized range stays a range.
         ''' </summary>
         Private Function IsCollectionSpread(node As RangeExpressionSyntax) As Boolean
             If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse node.Left IsNot Nothing OrElse node.Right Is Nothing Then
                 Return False
+            End If
+
+            If node.Parent IsNot Nothing AndAlso node.Parent.Kind = SyntaxKind.CollectionInitializer Then
+                Dim literalParent = node.Parent.Parent
+                Return literalParent Is Nothing OrElse
+                    (literalParent.Kind <> SyntaxKind.CollectionInitializer AndAlso literalParent.Kind <> SyntaxKind.ObjectCollectionInitializer)
             End If
 
             Dim argument = TryCast(node.Parent, SimpleArgumentSyntax)
