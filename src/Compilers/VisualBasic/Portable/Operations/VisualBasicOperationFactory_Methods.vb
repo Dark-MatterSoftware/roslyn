@@ -385,6 +385,15 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Dim binaryOp As BoundUserDefinedBinaryOperator = DirectCast(conditionOpt, BoundUserDefinedBinaryOperator)
                     Return GetUserDefinedBinaryOperatorChildBoundNode(binaryOp, 1)
 
+                Case BoundKind.Sequence
+                    ' On vbnext, comparing tuples stores the Select value, then the Case value, before comparing the elements.
+                    Dim sequence = DirectCast(conditionOpt, BoundSequence)
+                    If sequence.SideEffects.Length = 2 AndAlso sequence.SideEffects(1).Kind = BoundKind.AssignmentOperator Then
+                        Return DirectCast(sequence.SideEffects(1), BoundAssignmentOperator).Right
+                    End If
+
+                    Throw ExceptionUtilities.UnexpectedValue(conditionOpt.Kind)
+
                 Case Else
                     Throw ExceptionUtilities.UnexpectedValue(conditionOpt.Kind)
             End Select

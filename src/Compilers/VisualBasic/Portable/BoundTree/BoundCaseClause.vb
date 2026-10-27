@@ -25,6 +25,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Dim binaryOp As BoundUserDefinedBinaryOperator = DirectCast(conditionOpt, BoundUserDefinedBinaryOperator)
                         Debug.Assert((binaryOp.OperatorKind And BinaryOperatorKind.OpMask) = operatorKind)
 
+                    Case BoundKind.Sequence
+                        ' On vbnext, comparing tuples binds as a sequence that compares their elements.
+
                     Case Else
                         ExceptionUtilities.UnexpectedValue(conditionOpt.Kind) ' This is going to assert
                 End Select

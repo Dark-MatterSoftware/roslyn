@@ -1009,7 +1009,8 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim value As IOperation = Create(boundFieldInitializer.InitialValue)
             Dim syntax As SyntaxNode = boundFieldInitializer.Syntax
             Dim isImplicit As Boolean = boundFieldInitializer.WasCompilerGenerated
-            Return New FieldInitializerOperation(initializedFields, ImmutableArray(Of ILocalSymbol).Empty, value, _semanticModel, syntax, isImplicit)
+            Dim locals = SequenceLocalsCollector.GetExpressionLocals(boundFieldInitializer.InitialValue).As(Of ILocalSymbol)()
+            Return New FieldInitializerOperation(initializedFields, locals, value, _semanticModel, syntax, isImplicit)
         End Function
 
         Private Function CreateBoundPropertyInitializerOperation(boundPropertyInitializer As BoundPropertyInitializer) As IPropertyInitializerOperation
@@ -1017,7 +1018,8 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim value As IOperation = Create(boundPropertyInitializer.InitialValue)
             Dim syntax As SyntaxNode = boundPropertyInitializer.Syntax
             Dim isImplicit As Boolean = boundPropertyInitializer.WasCompilerGenerated
-            Return New PropertyInitializerOperation(initializedProperties, ImmutableArray(Of ILocalSymbol).Empty, value, _semanticModel, syntax, isImplicit)
+            Dim locals = SequenceLocalsCollector.GetExpressionLocals(boundPropertyInitializer.InitialValue).As(Of ILocalSymbol)()
+            Return New PropertyInitializerOperation(initializedProperties, locals, value, _semanticModel, syntax, isImplicit)
         End Function
 
         Private Function CreateBoundParameterEqualsValueOperation(boundParameterEqualsValue As BoundParameterEqualsValue) As IParameterInitializerOperation

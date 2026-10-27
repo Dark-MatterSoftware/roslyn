@@ -45,6 +45,21 @@ Namespace Microsoft.CodeAnalysis.Operations
                 Return locals.ToImmutableAndFree()
             End Function
 
+            ''' <summary>
+            ''' A field or property initializer declares the temporaries of the sequences in its value.
+            ''' </summary>
+            Public Shared Function GetExpressionLocals(expression As BoundExpression) As ImmutableArray(Of LocalSymbol)
+                Dim options = TryCast(expression.Syntax.SyntaxTree?.Options, VisualBasicParseOptions)
+                If options Is Nothing OrElse options.LanguageVersion < LanguageVersion.VbNext Then
+                    Return ImmutableArray(Of LocalSymbol).Empty
+                End If
+
+                Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+                Dim collector As New SequenceLocalsCollector(locals)
+                collector.Visit(expression)
+                Return locals.ToImmutableAndFree()
+            End Function
+
             Public Overrides Function VisitSequence(node As BoundSequence) As BoundNode
                 _locals.AddRange(node.Locals)
                 Return MyBase.VisitSequence(node)

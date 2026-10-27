@@ -319,6 +319,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 operatorKind = BinaryOperatorKind.Error
             End If
 
+            If operatorKind = BinaryOperatorKind.Error AndAlso
+               (preliminaryOperatorKind = BinaryOperatorKind.Equals OrElse preliminaryOperatorKind = BinaryOperatorKind.NotEquals) AndAlso
+               Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Dim tupleComparison = TryBindTupleEquality(node, left, right, operatorTokenKind, preliminaryOperatorKind, isOperandOfConditionalBranch, diagnostics)
+                If tupleComparison IsNot Nothing Then
+                    Return tupleComparison
+                End If
+            End If
+
             If operatorKind = BinaryOperatorKind.Error Then
                 ReportUndefinedOperatorError(node, left, right, operatorTokenKind, preliminaryOperatorKind, diagnostics)
 
@@ -1020,6 +1029,67 @@ Done:
             End While
 
             Return cast.IsNothingLiteral()
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, (a, b) = (c, d) means a = c AndAlso b = d, and (a, b) &lt;&gt; (c, d) means a &lt;&gt; c OrElse b &lt;&gt; d,
+        ''' with each operand evaluated once, left to right, as C# compares tuples.
+        ''' </summary>
+        Private Function TryBindTupleEquality(
+            node As SyntaxNode,
+            left As BoundExpression,
+            right As BoundExpression,
+            operatorTokenKind As SyntaxKind,
+            operatorKind As BinaryOperatorKind,
+            isOperandOfConditionalBranch As Boolean,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+            Dim leftType = left.Type
+            Dim rightType = right.Type
+
+            If leftType Is Nothing OrElse rightType Is Nothing OrElse
+               Not leftType.IsTupleType OrElse Not rightType.IsTupleType OrElse
+               leftType.TupleElements.Length <> rightType.TupleElements.Length Then
+                Return Nothing
+            End If
+
+            Dim leftTemp As LocalSymbol = New SynthesizedLocal(ContainingMember, leftType, SynthesizedLocalKind.LoweringTemp)
+            Dim rightTemp As LocalSymbol = New SynthesizedLocal(ContainingMember, rightType, SynthesizedLocalKind.LoweringTemp)
+            Dim sideEffects = ImmutableArray.Create(Of BoundExpression)(StoreTupleOperand(node, leftTemp, left), StoreTupleOperand(node, rightTemp, right))
+
+            Dim combineKind = If(operatorKind = BinaryOperatorKind.Equals, BinaryOperatorKind.AndAlso, BinaryOperatorKind.OrElse)
+            Dim combineToken = If(operatorKind = BinaryOperatorKind.Equals, SyntaxKind.AndAlsoKeyword, SyntaxKind.OrElseKeyword)
+            Dim result As BoundExpression = Nothing
+
+            For i = 0 To leftType.TupleElements.Length - 1
+                Dim compare = BindBinaryOperator(node,
+                                                 ReadTupleElement(node, leftTemp, leftType.TupleElements(i)),
+                                                 ReadTupleElement(node, rightTemp, rightType.TupleElements(i)),
+                                                 operatorTokenKind,
+                                                 operatorKind,
+                                                 isOperandOfConditionalBranch,
+                                                 diagnostics).MakeCompilerGenerated()
+
+                result = If(result Is Nothing,
+                            compare,
+                            BindBinaryOperator(node, result, compare, combineToken, combineKind, isOperandOfConditionalBranch, diagnostics).MakeCompilerGenerated())
+            Next
+
+            Return New BoundSequence(node, ImmutableArray.Create(leftTemp, rightTemp), sideEffects, result, result.Type)
+        End Function
+
+        Private Shared Function StoreTupleOperand(node As SyntaxNode, temp As LocalSymbol, value As BoundExpression) As BoundExpression
+            Return New BoundAssignmentOperator(
+                node,
+                New BoundLocal(node, temp, temp.Type).MakeCompilerGenerated(),
+                value,
+                suppressObjectClone:=True,
+                type:=temp.Type).MakeCompilerGenerated()
+        End Function
+
+        Private Shared Function ReadTupleElement(node As SyntaxNode, temp As LocalSymbol, element As FieldSymbol) As BoundExpression
+            Dim receiver = New BoundLocal(node, temp, temp.Type).MakeCompilerGenerated().MakeRValue()
+            Return New BoundFieldAccess(node, receiver, element, isLValue:=False, type:=element.Type).MakeCompilerGenerated()
         End Function
 
         Private Sub ReportUndefinedOperatorError(

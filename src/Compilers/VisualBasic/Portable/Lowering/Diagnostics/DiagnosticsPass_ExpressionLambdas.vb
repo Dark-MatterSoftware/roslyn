@@ -78,6 +78,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' sequences are handled in DiagnosticsPass, but we still want to catch
                 ' here those sequences created in lowering
                 GenerateExpressionTreeNotSupportedDiagnostic(node)
+
+                ' The stores into the sequence's own temporaries are part of the same unsupported expression.
+                For Each sideEffect In node.SideEffects
+                    Dim assignment = TryCast(sideEffect, BoundAssignmentOperator)
+                    If assignment IsNot Nothing AndAlso
+                       assignment.Left.Kind = BoundKind.Local AndAlso
+                       node.Locals.Contains(DirectCast(assignment.Left, BoundLocal).LocalSymbol) Then
+                        Visit(assignment.Right)
+                    Else
+                        Visit(sideEffect)
+                    End If
+                Next
+
+                Visit(node.ValueOpt)
+                Return Nothing
             End If
 
             Return MyBase.VisitSequence(node)
