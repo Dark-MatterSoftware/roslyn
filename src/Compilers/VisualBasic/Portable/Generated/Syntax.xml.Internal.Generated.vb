@@ -795,6 +795,99 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents the clause of an Imports statement that aliases a type that is not a
+    ''' name, such as a tuple type.
+    ''' </summary>
+    Friend NotInheritable Class TypeAliasImportsClauseSyntax
+        Inherits ImportsClauseSyntax
+
+        Friend ReadOnly _alias as ImportAliasClauseSyntax
+        Friend ReadOnly _type as TypeSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, [alias] As ImportAliasClauseSyntax, type As TypeSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth([alias])
+            Me._alias = [alias]
+            AdjustFlagsAndWidth(type)
+            Me._type = type
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, [alias] As ImportAliasClauseSyntax, type As TypeSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth([alias])
+            Me._alias = [alias]
+            AdjustFlagsAndWidth(type)
+            Me._type = type
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), [alias] As ImportAliasClauseSyntax, type As TypeSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth([alias])
+            Me._alias = [alias]
+            AdjustFlagsAndWidth(type)
+            Me._type = type
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The alias for the type.
+        ''' </summary>
+        Friend ReadOnly Property [Alias] As InternalSyntax.ImportAliasClauseSyntax
+            Get
+                Return Me._alias
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The type being aliased.
+        ''' </summary>
+        Friend ReadOnly Property Type As InternalSyntax.TypeSyntax
+            Get
+                Return Me._type
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._alias
+                Case 1
+                    Return Me._type
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new TypeAliasImportsClauseSyntax(Me.Kind, newErrors, GetAnnotations, _alias, _type)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new TypeAliasImportsClauseSyntax(Me.Kind, GetDiagnostics, annotations, _alias, _type)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitTypeAliasImportsClause(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents an alias identifier followed by an "=" token in an Imports clause.
     ''' </summary>
     Friend NotInheritable Class ImportAliasClauseSyntax
@@ -31467,6 +31560,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitImportsClause(node)
         End Function
+        Public Overridable Function VisitTypeAliasImportsClause(ByVal node As TypeAliasImportsClauseSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitImportsClause(node)
+        End Function
         Public Overridable Function VisitImportAliasClause(ByVal node As ImportAliasClauseSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitVisualBasicSyntaxNode(node)
@@ -32715,6 +32812,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New SimpleImportsClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAlias, newName)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeAliasImportsClause(ByVal node As TypeAliasImportsClauseSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newAlias = DirectCast(Visit(node._alias), ImportAliasClauseSyntax)
+            If node._alias IsNot newAlias Then anyChanges = True
+            Dim newType = DirectCast(Visit(node._type), TypeSyntax)
+            If node._type IsNot newType Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeAliasImportsClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newAlias, newType)
             Else
                 Return node
             End If
@@ -38106,6 +38218,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New SimpleImportsClauseSyntax(SyntaxKind.SimpleImportsClause, [alias], name)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents the clause of an Imports statement that aliases a type that is not a
+        ''' name, such as a tuple type.
+        ''' </summary>
+        ''' <param name="alias">
+        ''' The alias for the type.
+        ''' </param>
+        ''' <param name="type">
+        ''' The type being aliased.
+        ''' </param>
+        Friend Shared Function TypeAliasImportsClause([alias] As ImportAliasClauseSyntax, type As TypeSyntax) As TypeAliasImportsClauseSyntax
+            Debug.Assert([alias] IsNot Nothing)
+            Debug.Assert(type IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.TypeAliasImportsClause, [alias], type, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, TypeAliasImportsClauseSyntax)
+            End If
+
+            Dim result = New TypeAliasImportsClauseSyntax(SyntaxKind.TypeAliasImportsClause, [alias], type)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If
@@ -50945,6 +51086,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             End If
 
             Dim result = New SimpleImportsClauseSyntax(SyntaxKind.SimpleImportsClause, [alias], name, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents the clause of an Imports statement that aliases a type that is not a
+        ''' name, such as a tuple type.
+        ''' </summary>
+        ''' <param name="alias">
+        ''' The alias for the type.
+        ''' </param>
+        ''' <param name="type">
+        ''' The type being aliased.
+        ''' </param>
+        Friend Function TypeAliasImportsClause([alias] As ImportAliasClauseSyntax, type As TypeSyntax) As TypeAliasImportsClauseSyntax
+            Debug.Assert([alias] IsNot Nothing)
+            Debug.Assert(type IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.TypeAliasImportsClause, [alias], type, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, TypeAliasImportsClauseSyntax)
+            End If
+
+            Dim result = New TypeAliasImportsClauseSyntax(SyntaxKind.TypeAliasImportsClause, [alias], type, _factoryContext)
             If hash >= 0 Then
                 SyntaxNodeCache.AddNode(result, hash)
             End If

@@ -63,8 +63,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         If simpleImportsClause.Alias Is Nothing Then
                             BindMembersImportsClause(simpleImportsClause, binder, data, diagBag)
                         Else
-                            BindAliasImportsClause(simpleImportsClause, binder, data, diagBag)
+                            BindAliasImportsClause(simpleImportsClause, simpleImportsClause.Alias, simpleImportsClause.Name, binder, data, diagBag)
                         End If
+
+                    Case SyntaxKind.TypeAliasImportsClause
+                        Dim typeAliasImportsClause = DirectCast(importClauseSyntax, TypeAliasImportsClauseSyntax)
+                        BindAliasImportsClause(typeAliasImportsClause, typeAliasImportsClause.Alias, typeAliasImportsClause.Type, binder, data, diagBag)
 
                     Case SyntaxKind.XmlNamespaceImportsClause
                         BindXmlNamespaceImportsClause(DirectCast(importClauseSyntax, XmlNamespaceImportsClauseSyntax), binder, data, diagBag)
@@ -74,13 +78,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Sub
 
             ' Bind an alias imports clause. If it is OK, and also unique, add it to the dictionary.
-            Private Shared Sub BindAliasImportsClause(aliasImportSyntax As SimpleImportsClauseSyntax,
+            Private Shared Sub BindAliasImportsClause(aliasImportSyntax As ImportsClauseSyntax,
+                                                      aliasClause As ImportAliasClauseSyntax,
+                                                      aliasesName As TypeSyntax,
                                                       binder As Binder,
                                                       data As ImportData,
                                                       diagnostics As DiagnosticBag)
                 Dim diagBag = BindingDiagnosticBag.GetInstance()
 
-                Dim aliasesName = aliasImportSyntax.Name
                 Dim aliasTarget As NamespaceOrTypeSymbol = binder.BindNamespaceOrTypeSyntax(aliasesName, diagBag)
 
                 If aliasTarget.Kind <> SymbolKind.Namespace Then
@@ -95,7 +100,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
                 End If
 
-                Dim aliasIdentifier = aliasImportSyntax.Alias.Identifier
+                Dim aliasIdentifier = aliasClause.Identifier
                 Dim aliasText = aliasIdentifier.ValueText
                 ' Parser checks for type characters on alias text, so don't need to check again here.
 

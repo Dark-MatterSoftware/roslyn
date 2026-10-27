@@ -95,3 +95,16 @@ Overrides Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax.Accept
 Overrides Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxRewriter.VisitByRefExpression(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax) -> Microsoft.CodeAnalysis.SyntaxNode
 Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.ByRefExpression(byRefKeyword As Microsoft.CodeAnalysis.SyntaxToken, expression As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
 Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.ByRefExpression(expression As Microsoft.CodeAnalysis.VisualBasic.Syntax.ExpressionSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ByRefExpressionSyntax
+Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.TypeAliasImportsClause = 823 -> Microsoft.CodeAnalysis.VisualBasic.SyntaxKind
+Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.Alias() -> Microsoft.CodeAnalysis.VisualBasic.Syntax.ImportAliasClauseSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.Type() -> Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.Update(alias As Microsoft.CodeAnalysis.VisualBasic.Syntax.ImportAliasClauseSyntax, type As Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.WithAlias(alias As Microsoft.CodeAnalysis.VisualBasic.Syntax.ImportAliasClauseSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax
+Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.WithType(type As Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax
+Overridable Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor(Of TResult).VisitTypeAliasImportsClause(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax) -> TResult
+Overridable Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor.VisitTypeAliasImportsClause(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax) -> Void
+Overrides Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.Accept(Of TResult)(visitor As Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor(Of TResult)) -> TResult
+Overrides Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax.Accept(visitor As Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxVisitor) -> Void
+Overrides Microsoft.CodeAnalysis.VisualBasic.VisualBasicSyntaxRewriter.VisitTypeAliasImportsClause(node As Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax) -> Microsoft.CodeAnalysis.SyntaxNode
+Shared Microsoft.CodeAnalysis.VisualBasic.SyntaxFactory.TypeAliasImportsClause(alias As Microsoft.CodeAnalysis.VisualBasic.Syntax.ImportAliasClauseSyntax, type As Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeSyntax) -> Microsoft.CodeAnalysis.VisualBasic.Syntax.TypeAliasImportsClauseSyntax

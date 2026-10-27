@@ -29,6 +29,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitSimpleImportsClause(ByVal node As SimpleImportsClauseSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitTypeAliasImportsClause(ByVal node As TypeAliasImportsClauseSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitImportAliasClause(ByVal node As ImportAliasClauseSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -816,6 +819,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitSimpleImportsClause(ByVal node As SimpleImportsClauseSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitTypeAliasImportsClause(ByVal node As TypeAliasImportsClauseSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitImportAliasClause(ByVal node As ImportAliasClauseSyntax)
@@ -1682,6 +1688,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New SimpleImportsClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAlias, newName)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitTypeAliasImportsClause(ByVal node As TypeAliasImportsClauseSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newAlias = DirectCast(Visit(node.[Alias]), ImportAliasClauseSyntax)
+            If node.[Alias] IsNot newAlias Then anyChanges = True
+            Dim newType = DirectCast(Visit(node.Type), TypeSyntax)
+            If node.Type IsNot newType Then anyChanges = True
+
+            If anyChanges Then
+                Return New TypeAliasImportsClauseSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newAlias, newType)
             Else
                 Return node
             End If
@@ -7359,6 +7380,46 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function SimpleImportsClause(name As NameSyntax) As SimpleImportsClauseSyntax
             Return SyntaxFactory.SimpleImportsClause(Nothing, name)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents the clause of an Imports statement that aliases a type that is not a
+        ''' name, such as a tuple type.
+        ''' </summary>
+        ''' <param name="alias">
+        ''' The alias for the type.
+        ''' </param>
+        ''' <param name="type">
+        ''' The type being aliased.
+        ''' </param>
+        Public Shared Function TypeAliasImportsClause([alias] As ImportAliasClauseSyntax, type As TypeSyntax) As TypeAliasImportsClauseSyntax
+            if [alias] Is Nothing Then
+                Throw New ArgumentNullException(NameOf([alias]))
+            End If
+            Select Case [alias].Kind()
+                Case SyntaxKind.ImportAliasClause
+                Case Else
+                    Throw new ArgumentException("[alias]")
+            End Select
+            if type Is Nothing Then
+                Throw New ArgumentNullException(NameOf(type))
+            End If
+            Select Case type.Kind()
+                Case SyntaxKind.TupleType,
+                     SyntaxKind.ArrayType,
+                     SyntaxKind.NullableType,
+                     SyntaxKind.PredefinedType,
+                     SyntaxKind.IdentifierName,
+                     SyntaxKind.GenericName,
+                     SyntaxKind.QualifiedName,
+                     SyntaxKind.GlobalName,
+                     SyntaxKind.CrefOperatorReference,
+                     SyntaxKind.QualifiedCrefOperatorReference
+                Case Else
+                    Throw new ArgumentException("type")
+            End Select
+            Return New TypeAliasImportsClauseSyntax(SyntaxKind.TypeAliasImportsClause, Nothing, Nothing, [alias], type)
         End Function
 
 

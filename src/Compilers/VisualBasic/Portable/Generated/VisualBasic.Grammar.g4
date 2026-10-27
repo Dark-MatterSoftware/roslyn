@@ -15,6 +15,7 @@ imports_statement
 
 imports_clause
   : simple_imports_clause
+  | type_alias_imports_clause
   | xml_namespace_imports_clause
   ;
 
@@ -24,6 +25,10 @@ simple_imports_clause
 
 import_alias_clause
   : identifier_token '='
+  ;
+
+type_alias_imports_clause
+  : import_alias_clause type
   ;
 
 xml_namespace_imports_clause

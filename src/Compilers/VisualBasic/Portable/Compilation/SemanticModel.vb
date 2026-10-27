@@ -2733,6 +2733,13 @@ _Default:
         Public MustOverride Overloads Function GetDeclaredSymbol(declarationSyntax As SimpleImportsClauseSyntax, Optional cancellationToken As CancellationToken = Nothing) As IAliasSymbol
 
         ''' <summary>
+        ''' Given a type alias import clause, such as Imports Pair = (Integer, Integer), get the alias symbol it declares.
+        ''' </summary>
+        Friend Overridable Function GetDeclaredTypeAliasSymbol(declarationSyntax As TypeAliasImportsClauseSyntax, Optional cancellationToken As CancellationToken = Nothing) As IAliasSymbol
+            Return Nothing
+        End Function
+
+        ''' <summary>
         ''' Given a field declaration syntax, get the corresponding symbols.
         ''' </summary>
         ''' <param name="declarationSyntax">The syntax node that declares one or more fields.</param>
@@ -3248,6 +3255,9 @@ _Default:
             Select Case node.Kind
                 Case SyntaxKind.SimpleImportsClause
                     Return Me.GetDeclaredSymbol(DirectCast(node, SimpleImportsClauseSyntax), cancellationToken)
+
+                Case SyntaxKind.TypeAliasImportsClause
+                    Return Me.GetDeclaredTypeAliasSymbol(DirectCast(node, TypeAliasImportsClauseSyntax), cancellationToken)
 
                 Case SyntaxKind.TypedTupleElement,
                      SyntaxKind.NamedTupleElement

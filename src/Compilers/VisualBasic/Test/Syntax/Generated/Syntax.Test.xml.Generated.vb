@@ -132,6 +132,10 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.SimpleImportsClause(Nothing, GenerateGreenIdentifierName())
         End Function
 
+        Private Shared Function GenerateGreenTypeAliasImportsClause() As InternalSyntax.TypeAliasImportsClauseSyntax
+            return InternalSyntax.SyntaxFactory.TypeAliasImportsClause(GenerateGreenImportAliasClause(), GenerateGreenTupleType())
+        End Function
+
         Private Shared Function GenerateGreenImportAliasClause() As InternalSyntax.ImportAliasClauseSyntax
             return InternalSyntax.SyntaxFactory.ImportAliasClause(GenerateGreenIdentifierToken(), new InternalSyntax.PunctuationSyntax(SyntaxKind.EqualsToken, String.Empty, Nothing, Nothing))
         End Function
@@ -1818,6 +1822,12 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenSimpleImportsClause()
             dim objectUnderTest = GenerateGreenSimpleImportsClause()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeAliasImportsClause()
+            dim objectUnderTest = GenerateGreenTypeAliasImportsClause()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -4319,6 +4329,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenSimpleImportsClauseRewriter()
             dim oldNode = GenerateGreenSimpleImportsClause()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeAliasImportsClauseRewriter()
+            dim oldNode = GenerateGreenTypeAliasImportsClause()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -7406,6 +7424,13 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenSimpleImportsClauseVisitor()
             Dim oldNode = GenerateGreenSimpleImportsClause()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenTypeAliasImportsClauseVisitor()
+            Dim oldNode = GenerateGreenTypeAliasImportsClause()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -10708,6 +10733,27 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.SimpleImportsClause(Nothing, GenerateRedIdentifierName())
+        End Function
+
+        Private Shared Function GenerateRedTypeAliasImportsClause() As TypeAliasImportsClauseSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.TypeAliasImportsClause(Nothing, GenerateRedTupleType())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.TypeAliasImportsClause(GenerateRedImportAliasClause(), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.TypeAliasImportsClause(GenerateRedImportAliasClause(), GenerateRedTupleType())
         End Function
 
         Private Shared Function GenerateRedImportAliasClause() As ImportAliasClauseSyntax
@@ -19970,6 +20016,15 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedTypeAliasImportsClause()
+            dim objectUnderTest = GenerateRedTypeAliasImportsClause()
+            Assert.NotNull(objectUnderTest.alias)
+            Assert.NotNull(objectUnderTest.type)
+            Dim withObj = objectUnderTest.WithAlias(objectUnderTest.Alias).WithType(objectUnderTest.Type)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedImportAliasClause()
             dim objectUnderTest = GenerateRedImportAliasClause()
             Assert.NotNull(objectUnderTest.identifier)
@@ -23631,6 +23686,14 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedSimpleImportsClauseRewriter()
             dim oldNode = GenerateRedSimpleImportsClause()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedTypeAliasImportsClauseRewriter()
+            dim oldNode = GenerateRedTypeAliasImportsClause()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

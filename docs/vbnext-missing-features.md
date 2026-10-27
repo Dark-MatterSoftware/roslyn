@@ -276,7 +276,7 @@ Checked against this tree after wave 14, by compiling and running the shapes tha
 | VB-122 | Interface custom events | Done in phase 90: on `vbnext` the `AddHandler` and `RemoveHandler` bodies are the default implementation. Before that, `Custom Event Changed As EventHandler` with accessor bodies in an interface reported BC31121, "'Custom' modifier is not valid on events declared in interfaces". C# 8 declares default event accessors in interfaces. No new syntax. |
 | VB-123 | Lambda optional and ParamArray parameters | Done in phase 91: on `vbnext` through the anonymous delegate VB infers. Before that, `Function(Optional x As Integer = 3) x` reported BC33010, and `Function(ParamArray xs() As Integer) xs.Length` reports BC33009. C# 12 allows default values and `params` in lambdas. No new syntax. |
 | VB-124 | Generic extension operators | Done in phase 92: on `vbnext`, inferring the block's type arguments from the operands. Before that, `a + b` over `Box(Of Integer)` operands, where C# 14 declares `operator +` in `extension<T>(Box<T>)`, reported BC30452, because phase 84 leaves the operators of generic blocks out. No new syntax. |
-| VB-125 | Tuple type aliases | `Imports Pair = (Left As Integer, Right As Integer)` reports BC30203, "Identifier expected", because an `Imports` alias names only a namespace or a named type. C# 12 aliases any type. No new syntax. |
+| VB-125 | Tuple type aliases | Done in phase 93: on `vbnext` through a new `TypeAliasImportsClauseSyntax` node, which also takes a nullable tuple. Before that, `Imports Pair = (Left As Integer, Right As Integer)` reported BC30203, "Identifier expected", because an `Imports` alias names only a namespace or a named type. C# 12 aliases any type. No new keyword. |
 
 ## Parked
 

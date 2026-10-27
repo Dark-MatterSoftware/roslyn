@@ -1315,7 +1315,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
-            Dim aliasName As String = declarationSyntax.Alias.Identifier.ValueText
+            Return GetDeclaredAliasSymbol(declarationSyntax, declarationSyntax.Alias, declarationSyntax.Name)
+        End Function
+
+        Friend Overrides Function GetDeclaredTypeAliasSymbol(declarationSyntax As TypeAliasImportsClauseSyntax, Optional cancellationToken As CancellationToken = Nothing) As IAliasSymbol
+            If declarationSyntax Is Nothing Then
+                Throw New ArgumentNullException(NameOf(declarationSyntax))
+            End If
+
+            If Not IsInTree(declarationSyntax) Then
+                Throw New ArgumentException(VBResources.DeclarationSyntaxNotWithinTree)
+            End If
+
+            Return GetDeclaredAliasSymbol(declarationSyntax, declarationSyntax.Alias, declarationSyntax.Type)
+        End Function
+
+        Private Function GetDeclaredAliasSymbol(declarationSyntax As ImportsClauseSyntax, aliasClause As ImportAliasClauseSyntax, target As TypeSyntax) As IAliasSymbol
+            Dim aliasName As String = aliasClause.Identifier.ValueText
 
             If Not String.IsNullOrEmpty(aliasName) Then
                 Dim sourceFile = Me._sourceModule.TryGetSourceFile(Me.SyntaxTree)
@@ -1335,7 +1351,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' If the alias name was in the map but the location didn't match, then the syntax declares a duplicate alias.
                     ' We'll return a new AliasSymbol to improve the API experience.
                     Dim binder As Binder = GetEnclosingBinder(declarationSyntax.SpanStart)
-                    Dim targetSymbol As NamespaceOrTypeSymbol = binder.BindNamespaceOrTypeSyntax(declarationSyntax.Name, BindingDiagnosticBag.Discarded)
+                    Dim targetSymbol As NamespaceOrTypeSymbol = binder.BindNamespaceOrTypeSyntax(target, BindingDiagnosticBag.Discarded)
                     If targetSymbol IsNot Nothing Then
                         Return New AliasSymbol(binder.Compilation, binder.ContainingNamespaceOrType, aliasName, targetSymbol, declarationSyntax.GetLocation())
                     End If

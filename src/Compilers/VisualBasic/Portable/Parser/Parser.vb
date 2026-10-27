@@ -5201,12 +5201,18 @@ checkNullable:
                     GetNextToken() ' Get off the '='
                     TryEatNewLine() ' Dev10_496850 Allow implicit line continuation after the '=', e.g. Imports a=
 
-                    Dim name = ParseName(
-                        requireQualification:=False,
-                        allowGlobalNameSpace:=False,
-                        allowGenericArguments:=True,
-                        allowGenericsWithoutOf:=True)
-                    importsClause = SyntaxFactory.SimpleImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), name)
+                    If CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso _scanner.Options.LanguageVersion >= LanguageVersion.VbNext Then
+                        ' On vbnext, Imports Pair = (Left As Integer, Right As Integer) aliases a tuple type.
+                        Dim type = ParseGeneralType()
+                        importsClause = SyntaxFactory.TypeAliasImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), type)
+                    Else
+                        Dim name = ParseName(
+                            requireQualification:=False,
+                            allowGlobalNameSpace:=False,
+                            allowGenericArguments:=True,
+                            allowGenericsWithoutOf:=True)
+                        importsClause = SyntaxFactory.SimpleImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), name)
+                    End If
                 Else
                     Dim name = ParseName(
                         requireQualification:=False,

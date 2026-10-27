@@ -996,6 +996,122 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents the clause of an Imports statement that aliases a type that is not a
+    ''' name, such as a tuple type.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.TypeAliasImportsClause"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class TypeAliasImportsClauseSyntax
+        Inherits ImportsClauseSyntax
+
+        Friend _alias as ImportAliasClauseSyntax
+        Friend _type as TypeSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), [alias] As ImportAliasClauseSyntax, type As TypeSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeAliasImportsClauseSyntax(kind, errors, annotations, DirectCast([alias].Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ImportAliasClauseSyntax), DirectCast(type.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.TypeSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The alias for the type.
+        ''' </summary>
+        Public ReadOnly Property [Alias] As ImportAliasClauseSyntax
+            Get
+                Return GetRedAtZero(_alias)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the [Alias] property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithAlias([alias] as ImportAliasClauseSyntax) As TypeAliasImportsClauseSyntax
+            return Update([alias], Me.Type)
+        End Function
+
+        ''' <summary>
+        ''' The type being aliased.
+        ''' </summary>
+        Public ReadOnly Property Type As TypeSyntax
+            Get
+                Return GetRed(_type, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Type property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithType(type as TypeSyntax) As TypeAliasImportsClauseSyntax
+            return Update(Me.Alias, type)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._alias
+                Case 1
+                    Return Me._type
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.[Alias]
+                Case 1
+                    Return Me.Type
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitTypeAliasImportsClause(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitTypeAliasImportsClause(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="alias">
+        ''' The value for the Alias property.
+        ''' </param>
+        ''' <param name="type">
+        ''' The value for the Type property.
+        ''' </param>
+        Public Function Update([alias] As ImportAliasClauseSyntax, type As TypeSyntax) As TypeAliasImportsClauseSyntax
+            If [alias] IsNot Me.[Alias] OrElse type IsNot Me.Type Then
+                Dim newNode = SyntaxFactory.TypeAliasImportsClause([alias], type)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents an alias identifier followed by an "=" token in an Imports clause.
     ''' </summary>
     ''' <remarks>

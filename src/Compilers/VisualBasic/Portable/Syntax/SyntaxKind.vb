@@ -3346,6 +3346,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ForEachDeconstruction = 821                  ' ForEachDeconstructionSyntax : VisualBasicSyntaxNode
         ByRefExpression = 822                        ' ByRefExpressionSyntax : ExpressionSyntax
+        TypeAliasImportsClause = 823                 ' TypeAliasImportsClauseSyntax : ImportsClauseSyntax
 
     End Enum
 End Namespace

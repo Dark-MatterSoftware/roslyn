@@ -486,6 +486,23 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--********************
+      -  TypeAliasImportsClauseSyntax
+      **********************-->
+    <node-structure name="TypeAliasImportsClauseSyntax" parent="ImportsClauseSyntax">
+      <description>Represents the clause of an Imports statement that aliases a type that is not a name, such as a tuple type.</description>
+
+      <node-kind name="TypeAliasImportsClause" />
+
+      <child name="Alias" kind="ImportAliasClause">
+        <description>The alias for the type.</description>
+      </child>
+
+      <child name="Type" kind="@TypeSyntax">
+        <description>The type being aliased.</description>
+      </child>
+    </node-structure>
+
+    <!--********************
       -  ImportAliasClauseSyntax
       **********************-->
     <node-structure name="ImportAliasClauseSyntax" parent="VisualBasicSyntaxNode">
