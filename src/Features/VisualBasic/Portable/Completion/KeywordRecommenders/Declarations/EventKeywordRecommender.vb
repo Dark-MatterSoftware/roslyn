@@ -35,7 +35,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
             Dim targetToken = context.TargetToken
             If targetToken.Kind = SyntaxKind.IdentifierToken AndAlso SyntaxFacts.GetContextualKeywordKind(targetToken.GetIdentifierText()) = SyntaxKind.CustomKeyword Then
                 If targetToken.GetAncestor(Of MethodBlockBaseSyntax)() Is Nothing AndAlso
-                    targetToken.GetInnermostDeclarationContext().IsKind(SyntaxKind.StructureBlock, SyntaxKind.ClassBlock) Then
+                    (targetToken.GetInnermostDeclarationContext().IsKind(SyntaxKind.StructureBlock, SyntaxKind.ClassBlock) OrElse
+                     (context.SyntaxTree.IsVbNext() AndAlso targetToken.GetInnermostDeclarationContext().IsKind(SyntaxKind.InterfaceBlock))) Then
 
                     Dim variableDeclarator = targetToken.GetAncestor(Of VariableDeclaratorSyntax)()
                     If variableDeclarator IsNot Nothing Then

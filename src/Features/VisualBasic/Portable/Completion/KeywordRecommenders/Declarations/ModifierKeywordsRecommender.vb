@@ -37,7 +37,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                    innermostDeclaration.Kind,
                    SyntaxKind.NamespaceBlock)
 
-            If modifierFacts.AccessibilityKeyword.Kind = SyntaxKind.None AndAlso Not context.IsInterfaceMemberDeclarationKeywordContext Then
+            If modifierFacts.AccessibilityKeyword.Kind = SyntaxKind.None AndAlso (isVbNext OrElse Not context.IsInterfaceMemberDeclarationKeywordContext) Then
                 If modifierFacts.OverridableSharedOrPartialKeyword.Kind <> SyntaxKind.PartialKeyword Then
                     recommendations.Add(New RecommendedKeyword("Public", VBFeaturesResources.Specifies_that_one_or_more_declared_programming_elements_have_no_access_restrictions))
                 End If

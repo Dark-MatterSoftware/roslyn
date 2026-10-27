@@ -293,6 +293,38 @@ End Class", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestTupleTypeAlias() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Imports Pa$$ir = (Left As Integer, Right As Integer)
+
+Class C
+    Dim p As Pair
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("(Left As Integer, Right As Integer)"))
+            End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestOptionalLambdaParameter() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Class C
+    Sub M()
+        Dim f = Function(Optional x As Integer = 3) x$$ * 2
+    End Sub
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.parameter}) x As Integer = 3"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))

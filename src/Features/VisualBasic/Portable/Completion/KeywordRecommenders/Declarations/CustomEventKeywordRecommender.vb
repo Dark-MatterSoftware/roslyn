@@ -19,8 +19,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
             ImmutableArray.Create(New RecommendedKeyword("Custom Event", VBFeaturesResources.Specifies_that_an_event_has_additional_specialized_code_for_adding_handlers_removing_handlers_and_raising_events))
 
         Protected Overrides Function RecommendKeywords(context As VisualBasicSyntaxContext, CancellationToken As CancellationToken) As ImmutableArray(Of RecommendedKeyword)
-            ' Custom Event cannot appear in interfaces
-            If context.IsTypeMemberDeclarationKeywordContext Then
+            ' Custom Event can appear in interfaces only on vbnext
+            If context.IsTypeMemberDeclarationKeywordContext OrElse
+               (context.IsInterfaceMemberDeclarationKeywordContext AndAlso context.SyntaxTree.IsVbNext()) Then
                 Dim modifiers = context.ModifierCollectionFacts
                 If modifiers.CouldApplyToOneOf(PossibleDeclarationTypes.Event) AndAlso
                    modifiers.CustomKeyword.Kind = SyntaxKind.None Then

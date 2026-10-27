@@ -407,6 +407,54 @@ End Interface</File>, "Operator")
         End Sub
 
         <Fact>
+        Public Sub AccessibilityInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    |
+End Interface</File>, "Public", "Private", "Friend", "Protected", "Protected Friend")
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    Protected |
+End Interface</File>, "Friend", "Function", "Sub", "Property")
+            VerifyRecommendationsMissing(<File VbNext="True">Interface I
+    Private |
+End Interface</File>, "Public", "Private", "Friend", "Protected")
+            VerifyRecommendationsMissing(<File>Interface I
+    |
+End Interface</File>, "Public", "Private", "Friend", "Protected")
+        End Sub
+
+        <Fact>
+        Public Sub CustomEventInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    |
+End Interface</File>, "Custom Event")
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    Custom |
+End Interface</File>, "Event")
+            VerifyRecommendationsMissing(<File>Interface I
+    |
+End Interface</File>, "Custom Event")
+        End Sub
+
+        <Fact>
+        Public Sub OptionalAndParamArrayInLambdaParameters()
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub Use()
+        Dim f = Function(|
+    End Sub
+End Module</File>, "Optional", "ParamArray", "ByVal")
+            VerifyRecommendationsContain(<File VbNext="True">Module M
+    Sub Use()
+        Dim f = Function(Optional x As Integer = 1, |
+    End Sub
+End Module</File>, "Optional")
+            VerifyRecommendationsMissing(<File>Module M
+    Sub Use()
+        Dim f = Function(|
+    End Sub
+End Module</File>, "Optional", "ParamArray")
+        End Sub
+
+        <Fact>
         Public Sub MembersAfterSharedInInterface()
             VerifyRecommendationsContain(<File VbNext="True">Interface I
     Shared |

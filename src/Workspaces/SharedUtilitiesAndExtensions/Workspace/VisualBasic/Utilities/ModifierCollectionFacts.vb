@@ -363,9 +363,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                     PossibleDeclarationTypes.Method Or
                     PossibleDeclarationTypes.Property
 
-                ' Interface properties may have accessor bodies.
+                ' Interface properties may have accessor bodies, and members with a body may be Protected.
                 If syntaxTree.IsVbNext() Then
-                    declarationTypes = declarationTypes Or PossibleDeclarationTypes.Accessor
+                    declarationTypes = declarationTypes Or PossibleDeclarationTypes.Accessor Or PossibleDeclarationTypes.ProtectedMember
                 End If
             End If
 

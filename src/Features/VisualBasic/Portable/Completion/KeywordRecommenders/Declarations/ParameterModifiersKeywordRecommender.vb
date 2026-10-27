@@ -38,7 +38,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                                methodDeclaration.Kind <> SyntaxKind.OperatorStatement
 
             Dim optionalAndParamArrayAllowed = TypeOf methodDeclaration IsNot DelegateStatementSyntax AndAlso
-                                               TypeOf methodDeclaration IsNot LambdaHeaderSyntax AndAlso
+                                               (TypeOf methodDeclaration IsNot LambdaHeaderSyntax OrElse context.SyntaxTree.IsVbNext()) AndAlso
                                                TypeOf methodDeclaration IsNot AccessorStatementSyntax AndAlso
                                                methodDeclaration.Kind <> SyntaxKind.EventStatement AndAlso
                                                methodDeclaration.Kind <> SyntaxKind.OperatorStatement
