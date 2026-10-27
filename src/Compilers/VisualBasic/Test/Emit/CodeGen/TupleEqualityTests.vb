@@ -77,6 +77,56 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub CompareNullableTuples()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Function Show(b As Boolean?) As String
+        Return If(b.HasValue, If(b.Value, ""T"", ""F""), ""N"")
+    End Function
+
+    Sub Main()
+        Dim t As (Integer, Integer)? = (1, 2)
+        Dim n As (Integer, Integer)? = Nothing
+        Dim named As (X As Integer, Y As Long)? = (1, 2L)
+        Console.Write(Show(t = (1, 2)) & Show(t <> (1, 2)) & Show((1, 3) = t) & Show(t = t) & Show(t = named) & "" "")
+        Console.Write(Show(n = (1, 2)) & Show(n <> (1, 2)) & Show(n = n) & Show(t = n) & "" "")
+        If t = (1, 2) Then
+            Console.Write(""if"")
+        End If
+        If n = (1, 2) Then
+            Console.Write(""wrong"")
+        End If
+        Dim lifted = t = (1, 2)
+        Console.Write("" "" & lifted.GetType().Name)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="TFFTT NNNN if Boolean").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub NullableTupleEqualityErrors()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim t As (Integer, Integer)? = (1, 2)
+        Dim a = t = (1, 2, 3)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30452: Operator '=' is not defined for types '(Integer, Integer)?' and '(Integer, Integer, Integer)'.
+        Dim a = t = (1, 2, 3)
+                ~~~~~~~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub TupleEqualityErrors()
             Dim compilation = CreateCompilation("
 Class Item

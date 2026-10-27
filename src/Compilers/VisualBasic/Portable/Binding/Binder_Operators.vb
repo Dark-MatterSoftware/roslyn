@@ -1047,8 +1047,15 @@ Done:
             Dim leftType = left.Type
             Dim rightType = right.Type
 
-            If leftType Is Nothing OrElse rightType Is Nothing OrElse
-               Not leftType.IsTupleType OrElse Not rightType.IsTupleType OrElse
+            If leftType Is Nothing OrElse rightType Is Nothing Then
+                Return Nothing
+            End If
+
+            If leftType.IsNullableType() OrElse rightType.IsNullableType() Then
+                Return TryBindLiftedTupleEquality(node, left, right, operatorTokenKind, operatorKind, isOperandOfConditionalBranch, diagnostics)
+            End If
+
+            If Not leftType.IsTupleType OrElse Not rightType.IsTupleType OrElse
                leftType.TupleElements.Length <> rightType.TupleElements.Length Then
                 Return Nothing
             End If
@@ -1076,6 +1083,83 @@ Done:
             Next
 
             Return New BoundSequence(node, ImmutableArray.Create(leftTemp, rightTemp), sideEffects, result, result.Type)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, comparing a nullable tuple lifts as VB lifts = and &lt;&gt;: when either side is Nothing the result is
+        ''' Nothing, otherwise the values compare element by element and the result is a Boolean?.
+        ''' </summary>
+        Private Function TryBindLiftedTupleEquality(
+            node As SyntaxNode,
+            left As BoundExpression,
+            right As BoundExpression,
+            operatorTokenKind As SyntaxKind,
+            operatorKind As BinaryOperatorKind,
+            isOperandOfConditionalBranch As Boolean,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+            Dim leftType = left.Type
+            Dim rightType = right.Type
+            Dim leftTuple = If(leftType.IsNullableType(), leftType.GetNullableUnderlyingType(), leftType)
+            Dim rightTuple = If(rightType.IsNullableType(), rightType.GetNullableUnderlyingType(), rightType)
+
+            If Not leftTuple.IsTupleType OrElse Not rightTuple.IsTupleType OrElse
+               leftTuple.TupleElements.Length <> rightTuple.TupleElements.Length Then
+                Return Nothing
+            End If
+
+            Dim leftTemp As LocalSymbol = New SynthesizedLocal(ContainingMember, leftType, SynthesizedLocalKind.LoweringTemp)
+            Dim rightTemp As LocalSymbol = New SynthesizedLocal(ContainingMember, rightType, SynthesizedLocalKind.LoweringTemp)
+            Dim sideEffects = ImmutableArray.Create(Of BoundExpression)(StoreTupleOperand(node, leftTemp, left), StoreTupleOperand(node, rightTemp, right))
+
+            Dim compare = TryBindTupleEquality(node,
+                                               ReadLiftedTupleValue(node, leftTemp, diagnostics),
+                                               ReadLiftedTupleValue(node, rightTemp, diagnostics),
+                                               operatorTokenKind,
+                                               operatorKind,
+                                               isOperandOfConditionalBranch:=False,
+                                               diagnostics)
+            If compare Is Nothing Then
+                Return Nothing
+            End If
+
+            ' The lifted sequence stands for the comparison; the comparison of the values is part of it.
+            compare.MakeCompilerGenerated()
+
+            Dim booleanType = GetSpecialType(SpecialType.System_Boolean, node, diagnostics)
+            Dim nullableBooleanType = GetSpecialType(SpecialType.System_Nullable_T, node, diagnostics).Construct(booleanType)
+
+            Dim hasValues As BoundExpression = Nothing
+            For Each temp In {leftTemp, rightTemp}
+                If temp.Type.IsNullableType() Then
+                    Dim hasValue = ReadLiftedTupleHasValue(node, temp, diagnostics)
+                    hasValues = If(hasValues Is Nothing,
+                                   hasValue,
+                                   BindBinaryOperator(node, hasValues, hasValue, SyntaxKind.AndAlsoKeyword, BinaryOperatorKind.AndAlso, isOperandOfConditionalBranch:=False, diagnostics).MakeCompilerGenerated())
+                End If
+            Next
+
+            Dim whenValues = ApplyImplicitConversion(node, nullableBooleanType, compare, diagnostics).MakeCompilerGenerated()
+            Dim whenNothing = ApplyImplicitConversion(node, nullableBooleanType, New BoundLiteral(node, ConstantValue.Nothing, Nothing).MakeCompilerGenerated(), diagnostics).MakeCompilerGenerated()
+            Dim result = New BoundTernaryConditionalExpression(node, hasValues, whenValues, whenNothing, Nothing, nullableBooleanType).MakeCompilerGenerated()
+
+            Return New BoundSequence(node, ImmutableArray.Create(leftTemp, rightTemp), sideEffects, result, nullableBooleanType)
+        End Function
+
+        Private Function ReadLiftedTupleValue(node As SyntaxNode, temp As LocalSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim receiver = New BoundLocal(node, temp, temp.Type).MakeCompilerGenerated()
+            If Not temp.Type.IsNullableType() Then
+                Return receiver.MakeRValue()
+            End If
+
+            Dim method = DirectCast(DirectCast(GetSpecialTypeMember(SpecialMember.System_Nullable_T_GetValueOrDefault, node, diagnostics), MethodSymbol).AsMember(DirectCast(temp.Type, NamedTypeSymbol)), MethodSymbol)
+            Return New BoundCall(node, method, Nothing, receiver, ImmutableArray(Of BoundExpression).Empty, Nothing, method.ReturnType).MakeCompilerGenerated()
+        End Function
+
+        Private Function ReadLiftedTupleHasValue(node As SyntaxNode, temp As LocalSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim receiver = New BoundLocal(node, temp, temp.Type).MakeCompilerGenerated()
+            Dim method = DirectCast(DirectCast(GetSpecialTypeMember(SpecialMember.System_Nullable_T_get_HasValue, node, diagnostics), MethodSymbol).AsMember(DirectCast(temp.Type, NamedTypeSymbol)), MethodSymbol)
+            Return New BoundCall(node, method, Nothing, receiver, ImmutableArray(Of BoundExpression).Empty, Nothing, method.ReturnType).MakeCompilerGenerated()
         End Function
 
         Private Shared Function StoreTupleOperand(node As SyntaxNode, temp As LocalSymbol, value As BoundExpression) As BoundExpression
