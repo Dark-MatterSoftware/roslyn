@@ -1058,6 +1058,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BindStructureWithCopy(node, receiver, recordType, diagnostics)
             End If
 
+            Dim anonymousType = TryCast(receiver.Type, AnonymousTypeManager.AnonymousTypePublicSymbol)
+            If anonymousType IsNot Nothing AndAlso Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Return BindAnonymousTypeWithCopy(node, receiver, anonymousType, diagnostics)
+            End If
+
             If recordType Is Nothing OrElse Not recordType.IsRecord Then
                 ReportDiagnostic(diagnostics, node.Initializer, ErrorFactory.ErrorInfo(ERRID.ERR_WithCopyNotRecord, receiver.Type))
                 Return BadExpression(node, receiver, If(recordType, ErrorTypeSymbol.UnknownResultType))
@@ -1219,6 +1224,108 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 sideEffects.ToImmutableAndFree(),
                 New BoundLocal(node, copy, structureType).MakeCompilerGenerated().MakeRValue(),
                 structureType).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' A With copy of an anonymous type, as C# 10 copies anonymous types: a new value of the same anonymous type,
+        ''' with the listed properties set and the others read from the original. The original is evaluated first,
+        ''' then the listed values in the order they are written, and .Name in a value reads the original.
+        ''' </summary>
+        Private Function BindAnonymousTypeWithCopy(
+            node As WithExpressionSyntax,
+            receiver As BoundExpression,
+            anonymousType As AnonymousTypeManager.AnonymousTypePublicSymbol,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+
+            Dim properties = anonymousType.Properties
+            Dim original As LocalSymbol = New SynthesizedLocal(ContainingMember, anonymousType, SynthesizedLocalKind.LoweringTemp)
+            Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+            Dim values(properties.Length - 1) As BoundExpression
+            Dim hasErrors = False
+
+            locals.Add(original)
+            sideEffects.Add(New BoundAssignmentOperator(
+                node,
+                New BoundLocal(node, original, anonymousType).MakeCompilerGenerated(),
+                receiver,
+                suppressObjectClone:=True,
+                type:=anonymousType).MakeCompilerGenerated())
+
+            Dim initializerBinder = New ObjectInitializerBinder(Me, New BoundLocal(node, original, anonymousType).MakeCompilerGenerated().MakeRValue())
+
+            For Each initializer In node.Initializer.Initializers
+                Dim named = TryCast(initializer, NamedFieldInitializerSyntax)
+                If named Is Nothing Then
+                    Continue For
+                End If
+
+                Dim name = named.Name.Identifier.ValueText
+                Dim index = -1
+                For i = 0 To properties.Length - 1
+                    If CaseInsensitiveComparison.Equals(properties(i).Name, name) Then
+                        index = i
+                        Exit For
+                    End If
+                Next
+
+                Dim value = initializerBinder.BindValue(named.Expression, diagnostics)
+
+                If index < 0 Then
+                    ReportDiagnostic(diagnostics, named.Name, ErrorFactory.ErrorInfo(ERRID.ERR_NameNotMember2, name, anonymousType))
+                    hasErrors = True
+                    Continue For
+                End If
+
+                If values(index) IsNot Nothing Then
+                    ReportDiagnostic(diagnostics, named.Name, ErrorFactory.ErrorInfo(ERRID.ERR_DuplicateAggrMemberInit1, name))
+                    hasErrors = True
+                    Continue For
+                End If
+
+                Dim propertyType = properties(index).Type
+                value = ApplyImplicitConversion(named.Expression, propertyType, value, diagnostics)
+
+                Dim valueTemp As LocalSymbol = New SynthesizedLocal(ContainingMember, propertyType, SynthesizedLocalKind.LoweringTemp)
+                locals.Add(valueTemp)
+                sideEffects.Add(New BoundAssignmentOperator(
+                    named,
+                    New BoundLocal(named, valueTemp, propertyType).MakeCompilerGenerated(),
+                    value,
+                    suppressObjectClone:=True,
+                    type:=propertyType).MakeCompilerGenerated())
+                values(index) = New BoundLocal(named, valueTemp, propertyType).MakeCompilerGenerated().MakeRValue()
+            Next
+
+            For i = 0 To properties.Length - 1
+                If values(i) Is Nothing Then
+                    values(i) = New BoundPropertyAccess(
+                        node,
+                        properties(i),
+                        Nothing,
+                        PropertyAccessKind.Get,
+                        isWriteable:=False,
+                        New BoundLocal(node, original, anonymousType).MakeCompilerGenerated().MakeRValue(),
+                        ImmutableArray(Of BoundExpression).Empty).MakeCompilerGenerated()
+                End If
+            Next
+
+            Dim creation = New BoundAnonymousTypeCreationExpression(
+                node,
+                Nothing,
+                ImmutableArray(Of BoundAnonymousTypePropertyAccess).Empty,
+                values.AsImmutableOrNull(),
+                anonymousType,
+                hasErrors).MakeCompilerGenerated()
+
+            ' The new anonymous type value stands for the With expression.
+            Return New BoundSequence(
+                node,
+                locals.ToImmutableAndFree(),
+                sideEffects.ToImmutableAndFree(),
+                creation,
+                anonymousType).MakeCompilerGenerated()
         End Function
 
         Private NotInheritable Class WithPlaceholderReplacer
