@@ -2742,6 +2742,84 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundConditionalAccess(accessSyntax, receiver, placeholder, assignment, voidType, hasErrors:=receiver.HasErrors OrElse assignment.HasErrors)
         End Function
 
+        ''' <summary>
+        ''' box?.Name ?= value binds as statements, as C# 14 allows ??= through ?.: box is stored once in a temporary, and
+        ''' Name ?= value applies to it when it is not Nothing. Each ?. of box?.Inner?.Name ?= value nests the same way, so
+        ''' value is evaluated only when every receiver is not Nothing.
+        ''' </summary>
+        Private Function BindNullConditionalNothingCoalescingAssignment(
+            node As AssignmentStatementSyntax,
+            accessSyntax As ConditionalAccessExpressionSyntax,
+            valueBinder As Binder,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundStatement
+
+            Dim placeholder As BoundRValuePlaceholder = Nothing
+            Dim receiver = BindConditionalAccessReceiver(accessSyntax, diagnostics, placeholder)
+            Dim accessBinder As New ConditionalAccessBinder(Me, accessSyntax, placeholder)
+
+            Dim access As BoundStatement
+            If accessSyntax.WhenNotNull.Kind = SyntaxKind.ConditionalAccessExpression Then
+                access = accessBinder.BindNullConditionalNothingCoalescingAssignment(node, DirectCast(accessSyntax.WhenNotNull, ConditionalAccessExpressionSyntax), valueBinder, diagnostics)
+                access.SetWasCompilerGenerated()
+            Else
+                Dim target = accessBinder.BindAssignmentTarget(accessSyntax.WhenNotNull, diagnostics)
+                Dim value = valueBinder.BindValue(node.Right, diagnostics)
+                Dim assignment As BoundExpression
+                If receiver.HasErrors OrElse target.HasErrors OrElse value.HasErrors Then
+                    assignment = New BoundAssignmentOperator(node, target, MakeRValueAndIgnoreDiagnostics(value), suppressObjectClone:=False, If(target.Type, ErrorTypeSymbol.UnknownResultType), hasErrors:=True)
+                Else
+                    assignment = BindNothingCoalescingAssignment(node, target, value, diagnostics)
+                End If
+
+                access = New BoundExpressionStatement(node, assignment.MakeCompilerGenerated()).MakeCompilerGenerated()
+            End If
+
+            Dim receiverType = If(receiver.Type, ErrorTypeSymbol.UnknownResultType)
+            Dim copy As LocalSymbol = New SynthesizedLocal(ContainingMember, receiverType, SynthesizedLocalKind.LoweringTemp)
+            Dim store = New BoundAssignmentOperator(
+                accessSyntax,
+                New BoundLocal(accessSyntax, copy, receiverType).MakeCompilerGenerated(),
+                receiver.MakeRValue(),
+                suppressObjectClone:=True,
+                type:=receiverType).MakeCompilerGenerated()
+
+            Dim condition As BoundExpression
+            Dim accessReceiver As BoundExpression
+            If receiverType.IsNullableType() Then
+                condition = ReadLiftedTupleHasValue(accessSyntax, copy, diagnostics)
+                accessReceiver = ReadLiftedTupleValue(accessSyntax, copy, diagnostics)
+            Else
+                Dim copyRead = New BoundLocal(accessSyntax, copy, receiverType).MakeCompilerGenerated().MakeRValue()
+                condition = BindIsExpression(copyRead, New BoundLiteral(accessSyntax, ConstantValue.Nothing, Nothing).MakeCompilerGenerated(), accessSyntax, [isNot]:=True, diagnostics).MakeCompilerGenerated()
+                accessReceiver = New BoundLocal(accessSyntax, copy, receiverType).MakeCompilerGenerated().MakeRValue()
+            End If
+
+            Dim onCopy = DirectCast(New ConditionalReceiverReplacer(placeholder, accessReceiver).Visit(access), BoundStatement)
+            Dim consequence = New BoundBlock(accessSyntax, Nothing, ImmutableArray(Of LocalSymbol).Empty, ImmutableArray.Create(onCopy)).MakeCompilerGenerated()
+            Dim ifStatement = New BoundIfStatement(accessSyntax, condition, consequence, Nothing).MakeCompilerGenerated()
+
+            ' The block stands for the statement.
+            Return New BoundBlock(node, Nothing, ImmutableArray.Create(copy),
+                                  ImmutableArray.Create(Of BoundStatement)(New BoundExpressionStatement(accessSyntax, store).MakeCompilerGenerated(), ifStatement))
+        End Function
+
+        Private NotInheritable Class ConditionalReceiverReplacer
+            Inherits BoundTreeRewriterWithStackGuard
+
+            Private ReadOnly _placeholder As BoundRValuePlaceholder
+            Private ReadOnly _replacement As BoundExpression
+
+            Public Sub New(placeholder As BoundRValuePlaceholder, replacement As BoundExpression)
+                _placeholder = placeholder
+                _replacement = replacement
+            End Sub
+
+            Public Overrides Function VisitRValuePlaceholder(node As BoundRValuePlaceholder) As BoundNode
+                Return If(node Is _placeholder, _replacement, node)
+            End Function
+        End Class
+
         Private Function BindNothingCoalescingAssignment(
             node As AssignmentStatementSyntax,
             left As BoundExpression,
@@ -3106,12 +3184,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return RefFieldReferentKind.Invalid
         End Function
 
-        Private Function BindAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundExpressionStatement
+        Private Function BindAssignmentStatement(node As AssignmentStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
             Debug.Assert(node IsNot Nothing)
 
-            If node.Left.Kind = SyntaxKind.ConditionalAccessExpression AndAlso node.Kind <> SyntaxKind.NothingCoalescingAssignmentStatement Then
+            If node.Left.Kind = SyntaxKind.ConditionalAccessExpression Then
                 Dim languageVersion = DirectCast(node.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion
                 If InternalSyntax.Parser.CheckFeatureAvailability(languageVersion, InternalSyntax.Feature.NullConditionalAssignment) Then
+                    If node.Kind = SyntaxKind.NothingCoalescingAssignmentStatement Then
+                        Return BindNullConditionalNothingCoalescingAssignment(node, DirectCast(node.Left, ConditionalAccessExpressionSyntax), Me, diagnostics)
+                    End If
+
                     Return BindNullConditionalAssignment(node, diagnostics)
                 End If
             End If

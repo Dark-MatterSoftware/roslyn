@@ -69,6 +69,41 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="v 3 16 xy 12 8 2 2").VerifyDiagnostics()
         End Sub
 
+        <Fact>
+        Public Sub NothingCoalescingAssignThroughNullConditional()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Class Box
+    Public Name As String
+    Public Property Label As String
+    Public Inner As Box
+End Class
+
+Module Program
+    Function Trace(value As String) As String
+        Console.Write(""v"")
+        Return value
+    End Function
+
+    Sub Main()
+        Dim missing As Box = Nothing
+        missing?.Name ?= Trace(""x"")
+        missing?.Inner?.Name ?= Trace(""x"")
+
+        Dim c As New Box With {.Inner = New Box()}
+        c?.Name ?= Trace(""first"")
+        c?.Name ?= ""second""
+        c?.Label ?= ""label""
+        c?.Inner?.Name ?= ""inner""
+        Console.Write($"" {c.Name} {c.Label} {c.Inner.Name}"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="v first label inner").VerifyDiagnostics()
+        End Sub
+
         <Theory>
         <InlineData("b?.Count += 1")>
         <InlineData("b?.Total += 1")>
@@ -79,6 +114,8 @@ End Module
         <InlineData("b?.Inner.Total -= 1")>
         <InlineData("b?.Count \= 3")>
         <InlineData("b?.Inner?.Count = 7")>
+        <InlineData("b?.Name ?= ""x""")>
+        <InlineData("b?.Inner?.Name ?= ""x""")>
         Public Sub EachFormBindsAndEmits(statement As String)
             Dim compilation = CreateCompilation("
 Class Box
