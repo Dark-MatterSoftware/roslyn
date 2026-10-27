@@ -79,13 +79,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 Return Nothing
             End If
 
+            Dim initializerLocation As Location = token.GetLocation()
+
+            ' On vbnext, value With {.Member = ...} sets members of a copy of the value.
+            Dim withExpression = TryCast(containingInitializer.Parent, WithExpressionSyntax)
+            If withExpression IsNot Nothing Then
+                Dim copiedType = semanticModel.GetTypeInfo(withExpression.Expression, cancellationToken).Type
+                Return (copiedType, initializerLocation, isObjectInitializer:=True)
+            End If
+
             ' Get the grandparent object creation expression
             Dim objectCreationExpression = TryCast(containingInitializer.Parent, ObjectCreationExpressionSyntax)
             If objectCreationExpression Is Nothing Then
                 Return Nothing
             End If
 
-            Dim initializerLocation As Location = token.GetLocation()
             Dim symbolInfo = semanticModel.GetSymbolInfo(objectCreationExpression.Type, cancellationToken)
             Dim symbol = TryCast(symbolInfo.Symbol, ITypeSymbol)
             Return (symbol, initializerLocation, isObjectInitializer:=True)
@@ -103,9 +111,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
         End Function
 
         Protected Overrides Function IsInitializableFieldOrProperty(fieldOrProperty As ISymbol, containingType As INamedTypeSymbol) As Boolean
-            ' Unlike CSharp, we don't want to suggest readonly members, even if they are Collections
+            ' Unlike CSharp, we don't want to suggest readonly members, even if they are Collections.
+            ' A With copy of an anonymous type sets its Key properties too.
             Return MyBase.IsInitializableFieldOrProperty(fieldOrProperty, containingType) AndAlso
-                fieldOrProperty.IsWriteableFieldOrProperty() AndAlso
+                (fieldOrProperty.IsWriteableFieldOrProperty() OrElse fieldOrProperty.ContainingType.IsAnonymousType) AndAlso
                 IsValidProperty(fieldOrProperty)
         End Function
 

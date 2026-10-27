@@ -308,6 +308,23 @@ End Class", code, position)
             End Using
         End Function
 
+        <Theory>
+        <InlineData("Imports Nu$$m = Integer", "Structure System.Int32")>
+        <InlineData("Imports In$$ts = Integer()", "Integer()")>
+        <InlineData("Imports May$$beNum = Integer?", "Structure System.Nullable(Of T As Structure)")>
+        Public Async Function TestPredefinedAndArrayTypeAlias(importsLine As String, shown As String) As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition(importsLine & "
+
+Class C
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription(shown))
+            End Using
+        End Function
+
         <Fact>
         Public Async Function TestOptionalLambdaParameter() As Task
             Dim code As String = Nothing

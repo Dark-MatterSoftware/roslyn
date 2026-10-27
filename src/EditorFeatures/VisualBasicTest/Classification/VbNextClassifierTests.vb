@@ -513,6 +513,49 @@ End Class",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestWaveSixteenForms(testHost As TestHost) As Task
+            Await TestAsync("Imports Num = Integer
+Imports Ints = Integer()
+Structure Point
+    Public Left As Integer
+End Structure
+Class Box
+    Public Count As Integer
+End Class
+Module M
+    Sub F(p As Point, b As Box, values As Ints)
+        Dim n As Num = 1
+        Dim q = p With {.Left = n}
+        Dim a = New With {.Size = 1}
+        Dim c = a With {.Size = 2}
+        Dim same = (1, 2) = (n, 2)
+        b?.Count += 1
+        Dim list As System.Collections.Generic.List(Of Integer) = {1, 2}
+    End Sub
+End Module",
+                testHost,
+                s_vbNext,
+                Struct("Num"),
+                FormattedClassifications.Array("Ints"),
+                Struct("Point"),
+                [Class]("Box"),
+                FormattedClassifications.Array("Ints"),
+                Struct("Num"),
+                Parameter("p"),
+                Field("Left"),
+                Local("n"),
+                [Property]("Size"),
+                Local("a"),
+                Local("n"),
+                Parameter("b"),
+                Field("Count"),
+                [Namespace]("System"),
+                [Namespace]("Collections"),
+                [Namespace]("Generic"),
+                [Class]("List"))
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestForEachDeconstructionAndLambdaParameterAttribute(testHost As TestHost) As Task
             Await TestAsync("Class FromQueryAttribute
     Inherits System.Attribute

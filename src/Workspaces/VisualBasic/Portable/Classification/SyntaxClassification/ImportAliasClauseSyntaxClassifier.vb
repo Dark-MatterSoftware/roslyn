@@ -26,7 +26,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Classification.Classifiers
                 result As SegmentedList(Of ClassifiedSpan),
                 cancellationToken As CancellationToken)
 
-            Dim symbolInfo = semanticModel.GetTypeInfo(DirectCast(node.Parent, SimpleImportsClauseSyntax).Name, cancellationToken)
+            ' On vbnext, an alias may also name a type that is not a name, such as Integer() or (Integer, Integer).
+            Dim target As TypeSyntax = If(TryCast(node.Parent, SimpleImportsClauseSyntax)?.Name, TryCast(node.Parent, TypeAliasImportsClauseSyntax)?.Type)
+            If target Is Nothing Then
+                Return
+            End If
+
+            Dim symbolInfo = semanticModel.GetTypeInfo(target, cancellationToken)
             If symbolInfo.Type IsNot Nothing Then
                 Dim classification = GetClassificationForType(symbolInfo.Type)
                 If classification IsNot Nothing Then
