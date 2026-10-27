@@ -1696,10 +1696,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                             End If
 
                             Dim isOperator = method.HasSpecialName AndAlso method.Name.StartsWith("op_", StringComparison.Ordinal)
-                            If isOperator AndAlso grouping.Arity <> 0 Then
-                                Continue For
-                            End If
-
                             If isOperator OrElse method.MethodKind = MethodKind.Ordinary Then
                                 Dim implementation = FindExtensionImplementation(method, receiver, grouping)
                                 If implementation IsNot Nothing Then
@@ -1812,7 +1808,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         ''' Whether a method, read from metadata as an ordinary method, implements an operator of a C# 14 extension block.
         ''' </summary>
         Friend Shared Function IsExtensionOperator(method As MethodSymbol) As Boolean
-            Return TryCast(method.ContainingType, PENamedTypeSymbol)?.GetExtensionOperatorType(method) IsNot Nothing
+            ' The operator of a generic block is called constructed for the operand types.
+            Dim definition = method.OriginalDefinition
+            Return TryCast(definition.ContainingType, PENamedTypeSymbol)?.GetExtensionOperatorType(definition) IsNot Nothing
         End Function
 
         Friend Overrides Sub AppendProbableStaticExtensionMembers(name As String, members As ArrayBuilder(Of Symbol))

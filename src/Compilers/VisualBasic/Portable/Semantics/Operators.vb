@@ -3324,7 +3324,20 @@ Next_i:
             binder.CollectExtensionOperators(name, found, useSiteInfo)
 
             For Each entry In found
-                If OperandExtends(type1, entry.Value, useSiteInfo) OrElse OperandExtends(type2, entry.Value, useSiteInfo) Then
+                If entry.Key.IsGenericMethod Then
+                    ' The operator of a generic block takes the block's type arguments from the first operand that matches.
+                    For Each operandType In {type1, type2}
+                        If operandType Is Nothing Then
+                            Continue For
+                        End If
+
+                        Dim constructed = Binder.TryConstructGenericExtensionOperator(entry.Key, entry.Value, operandType.GetNullableUnderlyingTypeOrSelf(), useSiteInfo)
+                        If constructed.Key IsNot Nothing Then
+                            opSet.Add(constructed.Key)
+                            Exit For
+                        End If
+                    Next
+                ElseIf OperandExtends(type1, entry.Value, useSiteInfo) OrElse OperandExtends(type2, entry.Value, useSiteInfo) Then
                     opSet.Add(entry.Key)
                 End If
             Next
@@ -3371,7 +3384,8 @@ Next_i:
 
             For Each method In opSet
                 Debug.Assert(method.ParameterCount = If(argument2 Is Nothing, 1, 2))
-                Debug.Assert(method.Arity = 0)
+                ' The operator of a generic C# 14 extension block is already constructed for the operands.
+                Debug.Assert(method.Arity = 0 OrElse method IsNot method.ConstructedFrom)
                 Debug.Assert(Not method.IsSub)
 
                 ' Before vbnext an operator with ByRef ReadOnly operands is not an operator, as before vbnext.

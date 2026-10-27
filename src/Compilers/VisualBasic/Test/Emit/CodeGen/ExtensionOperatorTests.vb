@@ -80,6 +80,71 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="3 -3 True 6 12 3 103", verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
 
+        Private Function GenericBlockLibrary() As MetadataReference
+            Return CreateCSharpCompilation("
+namespace Boxes
+{
+    public struct Box<T> { public T Value; }
+
+    public static class BoxOperators
+    {
+        extension<T>(Box<T>)
+        {
+            public static Box<T> operator +(Box<T> a, Box<T> b) => b;
+            public static Box<T> operator -(Box<T> a) => a;
+            public static bool operator ==(Box<T> a, Box<T> b) => true;
+            public static bool operator !=(Box<T> a, Box<T> b) => false;
+        }
+    }
+}
+", parseOptions:=CSharp.CSharpParseOptions.Default.WithLanguageVersion(CSharp.LanguageVersion.Preview),
+   referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Net90)).EmitToImageReference()
+        End Function
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub UsesGenericExtensionOperators()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports Boxes
+
+Module Program
+    Sub Main()
+        Dim a = New Box(Of Integer) With {.Value = 1}
+        Dim b = New Box(Of Integer) With {.Value = 2}
+        Dim c = a + b
+        Dim s = New Box(Of String) With {.Value = ""x""} + New Box(Of String) With {.Value = ""y""}
+        Dim n = -a
+        Dim eq = a = b
+        Dim maybe As Box(Of Integer)? = a
+        Dim lifted = maybe + b
+        Console.Write(c.Value & "" "" & s.Value & "" "" & n.Value & "" "" & eq & "" "" & lifted.Value.Value)
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, references:={GenericBlockLibrary()}, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="2 y 1 True 2", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub GenericExtensionOperatorErrors()
+            Dim compilation = CreateCompilation("
+Imports Boxes
+
+Module Program
+    Function Mixed(a As Box(Of Integer), b As Box(Of String)) As Object
+        Return a + b
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, references:={GenericBlockLibrary()}, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30311: Value of type 'Box(Of String)' cannot be converted to 'Box(Of Integer)'.
+        Return a + b
+                   ~
+</expected>)
+        End Sub
+
         <Fact>
         Public Sub ExtensionOperatorsNeedTheirNamespace()
             Dim compilation = CreateCompilation("

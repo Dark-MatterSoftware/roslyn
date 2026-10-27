@@ -272,6 +272,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             members.Free()
         End Sub
 
+        ''' <summary>
+        ''' The operator of a generic C# 14 extension block, constructed with the type arguments inferred from an operand type,
+        ''' with the type it then extends, or Nothing when the operand type does not match.
+        ''' </summary>
+        Friend Shared Function TryConstructGenericExtensionOperator(
+            [operator] As MethodSymbol,
+            extendedType As TypeSymbol,
+            operandType As TypeSymbol,
+            <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
+        ) As KeyValuePair(Of MethodSymbol, TypeSymbol)
+            Dim typeArguments = MemberLookup.InferExtensionTypeArguments([operator].TypeParameters, extendedType, operandType, useSiteInfo)
+            If typeArguments.IsDefault Then
+                Return Nothing
+            End If
+
+            Dim constructed = [operator].Construct(typeArguments)
+            Dim substitution = TypeSubstitution.Create([operator], [operator].TypeParameters, typeArguments)
+            Return New KeyValuePair(Of MethodSymbol, TypeSymbol)(constructed, extendedType.InternalSubstituteTypeParameters(substitution).Type)
+        End Function
+
         Protected Overridable Sub CollectProbableExtensionDefaultPropertiesInSingleBinder(properties As ArrayBuilder(Of PropertySymbol),
                                                                                           originalBinder As Binder)
             Debug.Assert(properties.Count = 0)
