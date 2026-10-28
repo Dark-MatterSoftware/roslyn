@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -323,6 +323,54 @@ End Class", code, position)
             Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
                 Await TestSharedAsync(workspace, position, MainDescription(shown))
             End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestCollectionLiteralArgumentOverload() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Imports System.Collections.Generic
+
+Module M
+    Function Count(values As List(Of Integer)) As Integer
+        Return values.Count
+    End Function
+
+    Function Count(text As String) As Integer
+        Return text.Length
+    End Function
+
+    Sub Use()
+        System.Console.Write(Cou$$nt({1, 2}))
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("Function M.Count(values As List(Of Integer)) As Integer (+ 1 overload)"))
+            End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestSpanExtensionOnArray() As Task
+            Await TestFromXmlAsync("<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <MetadataReferenceFromSource Language=""C#"" CommonReferences=""true"">
+            <Document><![CDATA[
+namespace System { public struct ReadOnlySpan<T> { public static implicit operator ReadOnlySpan<T>(T[] array) => default; } }
+public static class SpanExtensions
+{
+    public static int CountOf<T>(this System.ReadOnlySpan<T> span, T value) where T : System.IEquatable<T> => 0;
+}]]></Document>
+        </MetadataReferenceFromSource>
+        <Document><![CDATA[
+Module M
+    Function Use(a As Integer()) As Integer
+        Return a.Count$$Of(2)
+    End Function
+End Module]]></Document>
+    </Project>
+</Workspace>", MainDescription("<Extension> Function ReadOnlySpan(Of Integer).CountOf(value As Integer) As Integer"))
         End Function
 
         <Fact>

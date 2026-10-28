@@ -46,5 +46,38 @@ End Module
         Public Async Function SharedMemberMissingAfterTypeParameterOn17_13() As Task
             Await VerifyItemIsAbsentAsync(Shapes("17.13"), "Create")
         End Function
+
+        Private Shared Function SpanExtensions(languageVersion As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""" & languageVersion & """>
+        <MetadataReferenceFromSource Language=""C#"" CommonReferences=""true"">
+            <Document><![CDATA[
+namespace System { public struct ReadOnlySpan<T> { public static implicit operator ReadOnlySpan<T>(T[] array) => default; } }
+public static class SpanExtensions
+{
+    public static int CountOf<T>(this System.ReadOnlySpan<T> span, T value) where T : System.IEquatable<T> => 0;
+}]]></Document>
+        </MetadataReferenceFromSource>
+        <Document>
+Module M
+    Sub Use()
+        Dim a As Integer() = {1, 2}
+        a.$$
+    End Sub
+End Module
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function SpanExtensionAfterArray() As Task
+            Await VerifyItemExistsAsync(SpanExtensions("vbnext"), "CountOf")
+        End Function
+
+        <Fact>
+        Public Async Function SpanExtensionMissingAfterArrayOn17_13() As Task
+            Await VerifyItemIsAbsentAsync(SpanExtensions("17.13"), "CountOf")
+        End Function
     End Class
 End Namespace
