@@ -303,6 +303,17 @@ Checked against this tree after wave 16, by compiling the shapes that wave 16 co
 | VB-135 | Nullable tuple equality | Done in phase 103: on `vbnext` with VB's lifted semantics, a `Boolean?` that is `Nothing` when either side is `Nothing`. Before that, `t = (1, 2)`, where `t` is `(Integer, Integer)?`, reported BC30452, because phase 96 compares only tuples that are not nullable. C# lifts tuple `==` and `!=` to nullable tuples. No new syntax. |
 | VB-136 | Span receivers for extension methods | Done in phase 105: on `vbnext` for arrays, spans, and strings, when no other extension of that name applies. Before that, `a.CountOf(2)`, where `a` is an `Integer()` and C# declares `CountOf<T>(this ReadOnlySpan<T> span, T value)`, reported BC30456, because an extension method's receiver does not convert from an array to a span. C# 14 first-class spans call such extensions on arrays. No new syntax. |
 
+## Wave 18
+
+Checked against this tree after wave 17, by compiling the collection literal shapes that wave 17 code meets next against .NET 11 with `LangVersion` `vbnext`. Several shapes already work: `Dim d As Dictionary(Of String, Integer) = {}`, a literal for a property in `New Holder With {.Items = {1, 2}}`, and a literal returned from a lambda converted to `Func(Of List(Of Integer))`. `Dim e As List(Of Integer) = Echo({1, 2})`, where `Echo(Of T)` returns its argument, reports BC30311, as C# rejects `Echo([1, 2])` without a natural type, so it is not a gap.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-137 | Spreads into collections without `AddRange` | `Dim s As HashSet(Of Integer) = {..a, 3}` reports BC30456, "'AddRange' is not a member of 'HashSet(Of Integer)'", because phases 100 and 102 spread with `AddRange`. C# 12 adds each spread element. No new syntax. |
+| VB-138 | Type inference from collection literal arguments | `Generic({1, 2})`, where `Generic(Of T)` takes a `List(Of T)`, reports BC36645, because phase 106 skips parameters whose type uses the method's type parameters. C# 12 infers `T` from the elements. No new syntax. |
+| VB-139 | Collection literals as named arguments | `Named(1, values:={2, 3})` reports BC30311, because phase 106 rebuilds only positional arguments. No new syntax. |
+| VB-140 | Collection literals in `If` | `Dim c As List(Of Integer) = If(flag, {1}, {2, 3})` reports BC30311, because the branches are array literals that the `If` gives an array type. C# 12 target-types `flag ? [1] : [2, 3]`. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -548,3 +559,14 @@ The gaps that finish phases 100, 96, and 99 come first, smallest first, then the
 | 3 | VB-134 | Null-conditional nothing-coalescing assignment | M | Finishes phase 99 with `?=`. |
 | 4 | VB-136 | Span receivers for extension methods | M | Opens the span extensions of the .NET libraries to arrays. |
 | 5 | VB-132 | Collection literals as arguments | L | Changes overload resolution, so it comes last. |
+
+### Wave 18 order
+
+The gaps that finish phases 102 and 106 come first, smallest first, then the `If` target, last the type inference, which touches overload resolution.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-137 | Spreads into collections without `AddRange` | S | Finishes phase 102 for `HashSet(Of T)` and other types with only `Add`. |
+| 2 | VB-139 | Collection literals as named arguments | S | Finishes phase 106 for named arguments. |
+| 3 | VB-140 | Collection literals in `If` | M | Gives `If(...)` branches the target type, as `Dim` and `Return` give it. |
+| 4 | VB-138 | Type inference from collection literal arguments | M | Changes type inference, so it comes last. |
