@@ -714,6 +714,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
+            If HasSpreadElement(elements) AndAlso Not HasAccessibleMethod(named, "AddRange", syntax) Then
+                Dim viaConstructor = TryBindSpreadThroughEnumerableConstructor(syntax, named, elements, diagnostics)
+                If viaConstructor IsNot Nothing Then
+                    Return viaConstructor
+                End If
+            End If
+
             Dim probe = BindingDiagnosticBag.GetInstance(diagnostics)
             If Not IsCollectionInitializerTarget(named, syntax, probe) Then
                 probe.Free()
@@ -853,6 +860,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' ..items copies an array or a list through AddRange. The source converts to that parameter.
         ''' </summary>
+        Private Function HasAccessibleMethod(type As NamedTypeSymbol, name As String, syntax As SyntaxNode) As Boolean
+            Dim lookup = LookupResult.GetInstance()
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            LookupMember(lookup, type, name, 0, LookupOptions.AllMethodsOfAnyArity, useSiteInfo)
+            Dim found = lookup.IsGood AndAlso lookup.Symbols.Any(Function(symbol) symbol.Kind = SymbolKind.Method AndAlso Not symbol.IsShared)
+            lookup.Free()
+            Return found
+        End Function
+
+        ''' <summary>
+        ''' {..items, 3} for a collection with Add but not AddRange, such as HashSet(Of T): the elements are gathered in a
+        ''' List(Of T), which the collection's constructor that takes an IEnumerable(Of T) copies.
+        ''' </summary>
+        Private Function TryBindSpreadThroughEnumerableConstructor(syntax As SyntaxNode, collectionType As NamedTypeSymbol, elements As ImmutableArray(Of BoundExpression), diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim elementType = GetCollectionParamArrayElementType(Compilation, collectionType)
+            If elementType Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim listOpen = Compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_List_T)
+            If listOpen Is Nothing OrElse listOpen.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim listType = listOpen.Construct(elementType)
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            Dim constructor As MethodSymbol = Nothing
+            For Each candidate In collectionType.InstanceConstructors
+                If candidate.ParameterCount = 1 AndAlso
+                   candidate.DeclaredAccessibility = Accessibility.Public AndAlso
+                   Not candidate.Parameters(0).IsByRef AndAlso
+                   Conversions.IsWideningConversion(Conversions.ClassifyConversion(listType, candidate.Parameters(0).Type, useSiteInfo).Key) AndAlso
+                   candidate.Parameters(0).Type.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IEnumerable_T Then
+                    constructor = candidate
+                    Exit For
+                End If
+            Next
+
+            If constructor Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim list = TryBindCollectionInitializerFromElements(syntax, listType, elements, diagnostics)
+            If list Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim argument = ApplyImplicitConversion(syntax, constructor.Parameters(0).Type, list.MakeCompilerGenerated(), diagnostics).MakeCompilerGenerated()
+            Return New BoundObjectCreationExpression(syntax, constructor, ImmutableArray.Create(argument), Nothing, collectionType)
+        End Function
+
         Private Function BindSpreadAddRange(spread As BoundExpression, placeholder As BoundWithLValueExpressionPlaceholder, collectionType As NamedTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim source = DirectCast(spread, BoundRangeExpression).RightOperandOpt
             Dim lookup = LookupResult.GetInstance()

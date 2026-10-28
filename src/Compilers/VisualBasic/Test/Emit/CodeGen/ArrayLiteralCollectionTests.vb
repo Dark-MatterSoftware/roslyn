@@ -167,12 +167,14 @@ Module Program
         Dim array As Integer() = {0, ..a, ..more}
         Dim sequence As IEnumerable(Of Integer) = {..more}
         Dim indexed As IList(Of Integer) = {..a, 4}
-        Console.Write($""{String.Join("","", list)} {String.Join("","", array)} {String.Join("","", sequence)} {indexed.GetType().Name}{indexed.Count}"")
+        Dim unique As HashSet(Of Integer) = {..a, ..a, 5}
+        Dim sorted As SortedSet(Of Integer) = (..more, 1)
+        Console.Write($""{String.Join("","", list)} {String.Join("","", array)} {String.Join("","", sequence)} {indexed.GetType().Name}{indexed.Count} {unique.Count} {String.Join("","", sorted)}"")
     End Sub
 End Module
 ", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
 
-            CompileAndVerify(compilation, expectedOutput:="1,2,3 0,1,2,7,8 7,8 List`13").VerifyDiagnostics()
+            CompileAndVerify(compilation, expectedOutput:="1,2,3 0,1,2,7,8 7,8 List`13 3 1,7,8").VerifyDiagnostics()
         End Sub
 
         <ConditionalFact(GetType(CoreClrOnly))>
@@ -203,10 +205,25 @@ Module Program
         Dim b = {..a, 3}
         Dim c As String = {..a}
         Dim d As Integer(,) = {..a}
-        Dim e As System.Collections.Generic.HashSet(Of Integer) = {..a, 5}
+        Dim e As Bag = {..a, 5}
         Dim f As Object = {..a}
     End Sub
 End Module
+
+Class Bag
+    Implements System.Collections.Generic.IEnumerable(Of Integer)
+
+    Public Sub Add(item As Integer)
+    End Sub
+
+    Public Function GetEnumerator() As System.Collections.Generic.IEnumerator(Of Integer) Implements System.Collections.Generic.IEnumerable(Of Integer).GetEnumerator
+        Return Nothing
+    End Function
+
+    Private Function GetEnumerator1() As System.Collections.IEnumerator Implements System.Collections.IEnumerable.GetEnumerator
+        Return Nothing
+    End Function
+End Class
 ", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
 
             compilation.AssertTheseDiagnostics(
@@ -220,9 +237,9 @@ BC37359: A range can only be used to slice a one-dimensional array.
 BC37359: A range can only be used to slice a one-dimensional array.
         Dim d As Integer(,) = {..a}
                                ~~~
-BC30456: 'AddRange' is not a member of 'HashSet(Of Integer)'.
-        Dim e As System.Collections.Generic.HashSet(Of Integer) = {..a, 5}
-                                                                   ~~~
+BC30456: 'AddRange' is not a member of 'Bag'.
+        Dim e As Bag = {..a, 5}
+                        ~~~
 BC37359: A range can only be used to slice a one-dimensional array.
         Dim f As Object = {..a}
                            ~~~
