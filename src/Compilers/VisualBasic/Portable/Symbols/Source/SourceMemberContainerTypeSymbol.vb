@@ -3114,6 +3114,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                 Function(method) ImmutableArray(Of ParameterSymbol).Empty)
             End If
 
+            If TypeKind = TypeKind.Class Then
+                AddRecordPrintMembersIfNeeded(members, binder, syntax, booleanType)
+            End If
+
             If objectPrint IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectToString, 0, Nothing) Then
                 AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectToString, stringType, SynthesizedRecordMethodSymbol.RecordMethodKind.Print, objectPrint,
                                 Function(method) ImmutableArray(Of ParameterSymbol).Empty)
@@ -3124,6 +3128,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 AddRecordOperator(members, binder, syntax, WellKnownMemberNames.EqualityOperatorName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.OperatorEquality)
                 AddRecordOperator(members, binder, syntax, WellKnownMemberNames.InequalityOperatorName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.OperatorInequality)
             End If
+        End Sub
+
+        ''' <summary>
+        ''' <c>Protected Overridable Function PrintMembers(builder As StringBuilder) As Boolean</c>, which <c>ToString</c> calls,
+        ''' overriding the base record's, as C# 9 declares it, so C# records can derive from Visual Basic records.
+        ''' </summary>
+        Private Sub AddRecordPrintMembersIfNeeded(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode, booleanType As TypeSymbol)
+            Dim builderType = DeclaringCompilation.GetWellKnownType(WellKnownType.System_Text_StringBuilder)
+            If builderType.IsErrorType() OrElse HasRecordMethod(members, SynthesizedRecordMethodSymbol.PrintMembersMethodName, 1, builderType) Then
+                Return
+            End If
+
+            Dim basePrintMembers As MethodSymbol = Nothing
+            Dim baseType = BaseTypeNoUseSiteDiagnostics
+            If baseType IsNot Nothing AndAlso Not baseType.IsErrorType() AndAlso baseType.IsRecord Then
+                basePrintMembers = FindOverridableMethod(baseType, SynthesizedRecordMethodSymbol.PrintMembersMethodName, 1, builderType)
+            End If
+
+            AddRecordMethod(members, binder, syntax, SynthesizedRecordMethodSymbol.PrintMembersMethodName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.PrintMembers, basePrintMembers,
+                            Function(method) ImmutableArray.Create(Of ParameterSymbol)(New SynthesizedParameterSimpleSymbol(method, builderType, 0, "builder")))
         End Sub
 
         Private Sub AddRecordEqualityContractIfNeeded(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode)

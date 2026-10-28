@@ -24,7 +24,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             OperatorEquality
             OperatorInequality
             BaseEquals
+            PrintMembers
         End Enum
+
+        Friend Const PrintMembersMethodName As String = "PrintMembers"
 
         ''' <summary>
         ''' The name C# also gives the method that a With copy calls, so each language can copy the other's records.
@@ -85,7 +88,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsOverridable As Boolean
             Get
-                If _kind = RecordMethodKind.Clone OrElse (_kind = RecordMethodKind.TypedEquals AndAlso Not ContainingType.IsValueType) Then
+                If _kind = RecordMethodKind.Clone OrElse _kind = RecordMethodKind.PrintMembers OrElse
+                   (_kind = RecordMethodKind.TypedEquals AndAlso Not ContainingType.IsValueType) Then
                     Return _overriddenMethod Is Nothing AndAlso Not ContainingType.IsNotInheritable
                 End If
 
@@ -111,6 +115,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property DeclaredAccessibility As Accessibility
             Get
+                If _kind = RecordMethodKind.PrintMembers Then
+                    Return If(_overriddenMethod Is Nothing AndAlso ContainingType.IsNotInheritable, Accessibility.Private, Accessibility.Protected)
+                End If
+
                 Return Accessibility.Public
             End Get
         End Property
@@ -181,6 +189,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return factory.Block(factory.Return(factory.Not(OperatorEqualityValue(factory))))
                 Case RecordMethodKind.BaseEquals
                     Return BaseEqualsBody(factory)
+                Case RecordMethodKind.PrintMembers
+                    Return PrintMembersBody(factory)
                 Case Else
                     Return PrintBody(factory)
             End Select
@@ -443,7 +453,90 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return factory.Block(factory.Return(hash))
         End Function
 
+        ''' <summary>
+        ''' <c>Name { </c>, then the members, then <c> }</c>, built in a <c>StringBuilder</c> as C# 9 builds it, through
+        ''' <c>PrintMembers</c> when the record declares it.
+        ''' </summary>
         Private Function PrintBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim builderType = factory.Compilation.GetWellKnownType(WellKnownType.System_Text_StringBuilder)
+            Dim constructor = TryCast(factory.Compilation.GetWellKnownTypeMember(WellKnownMember.System_Text_StringBuilder__ctor), MethodSymbol)
+            Dim objectToString = TryCast(factory.Compilation.GetSpecialTypeMember(SpecialMember.System_Object__ToString), MethodSymbol)
+            If builderType.IsErrorType() OrElse constructor Is Nothing OrElse objectToString Is Nothing OrElse
+               AppendStringMethod(factory) Is Nothing OrElse AppendObjectMethod(factory) Is Nothing Then
+                Return ConcatenatedPrintBody(factory)
+            End If
+
+            Dim builder = factory.SynthesizedLocal(builderType)
+            Dim builderValue = factory.Local(builder, isLValue:=False)
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            statements.Add(factory.Assignment(factory.Local(builder, isLValue:=True), factory.[New](constructor)))
+            statements.Add(AppendText(factory, builderValue, ContainingType.Name & " { "))
+
+            Dim printMembers = ContainingType.GetMembers(PrintMembersMethodName).OfType(Of MethodSymbol)().FirstOrDefault(
+                Function(candidate) Not candidate.IsShared AndAlso candidate.ParameterCount = 1 AndAlso candidate.ReturnType.SpecialType = SpecialType.System_Boolean AndAlso
+                    TypeSymbol.Equals(candidate.Parameters(0).Type, builderType, TypeCompareKind.ConsiderEverything))
+            If printMembers IsNot Nothing Then
+                statements.Add(factory.If(factory.Call(factory.Me(), printMembers, builderValue), AppendText(factory, builderValue, " ")))
+            ElseIf AppendMembers(factory, builderValue, EqualityMembers(), statements) Then
+                statements.Add(AppendText(factory, builderValue, " "))
+            End If
+
+            statements.Add(AppendText(factory, builderValue, "}"))
+            statements.Add(factory.Return(factory.Call(builderValue, objectToString)))
+            Return factory.Block(ImmutableArray.Create(builder), statements.ToImmutableAndFree())
+        End Function
+
+        ''' <summary>
+        ''' Appends this record's members after the base record's, separated by <c>, </c>, and returns whether anything was printed, as C# 9 does.
+        ''' </summary>
+        Private Function PrintMembersBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim builder = factory.Parameter(_parameters(0), isLValue:=False)
+            Dim members = EqualityMembers().ToList()
+            Dim basePrint As BoundExpression = If(_overriddenMethod IsNot Nothing, factory.Call(factory.Base(), _overriddenMethod, builder), Nothing)
+            If members.Count = 0 Then
+                Return factory.Block(factory.Return(If(basePrint, factory.Literal(False))))
+            End If
+
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            If basePrint IsNot Nothing Then
+                statements.Add(factory.If(basePrint, AppendText(factory, builder, ", ")))
+            End If
+
+            AppendMembers(factory, builder, members, statements)
+            statements.Add(factory.Return(factory.Literal(True)))
+            Return factory.Block(statements.ToImmutableAndFree())
+        End Function
+
+        Private Function AppendMembers(factory As SyntheticBoundNodeFactory, builder As BoundExpression, members As IEnumerable(Of Symbol), statements As ArrayBuilder(Of BoundStatement)) As Boolean
+            Dim objectType = factory.SpecialType(SpecialType.System_Object)
+            Dim first = True
+            For Each member In members
+                If Not first Then
+                    statements.Add(AppendText(factory, builder, ", "))
+                End If
+
+                statements.Add(AppendText(factory, builder, member.Name & " = "))
+                Dim value = factory.Convert(objectType, ReadMember(factory, factory.Me(), member))
+                statements.Add(factory.ExpressionStatement(factory.Call(builder, AppendObjectMethod(factory), value)))
+                first = False
+            Next
+
+            Return Not first
+        End Function
+
+        Private Function AppendText(factory As SyntheticBoundNodeFactory, builder As BoundExpression, text As String) As BoundStatement
+            Return factory.ExpressionStatement(factory.Call(builder, AppendStringMethod(factory), factory.Literal(text)))
+        End Function
+
+        Private Shared Function AppendStringMethod(factory As SyntheticBoundNodeFactory) As MethodSymbol
+            Return TryCast(factory.Compilation.GetWellKnownTypeMember(WellKnownMember.System_Text_StringBuilder__AppendString), MethodSymbol)
+        End Function
+
+        Private Shared Function AppendObjectMethod(factory As SyntheticBoundNodeFactory) As MethodSymbol
+            Return TryCast(factory.Compilation.GetWellKnownTypeMember(WellKnownMember.System_Text_StringBuilder__AppendObject), MethodSymbol)
+        End Function
+
+        Private Function ConcatenatedPrintBody(factory As SyntheticBoundNodeFactory) As BoundBlock
             Dim stringType = factory.SpecialType(SpecialType.System_String)
             Dim text As BoundExpression = factory.Literal(ContainingType.Name & " { ")
             Dim first = True

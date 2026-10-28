@@ -445,19 +445,79 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub CSharpRecord_DerivingFromAVisualBasicRecordNeedsOnlyPrintMembers()
+        Public Sub CSharpRecord_DerivesFromAVisualBasicRecord()
             Dim vbCompilation = CreateCompilation(ExternalInit & "
 Public Record Class Animal(Name As String)
 End Class
 ", parseOptions:=VbNext, assemblyName:="VbRecords")
             vbCompilation.VerifyDiagnostics()
+            Dim vbReference = vbCompilation.EmitToImageReference()
 
             Dim csCompilation = CreateCSharpCompilation("
 public record Cat(string Name, int Lives) : Animal(Name);
-", referencedAssemblies:={MscorlibRef, vbCompilation.EmitToImageReference()})
-            Dim errors = csCompilation.GetDiagnostics().Where(Function(d) d.Severity = DiagnosticSeverity.Error).ToArray()
-            Assert.Equal("CS0115", errors.Single().Id)
-            Assert.Contains("PrintMembers", errors.Single().GetMessage())
+", referencedAssemblies:={MscorlibRef, vbReference}, assemblyName:="CsRecords")
+            csCompilation.VerifyDiagnostics()
+
+            Dim program = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim tom As New Cat(""Tom"", 9)
+        Dim asAnimal As Animal = tom
+        System.Console.Write(tom.ToString() & "" "" & tom.Equals(New Cat(""Tom"", 9)) & "" "" & asAnimal.Equals(New Animal(""Tom"")) & "" "" & New Animal(""Tom"").Equals(asAnimal) & "" "")
+        Dim kit = asAnimal With {.Name = ""Kit""}
+        System.Console.Write(kit.ToString())
+    End Sub
+End Module
+", references:={vbReference, csCompilation.EmitToImageReference()}, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(program, expectedOutput:="Cat { Name = Tom, Lives = 9 } True False False Cat { Name = Kit, Lives = 9 }").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RecordToString_PrintsEveryMemberAsCSharpDoes()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Box(Of T)(Value As T)
+End Class
+
+Record Class Empty
+End Class
+
+Record Class Animal(Name As String)
+End Class
+
+Record Class Tagged
+    Inherits Animal
+
+    Sub New()
+        MyBase.New(""tag"")
+    End Sub
+End Class
+
+NotInheritable Record Class Leaf(Value As Integer)
+End Class
+
+Record Structure Point(X As Integer, Label As String)
+End Structure
+
+Module Program
+    Sub Main()
+        System.Console.Write(New Box(Of Integer)(5).ToString() & "" | "" & New Box(Of String)(Nothing).ToString() & "" | "" & New Empty().ToString() & "" | "")
+        System.Console.Write(New Tagged().ToString() & "" | "" & New Leaf(1).ToString() & "" | "" & New Point(1, Nothing).ToString())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Box { Value = 5 } | Box { Value =  } | Empty { } | Tagged { Name = tag } | Leaf { Value = 1 } | Point { X = 1, Label =  }").VerifyDiagnostics()
+            Dim animalPrint = compilation.GetTypeByMetadataName("Animal").GetMembers("PrintMembers").OfType(Of IMethodSymbol)().Single()
+            Dim taggedPrint = compilation.GetTypeByMetadataName("Tagged").GetMembers("PrintMembers").OfType(Of IMethodSymbol)().Single()
+            Dim leafPrint = compilation.GetTypeByMetadataName("Leaf").GetMembers("PrintMembers").OfType(Of IMethodSymbol)().Single()
+            Assert.Equal(Accessibility.Protected, animalPrint.DeclaredAccessibility)
+            Assert.True(animalPrint.IsVirtual)
+            Assert.Equal("Protected Overridable Overloads Function PrintMembers(builder As System.Text.StringBuilder) As Boolean", animalPrint.ToDisplayString())
+            Assert.Same(animalPrint, taggedPrint.OverriddenMethod)
+            Assert.Equal(Accessibility.Private, leafPrint.DeclaredAccessibility)
+            Assert.False(leafPrint.IsVirtual)
+            Assert.Empty(compilation.GetTypeByMetadataName("Point").GetMembers("PrintMembers"))
         End Sub
 
         Private Function CSharpRecords() As MetadataReference
