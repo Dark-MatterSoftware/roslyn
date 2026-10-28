@@ -109,6 +109,59 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub GenericCollectionLiteralArguments()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Module Program
+    Function Generic(Of T)(values As List(Of T)) As String
+        Return GetType(T).Name & values.Count
+    End Function
+
+    Function UniqueOf(Of T)(values As HashSet(Of T)) As Integer
+        Return values.Count
+    End Function
+
+    Function Merge(Of T)(first As List(Of T), second As List(Of T)) As Integer
+        Return first.Count + second.Count
+    End Function
+
+    Sub Main()
+        Dim first As New List(Of Integer) From {1}
+        Console.Write($""{Generic({1, 2})} {Generic((1, 2L, 3))} {Generic({""a""})} {UniqueOf({1, 1, 2})} {Merge(first, {2, 3})} {Generic({1, ""a""})}"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Int322 Int643 String1 2 3 Object2").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub GenericCollectionLiteralArgumentErrors()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Function Generic(Of T)(values As List(Of T)) As Integer
+        Return values.Count
+    End Function
+
+    Sub Main()
+        Dim a = Generic({})
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True).WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC36645: Data type(s) of the type parameter(s) in method 'Public Function Generic(Of T)(values As List(Of T)) As Integer' cannot be inferred from these arguments. Specifying the data type(s) explicitly might correct this error.
+        Dim a = Generic({})
+                ~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub CollectionLiteralsInIf()
             Dim compilation = CreateCompilation("
 Imports System
@@ -207,7 +260,6 @@ Module Program
 
     Sub Main()
         Dim a = Pick({1, 2})
-        Dim b = Generic({1, 2})
         Dim c = Strings({1, 2})
         Dim d = Strings(texts:={""a""})
     End Sub
@@ -221,9 +273,6 @@ BC30518: Overload resolution failed because no accessible 'Pick' can be called w
     'Public Function Pick(values As HashSet(Of Integer)) As String': Value of type 'Integer()' cannot be converted to 'HashSet(Of Integer)'.
         Dim a = Pick({1, 2})
                 ~~~~
-BC36645: Data type(s) of the type parameter(s) in method 'Public Function Generic(Of T)(values As List(Of T)) As Integer' cannot be inferred from these arguments. Specifying the data type(s) explicitly might correct this error.
-        Dim b = Generic({1, 2})
-                ~~~~~~~
 BC30311: Value of type 'Integer()' cannot be converted to 'List(Of String)'.
         Dim c = Strings({1, 2})
                         ~~~~~~

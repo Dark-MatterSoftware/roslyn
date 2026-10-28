@@ -1255,7 +1255,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                     Dim parameterType = parameter.Type
-                    If parameterType.ReferencesMethodsTypeParameter(method) OrElse seen.Any(Function(t) t.IsSameTypeIgnoringAll(parameterType)) Then
+                    If parameterType.ReferencesMethodsTypeParameter(method) Then
+                        ' Generic({1, 2}) for a List(Of T) parameter builds a List(Of Integer), from which T is inferred.
+                        parameterType = ConstructCollectionParameterFromLiteral(parameterType, method, argument)
+                        If parameterType Is Nothing Then
+                            Continue For
+                        End If
+                    End If
+
+                    If seen.Any(Function(t) t.IsSameTypeIgnoringAll(parameterType)) Then
                         Continue For
                     End If
 
@@ -1289,6 +1297,72 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return rebound.ToImmutableAndFree()
+        End Function
+
+        ''' <summary>
+        ''' For a parameter such as List(Of T), where T is a type parameter of the method, the collection type constructed
+        ''' with the element type of the literal, as C# 12 infers T from the elements of a collection expression.
+        ''' </summary>
+        Private Function ConstructCollectionParameterFromLiteral(parameterType As TypeSymbol, method As MethodSymbol, argument As BoundExpression) As TypeSymbol
+            Dim named = TryCast(parameterType, NamedTypeSymbol)
+            If named Is Nothing OrElse named.Arity <> 1 Then
+                Return Nothing
+            End If
+
+            Dim typeParameter = TryCast(named.TypeArgumentsNoUseSiteDiagnostics(0), TypeParameterSymbol)
+            If typeParameter Is Nothing OrElse Not method.TypeParameters.Contains(typeParameter) Then
+                Return Nothing
+            End If
+
+            Dim elementType = GetCollectionLiteralElementType(argument)
+            If elementType Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim constructed = named.OriginalDefinition.Construct(elementType)
+            Dim constructedElement = GetCollectionParamArrayElementType(Compilation, constructed)
+            If constructedElement Is Nothing OrElse Not constructedElement.IsSameTypeIgnoringAll(elementType) Then
+                Return Nothing
+            End If
+
+            Return constructed
+        End Function
+
+        ''' <summary>
+        ''' The element type of {1, 2} or (1, 2), when its elements have a dominant type and it has no spreads.
+        ''' </summary>
+        Private Function GetCollectionLiteralElementType(argument As BoundExpression) As TypeSymbol
+            Dim elements As ImmutableArray(Of BoundExpression)
+            Select Case argument.Kind
+                Case BoundKind.ArrayLiteral
+                    Dim literal = DirectCast(argument, BoundArrayLiteral)
+                    If Not literal.HasDominantType OrElse literal.InferredType.Rank <> 1 Then
+                        Return Nothing
+                    End If
+
+                    elements = literal.Initializer.Initializers
+                    If elements.IsEmpty OrElse HasSpreadElement(elements) OrElse elements.Any(Function(e) e.Kind = BoundKind.ArrayInitialization) Then
+                        Return Nothing
+                    End If
+
+                    Return literal.InferredType.ElementType
+
+                Case BoundKind.TupleLiteral
+                    elements = DirectCast(argument, BoundTupleLiteral).Arguments
+                    If HasSpreadElement(elements) Then
+                        Return Nothing
+                    End If
+
+                    Dim numberOfCandidates As Integer = 0
+                    Dim builder = ArrayBuilder(Of BoundExpression).GetInstance()
+                    builder.AddRange(elements)
+                    Dim dominant = InferDominantTypeOfExpressions(argument.Syntax, builder, BindingDiagnosticBag.Discarded, numberOfCandidates)
+                    builder.Free()
+                    Return If(numberOfCandidates = 1, dominant, Nothing)
+
+                Case Else
+                    Return Nothing
+            End Select
         End Function
 
         Private Shared Function IsCollectionLiteralArgument(argument As BoundExpression) As Boolean
