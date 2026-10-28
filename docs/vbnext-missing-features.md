@@ -326,6 +326,16 @@ Checked against this tree after wave 18, by compiling and running against .NET 1
 | VB-144 | `AddressOf` without a target type | Done in phase 116: on `vbnext`, `Dim` infers VB's anonymous delegate type from a group with one method, as it does for a lambda, rather than C#'s `Action` and `Func`. Before that, `Dim handler = AddressOf Hello` reported BC30581, "'AddressOf' expression cannot be converted to 'Object'", though `Dim f = Sub() Hello()` infers a delegate type. C# 10 gives a method group with one candidate a natural function type. No new syntax; which delegate type it infers is a semantic choice to settle in phase 116. |
 | VB-145 | C# records that inherit Visual Basic records | Open. Found in phase 115. `public record Cat(string Name, int Lives) : Animal(Name)`, where `Animal` is a Visual Basic record, reports CS0115, "'Cat.PrintMembers(StringBuilder)': no suitable method found to override", because Visual Basic records build `ToString` in one method and declare no `Protected Overridable Function PrintMembers(builder As StringBuilder) As Boolean`, which C# 9 records override; since phase 115 that is the only error. No new syntax. |
 
+## Wave 20
+
+Checked against this tree after wave 19, by compiling and running against .NET 11 with `LangVersion` `vbnext` the shapes that wave 19 code meets next: `AddressOf` outside `Dim`, generic records, and records that cross between Visual Basic and C#, with a C# library alongside. Several shapes already work: `Record Class Box(Of T)(Value As T)`, a record that inherits `Box(Of Integer)`, its `=`, `ToString`, and `With`, and `Dim o As Object = Sub() Hello()`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-146 | `AddressOf` to `Object` and `[Delegate]` | Open. `Dim o As Object = AddressOf Hello` reports BC30581 and `Run(AddressOf Hello)`, where `Run` takes a `[Delegate]`, reports BC30939, though phase 116 infers a delegate type for `Dim handler = AddressOf Hello` and `Dim o As Object = Sub() Hello()` already converts. C# 10 converts a method group with a natural type to `object` and `Delegate`. No new syntax. |
+| VB-147 | `AddressOf` in `If` and array literals | Open. `If(flag, AddressOf Hello, AddressOf Bye)` reports BC36911, "Cannot infer a common type", and `{AddressOf Hello, AddressOf Bye}` reports BC36717 and BC30581, because the dominant type of the branches and elements does not use the type phase 116 infers. C# 10 infers `Action` for `flag ? Hello : Bye`. No new syntax. |
+| VB-148 | Visual Basic records that inherit C# records | Open. `Record Class VbDog(Name As String, Breed As String)` that `Inherits CsAnimal(Name)`, where `CsAnimal` is a C# 9 record, reports BC40005, "property 'EqualityContract' shadows an overridable method", and prints `VbDog { Breed = Lab }`, because `IsRecord` is `False` for record types from metadata, so the derived record declares a new `EqualityContract`, compares and prints only its own members, and does not chain to the C# `Equals`. C# recognizes a record from metadata by its `<Clone>$` method. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -593,3 +603,14 @@ The record gaps come first, as one property per name gives the equality work a s
 | 2 | VB-143 | Record `=` and `<>` | S | Operators that call `Equals`, so phase 115 fixes both at once. |
 | 3 | VB-141 | Equality of records that inherit records | L | Changes the synthesized `Equals`, `GetHashCode`, and `ToString` of every record. |
 | 4 | VB-144 | `AddressOf` without a target type | M | Changes what `Dim` infers, so it comes last, after its semantics are settled. |
+
+### Wave 20 order
+
+The `AddressOf` gaps that finish phase 116 come first, smallest first, then the record gaps between Visual Basic and C#, the one that reads C# records before the one that changes how Visual Basic records print.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-146 | `AddressOf` to `Object` and `[Delegate]` | S | Gives the phase 116 type to the two targets that are not delegate types. |
+| 2 | VB-147 | `AddressOf` in `If` and array literals | M | Feeds the phase 116 type into dominant type inference. |
+| 3 | VB-148 | Visual Basic records that inherit C# records | M | Recognizes C# records from metadata, so phases 113 to 115 chain to them. |
+| 4 | VB-145 | C# records that inherit Visual Basic records | M | Splits `ToString` into `PrintMembers`, which every record then overrides, so it comes last. |
