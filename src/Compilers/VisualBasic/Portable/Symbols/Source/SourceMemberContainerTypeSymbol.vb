@@ -3097,6 +3097,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                 Function(method) ImmutableArray.Create(Of ParameterSymbol)(New SynthesizedParameterSimpleSymbol(method, Me, 0, "other")))
             End If
 
+            AddRecordEqualityContractIfNeeded(members, binder, syntax)
+
+            Dim baseRecord = BaseTypeNoUseSiteDiagnostics
+            If TypeKind = TypeKind.Class AndAlso baseRecord IsNot Nothing AndAlso Not baseRecord.IsErrorType() AndAlso baseRecord.IsRecord AndAlso
+               Not HasRecordMethod(members, WellKnownMemberNames.ObjectEquals, 1, baseRecord) Then
+                Dim baseEquals = FindOverridableMethod(baseRecord, WellKnownMemberNames.ObjectEquals, 1, baseRecord)
+                If baseEquals IsNot Nothing Then
+                    AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectEquals, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.BaseEquals, baseEquals,
+                                    Function(method) ImmutableArray.Create(Of ParameterSymbol)(New SynthesizedParameterSimpleSymbol(method, baseRecord, 0, "other")))
+                End If
+            End If
+
             If objectHash IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectGetHashCode, 0, Nothing) Then
                 AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectGetHashCode, integerType, SynthesizedRecordMethodSymbol.RecordMethodKind.GetHashCode, objectHash,
                                 Function(method) ImmutableArray(Of ParameterSymbol).Empty)
@@ -3112,6 +3124,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 AddRecordOperator(members, binder, syntax, WellKnownMemberNames.EqualityOperatorName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.OperatorEquality)
                 AddRecordOperator(members, binder, syntax, WellKnownMemberNames.InequalityOperatorName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.OperatorInequality)
             End If
+        End Sub
+
+        Private Sub AddRecordEqualityContractIfNeeded(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode)
+            Dim existing As ArrayBuilder(Of Symbol) = Nothing
+            If TypeKind <> TypeKind.Class OrElse members.Members.TryGetValue(SynthesizedRecordEqualityContractSymbol.PropertyName, existing) Then
+                Return
+            End If
+
+            Dim typeType = DeclaringCompilation.GetWellKnownType(WellKnownType.System_Type)
+            If typeType.IsErrorType() Then
+                Return
+            End If
+
+            Dim overriddenProperty As PropertySymbol = Nothing
+            Dim baseType = BaseTypeNoUseSiteDiagnostics
+            If baseType IsNot Nothing AndAlso Not baseType.IsErrorType() AndAlso baseType.IsRecord Then
+                overriddenProperty = baseType.GetMembers(SynthesizedRecordEqualityContractSymbol.PropertyName).OfType(Of PropertySymbol)().FirstOrDefault(
+                    Function(candidate) Not candidate.IsShared AndAlso Not candidate.IsNotOverridable AndAlso (candidate.IsOverridable OrElse candidate.IsOverrides) AndAlso
+                        candidate.Parameters.Length = 0 AndAlso TypeSymbol.Equals(candidate.Type, typeType, TypeCompareKind.ConsiderEverything))
+            End If
+
+            Dim [property] As New SynthesizedRecordEqualityContractSymbol(syntax, Me, typeType, overriddenProperty)
+            AddMember([property], binder, members, omitDiagnostics:=False)
+            AddMember([property].GetMethod, binder, members, omitDiagnostics:=False)
         End Sub
 
         Private Sub AddRecordOperator(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode, name As String, booleanType As TypeSymbol,

@@ -377,6 +377,90 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub DerivedRecord_IsNotEqualToABaseRecordWithTheSameMembers()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Record Class Puppy(Name As String, Breed As String, Age As Integer)
+    Inherits Dog(Name, Breed)
+End Class
+
+Module Program
+    Sub Main()
+        Dim d As New Dog(""Rex"", ""Lab"")
+        Dim a As Animal = d
+        Dim plain As New Animal(""Rex"")
+        System.Console.Write(plain.Equals(a) & "" "" & a.Equals(plain) & "" "" & (plain = a) & "" "" & plain.Equals(CObj(d)) & "" "")
+        Dim other As Animal = New Dog(""Rex"", ""Pug"")
+        System.Console.Write(a.Equals(other) & "" "" & (a = other) & "" "" & a.Equals(New Dog(""Rex"", ""Lab"")) & "" "")
+        Dim p As Dog = New Puppy(""Rex"", ""Lab"", 1)
+        System.Console.Write(p.Equals(d) & "" "" & d.Equals(p) & "" "" & p.Equals(New Puppy(""Rex"", ""Lab"", 1)) & "" "" & (p.GetHashCode() = New Puppy(""Rex"", ""Lab"", 1).GetHashCode()))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="False False False False False False True False False True True").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub RecordClass_DeclaresEqualityContract()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+NotInheritable Record Class Leaf(Value As Integer)
+End Class
+
+Module Program
+    Sub Main()
+        System.Console.Write((New Leaf(1) = New Leaf(1)) & "" "" & (New Leaf(1) = New Leaf(2)))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="True False").VerifyDiagnostics()
+            Dim animalContract = compilation.GetTypeByMetadataName("Animal").GetMembers("EqualityContract").OfType(Of IPropertySymbol)().Single()
+            Dim dogContract = compilation.GetTypeByMetadataName("Dog").GetMembers("EqualityContract").OfType(Of IPropertySymbol)().Single()
+            Dim leafContract = compilation.GetTypeByMetadataName("Leaf").GetMembers("EqualityContract").OfType(Of IPropertySymbol)().Single()
+            Assert.Equal(Accessibility.Protected, animalContract.DeclaredAccessibility)
+            Assert.True(animalContract.IsVirtual)
+            Assert.True(animalContract.IsReadOnly)
+            Assert.Equal("System.Type", animalContract.Type.ToDisplayString())
+            Assert.True(dogContract.IsOverride)
+            Assert.Same(animalContract, dogContract.OverriddenProperty)
+            Assert.False(leafContract.IsVirtual)
+            Dim dogEquals = compilation.GetTypeByMetadataName("Dog").GetMembers("Equals").OfType(Of IMethodSymbol)().
+                Single(Function(m) m.Parameters(0).Type.Name = "Animal")
+            Assert.True(dogEquals.IsOverride)
+            Assert.True(dogEquals.IsSealed)
+        End Sub
+
+        <Fact>
+        Public Sub CSharpRecord_DerivingFromAVisualBasicRecordNeedsOnlyPrintMembers()
+            Dim vbCompilation = CreateCompilation(ExternalInit & "
+Public Record Class Animal(Name As String)
+End Class
+", parseOptions:=VbNext, assemblyName:="VbRecords")
+            vbCompilation.VerifyDiagnostics()
+
+            Dim csCompilation = CreateCSharpCompilation("
+public record Cat(string Name, int Lives) : Animal(Name);
+", referencedAssemblies:={MscorlibRef, vbCompilation.EmitToImageReference()})
+            Dim errors = csCompilation.GetDiagnostics().Where(Function(d) d.Severity = DiagnosticSeverity.Error).ToArray()
+            Assert.Equal("CS0115", errors.Single().Id)
+            Assert.Contains("PrintMembers", errors.Single().GetMessage())
+        End Sub
+
+        <Fact>
         Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
             Dim compilation = CreateCompilation(ExternalInit & "
 Record Class Animal(Name As String)

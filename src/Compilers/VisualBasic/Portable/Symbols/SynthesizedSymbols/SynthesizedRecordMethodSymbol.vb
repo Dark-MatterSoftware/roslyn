@@ -23,6 +23,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Clone
             OperatorEquality
             OperatorInequality
+            BaseEquals
         End Enum
 
         ''' <summary>
@@ -84,11 +85,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsOverridable As Boolean
             Get
-                If _kind = RecordMethodKind.Clone Then
+                If _kind = RecordMethodKind.Clone OrElse (_kind = RecordMethodKind.TypedEquals AndAlso Not ContainingType.IsValueType) Then
                     Return _overriddenMethod Is Nothing AndAlso Not ContainingType.IsNotInheritable
                 End If
 
+                If _kind = RecordMethodKind.BaseEquals Then
+                    Return False
+                End If
+
                 Return _overriddenMethod IsNot Nothing
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property IsNotOverridable As Boolean
+            Get
+                Return _kind = RecordMethodKind.BaseEquals
             End Get
         End Property
 
@@ -133,6 +144,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return New LexicalSortKey(m_SyntaxNode.SyntaxTree, m_SyntaxNode.SpanStart + 1, DirectCast(DeclaringCompilation, VisualBasicCompilation))
             End If
 
+            If _kind = RecordMethodKind.BaseEquals Then
+                Return New LexicalSortKey(m_SyntaxNode.SyntaxTree, m_SyntaxNode.SpanStart + 2, DirectCast(DeclaringCompilation, VisualBasicCompilation))
+            End If
+
             Return MyBase.GetLexicalSortKey()
         End Function
 
@@ -164,6 +179,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return factory.Block(factory.Return(OperatorEqualityValue(factory)))
                 Case RecordMethodKind.OperatorInequality
                     Return factory.Block(factory.Return(factory.Not(OperatorEqualityValue(factory))))
+                Case RecordMethodKind.BaseEquals
+                    Return BaseEqualsBody(factory)
                 Case Else
                     Return PrintBody(factory)
             End Select
@@ -214,6 +231,63 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim same = factory.Binary(BinaryOperatorKind.Is, boolType, AsObject(left, objectType), AsObject(factory.Parameter(_parameters(1), isLValue:=False), objectType))
             Dim leftIsSomething = factory.Binary(BinaryOperatorKind.IsNot, boolType, factory.Parameter(_parameters(0), isLValue:=False), NothingLiteral(factory, ContainingType))
             Return factory.Binary(BinaryOperatorKind.OrElse, boolType, same, factory.Binary(BinaryOperatorKind.AndAlso, boolType, leftIsSomething, callEquals))
+        End Function
+
+        ''' <summary>
+        ''' <c>NotOverridable Overrides Function Equals(other As Base) As Boolean</c> returns <c>Equals(CObj(other))</c>, as C# 9 seals it,
+        ''' so a comparison through a base reference still reaches this record's members.
+        ''' </summary>
+        Private Function BaseEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
+            Dim objectType = factory.SpecialType(SpecialType.System_Object)
+            Dim objectEquals = ContainingType.GetMembers(WellKnownMemberNames.ObjectEquals).OfType(Of MethodSymbol)().FirstOrDefault(
+                Function(candidate) Not candidate.IsShared AndAlso candidate.ParameterCount = 1 AndAlso candidate.Parameters(0).Type.SpecialType = SpecialType.System_Object)
+            If objectEquals Is Nothing Then
+                Return factory.Block(factory.Return(factory.Literal(False)))
+            End If
+
+            Return factory.Block(factory.Return(factory.Call(factory.Me(), objectEquals, AsObject(factory.Parameter(_parameters(0), isLValue:=False), objectType))))
+        End Function
+
+        Private Function EqualityContract() As PropertySymbol
+            Dim current As TypeSymbol = ContainingType
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                Dim found = current.GetMembers(SynthesizedRecordEqualityContractSymbol.PropertyName).OfType(Of PropertySymbol)().FirstOrDefault(
+                    Function(candidate) Not candidate.IsShared AndAlso candidate.Parameters.Length = 0 AndAlso candidate.GetMethod IsNot Nothing)
+                If found IsNot Nothing Then
+                    Return found
+                End If
+
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            Return Nothing
+        End Function
+
+        Private Function ContractHashCode(factory As SyntheticBoundNodeFactory) As BoundExpression
+            Dim contract = EqualityContract()
+            If contract Is Nothing Then
+                Return Nothing
+            End If
+
+            Return ComparerCall(factory, contract.Type, WellKnownMember.System_Collections_Generic_EqualityComparer_T__GetHashCode, factory.Call(factory.Me(), contract.GetMethod))
+        End Function
+
+        Private Function ContractsEqual(factory As SyntheticBoundNodeFactory, other As BoundExpression) As BoundExpression
+            Dim contract = EqualityContract()
+            If contract Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim mine = factory.Call(factory.Me(), contract.GetMethod)
+            Dim theirs = factory.Call(other, contract.GetMethod)
+            Dim typeEquality = TryCast(factory.Compilation.GetWellKnownTypeMember(WellKnownMember.System_Type__op_Equality), MethodSymbol)
+            If typeEquality IsNot Nothing Then
+                Return factory.Call(Nothing, typeEquality, mine, theirs)
+            End If
+
+            Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
+            Dim objectType = factory.SpecialType(SpecialType.System_Object)
+            Return factory.Binary(BinaryOperatorKind.Is, boolType, AsObject(mine, objectType), AsObject(theirs, objectType))
         End Function
 
         Private Function AsObject(value As BoundExpression, objectType As TypeSymbol) As BoundExpression
@@ -336,7 +410,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Dim isNothing = factory.Binary(BinaryOperatorKind.Is, boolType, other, NothingLiteral(factory, ContainingType))
-            Dim comparison As BoundExpression = If(BaseTypedEquals(factory, factory.Parameter(_parameters(0), isLValue:=False)), factory.Literal(True))
+            Dim comparison As BoundExpression = If(BaseTypedEquals(factory, factory.Parameter(_parameters(0), isLValue:=False)),
+                                                   If(ContractsEqual(factory, factory.Parameter(_parameters(0), isLValue:=False)), factory.Literal(True)))
             For Each member In EqualityMembers()
                 Dim equals = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__Equals, ReadMember(factory, factory.Me(), member), ReadMember(factory, other, member))
                 If equals Is Nothing Then
@@ -351,7 +426,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Function HashCodeBody(factory As SyntheticBoundNodeFactory) As BoundBlock
             Dim intType = factory.SpecialType(SpecialType.System_Int32)
-            Dim hash As BoundExpression = If(BaseHashCode(factory), factory.Literal(0))
+            Dim hash As BoundExpression = If(BaseHashCode(factory), If(ContractHashCode(factory), factory.Literal(0)))
             For Each member In EqualityMembers()
                 Dim memberHash = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__GetHashCode, ReadMember(factory, factory.Me(), member))
                 If memberHash Is Nothing Then
