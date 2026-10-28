@@ -3189,7 +3189,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                 slots.Add((name, parameterType))
                 Dim existing As ArrayBuilder(Of Symbol) = Nothing
-                If members.Members.TryGetValue(name, existing) Then
+                If members.Members.TryGetValue(name, existing) OrElse HasInheritedPositionalProperty(name, parameterType) Then
                     Continue For
                 End If
 
@@ -3212,6 +3212,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Dim captured = slots.ToImmutable()
             slots.Free()
+            Dim existingDeconstruct As ArrayBuilder(Of Symbol) = Nothing
+            Dim hidesInherited = Not members.Members.TryGetValue("Deconstruct", existingDeconstruct) AndAlso HasInheritedMember("Deconstruct")
             AddRecordMethod(members, binder, syntax, "Deconstruct", DeclaringCompilation.GetSpecialType(SpecialType.System_Void), SynthesizedRecordMethodSymbol.RecordMethodKind.Deconstruct, Nothing,
                             Function(method)
                                 Dim parameters = ArrayBuilder(Of ParameterSymbol).GetInstance()
@@ -3219,8 +3221,51 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                     parameters.Add(New SynthesizedParameterSymbol(method, captured(index).Type, index, isByRef:=True, captured(index).Name))
                                 Next
                                 Return parameters.ToImmutableAndFree()
-                            End Function)
+                            End Function,
+                            isOverloads:=hidesInherited)
         End Sub
+
+        ''' <summary>
+        ''' A positional parameter reuses the property a base type declares with its name and type, as C# 9 does,
+        ''' so a derived record and its base share one property. Looks only at the nearest base type with a member of that name.
+        ''' </summary>
+        Private Function HasInheritedPositionalProperty(name As String, parameterType As TypeSymbol) As Boolean
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            Dim current = BaseTypeNoUseSiteDiagnostics
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                Dim candidates = current.GetMembers(name)
+                If Not candidates.IsEmpty Then
+                    For Each candidate In candidates
+                        Dim [property] = TryCast(candidate, PropertySymbol)
+                        If [property] IsNot Nothing AndAlso Not [property].IsShared AndAlso Not [property].IsMustOverride AndAlso
+                           [property].Parameters.Length = 0 AndAlso [property].GetMethod IsNot Nothing AndAlso
+                           TypeSymbol.Equals([property].Type, parameterType, TypeCompareKind.ConsiderEverything) AndAlso
+                           AccessCheck.IsSymbolAccessible([property], Me, Nothing, useSiteInfo) Then
+                            Return True
+                        End If
+                    Next
+
+                    Return False
+                End If
+
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            Return False
+        End Function
+
+        Private Function HasInheritedMember(name As String) As Boolean
+            Dim current = BaseTypeNoUseSiteDiagnostics
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                If Not current.GetMembers(name).IsEmpty Then
+                    Return True
+                End If
+
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            Return False
+        End Function
 
         Private Shared Function FindOverridableMethod(owner As TypeSymbol, name As String, parameterCount As Integer, parameterType As TypeSymbol) As MethodSymbol
             If owner Is Nothing OrElse owner.IsErrorType() Then
@@ -3249,8 +3294,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                     returnType As TypeSymbol,
                                     kind As SynthesizedRecordMethodSymbol.RecordMethodKind,
                                     overriddenMethod As MethodSymbol,
-                                    parameters As Func(Of MethodSymbol, ImmutableArray(Of ParameterSymbol)))
-            Dim method As New SynthesizedRecordMethodSymbol(syntax, Me, name, returnType, kind, overriddenMethod)
+                                    parameters As Func(Of MethodSymbol, ImmutableArray(Of ParameterSymbol)),
+                                    Optional isOverloads As Boolean = False)
+            Dim method As New SynthesizedRecordMethodSymbol(syntax, Me, name, returnType, kind, overriddenMethod, isOverloads)
             method.SetParameters(parameters(method))
             AddMember(method, binder, members, omitDiagnostics:=False)
         End Sub

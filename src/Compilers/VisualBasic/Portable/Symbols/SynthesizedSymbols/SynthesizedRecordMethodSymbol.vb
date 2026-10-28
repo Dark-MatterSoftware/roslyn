@@ -31,6 +31,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _kind As RecordMethodKind
         Private ReadOnly _returnType As TypeSymbol
         Private ReadOnly _overriddenMethod As MethodSymbol
+        Private ReadOnly _isOverloads As Boolean
         Private _parameters As ImmutableArray(Of ParameterSymbol)
 
         Public Sub New(syntax As VisualBasicSyntaxNode,
@@ -38,11 +39,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                        name As String,
                        returnType As TypeSymbol,
                        kind As RecordMethodKind,
-                       Optional overriddenMethod As MethodSymbol = Nothing)
+                       Optional overriddenMethod As MethodSymbol = Nothing,
+                       Optional isOverloads As Boolean = False)
             MyBase.New(syntax, container, name)
             _kind = kind
             _returnType = returnType
             _overriddenMethod = overriddenMethod
+            _isOverloads = isOverloads
         End Sub
 
         Friend Sub SetParameters(parameters As ImmutableArray(Of ParameterSymbol))
@@ -51,7 +54,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property IsOverloads As Boolean
             Get
-                Return _kind <> RecordMethodKind.Deconstruct
+                Return _kind <> RecordMethodKind.Deconstruct OrElse _isOverloads
             End Get
         End Property
 
@@ -159,8 +162,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private Function DeconstructBody(factory As SyntheticBoundNodeFactory) As BoundBlock
             Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
             For Each parameter In _parameters
-                Dim [property] = ContainingType.GetMembers(parameter.Name).OfType(Of PropertySymbol)().FirstOrDefault(
-                    Function(candidate) candidate.Parameters.Length = 0 AndAlso candidate.GetMethod IsNot Nothing)
+                Dim [property] = FindPositionalProperty(parameter.Name)
                 If [property] Is Nothing Then
                     Continue For
                 End If
@@ -170,6 +172,62 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             statements.Add(factory.Return())
             Return factory.Block(statements.ToImmutableAndFree())
+        End Function
+
+        Private Function FindPositionalProperty(name As String) As PropertySymbol
+            Dim current As TypeSymbol = ContainingType
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                Dim candidates = current.GetMembers(name)
+                If Not candidates.IsEmpty Then
+                    Return candidates.OfType(Of PropertySymbol)().FirstOrDefault(
+                        Function(candidate) Not candidate.IsShared AndAlso candidate.Parameters.Length = 0 AndAlso candidate.GetMethod IsNot Nothing)
+                End If
+
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            Return Nothing
+        End Function
+
+        Private Function BaseRecord() As NamedTypeSymbol
+            Dim baseType = ContainingType.BaseTypeNoUseSiteDiagnostics
+            If baseType Is Nothing OrElse baseType.IsErrorType() OrElse Not baseType.IsRecord Then
+                Return Nothing
+            End If
+
+            Return baseType
+        End Function
+
+        Private Function BaseTypedEquals(factory As SyntheticBoundNodeFactory, other As BoundExpression) As BoundExpression
+            Dim baseType = BaseRecord()
+            If baseType Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim method = baseType.GetMembers(WellKnownMemberNames.ObjectEquals).OfType(Of MethodSymbol)().FirstOrDefault(
+                Function(candidate) Not candidate.IsShared AndAlso candidate.ParameterCount = 1 AndAlso
+                    TypeSymbol.Equals(candidate.Parameters(0).Type, baseType, TypeCompareKind.ConsiderEverything))
+            If method Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim converted = New BoundConversion(m_SyntaxNode, other, ConversionKind.WideningReference, False, False, Nothing, baseType, Nothing).MakeCompilerGenerated()
+            Return factory.Call(factory.Base(), method, converted)
+        End Function
+
+        Private Function BaseHashCode(factory As SyntheticBoundNodeFactory) As BoundExpression
+            Dim baseType = BaseRecord()
+            If baseType Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim method = baseType.GetMembers(WellKnownMemberNames.ObjectGetHashCode).OfType(Of MethodSymbol)().FirstOrDefault(
+                Function(candidate) Not candidate.IsShared AndAlso candidate.ParameterCount = 0)
+            If method Is Nothing Then
+                Return Nothing
+            End If
+
+            Return factory.Call(factory.Base(), method)
         End Function
 
         Private Function ObjectEqualsBody(factory As SyntheticBoundNodeFactory) As BoundBlock
@@ -232,7 +290,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Dim isNothing = factory.Binary(BinaryOperatorKind.Is, boolType, other, NothingLiteral(factory, ContainingType))
-            Dim comparison As BoundExpression = factory.Literal(True)
+            Dim comparison As BoundExpression = If(BaseTypedEquals(factory, factory.Parameter(_parameters(0), isLValue:=False)), factory.Literal(True))
             For Each member In EqualityMembers()
                 Dim equals = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__Equals, ReadMember(factory, factory.Me(), member), ReadMember(factory, other, member))
                 If equals Is Nothing Then
@@ -247,7 +305,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Function HashCodeBody(factory As SyntheticBoundNodeFactory) As BoundBlock
             Dim intType = factory.SpecialType(SpecialType.System_Int32)
-            Dim hash As BoundExpression = factory.Literal(0)
+            Dim hash As BoundExpression = If(BaseHashCode(factory), factory.Literal(0))
             For Each member In EqualityMembers()
                 Dim memberHash = ComparerCall(factory, MemberType(member), WellKnownMember.System_Collections_Generic_EqualityComparer_T__GetHashCode, ReadMember(factory, factory.Me(), member))
                 If memberHash Is Nothing Then
@@ -268,7 +326,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim stringType = factory.SpecialType(SpecialType.System_String)
             Dim text As BoundExpression = factory.Literal(ContainingType.Name & " { ")
             Dim first = True
-            For Each member In EqualityMembers()
+            For Each member In PrintedMembers()
                 If Not first Then
                     text = Concat(factory, stringType, text, factory.Literal(", "))
                 End If
@@ -335,6 +393,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Function EqualityMembers() As IEnumerable(Of Symbol)
             Return ContainingType.GetMembers().Where(Function(member) IsEqualityMember(member))
+        End Function
+
+        ''' <summary>
+        ''' The members of each base record, from the first record in the chain, then this record's, as C# 9 prints them.
+        ''' </summary>
+        Private Function PrintedMembers() As IEnumerable(Of Symbol)
+            Dim records As New List(Of NamedTypeSymbol)
+            Dim current As NamedTypeSymbol = ContainingType
+            While current IsNot Nothing AndAlso Not current.IsErrorType() AndAlso current.IsRecord
+                records.Insert(0, current)
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            Return records.SelectMany(Function(record) record.GetMembers().Where(Function(member) IsEqualityMember(member)))
         End Function
 
         Private Shared Function IsEqualityMember(member As Symbol) As Boolean

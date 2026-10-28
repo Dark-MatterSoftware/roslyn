@@ -2,6 +2,7 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Linq
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Roslyn.Test.Utilities
 Imports Xunit
@@ -228,6 +229,100 @@ End Module
 ", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
 
             CompileAndVerify(compilation, expectedOutput:="Circle d 4").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub DerivedPositionalRecord_ReusesTheInheritedProperty()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Module Program
+    Sub Main()
+        Dim d As New Dog(""Rex"", ""Lab"")
+        Dim a As Animal = d
+        Dim renamed = a With {.Name = ""Max""}
+        Dim (name, breed) = d
+        System.Console.Write(DirectCast(renamed, Dog).Name & "" "" & DirectCast(renamed, Dog).Breed & "" "")
+        System.Console.Write(name & "" "" & breed & "" "")
+        System.Console.Write(GetType(Dog).GetProperty(""Name"").DeclaringType.Name)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Max Lab Rex Lab Animal").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub DerivedPositionalRecord_KeepsItsPropertyWhenTheTypeDiffers()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As Integer)
+    Inherits Animal(""x"")
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_MustOverloadBase4, "Name As Integer").WithArguments("property", "Name", "class", "Animal").WithLocation(10, 18))
+            Dim dog = compilation.GetTypeByMetadataName("Dog")
+            Assert.Equal("Integer", dog.GetMembers("Name").OfType(Of IPropertySymbol)().Single().Type.ToDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub DerivedRecord_EqualityAndHashCodeIncludeBaseMembers()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Shape
+    Public Property Name As String
+End Class
+
+Record Class Circle
+    Inherits Shape
+    Public Property Radius As Integer
+End Class
+
+Module Program
+    Sub Main()
+        Dim a As New Circle With {.Name = ""a"", .Radius = 1}
+        Dim b As New Circle With {.Name = ""b"", .Radius = 1}
+        Dim c As New Circle With {.Name = ""a"", .Radius = 1}
+        System.Console.Write(a.Equals(b) & "" "" & a.Equals(c) & "" "" & (a.GetHashCode() = c.GetHashCode()) & "" "" & a.ToString())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="False True True Circle { Name = a, Radius = 1 }").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Record Class Puppy(Name As String, Breed As String, Age As Integer)
+    Inherits Dog(Name, Breed)
+End Class
+
+Module Program
+    Sub Main()
+        Dim p As New Puppy(""Bo"", ""Pug"", 1)
+        Dim (name, breed, age) = p
+        System.Console.Write(p.ToString() & "" "" & name & breed & age & "" "" & p.Equals(New Puppy(""Bo"", ""Pug"", 1)) & p.Equals(New Puppy(""Bo"", ""Pug"", 2)))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Puppy { Name = Bo, Breed = Pug, Age = 1 } BoPug1 TrueFalse").VerifyDiagnostics()
         End Sub
 
         <Fact>
