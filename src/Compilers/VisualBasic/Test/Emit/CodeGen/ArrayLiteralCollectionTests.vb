@@ -99,12 +99,13 @@ Module Program
     Sub Main()
         Dim a As Integer() = {7, 8}
         Console.Write($""{Count({1, 2, 3})} {Count((1, 2))} {Count(())} {Count({..a, 9})} "")
-        Console.Write($""{Kind({1, 2})} {Unique({""a"", ""a"", ""b""})} {New Holder().Take({""x"", ""y""})} {Join(""-"", {4, 5})}"")
+        Console.Write($""{Kind({1, 2})} {Unique({""a"", ""a"", ""b""})} {New Holder().Take({""x"", ""y""})} {Join(""-"", {4, 5})} "")
+        Console.Write($""{Join(separator:=""-"", values:={6, 7})} {Join(values:=(8, 9), separator:=""+"")} {Join(""/"", values:={1, 2})}"")
     End Sub
 End Module
 ", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
 
-            CompileAndVerify(compilation, expectedOutput:="3 2 0 3 array 2 x+y 4-5").VerifyDiagnostics()
+            CompileAndVerify(compilation, expectedOutput:="3 2 0 3 array 2 x+y 4-5 6-7 8+9 1/2").VerifyDiagnostics()
         End Sub
 
         <Fact>
@@ -133,6 +134,7 @@ Module Program
         Dim a = Pick({1, 2})
         Dim b = Generic({1, 2})
         Dim c = Strings({1, 2})
+        Dim d = Strings(texts:={""a""})
     End Sub
 End Module
 ", options:=TestOptions.ReleaseDll.WithOptionInfer(True).WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
@@ -150,6 +152,12 @@ BC36645: Data type(s) of the type parameter(s) in method 'Public Function Generi
 BC30311: Value of type 'Integer()' cannot be converted to 'List(Of String)'.
         Dim c = Strings({1, 2})
                         ~~~~~~
+BC30455: Argument not specified for parameter 'values' of 'Public Function Strings(values As List(Of String)) As Integer'.
+        Dim d = Strings(texts:={"a"})
+                ~~~~~~~
+BC30272: 'texts' is not a parameter of 'Public Function Strings(values As List(Of String)) As Integer'.
+        Dim d = Strings(texts:={"a"})
+                        ~~~~~
 </expected>)
         End Sub
 

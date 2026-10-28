@@ -1215,7 +1215,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             diagnostics As BindingDiagnosticBag
         ) As ImmutableArray(Of BoundExpression)
 
-            If arguments.IsDefaultOrEmpty OrElse Not argumentNames.IsDefault OrElse Not arguments.Any(AddressOf IsCollectionLiteralArgument) Then
+            If arguments.IsDefaultOrEmpty OrElse Not arguments.Any(AddressOf IsCollectionLiteralArgument) Then
                 Return Nothing
             End If
 
@@ -1237,13 +1237,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim winner As TypeSymbol = Nothing
                 Dim matches = 0
                 Dim seen = ArrayBuilder(Of TypeSymbol).GetInstance()
+                Dim name = If(argumentNames.IsDefault, Nothing, argumentNames(i))
 
                 For Each method In methods
-                    If i >= method.ParameterCount OrElse method.Parameters(i).IsParamArray Then
+                    ' A named argument selects its parameter by name, as values:={2, 3} does.
+                    Dim parameter As ParameterSymbol = Nothing
+                    If name Is Nothing Then
+                        If i < method.ParameterCount Then
+                            parameter = method.Parameters(i)
+                        End If
+                    Else
+                        parameter = method.Parameters.FirstOrDefault(Function(p) CaseInsensitiveComparison.Equals(p.Name, name))
+                    End If
+
+                    If parameter Is Nothing OrElse parameter.IsParamArray Then
                         Continue For
                     End If
 
-                    Dim parameterType = method.Parameters(i).Type
+                    Dim parameterType = parameter.Type
                     If parameterType.ReferencesMethodsTypeParameter(method) OrElse seen.Any(Function(t) t.IsSameTypeIgnoringAll(parameterType)) Then
                         Continue For
                     End If

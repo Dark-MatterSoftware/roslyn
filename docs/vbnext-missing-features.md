@@ -311,7 +311,7 @@ Checked against this tree after wave 17, by compiling the collection literal sha
 | --- | --- | --- |
 | VB-137 | Spreads into collections without `AddRange` | Done in phase 108: on `vbnext` through a constructor that takes an `IEnumerable(Of T)`. Before that, `Dim s As HashSet(Of Integer) = {..a, 3}` reported BC30456, "'AddRange' is not a member of 'HashSet(Of Integer)'", because phases 100 and 102 spread with `AddRange`. C# 12 adds each spread element. No new syntax. |
 | VB-138 | Type inference from collection literal arguments | `Generic({1, 2})`, where `Generic(Of T)` takes a `List(Of T)`, reports BC36645, because phase 106 skips parameters whose type uses the method's type parameters. C# 12 infers `T` from the elements. No new syntax. |
-| VB-139 | Collection literals as named arguments | `Named(1, values:={2, 3})` reports BC30311, because phase 106 rebuilds only positional arguments. No new syntax. |
+| VB-139 | Collection literals as named arguments | Done in phase 109: on `vbnext`, by the parameter the name selects. Before that, `Named(1, values:={2, 3})` reported BC30311, because phase 106 rebuilds only positional arguments. No new syntax. |
 | VB-140 | Collection literals in `If` | `Dim c As List(Of Integer) = If(flag, {1}, {2, 3})` reports BC30311, because the branches are array literals that the `If` gives an array type. C# 12 target-types `flag ? [1] : [2, 3]`. No new syntax. |
 
 ## Parked
