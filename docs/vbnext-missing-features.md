@@ -314,6 +314,17 @@ Checked against this tree after wave 17, by compiling the collection literal sha
 | VB-139 | Collection literals as named arguments | Done in phase 109: on `vbnext`, by the parameter the name selects. Before that, `Named(1, values:={2, 3})` reported BC30311, because phase 106 rebuilds only positional arguments. No new syntax. |
 | VB-140 | Collection literals in `If` | Done in phase 110: on `vbnext` from the target type or the other branch's collection type. Before that, `Dim c As List(Of Integer) = If(flag, {1}, {2, 3})` reported BC30311, because the branches are array literals that the `If` gives an array type. C# 12 target-types `flag ? [1] : [2, 3]`. No new syntax. |
 
+## Wave 19
+
+Checked against this tree after wave 18, by compiling and running against .NET 11 with `LangVersion` `vbnext` the shapes that wave 18 code meets next, beyond collection literals: generic math, records that inherit records, delegates, spans, interpolated string handlers, and deconstruction. Several shapes already work: `Sum(Of T As INumber(Of T))` with `T.Zero` and `+=`, `For Each` over a `ReadOnlySpan(Of Integer)`, `StringBuilder.Append($"x{1}y")`, `Count({1, 2})` for an `IEnumerable(Of T)` parameter, `Dim (number, word) = Pair()`, and `ToString` and `With` on a derived record, which keep the runtime type.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-141 | Equality of records that inherit records | Open. `New Animal("Rex").Equals(dog)`, where `Dog(Name, Breed)` inherits `Animal(Name)`, returns `True` both ways, because the synthesized `Equals` casts to its own type and compares only that type's members, without the runtime type check that C# 9 makes through `EqualityContract` and without the base record's members; `GetHashCode` and `ToString` skip the base members too. No new syntax. |
+| VB-142 | Positional parameters of inherited properties | Open. `Record Class Dog(Name As String, Breed As String)` that `Inherits Animal(Name)` declares a second `Name` property and its own `Deconstruct`, with two BC40003 warnings, and the two `Name` properties drift apart: `a With {.Name = "Max"}` through an `Animal` reference leaves `CType(copy, Dog).Name` as `"Rex"`. C# 9 reuses an inherited property of the same name and type. No new syntax. |
+| VB-143 | Record `=` and `<>` | Open. `plain = a` and `d = New Dog("Rex", "Lab")` on records report BC30452, "Operator '=' is not defined", because records synthesize `Equals` but no operators. C# 9 records declare `==` and `!=` that call `Equals`, and C# code calls them on VB records today only through `Equals`. No new syntax. |
+| VB-144 | `AddressOf` without a target type | Open. `Dim handler = AddressOf Hello` reports BC30581, "'AddressOf' expression cannot be converted to 'Object'", though `Dim f = Sub() Hello()` infers a delegate type. C# 10 gives a method group with one candidate a natural function type. No new syntax; which delegate type it infers is a semantic choice to settle in phase 116. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -570,3 +581,14 @@ The gaps that finish phases 102 and 106 come first, smallest first, then the `If
 | 2 | VB-139 | Collection literals as named arguments | S | Finishes phase 106 for named arguments. |
 | 3 | VB-140 | Collection literals in `If` | M | Gives `If(...)` branches the target type, as `Dim` and `Return` give it. |
 | 4 | VB-138 | Type inference from collection literal arguments | M | Changes type inference, so it comes last. |
+
+### Wave 19 order
+
+The record gaps come first, as one property per name gives the equality work a single member to compare, then the delegate inference, which changes what `Dim` infers.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-142 | Positional parameters of inherited properties | S | Gives a derived record one property per name, which equality then compares once. |
+| 2 | VB-143 | Record `=` and `<>` | S | Operators that call `Equals`, so phase 115 fixes both at once. |
+| 3 | VB-141 | Equality of records that inherit records | L | Changes the synthesized `Equals`, `GetHashCode`, and `ToString` of every record. |
+| 4 | VB-144 | `AddressOf` without a target type | M | Changes what `Dim` infers, so it comes last, after its semantics are settled. |
