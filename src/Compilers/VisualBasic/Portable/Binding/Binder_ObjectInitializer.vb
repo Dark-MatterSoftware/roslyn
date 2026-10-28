@@ -1069,9 +1069,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             For Each candidate In recordType.InstanceConstructors
-                Dim copyConstructor = TryCast(candidate, SynthesizedRecordCopyConstructorSymbol)
-                If copyConstructor IsNot Nothing Then
-                    Return BindRecordWithCopyConstructor(node, receiver, recordType, copyConstructor, diagnostics)
+                If IsRecordCopyConstructor(candidate) Then
+                    Return BindRecordWithCopyConstructor(node, receiver, recordType, candidate, diagnostics)
                 End If
             Next
 
@@ -1348,6 +1347,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' A With copy of a record class: the copy constructor copies every field of the original, then the
         ''' listed members are assigned on the copy. Lowering calls the record's clone method for the copy.
         ''' </summary>
+        ''' <summary>
+        ''' The copy constructor of a Visual Basic record, or the <c>Protected New(original As R)</c> of a record from metadata,
+        ''' which a With copy reaches through the record's <c>&lt;Clone&gt;$</c> method.
+        ''' </summary>
+        Friend Shared Function IsRecordCopyConstructor(constructor As MethodSymbol) As Boolean
+            If TypeOf constructor.OriginalDefinition Is SynthesizedRecordCopyConstructorSymbol Then
+                Return True
+            End If
+
+            Dim recordType = constructor.ContainingType
+            Return recordType.IsRecord AndAlso TypeOf recordType.OriginalDefinition Is Symbols.Metadata.PE.PENamedTypeSymbol AndAlso
+                   constructor.ParameterCount = 1 AndAlso Not constructor.Parameters(0).IsByRef AndAlso
+                   TypeSymbol.Equals(constructor.Parameters(0).Type, recordType, TypeCompareKind.ConsiderEverything)
+        End Function
+
         Private Function BindRecordWithCopyConstructor(
             node As WithExpressionSyntax,
             receiver As BoundExpression,

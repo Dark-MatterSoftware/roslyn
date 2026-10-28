@@ -460,6 +460,77 @@ public record Cat(string Name, int Lives) : Animal(Name);
             Assert.Contains("PrintMembers", errors.Single().GetMessage())
         End Sub
 
+        Private Function CSharpRecords() As MetadataReference
+            Dim library = CreateCSharpCompilation("
+namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }
+public record CsAnimal(string Name);
+public record CsBox<T>(T Value);
+public record struct CsPoint(int X);
+public class CsPlain { }
+", referencedAssemblies:={MscorlibRef})
+            library.VerifyDiagnostics()
+            Return library.EmitToImageReference()
+        End Function
+
+        <Fact>
+        Public Sub CSharpRecordsFromMetadataAreRecords()
+            Dim compilation = CreateCompilation("
+Module Program
+End Module
+", references:={CSharpRecords()}, parseOptions:=VbNext)
+
+            Assert.True(compilation.GetTypeByMetadataName("CsAnimal").IsRecord)
+            Assert.True(compilation.GetTypeByMetadataName("CsBox`1").IsRecord)
+            Assert.False(compilation.GetTypeByMetadataName("CsPoint").IsRecord)
+            Assert.False(compilation.GetTypeByMetadataName("CsPlain").IsRecord)
+        End Sub
+
+        <Fact>
+        Public Sub VisualBasicRecord_InheritsACSharpRecord()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class VbDog(Name As String, Breed As String)
+    Inherits CsAnimal(Name)
+End Class
+
+Module Program
+    Sub Main()
+        Dim dog As New VbDog(""Rex"", ""Lab"")
+        Dim asAnimal As CsAnimal = dog
+        System.Console.Write(dog.ToString() & "" "" & (dog = New VbDog(""Rex"", ""Lab"")) & "" "" & (dog = New VbDog(""Rex"", ""Pug"")) & "" "")
+        System.Console.Write(New CsAnimal(""Rex"").Equals(asAnimal) & "" "" & asAnimal.Equals(New CsAnimal(""Rex"")) & "" "" & asAnimal.Equals(New VbDog(""Rex"", ""Lab"")) & "" "")
+        Dim renamed = asAnimal With {.Name = ""Max""}
+        System.Console.Write(renamed.GetType().Name & "" "" & renamed.ToString())
+    End Sub
+End Module
+", references:={CSharpRecords()}, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="VbDog { Name = Rex, Breed = Lab } True False False False True VbDog VbDog { Name = Max, Breed = Lab }").VerifyDiagnostics()
+            Dim contract = compilation.GetTypeByMetadataName("VbDog").GetMembers("EqualityContract").OfType(Of IPropertySymbol)().Single()
+            Assert.Equal("CsAnimal", contract.OverriddenProperty.ContainingType.Name)
+        End Sub
+
+        <Fact>
+        Public Sub RecordWith_CopiesCSharpRecordsAndGenericRecords()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Box(Of T)(Value As T)
+End Class
+
+Module Program
+    Sub Main()
+        Dim tom = New CsAnimal(""Tom"")
+        Dim kit = tom With {.Name = ""Kit""}
+        Dim boxed = New CsBox(Of Integer)(1)
+        Dim reboxed = boxed With {.Value = 2}
+        Dim vbBox = New Box(Of Integer)(1)
+        Dim vbReboxed = vbBox With {.Value = 3}
+        System.Console.Write(tom.Name & kit.Name & "" "" & reboxed.Value & "" "" & vbBox.Value & vbReboxed.Value)
+    End Sub
+End Module
+", references:={CSharpRecords()}, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="TomKit 2 13").VerifyDiagnostics()
+        End Sub
+
         <Fact>
         Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
             Dim compilation = CreateCompilation(ExternalInit & "

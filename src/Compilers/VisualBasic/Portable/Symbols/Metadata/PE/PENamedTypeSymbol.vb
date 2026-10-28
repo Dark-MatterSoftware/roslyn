@@ -4,6 +4,7 @@
 
 Imports System.Collections.Immutable
 Imports System.Globalization
+Imports System.Linq
 Imports System.Reflection.Metadata
 Imports System.Reflection.Metadata.Ecma335
 Imports System.Runtime.InteropServices
@@ -38,6 +39,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _mangleName As Boolean ' CONSIDER: combine with flags
         Private _lazyIsReadOnly As ThreeState = ThreeState.Unknown
         Private _lazyIsRefLike As ThreeState = ThreeState.Unknown
+        Private _lazyIsRecord As ThreeState = ThreeState.Unknown
 #End Region
 
         ''' <summary>
@@ -902,6 +904,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 End If
 
                 Return _lazyIsReadOnly.Value()
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' A class with an instance <c>&lt;Clone&gt;$</c> method without parameters is a record, as C# recognizes one from metadata.
+        ''' </summary>
+        Public Overrides ReadOnly Property IsRecord As Boolean
+            Get
+                If Not _lazyIsRecord.HasValue() Then
+                    Dim hasCloneMethod = TypeKind = TypeKind.Class AndAlso
+                        GetMembers(SynthesizedRecordMethodSymbol.CloneMethodName).Any(
+                            Function(member) member.Kind = SymbolKind.Method AndAlso Not member.IsShared AndAlso
+                                             DirectCast(member, MethodSymbol).ParameterCount = 0 AndAlso DirectCast(member, MethodSymbol).Arity = 0)
+                    _lazyIsRecord = hasCloneMethod.ToThreeState()
+                End If
+
+                Return _lazyIsRecord.Value()
             End Get
         End Property
 

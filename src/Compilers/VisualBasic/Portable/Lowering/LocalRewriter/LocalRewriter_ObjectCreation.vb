@@ -38,7 +38,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' A With copy of a record class calls the public clone method, because the copy constructor is
                 ' Protected, and so that a derived record is copied as itself. The clone method's own body
                 ' creates the copy with the constructor, and it has the syntax of the record, not of a With.
-                If TypeOf ctor Is SynthesizedRecordCopyConstructorSymbol AndAlso node.Syntax.Kind = SyntaxKind.WithExpression AndAlso
+                If node.Syntax.Kind = SyntaxKind.WithExpression AndAlso Binder.IsRecordCopyConstructor(ctor) AndAlso
                    result.Kind = BoundKind.ObjectCreationExpression Then
                     Dim clone = FindRecordCloneMethod(ctor.ContainingType)
                     If clone IsNot Nothing Then
