@@ -3106,6 +3106,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectToString, stringType, SynthesizedRecordMethodSymbol.RecordMethodKind.Print, objectPrint,
                                 Function(method) ImmutableArray(Of ParameterSymbol).Empty)
             End If
+
+            If Not HasRecordMethod(members, WellKnownMemberNames.EqualityOperatorName, 2, Me) AndAlso
+               Not HasRecordMethod(members, WellKnownMemberNames.InequalityOperatorName, 2, Me) Then
+                AddRecordOperator(members, binder, syntax, WellKnownMemberNames.EqualityOperatorName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.OperatorEquality)
+                AddRecordOperator(members, binder, syntax, WellKnownMemberNames.InequalityOperatorName, booleanType, SynthesizedRecordMethodSymbol.RecordMethodKind.OperatorInequality)
+            End If
+        End Sub
+
+        Private Sub AddRecordOperator(members As MembersAndInitializersBuilder, binder As Binder, syntax As VisualBasicSyntaxNode, name As String, booleanType As TypeSymbol,
+                                      kind As SynthesizedRecordMethodSymbol.RecordMethodKind)
+            AddRecordMethod(members, binder, syntax, name, booleanType, kind, Nothing,
+                            Function(method) ImmutableArray.Create(Of ParameterSymbol)(
+                                New SynthesizedParameterSimpleSymbol(method, Me, 0, "left"),
+                                New SynthesizedParameterSimpleSymbol(method, Me, 1, "right")))
         End Sub
 
         ''' <summary>
@@ -4574,6 +4588,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     ' Not an operator.
                     Return False
             End Select
+
+            If method.IsImplicitlyDeclared Then
+                Return True
+            End If
 
             Dim opInfo As OverloadResolution.OperatorInfo = OverloadResolution.GetOperatorInfo(method.Name)
 

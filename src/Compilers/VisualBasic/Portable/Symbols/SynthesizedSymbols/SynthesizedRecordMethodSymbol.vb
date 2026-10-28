@@ -21,6 +21,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Print
             Deconstruct
             Clone
+            OperatorEquality
+            OperatorInequality
         End Enum
 
         ''' <summary>
@@ -41,12 +43,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                        kind As RecordMethodKind,
                        Optional overriddenMethod As MethodSymbol = Nothing,
                        Optional isOverloads As Boolean = False)
-            MyBase.New(syntax, container, name)
+            MyBase.New(syntax, container, name, isShared:=IsOperatorKind(kind))
             _kind = kind
             _returnType = returnType
             _overriddenMethod = overriddenMethod
             _isOverloads = isOverloads
         End Sub
+
+        Private Shared Function IsOperatorKind(kind As RecordMethodKind) As Boolean
+            Return kind = RecordMethodKind.OperatorEquality OrElse kind = RecordMethodKind.OperatorInequality
+        End Function
+
+        Public Overrides ReadOnly Property MethodKind As MethodKind
+            Get
+                Return If(IsOperatorKind(_kind), MethodKind.UserDefinedOperator, MethodKind.Ordinary)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property HasSpecialName As Boolean
+            Get
+                Return IsOperatorKind(_kind)
+            End Get
+        End Property
 
         Friend Sub SetParameters(parameters As ImmutableArray(Of ParameterSymbol))
             _parameters = parameters
@@ -142,6 +160,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return DeconstructBody(factory)
                 Case RecordMethodKind.Clone
                     Return CloneBody(factory)
+                Case RecordMethodKind.OperatorEquality
+                    Return factory.Block(factory.Return(OperatorEqualityValue(factory)))
+                Case RecordMethodKind.OperatorInequality
+                    Return factory.Block(factory.Return(factory.Not(OperatorEqualityValue(factory))))
                 Case Else
                     Return PrintBody(factory)
             End Select
@@ -172,6 +194,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             statements.Add(factory.Return())
             Return factory.Block(statements.ToImmutableAndFree())
+        End Function
+
+        ''' <summary>
+        ''' <c>left Is right OrElse (left IsNot Nothing AndAlso left.Equals(right))</c> for a record class, as C# 9 defines <c>==</c>,
+        ''' and <c>left.Equals(right)</c> for a record structure.
+        ''' </summary>
+        Private Function OperatorEqualityValue(factory As SyntheticBoundNodeFactory) As BoundExpression
+            Dim boolType = factory.SpecialType(SpecialType.System_Boolean)
+            Dim left = factory.Parameter(_parameters(0), isLValue:=False)
+            Dim right = factory.Parameter(_parameters(1), isLValue:=False)
+            Dim typedEquals = TypedEqualsMethod()
+            Dim callEquals As BoundExpression = If(typedEquals Is Nothing, DirectCast(factory.Literal(False), BoundExpression), factory.Call(left, typedEquals, right))
+            If ContainingType.IsValueType Then
+                Return callEquals
+            End If
+
+            Dim objectType = factory.SpecialType(SpecialType.System_Object)
+            Dim same = factory.Binary(BinaryOperatorKind.Is, boolType, AsObject(left, objectType), AsObject(factory.Parameter(_parameters(1), isLValue:=False), objectType))
+            Dim leftIsSomething = factory.Binary(BinaryOperatorKind.IsNot, boolType, factory.Parameter(_parameters(0), isLValue:=False), NothingLiteral(factory, ContainingType))
+            Return factory.Binary(BinaryOperatorKind.OrElse, boolType, same, factory.Binary(BinaryOperatorKind.AndAlso, boolType, leftIsSomething, callEquals))
+        End Function
+
+        Private Function AsObject(value As BoundExpression, objectType As TypeSymbol) As BoundExpression
+            Return New BoundConversion(m_SyntaxNode, value, ConversionKind.WideningReference, False, False, Nothing, objectType, Nothing).MakeCompilerGenerated()
         End Function
 
         Private Function FindPositionalProperty(name As String) As PropertySymbol

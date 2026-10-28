@@ -300,6 +300,83 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub RecordClass_EqualityOperatorsCallEquals()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Module Program
+    Sub Main()
+        Dim d As New Dog(""Rex"", ""Lab"")
+        Dim none As Dog = Nothing
+        System.Console.Write(d = New Dog(""Rex"", ""Lab""))
+        System.Console.Write(d <> New Dog(""Rex"", ""Lab""))
+        System.Console.Write(d = New Dog(""Max"", ""Lab""))
+        System.Console.Write(none = Nothing)
+        System.Console.Write(d = none)
+        System.Console.Write(none <> d)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="TrueFalseFalseTrueFalseTrue").VerifyDiagnostics()
+            Dim equality = compilation.GetTypeByMetadataName("Dog").GetMembers("op_Equality").OfType(Of IMethodSymbol)().Single()
+            Assert.Equal(MethodKind.UserDefinedOperator, equality.MethodKind)
+            Assert.True(equality.IsStatic)
+            Assert.Equal("Public Shared Overloads Operator =(left As Dog, right As Dog) As Boolean", equality.ToDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub RecordStructure_EqualityOperatorsLift()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Structure Point(X As Integer, Y As Integer)
+End Structure
+
+Module Program
+    Sub Main()
+        Dim p As New Point(1, 2)
+        Dim q As Point? = Nothing
+        Dim r As Point? = New Point(1, 2)
+        System.Console.Write(p = New Point(1, 2))
+        System.Console.Write(p <> New Point(1, 3))
+        System.Console.Write((q = p).HasValue)
+        System.Console.Write((r = p).Value)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="TrueTrueFalseTrue").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub Record_DeclaredEqualityOperatorsAreKept()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Point(X As Integer)
+    Public Shared Operator =(left As Point, right As Point) As Boolean
+        Return True
+    End Operator
+
+    Public Shared Operator <>(left As Point, right As Point) As Boolean
+        Return False
+    End Operator
+End Class
+
+Module Program
+    Sub Main()
+        System.Console.Write(New Point(1) = New Point(2))
+        System.Console.Write(New Point(1).Equals(New Point(2)))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="TrueFalse").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
         Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
             Dim compilation = CreateCompilation(ExternalInit & "
 Record Class Animal(Name As String)
