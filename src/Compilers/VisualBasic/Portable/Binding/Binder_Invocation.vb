@@ -841,6 +841,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
+            If Not results.BestResult.HasValue AndAlso group.Kind = BoundKind.MethodGroup AndAlso Compilation.LanguageVersion >= LanguageVersion.VbNext Then
+                Dim rebound = TryRebindCollectionLiteralArguments(DirectCast(group, BoundMethodGroup), boundArguments, argumentNames, diagnostics)
+                If Not rebound.IsDefault Then
+                    Return BindInvocationExpression(node, target, typeChar, group, rebound, argumentNames, diagnostics, callerInfoOpt,
+                                                    allowConstructorCall, suppressAbstractCallDiagnostics, isDefaultMemberAccess,
+                                                    representCandidateInDiagnosticsOpt, forceExpandedForm)
+                End If
+            End If
+
             If Not results.BestResult.HasValue Then
 
                 If results.ResolutionIsLateBound Then
@@ -1193,6 +1202,94 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             End Select
         End Sub
+
+        ''' <summary>
+        ''' On vbnext, when no overload applies, {1, 2} and (1, 2) arguments are built as the collection type that the
+        ''' candidates take at their position, as C# 12 passes collection expressions, when exactly one such parameter type
+        ''' can build them. Calls that resolve without this keep their overload, so an array parameter still wins.
+        ''' </summary>
+        Private Function TryRebindCollectionLiteralArguments(
+            group As BoundMethodGroup,
+            arguments As ImmutableArray(Of BoundExpression),
+            argumentNames As ImmutableArray(Of String),
+            diagnostics As BindingDiagnosticBag
+        ) As ImmutableArray(Of BoundExpression)
+
+            If arguments.IsDefaultOrEmpty OrElse Not argumentNames.IsDefault OrElse Not arguments.Any(AddressOf IsCollectionLiteralArgument) Then
+                Return Nothing
+            End If
+
+            Dim methods = ArrayBuilder(Of MethodSymbol).GetInstance()
+            methods.AddRange(group.Methods)
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            methods.AddRange(group.AdditionalExtensionMethods(useSiteInfo))
+
+            Dim rebound = ArrayBuilder(Of BoundExpression).GetInstance(arguments.Length)
+            Dim changed = False
+
+            For i = 0 To arguments.Length - 1
+                Dim argument = arguments(i)
+                If Not IsCollectionLiteralArgument(argument) Then
+                    rebound.Add(argument)
+                    Continue For
+                End If
+
+                Dim winner As TypeSymbol = Nothing
+                Dim matches = 0
+                Dim seen = ArrayBuilder(Of TypeSymbol).GetInstance()
+
+                For Each method In methods
+                    If i >= method.ParameterCount OrElse method.Parameters(i).IsParamArray Then
+                        Continue For
+                    End If
+
+                    Dim parameterType = method.Parameters(i).Type
+                    If parameterType.ReferencesMethodsTypeParameter(method) OrElse seen.Any(Function(t) t.IsSameTypeIgnoringAll(parameterType)) Then
+                        Continue For
+                    End If
+
+                    seen.Add(parameterType)
+
+                    Dim probe = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+                    Dim candidate = TryBindParenthesizedCollection(argument, parameterType, probe)
+                    If candidate IsNot Nothing AndAlso Not candidate.HasErrors AndAlso Not probe.HasAnyErrors() Then
+                        matches += 1
+                        winner = parameterType
+                    End If
+
+                    probe.Free()
+                Next
+
+                seen.Free()
+                If matches <> 1 Then
+                    methods.Free()
+                    rebound.Free()
+                    Return Nothing
+                End If
+
+                rebound.Add(TryBindParenthesizedCollection(argument, winner, diagnostics))
+                changed = True
+            Next
+
+            methods.Free()
+            If Not changed Then
+                rebound.Free()
+                Return Nothing
+            End If
+
+            Return rebound.ToImmutableAndFree()
+        End Function
+
+        Private Shared Function IsCollectionLiteralArgument(argument As BoundExpression) As Boolean
+            Select Case argument.Kind
+                Case BoundKind.ArrayLiteral
+                    Return argument.Syntax.Kind = SyntaxKind.CollectionInitializer OrElse argument.Syntax.Kind = SyntaxKind.CollectionExpression
+                Case BoundKind.TupleLiteral
+                    Return True
+                Case Else
+                    Return False
+            End Select
+        End Function
 
         Private Function UpdateReceiverForExtensionMethodOrPropertyGroup(
             receiver As BoundExpression,

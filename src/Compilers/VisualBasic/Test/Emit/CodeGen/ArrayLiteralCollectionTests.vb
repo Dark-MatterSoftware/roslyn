@@ -64,6 +64,96 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub CollectionLiteralArguments()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Class Holder
+    Public Function Take(values As List(Of String)) As String
+        Return String.Join(""+"", values)
+    End Function
+End Class
+
+Module Program
+    Function Count(values As List(Of Integer)) As Integer
+        Return values.Count
+    End Function
+
+    Function Kind(values As Integer()) As String
+        Return ""array""
+    End Function
+
+    Function Kind(values As List(Of Integer)) As String
+        Return ""list""
+    End Function
+
+    Function Unique(values As HashSet(Of String)) As Integer
+        Return values.Count
+    End Function
+
+    Function Join(separator As String, values As List(Of Integer)) As String
+        Return String.Join(separator, values)
+    End Function
+
+    Sub Main()
+        Dim a As Integer() = {7, 8}
+        Console.Write($""{Count({1, 2, 3})} {Count((1, 2))} {Count(())} {Count({..a, 9})} "")
+        Console.Write($""{Kind({1, 2})} {Unique({""a"", ""a"", ""b""})} {New Holder().Take({""x"", ""y""})} {Join(""-"", {4, 5})}"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3 2 0 3 array 2 x+y 4-5").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionLiteralArgumentErrors()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Function Pick(values As List(Of Integer)) As String
+        Return ""list""
+    End Function
+
+    Function Pick(values As HashSet(Of Integer)) As String
+        Return ""set""
+    End Function
+
+    Function Generic(Of T)(values As List(Of T)) As Integer
+        Return values.Count
+    End Function
+
+    Function Strings(values As List(Of String)) As Integer
+        Return values.Count
+    End Function
+
+    Sub Main()
+        Dim a = Pick({1, 2})
+        Dim b = Generic({1, 2})
+        Dim c = Strings({1, 2})
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True).WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30518: Overload resolution failed because no accessible 'Pick' can be called with these arguments:
+    'Public Function Pick(values As List(Of Integer)) As String': Value of type 'Integer()' cannot be converted to 'List(Of Integer)'.
+    'Public Function Pick(values As HashSet(Of Integer)) As String': Value of type 'Integer()' cannot be converted to 'HashSet(Of Integer)'.
+        Dim a = Pick({1, 2})
+                ~~~~
+BC36645: Data type(s) of the type parameter(s) in method 'Public Function Generic(Of T)(values As List(Of T)) As Integer' cannot be inferred from these arguments. Specifying the data type(s) explicitly might correct this error.
+        Dim b = Generic({1, 2})
+                ~~~~~~~
+BC30311: Value of type 'Integer()' cannot be converted to 'List(Of String)'.
+        Dim c = Strings({1, 2})
+                        ~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub SpreadsInArrayLiterals()
             Dim compilation = CreateCompilation("
 Imports System
@@ -194,8 +284,6 @@ Module Program
         Dim a As List(Of Integer) = {""text""}
         Dim b As List(Of Integer) = {{1, 2}, {3, 4}}
         Dim c As String = {1, 2}
-        Use({1, 2})
-        Use((1, 2))
     End Sub
 End Module
 ", options:=TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
@@ -211,12 +299,6 @@ BC30311: Value of type 'Integer(*,*)' cannot be converted to 'List(Of Integer)'.
 BC30311: Value of type 'Integer()' cannot be converted to 'String'.
         Dim c As String = {1, 2}
                           ~~~~~~
-BC30311: Value of type 'Integer()' cannot be converted to 'List(Of Integer)'.
-        Use({1, 2})
-            ~~~~~~
-BC30311: Value of type '(Integer, Integer)' cannot be converted to 'List(Of Integer)'.
-        Use((1, 2))
-            ~~~~~~
 </expected>)
         End Sub
 
