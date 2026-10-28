@@ -32,6 +32,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ''' <param name="targetType">The destination type to convert to.</param>
         Friend Function GetConversionClassification(targetType As TypeSymbol) As ConversionKind
+            If targetType.IsStrictSupertypeOfConcreteDelegate() Then
+                Dim anonymousDelegateType = Binder.InferAnonymousDelegateForAddressOf(Me)
+                If anonymousDelegateType IsNot Nothing Then
+                    Dim toAnonymousDelegate = GetConversionClassification(anonymousDelegateType)
+                    If Conversions.ConversionExists(toAnonymousDelegate) Then
+                        ' As for a lambda, Object, Delegate, and MulticastDelegate are worse targets than any delegate type.
+                        Dim level = CType(Math.Max(toAnonymousDelegate And ConversionKind.DelegateRelaxationLevelMask, ConversionKind.DelegateRelaxationLevelWideningToNonLambda), ConversionKind)
+                        Return (toAnonymousDelegate And Not ConversionKind.DelegateRelaxationLevelMask) Or level
+                    End If
+                End If
+            End If
+
             Dim delegateResolutionResult As Binder.DelegateResolutionResult = Nothing
 
             If Not _delegateResolutionResultCache.TryGetValue(targetType, delegateResolutionResult) Then

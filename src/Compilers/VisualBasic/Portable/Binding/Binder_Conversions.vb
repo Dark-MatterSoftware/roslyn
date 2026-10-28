@@ -2122,6 +2122,24 @@ DoneWithDiagnostics:
                 Case BoundKind.AddressOfOperator
                     Dim delegateResolutionResult As DelegateResolutionResult = Nothing
                     Dim addressOfExpression = DirectCast(argument, BoundAddressOfOperator)
+                    If targetType.IsStrictSupertypeOfConcreteDelegate() Then
+                        Dim anonymousDelegateType = InferAnonymousDelegateForAddressOf(addressOfExpression)
+                        If anonymousDelegateType IsNot Nothing Then
+                            Dim anonymousDelegate = ApplyConversion(tree, anonymousDelegateType, addressOfExpression, isExplicit:=False, diagnostics)
+                            If conversionSemantics = SyntaxKind.CTypeKeyword Then
+                                argument = ApplyConversion(tree, targetType, anonymousDelegate, isExplicit, diagnostics)
+                            ElseIf conversionSemantics = SyntaxKind.DirectCastKeyword Then
+                                argument = ApplyDirectCastConversion(tree, anonymousDelegate, targetType, diagnostics)
+                            ElseIf conversionSemantics = SyntaxKind.TryCastKeyword Then
+                                argument = ApplyTryCastConversion(tree, anonymousDelegate, targetType, diagnostics)
+                            Else
+                                Throw ExceptionUtilities.UnexpectedValue(conversionSemantics)
+                            End If
+
+                            Return True
+                        End If
+                    End If
+
                     If addressOfExpression.GetDelegateResolutionResult(targetType, delegateResolutionResult) Then
 
                         diagnostics.AddRange(delegateResolutionResult.Diagnostics)

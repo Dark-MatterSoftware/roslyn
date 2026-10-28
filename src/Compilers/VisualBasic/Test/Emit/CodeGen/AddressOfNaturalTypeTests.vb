@@ -143,12 +143,14 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub OptionInferOffKeepsObject()
+        Public Sub OptionInferOffStoresTheDelegateInObject()
             Dim compilation = CreateCompilation("
 Option Infer Off
+Option Strict Off
 
 Module Program
     Sub Hello()
+        System.Console.Write(""hello"")
     End Sub
 
     Sub Main()
@@ -157,8 +159,95 @@ Module Program
 End Module
 ", parseOptions:=VbNext)
 
+            compilation.VerifyDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim declarator = tree.GetRoot().DescendantNodes().OfType(Of VariableDeclaratorSyntax)().Single().Names(0)
+            Assert.Equal("Object", DirectCast(model.GetDeclaredSymbol(declarator), ILocalSymbol).Type.ToDisplayString())
+        End Sub
+
+        <Fact>
+        Public Sub ConvertsToObjectDelegateAndMulticastDelegate()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Hello()
+        System.Console.Write(""hello "")
+    End Sub
+
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Sub Run(d As System.Delegate)
+        System.Console.Write(d.DynamicInvoke(21) & "" "")
+    End Sub
+
+    Sub RunMulti(d As System.MulticastDelegate)
+        System.Console.Write(d.Method.Name & "" "")
+    End Sub
+
+    Sub Main()
+        Dim o As Object = AddressOf Hello
+        DirectCast(o, System.Delegate).DynamicInvoke()
+        Run(AddressOf Twice)
+        RunMulti(AddressOf Hello)
+        Dim c = CType(AddressOf Twice, Object)
+        Dim t = TryCast(AddressOf Twice, System.Delegate)
+        System.Console.Write(c.GetType().Name.StartsWith(""VB$AnonymousDelegate"") & "" "" & (t IsNot Nothing))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="hello 42 Hello True True").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub PrefersADelegateParameterOverObject()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Hello()
+    End Sub
+
+    Sub Pick(a As System.Action)
+        System.Console.Write(""action"")
+    End Sub
+
+    Sub Pick(o As Object)
+        System.Console.Write(""object"")
+    End Sub
+
+    Sub Main()
+        Pick(AddressOf Hello)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="action").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub OverloadedGroupStillHasNoConversionToObject()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Log(value As Integer)
+    End Sub
+
+    Sub Log(value As String)
+    End Sub
+
+    Sub Run(d As System.Delegate)
+    End Sub
+
+    Sub Main()
+        Dim o As Object = AddressOf Log
+        Run(AddressOf Log)
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Hello").WithArguments("Object").WithLocation(9, 17))
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Log").WithArguments("Object").WithLocation(13, 27),
+                Diagnostic(ERRID.ERR_AddressOfNotCreatableDelegate1, "AddressOf Log").WithArguments("System.Delegate").WithLocation(14, 13))
         End Sub
 
         <Fact>
@@ -170,12 +259,14 @@ Module Program
 
     Sub Main()
         Dim h = AddressOf Hello
+        Dim o As Object = AddressOf Hello
     End Sub
 End Module
 ", parseOptions:=Vb17_13)
 
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Hello").WithArguments("Object").WithLocation(7, 17))
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Hello").WithArguments("Object").WithLocation(7, 17),
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Hello").WithArguments("Object").WithLocation(8, 27))
         End Sub
     End Class
 
