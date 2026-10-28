@@ -2143,6 +2143,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim boundWhenTrueArg = BindValue(node.WhenTrue, diagnostics)
             Dim boundWhenFalseArg = BindValue(node.WhenFalse, diagnostics)
 
+            ' On vbnext, If(flag, items, {1}) builds the literal as the type of items.
+            boundWhenTrueArg = TargetCollectionLiteralBranch(boundWhenTrueArg, boundWhenFalseArg, diagnostics)
+            boundWhenFalseArg = TargetCollectionLiteralBranch(boundWhenFalseArg, boundWhenTrueArg, diagnostics)
+
             Dim hasErrors = boundConditionArg.HasErrors OrElse boundWhenTrueArg.HasErrors OrElse boundWhenFalseArg.HasErrors
 
             '  infer dominant type of the resulting expression
@@ -2208,6 +2212,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             '  bind arguments
             Dim boundFirstArg = BindValue(node.FirstExpression, diagnostics)
             Dim boundSecondArg = BindValue(node.SecondExpression, diagnostics)
+
+            ' On vbnext, If(items, {1}) builds the literal as the type of items.
+            boundSecondArg = TargetCollectionLiteralBranch(boundSecondArg, boundFirstArg, diagnostics)
 
             Dim hasErrors = boundFirstArg.HasErrors OrElse boundSecondArg.HasErrors OrElse node.ContainsDiagnostics
 

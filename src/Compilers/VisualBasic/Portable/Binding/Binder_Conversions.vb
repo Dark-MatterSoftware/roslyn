@@ -332,6 +332,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return TryBindArrayLiteralCollection(DirectCast(argument, BoundArrayLiteral), targetType, diagnostics)
             End If
 
+            If argument.Kind = BoundKind.TernaryConditionalExpression Then
+                Return TryBindConditionalCollection(DirectCast(argument, BoundTernaryConditionalExpression), targetType, diagnostics)
+            End If
+
             Dim elements As ImmutableArray(Of BoundExpression) = Nothing
             If Not TryGetParenthesizedCollectionElements(argument, targetType, elements) Then
                 Return Nothing
@@ -455,6 +459,90 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return TryBindCollectionInitializerFromElements(argument, targetType, elements, diagnostics)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, a collection literal branch of If builds as the type of the other branch, when that is a collection
+        ''' type the literal can build, as C# 12 gives a collection expression the type of the other branch.
+        ''' </summary>
+        Friend Function TargetCollectionLiteralBranch(branch As BoundExpression, otherBranch As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse
+               Not IsCollectionLiteralArgument(branch) OrElse IsCollectionLiteralArgument(otherBranch) OrElse
+               otherBranch.Type Is Nothing OrElse otherBranch.Type.IsErrorType() OrElse otherBranch.Type.IsArrayType() Then
+                Return branch
+            End If
+
+            Dim probe = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+            Dim candidate = TryBindParenthesizedCollection(branch, otherBranch.Type, probe)
+            Dim builds = candidate IsNot Nothing AndAlso Not candidate.HasErrors AndAlso Not probe.HasAnyErrors()
+            probe.Free()
+
+            Return If(builds, TryBindParenthesizedCollection(branch, otherBranch.Type, diagnostics), branch)
+        End Function
+
+        ''' <summary>
+        ''' If(flag, {1}, {2, 3}) converted to a collection type builds each collection literal branch as that type, as C# 12
+        ''' target-types a conditional expression. An If that already converts keeps its conversion.
+        ''' </summary>
+        Private Function TryBindConditionalCollection(conditional As BoundTernaryConditionalExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If conditional.HasErrors OrElse targetType.IsArrayType() Then
+                Return Nothing
+            End If
+
+            ' A narrowing conversion, such as from the Object that If({1}, (2, 3)) infers, would fail at run time.
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            If Conversions.IsWideningConversion(Conversions.ClassifyConversion(conditional, targetType, Me, useSiteInfo).Key) Then
+                Return Nothing
+            End If
+
+            Dim whenTrueLiteral = GetOriginalCollectionLiteral(conditional.WhenTrue)
+            Dim whenFalseLiteral = GetOriginalCollectionLiteral(conditional.WhenFalse)
+            If whenTrueLiteral Is Nothing AndAlso whenFalseLiteral Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim whenTrue = BuildConditionalBranch(conditional.WhenTrue, whenTrueLiteral, targetType, diagnostics)
+            Dim whenFalse = BuildConditionalBranch(conditional.WhenFalse, whenFalseLiteral, targetType, diagnostics)
+            If whenTrue Is Nothing OrElse whenFalse Is Nothing Then
+                Return Nothing
+            End If
+
+            Return New BoundTernaryConditionalExpression(conditional.Syntax, conditional.Condition, whenTrue, whenFalse, Nothing, targetType)
+        End Function
+
+        Private Function BuildConditionalBranch(branch As BoundExpression, literal As BoundExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If literal IsNot Nothing Then
+                Return TryBindParenthesizedCollection(literal, targetType, diagnostics)
+            End If
+
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            If Not Conversions.ConversionExists(Conversions.ClassifyConversion(branch, targetType, Me, useSiteInfo).Key) Then
+                Return Nothing
+            End If
+
+            Return ApplyImplicitConversion(branch.Syntax, targetType, branch, diagnostics)
+        End Function
+
+        ''' <summary>
+        ''' The {...} or (...) literal that a branch of If was converted from, when it was one.
+        ''' </summary>
+        Private Shared Function GetOriginalCollectionLiteral(branch As BoundExpression) As BoundExpression
+            Dim current = branch
+            While current.Kind = BoundKind.Conversion
+                current = DirectCast(current, BoundConversion).Operand
+            End While
+
+            Select Case current.Kind
+                Case BoundKind.ArrayCreation
+                    Dim literal = DirectCast(current, BoundArrayCreation).ArrayLiteralOpt
+                    If literal IsNot Nothing AndAlso (literal.Syntax.Kind = SyntaxKind.CollectionInitializer OrElse literal.Syntax.Kind = SyntaxKind.CollectionExpression) Then
+                        Return literal
+                    End If
+                Case BoundKind.ConvertedTupleLiteral, BoundKind.TupleLiteral
+                    Return current
+            End Select
+
+            Return Nothing
         End Function
 
         Private Function TryGetParenthesizedCollectionElements(argument As BoundExpression, targetType As TypeSymbol, ByRef elements As ImmutableArray(Of BoundExpression)) As Boolean

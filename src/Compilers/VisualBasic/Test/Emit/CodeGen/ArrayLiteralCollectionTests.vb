@@ -109,6 +109,81 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub CollectionLiteralsInIf()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Module Program
+    Function Pick(flag As Boolean) As List(Of Integer)
+        Return If(flag, {1}, {2, 3})
+    End Function
+
+    Sub Main()
+        Dim a As Integer() = {1, 2}
+        Dim chosen As List(Of Integer) = If(a.Length > 1, {1}, {2, 3})
+        Dim mixed As HashSet(Of Integer) = If(a.Length > 5, {1}, (2, 2, 3))
+        Dim existing As New List(Of Integer) From {9}
+        Dim withVariable = If(a.Length > 5, existing, {4, 5})
+        Dim kept = If(existing, {7})
+        Dim missing As List(Of Integer) = Nothing
+        Dim fallback = If(missing, {7, 8})
+        Dim array As Integer() = If(a.Length > 1, {1}, {2})
+        Console.Write($""{Pick(False).Count} {chosen.Count} {mixed.Count} {withVariable.GetType().Name}{withVariable.Count} {kept.Count} {fallback.Count} {array.GetType().Name}"")
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="2 1 2 List`12 1 2 Int32[]").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub CollectionLiteralsInIfErrors()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Sub Main()
+        Dim flag = True
+        Dim a As List(Of Integer) = If(flag, {1}, {""text""})
+        Dim b As String = If(flag, {1}, {2})
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True).WithOptionStrict(OptionStrict.On), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC36913: Cannot infer a common type because more than one type is possible.
+        Dim a As List(Of Integer) = If(flag, {1}, {"text"})
+                                    ~~~~~~~~~~~~~~~~~~~~~~~
+BC30311: Value of type 'Integer()' cannot be converted to 'String'.
+        Dim b As String = If(flag, {1}, {2})
+                          ~~~~~~~~~~~~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
+        Public Sub CollectionLiteralsInIfNotAvailableBeforeVbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Sub Main()
+        Dim flag = True
+        Dim a As List(Of Integer) = If(flag, {1}, {2, 3})
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30311: Value of type 'Integer()' cannot be converted to 'List(Of Integer)'.
+        Dim a As List(Of Integer) = If(flag, {1}, {2, 3})
+                                    ~~~~~~~~~~~~~~~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub CollectionLiteralArgumentErrors()
             Dim compilation = CreateCompilation("
 Imports System.Collections.Generic
