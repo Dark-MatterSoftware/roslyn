@@ -72,6 +72,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' On vbnext, the anonymous delegate type an <c>AddressOf</c> without a target type infers, as a lambda infers one,
+        ''' when its group has exactly one method. Returns Nothing when there is no such type.
+        ''' </summary>
+        Friend Function InferAnonymousDelegateForAddressOf(addressOfExpression As BoundAddressOfOperator) As NamedTypeSymbol
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse addressOfExpression.HasErrors Then
+                Return Nothing
+            End If
+
+            Dim group = addressOfExpression.MethodGroup
+            Dim useSiteInfo = CompoundUseSiteInfo(Of AssemblySymbol).Discarded
+            Dim extensionMethods = group.AdditionalExtensionMethods(useSiteInfo)
+            If group.Methods.Length + extensionMethods.Length <> 1 Then
+                Return Nothing
+            End If
+
+            Dim method = If(group.Methods.Length = 1, group.Methods(0), extensionMethods(0))
+            If method.IsGenericMethod AndAlso method Is method.ConstructedFrom Then
+                If group.TypeArgumentsOpt Is Nothing OrElse group.TypeArgumentsOpt.Arguments.Length <> method.Arity Then
+                    Return Nothing
+                End If
+
+                method = method.Construct(group.TypeArgumentsOpt.Arguments)
+            End If
+
+            If method.ReturnsByRef OrElse method.MethodKind <> MethodKind.Ordinary AndAlso method.MethodKind <> MethodKind.ReducedExtension Then
+                Return Nothing
+            End If
+
+            Dim location = addressOfExpression.Syntax.GetLocation()
+            Dim fields(method.ParameterCount) As AnonymousTypeField
+            For index = 0 To method.ParameterCount - 1
+                Dim parameter = method.Parameters(index)
+                If parameter.Type.IsRestrictedType() Then
+                    Return Nothing
+                End If
+
+                fields(index) = New AnonymousTypeField(parameter.Name, parameter.Type, location, parameter.IsByRef,
+                                                       If(parameter.HasExplicitDefaultValue, parameter.ExplicitDefaultConstantValue, Nothing), parameter.IsParamArray)
+            Next
+
+            Dim isFunction = Not method.IsSub
+            fields(method.ParameterCount) = New AnonymousTypeField(AnonymousTypeDescriptor.GetReturnParameterName(isFunction),
+                                                                   If(isFunction, method.ReturnType, Compilation.GetSpecialType(SpecialType.System_Void)), location, False)
+            Return Compilation.AnonymousTypeManager.ConstructAnonymousDelegateSymbol(New AnonymousTypeDescriptor(fields.AsImmutableOrNull(), location, True))
+        End Function
+
+        ''' <summary>
         ''' Binds the delegate creation expression.
         ''' This comes in form of e.g.
         ''' Dim del as new DelegateType(AddressOf methodName)

@@ -2018,6 +2018,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Case BoundKind.UnboundLambda
                             inferredType = DirectCast(inferFrom, UnboundLambda).InferredAnonymousDelegate.Key
 
+                        Case BoundKind.AddressOfOperator
+                            inferredType = InferAnonymousDelegateForAddressOf(DirectCast(inferFrom, BoundAddressOfOperator))
+
                         Case BoundKind.ArrayLiteral
                             arrayLiteral = DirectCast(inferFrom, BoundArrayLiteral)
                             If arrayLiteral.Syntax.Kind = SyntaxKind.CollectionExpression Then
