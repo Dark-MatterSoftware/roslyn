@@ -1233,6 +1233,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' groups methods from the same containing type together, we will keep track of the types and
                 ' will process all the methods from the same containing type at once.
                 Dim seenContainingTypes As New HashSet(Of NamedTypeSymbol)()
+                Dim spanReceiverMethods As ArrayBuilder(Of (Method As MethodSymbol, Proximity As Integer)) = Nothing
 
                 Do
                     methods.Clear()
@@ -1255,6 +1256,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                                 If reduced IsNot Nothing Then
                                     lookupResult.MergeOverloadedOrPrioritizedExtensionMethods(binder.CheckViability(reduced, arity, options, reduced.ContainingType, useSiteInfo))
+                                ElseIf GetSpanReceiverInstanceType(binder.Compilation, container, methods(i)) IsNot Nothing Then
+                                    spanReceiverMethods = If(spanReceiverMethods, ArrayBuilder(Of (Method As MethodSymbol, Proximity As Integer)).GetInstance())
+                                    spanReceiverMethods.Add((methods(i), proximity))
                                 End If
 
                                 i += 1
@@ -1273,8 +1277,67 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     currentBinder = currentBinder.m_containingBinder
                 Loop While currentBinder IsNot Nothing
 
+                ' On vbnext, an array, a Span(Of T), or a String calls extension methods declared on ReadOnlySpan(Of T) or
+                ' Span(Of T), as C# 14 first-class spans do, but only when no other extension method of that name applies,
+                ' so code that binds today keeps the extension it binds to.
+                If spanReceiverMethods IsNot Nothing Then
+                    If Not lookupResult.HasSymbol Then
+                        For Each candidate In spanReceiverMethods
+                            Dim spanInstance = GetSpanReceiverInstanceType(binder.Compilation, container, candidate.Method)
+                            Dim reduced As MethodSymbol = candidate.Method.ReduceExtensionMethod(spanInstance, candidate.Proximity, useSiteInfo, binder.Compilation.LanguageVersion)
+
+                            If reduced IsNot Nothing Then
+                                lookupResult.MergeOverloadedOrPrioritizedExtensionMethods(binder.CheckViability(reduced, arity, options, reduced.ContainingType, useSiteInfo))
+                            End If
+                        Next
+                    End If
+
+                    spanReceiverMethods.Free()
+                End If
+
                 methods.Free()
             End Sub
+
+            ''' <summary>
+            ''' The span type that an array, a Span(Of T), or a String converts to for an extension method whose first
+            ''' parameter is a ReadOnlySpan(Of T) or a Span(Of T), on vbnext. Nothing when the conversion does not apply.
+            ''' </summary>
+            Private Shared Function GetSpanReceiverInstanceType(compilation As VisualBasicCompilation, container As TypeSymbol, method As MethodSymbol) As TypeSymbol
+                If compilation.LanguageVersion < LanguageVersion.VbNext OrElse method.ParameterCount = 0 Then
+                    Return Nothing
+                End If
+
+                Dim receiverDefinition = TryCast(method.Parameters(0).Type.OriginalDefinition, NamedTypeSymbol)
+                If receiverDefinition Is Nothing Then
+                    Return Nothing
+                End If
+
+                Dim spanType = compilation.GetWellKnownType(WellKnownType.System_Span_T)
+                Dim readOnlySpanType = compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T)
+                Dim isSpan = TypeSymbol.Equals(receiverDefinition, spanType, TypeCompareKind.ConsiderEverything)
+                Dim isReadOnlySpan = TypeSymbol.Equals(receiverDefinition, readOnlySpanType, TypeCompareKind.ConsiderEverything)
+                If Not isSpan AndAlso Not isReadOnlySpan Then
+                    Return Nothing
+                End If
+
+                Dim arrayType = TryCast(container, ArrayTypeSymbol)
+                If arrayType IsNot Nothing AndAlso arrayType.IsSZArray Then
+                    Return receiverDefinition.Construct(arrayType.ElementType)
+                End If
+
+                Dim named = TryCast(container, NamedTypeSymbol)
+                If isReadOnlySpan AndAlso named IsNot Nothing Then
+                    If TypeSymbol.Equals(named.OriginalDefinition, spanType, TypeCompareKind.ConsiderEverything) Then
+                        Return readOnlySpanType.Construct(named.TypeArgumentsNoUseSiteDiagnostics(0))
+                    End If
+
+                    If named.SpecialType = SpecialType.System_String Then
+                        Return readOnlySpanType.Construct(compilation.GetSpecialType(SpecialType.System_Char))
+                    End If
+                End If
+
+                Return Nothing
+            End Function
 
             Friend Shared Sub LookupForStaticExtensionMembers(
                 lookupResult As LookupResult,
