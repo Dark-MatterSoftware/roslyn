@@ -412,6 +412,79 @@ End Class", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestAddressOfLocal() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Module M
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Sub Use()
+        Dim t = AddressOf Twice
+        Dim n = t$$(21)
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position,
+                    MainDescription($"({FeaturesResources.local_variable}) t As 'a"),
+                    AnonymousTypes(vbCrLf & FeaturesResources.Types_colon & vbCrLf & $"    'a {FeaturesResources.is_} Delegate Function (x As Integer) As Integer"))
+            End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestRecordEqualityContract() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+
+    Function Contract() As System.Type
+        Return Me.Equality$$Contract
+    End Function
+End Class", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("ReadOnly Property Dog.EqualityContract As Type"))
+            End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestRecordEqualityOperator() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Point(X As Integer)
+End Class
+
+Module M
+    Function Same(a As Point, b As Point) As Boolean
+        Return a $$= b
+    End Function
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("Operator Point.=(left As Point, right As Point) As Boolean"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))

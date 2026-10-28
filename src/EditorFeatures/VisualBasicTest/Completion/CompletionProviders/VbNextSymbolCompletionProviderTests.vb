@@ -79,5 +79,91 @@ End Module
         Public Async Function SpanExtensionMissingAfterArrayOn17_13() As Task
             Await VerifyItemIsAbsentAsync(SpanExtensions("17.13"), "CountOf")
         End Function
+
+        Private Shared Function Records(body As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+" & body & "
+End Class
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function EqualityContractInsideDerivedRecord() As Task
+            Await VerifyItemExistsAsync(Records("
+    Function Contract() As System.Type
+        Return Me.$$
+    End Function"), "EqualityContract")
+        End Function
+
+        <Fact>
+        Public Async Function EqualityContractMissingOutsideRecord() As Task
+            Await VerifyItemIsAbsentAsync(Records("
+End Class
+
+Module M
+    Sub Use(d As Dog)
+        d.$$
+    End Sub
+End Module
+
+Class Unused"), "EqualityContract")
+        End Function
+
+        <Fact>
+        Public Async Function InheritedPropertyOnceAfterDerivedRecord() As Task
+            Await VerifyItemExistsAsync(Records("
+End Class
+
+Module M
+    Sub Use(d As Dog)
+        d.$$
+    End Sub
+End Module
+
+Class Unused"), "Name")
+        End Function
+
+        Private Shared Function AddressOfLocal(languageVersion As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""" & languageVersion & """>
+        <Document>
+Module M
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Sub Use()
+        Dim t = AddressOf Twice
+        t.$$
+    End Sub
+End Module
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function InvokeAfterAddressOfLocal() As Task
+            Await VerifyItemExistsAsync(AddressOfLocal("vbnext"), "Invoke")
+        End Function
+
+        <Fact>
+        Public Async Function InvokeMissingAfterAddressOfLocalOn17_13() As Task
+            Await VerifyItemIsAbsentAsync(AddressOfLocal("17.13"), "Invoke")
+        End Function
     End Class
 End Namespace
