@@ -352,6 +352,28 @@ End Module", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestTypeInferredFromCollectionLiteral() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Imports System.Collections.Generic
+
+Module M
+    Function Generic(Of T)(values As List(Of T)) As Integer
+        Return values.Count
+    End Function
+
+    Sub Use()
+        System.Console.Write(Gene$$ric({1, 2}))
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("Function M.Generic(Of Integer)(values As List(Of Integer)) As Integer"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestSpanExtensionOnArray() As Task
             Await TestFromXmlAsync("<Workspace>
     <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">

@@ -113,6 +113,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                     If modifierFacts.CouldApplyToOneOf(PossibleDeclarationTypes.Field) Then
                         recommendations.Add(New RecommendedKeyword("Const", VBFeaturesResources.Declares_and_defines_one_or_more_constants))
                         recommendations.Add(New RecommendedKeyword("WithEvents", VBFeaturesResources.Specifies_that_one_or_more_declared_member_variables_refer_to_an_instance_of_a_class_that_can_raise_events))
+                    ElseIf isVbNext AndAlso context.IsInterfaceMemberDeclarationKeywordContext AndAlso
+                           modifierFacts.OverridableSharedOrPartialKeyword.Kind = SyntaxKind.None AndAlso
+                           modifierFacts.SharedKeyword.Kind = SyntaxKind.None Then
+                        ' On vbnext, interfaces declare constants.
+                        recommendations.Add(New RecommendedKeyword("Const", VBFeaturesResources.Declares_and_defines_one_or_more_constants))
                     End If
 
                     If modifierFacts.CouldApplyToOneOf(PossibleDeclarationTypes.Property) OrElse modifierFacts.CouldApplyToOneOf(PossibleDeclarationTypes.Field) Then
@@ -136,7 +141,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders.Decl
                     End If
 
                     If modifierFacts.OverridableSharedOrPartialKeyword.Kind = SyntaxKind.None Then
-                        If Not context.IsInterfaceMemberDeclarationKeywordContext AndAlso
+                        ' On vbnext, interfaces declare Shared members, fields, and constructors.
+                        If (isVbNext OrElse Not context.IsInterfaceMemberDeclarationKeywordContext) AndAlso
                            modifierFacts.OverridesOrShadowsKeyword.Kind <> SyntaxKind.OverridesKeyword Then
                             recommendations.Add(New RecommendedKeyword("Shared", VBFeaturesResources.Specifies_that_one_or_more_declared_programming_elements_are_associated_with_all_instances_of_a_class_or_structure))
                         End If

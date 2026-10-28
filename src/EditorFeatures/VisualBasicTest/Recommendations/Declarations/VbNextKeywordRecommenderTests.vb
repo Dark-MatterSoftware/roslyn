@@ -455,6 +455,19 @@ End Module</File>, "Optional", "ParamArray")
         End Sub
 
         <Fact>
+        Public Sub SharedAndConstInInterface()
+            VerifyRecommendationsContain(<File VbNext="True">Interface I
+    |
+End Interface</File>, "Shared", "Const")
+            VerifyRecommendationsMissing(<File VbNext="True">Interface I
+    Shared |
+End Interface</File>, "Const", "Shared")
+            VerifyRecommendationsMissing(<File>Interface I
+    |
+End Interface</File>, "Shared", "Const")
+        End Sub
+
+        <Fact>
         Public Sub MembersAfterSharedInInterface()
             VerifyRecommendationsContain(<File VbNext="True">Interface I
     Shared |
