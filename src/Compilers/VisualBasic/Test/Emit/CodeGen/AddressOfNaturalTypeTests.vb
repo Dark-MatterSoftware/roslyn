@@ -251,6 +251,93 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub InfersTheTypeOfIfAndArrayLiterals()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Hello()
+        System.Console.Write(""hello "")
+    End Sub
+
+    Sub Bye()
+        System.Console.Write(""bye "")
+    End Sub
+
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Function Square(x As Integer) As Integer
+        Return x * x
+    End Function
+
+    Sub Main()
+        Dim pick = If(System.Environment.TickCount <> 0, AddressOf Hello, AddressOf Bye)
+        pick()
+        Dim handlers = {AddressOf Hello, AddressOf Bye}
+        For Each h In handlers
+            h()
+        Next
+        Dim maths = {AddressOf Twice, AddressOf Square, Function(x As Integer) x + 1}
+        System.Console.Write(maths(0)(3) & "" "" & maths(1)(3) & "" "" & maths(2)(3) & "" "")
+        Dim mixed = If(False, AddressOf Twice, Function(x As Integer) x - 1)
+        System.Console.Write(mixed(10))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="hello hello bye 6 9 4 9").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub DifferentSignaturesHaveNoCommonType()
+            Dim compilation = CreateCompilation("
+Option Strict On
+
+Module Program
+    Sub Hello()
+    End Sub
+
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Sub Main()
+        Dim pick = If(True, AddressOf Hello, AddressOf Twice)
+        Dim handlers = {AddressOf Hello, AddressOf Twice}
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_IfNoTypeObjectDisallowed, "If(True, AddressOf Hello, AddressOf Twice)").WithLocation(13, 20),
+                Diagnostic(ERRID.ERR_ArrayInitNoTypeObjectDisallowed, "{AddressOf Hello, AddressOf Twice}").WithLocation(14, 24))
+        End Sub
+
+        <Fact>
+        Public Sub IfAndArrayLiteralsRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Hello()
+    End Sub
+
+    Sub Bye()
+    End Sub
+
+    Sub Main()
+        Dim pick = If(True, AddressOf Hello, AddressOf Bye)
+        Dim handlers = {AddressOf Hello, AddressOf Bye}
+    End Sub
+End Module
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_IfNoType, "If(True, AddressOf Hello, AddressOf Bye)").WithLocation(10, 20),
+                Diagnostic(ERRID.ERR_ArrayInitNoType, "{AddressOf Hello, AddressOf Bye}").WithLocation(11, 24),
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Hello").WithArguments("Object").WithLocation(11, 25),
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Bye").WithArguments("Object").WithLocation(11, 42))
+        End Sub
+
+        <Fact>
         Public Sub RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Module Program

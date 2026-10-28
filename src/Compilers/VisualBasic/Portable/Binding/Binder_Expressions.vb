@@ -5391,6 +5391,11 @@ lElseClause:
                     expressionType = DirectCast(expression, UnboundLambda).InferredAnonymousDelegate.Key
                     typeList.AddType(expressionType, RequiredConversion.Any, expression)
 
+                ElseIf expressionKind = BoundKind.AddressOfOperator AndAlso
+                       InferAnonymousDelegateForAddressOf(DirectCast(expression, BoundAddressOfOperator)) IsNot Nothing Then
+                    expressionType = InferAnonymousDelegateForAddressOf(DirectCast(expression, BoundAddressOfOperator))
+                    typeList.AddType(expressionType, RequiredConversion.Any, expression)
+
                 ElseIf expressionKind = BoundKind.TupleLiteral Then
                     expressionType = DirectCast(expression, BoundTupleLiteral).InferredType
                     If expressionType IsNot Nothing Then
