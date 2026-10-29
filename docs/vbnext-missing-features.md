@@ -346,6 +346,15 @@ Checked against this tree after wave 20, by compiling and running against .NET 1
 | VB-150 | `IEquatable(Of T)` on records | Done in phase 123: on `vbnext`, through the synthesized typed `Equals`; a declared `Equals(other As R)` needs an `Implements` clause. Before that, `GetType(IEquatable(Of Point)).IsAssignableFrom(GetType(Point))` is `False`, because records declare `Equals(other As Point)` but not the interface, so code that constrains `T As IEquatable(Of T)` cannot take a record. C# 9 records implement `IEquatable<R>`. No new syntax. |
 | VB-151 | Unread positional parameters | Done in phase 124: on `vbnext`, warning BC42516 names a positional parameter that the record never reads. Before that, `Record Class Account(Id As Integer, Owner As String)` that declares `Public Property Owner As String` drops the `Owner` argument without a warning, so `New Account(1, "Ann").Owner` is `Nothing`; so does a parameter of a derived record that is not passed to the base record, since phase 113. C# 9 reports CS8907, "Parameter 'Owner' is unread. Did you forget to use it to initialize the property with that name?". A new warning, but no new syntax. |
 
+## Wave 22
+
+Checked against this tree after wave 21, by compiling and running against .NET 11 with `LangVersion` `vbnext` the record and delegate shapes that wave 21 code meets next, with a C# library alongside, and a few newer .NET shapes. Several shapes already work: `Required` properties in records, which `With` copies without setting them again; `Optional` and `ParamArray` positional parameters; `Record Class Pair(Of T As IComparable(Of T))` with an initializer that reads its parameters; an `Async` lambda that returns `AddressOf`; a declared `ToString` in a record; `ToString` printing members in the order C# prints them; `SyncLock` on a `System.Threading.Lock`, which enters it through the `Lock` API; and `<ModuleInitializer>`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-152 | Records under a sealed `ToString` | Open. A record that inherits a record whose `ToString` is `NotOverridable Overrides`, in Visual Basic, or `sealed override`, in C# 10, reports BC30267, "cannot override ... because it is declared 'NotOverridable'", because every record class declares its own `ToString`. C# 10 declares no `ToString` in such a record. No new syntax. |
+| VB-153 | Declared typed `Equals` on records | Open. Since phase 123, a record that declares its own `Public Overloads Function Equals(other As R) As Boolean` reports BC30149 until it adds `Implements IEquatable(Of R).Equals`, because Visual Basic implements interface members only through an `Implements` clause. C# 9 records implement `IEquatable<R>` with a declared `Equals(R)` implicitly. No new syntax; whether the record implements it implicitly is a semantic choice to settle in phase 128. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -634,3 +643,12 @@ The record gaps come first, smallest first, then the lambda inference, which tou
 | 1 | VB-150 | `IEquatable(Of T)` on records | S | Declares the interface the typed `Equals` already implements. |
 | 2 | VB-151 | Unread positional parameters | S | One new warning where a record drops an argument. |
 | 3 | VB-149 | Lambda return types from `AddressOf` | M | Feeds the phase 116 type into return type inference, so it comes last. |
+
+### Wave 22 order
+
+The record that cannot compile comes first, then the convenience that needs a decision.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-152 | Records under a sealed `ToString` | S | Unblocks records that inherit from a record with a sealed `ToString`, in either language. |
+| 2 | VB-153 | Declared typed `Equals` on records | S | Changes how a declared member implements an interface, after its semantics are settled. |
