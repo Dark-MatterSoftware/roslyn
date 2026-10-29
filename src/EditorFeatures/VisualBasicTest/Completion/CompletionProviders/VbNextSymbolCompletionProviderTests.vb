@@ -225,6 +225,25 @@ End Module
 </Workspace>", "Invoke")
         End Function
 
+        Private Shared Function DelegateConstrained(languageVersion As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""" & languageVersion & """>
+        <Document>
+Module M
+    Function Describe(Of T As System.Delegate)(d As T) As Object
+        Return d.$$
+    End Function
+End Module
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function DelegateMembersThroughDelegateConstraint() As Task
+            Await VerifyItemExistsAsync(DelegateConstrained("vbnext"), "DynamicInvoke")
+        End Function
+
         <Fact>
         Public Async Function InvokeAfterAddressOfLocal() As Task
             Await VerifyItemExistsAsync(AddressOfLocal("vbnext"), "Invoke")

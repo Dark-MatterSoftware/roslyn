@@ -686,6 +686,29 @@ End Module", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestDelegateConstraintCall() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Module M
+    Function Combine(Of T As System.Delegate)(a As T, b As T) As T
+        Return a
+    End Function
+
+    Sub Hello()
+    End Sub
+
+    Sub Use()
+        Dim both = Comb$$ine(New System.Action(AddressOf Hello), New System.Action(AddressOf Hello))
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("Function M.Combine(Of Action)(a As Action, b As Action) As Action"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))
