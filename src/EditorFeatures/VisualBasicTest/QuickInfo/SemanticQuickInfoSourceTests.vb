@@ -655,6 +655,37 @@ End Module", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestRecordUnderSealedToString() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class SealedBase(Id As Integer)
+    Public NotOverridable Overrides Function ToString() As String
+        Return ""SealedBase""
+    End Function
+End Class
+
+Record Class Derived(Id As Integer, Extra As String)
+    Inherits SealedBase(Id)
+End Class
+
+Module M
+    Function Use(d As Derived) As String
+        Return d.ToStr$$ing()
+    End Function
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("Function SealedBase.ToString() As String (+ 1 overload)"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))

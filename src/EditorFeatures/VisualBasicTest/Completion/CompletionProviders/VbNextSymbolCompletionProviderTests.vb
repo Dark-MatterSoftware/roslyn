@@ -146,6 +146,34 @@ Class Unused"), "Name")
         End Function
 
         <Fact>
+        Public Async Function PrintMembersInsideRecordUnderSealedToString() As Task
+            Await VerifyItemExistsAsync("<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Class SealedBase(Id As Integer)
+    Public NotOverridable Overrides Function ToString() As String
+        Return ""SealedBase""
+    End Function
+End Class
+
+Record Class Derived(Id As Integer, Extra As String)
+    Inherits SealedBase(Id)
+
+    Function Describe(builder As System.Text.StringBuilder) As Boolean
+        Return Me.$$
+    End Function
+End Class
+        </Document>
+    </Project>
+</Workspace>", "PrintMembers")
+        End Function
+
+        <Fact>
         Public Async Function PrintMembersMissingOutsideRecord() As Task
             Await VerifyItemIsAbsentAsync(Records("
 End Class
