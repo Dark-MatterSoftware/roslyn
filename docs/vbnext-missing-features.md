@@ -361,7 +361,7 @@ Checked against this tree after wave 22, by compiling and running against .NET 1
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-154 | `[Delegate]` and `MulticastDelegate` constraints | Open. `Function Combine(Of T As [Delegate])(a As T, b As T) As T` reports BC32061, "'[Delegate]' cannot be used as a type constraint", though `[Enum]` already can be one. C# 7.3 allows `where T : System.Delegate` and `where T : System.MulticastDelegate`. No new syntax. |
+| VB-154 | `[Delegate]` and `MulticastDelegate` constraints | Done in phase 130: on `vbnext`, both can constrain a type parameter. Before that, `Function Combine(Of T As [Delegate])(a As T, b As T) As T` reports BC32061, "'[Delegate]' cannot be used as a type constraint", though `[Enum]` already can be one. C# 7.3 allows `where T : System.Delegate` and `where T : System.MulticastDelegate`. No new syntax. |
 
 ## Parked
 

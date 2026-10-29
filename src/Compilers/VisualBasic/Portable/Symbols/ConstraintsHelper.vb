@@ -180,13 +180,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                     Select Case constraintType.SpecialType
                                                         Case SpecialType.System_Object,
                                                             SpecialType.System_ValueType,
-                                                            SpecialType.System_Delegate,
-                                                            SpecialType.System_MulticastDelegate,
                                                             SpecialType.System_Array
                                                             ' "'{0}' cannot be used as a type constraint."
                                                             diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
                                                                                                                    constraint,
                                                                                                                    ErrorFactory.ErrorInfo(ERRID.ERR_ConstraintIsRestrictedType1, constraintType)))
+                                                        Case SpecialType.System_Delegate,
+                                                            SpecialType.System_MulticastDelegate
+                                                            If Not AllowsDelegateConstraint(typeParameter) Then
+                                                                diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
+                                                                                                                       constraint,
+                                                                                                                       ErrorFactory.ErrorInfo(ERRID.ERR_ConstraintIsRestrictedType1, constraintType)))
+                                                            End If
                                                         Case SpecialType.System_Enum
                                                             If Not AllowsEnumConstraint(typeParameter) Then
                                                                 diagnosticsBuilder.Add(New TypeParameterDiagnosticInfo(typeParameter,
@@ -1312,6 +1317,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim compilation = typeParameter.DeclaringCompilation
             Return compilation IsNot Nothing AndAlso
                 InternalSyntax.Parser.CheckFeatureAvailability(compilation.LanguageVersion, InternalSyntax.Feature.EnumConstraint)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext <c>[Delegate]</c> and <c>MulticastDelegate</c> can constrain a type parameter, as C# 7.3 allows.
+        ''' </summary>
+        Private Function AllowsDelegateConstraint(typeParameter As TypeParameterSymbol) As Boolean
+            Dim compilation = typeParameter.DeclaringCompilation
+            Return compilation IsNot Nothing AndAlso compilation.LanguageVersion >= LanguageVersion.VbNext
         End Function
 
         Private Function ContainsSystemEnumConstraint(constraints As ArrayBuilder(Of TypeParameterConstraint)) As Boolean
