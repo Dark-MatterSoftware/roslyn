@@ -630,11 +630,11 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub Record_DeclaredTypedEqualsImplementsIEquatableExplicitly()
+        Public Sub Record_DeclaredTypedEqualsImplementsIEquatable()
             Dim compilation = CreateCompilation(ExternalInit & "
 Record Class Loose(X As Integer)
     Public Overloads Function Equals(other As Loose) As Boolean
-        Return True
+        Return other IsNot Nothing AndAlso X Mod 10 = other.X Mod 10
     End Function
 End Class
 
@@ -643,10 +643,60 @@ Record Class Tight(X As Integer)
         Return True
     End Function
 End Class
-", parseOptions:=VbNext)
 
-            compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_UnimplementedMember3, "Loose").WithArguments("Class", "Loose", "Function Equals(other As Loose) As Boolean", "IEquatable(Of Loose)").WithLocation(7, 14))
+Record Structure Spot(X As Integer)
+    Public Overloads Function Equals(other As Spot) As Boolean
+        Return True
+    End Function
+End Structure
+
+Record Class Shaped(X As Integer)
+    Public Overloads Function Equals(other As Object, strict As Boolean) As Boolean
+        Return strict
+    End Function
+End Class
+
+Module Program
+    Sub Main()
+        Dim loose As System.IEquatable(Of Loose) = New Loose(3)
+        Dim tight As System.IEquatable(Of Tight) = New Tight(1)
+        Dim spot As System.IEquatable(Of Spot) = New Spot(1)
+        Dim shaped As System.IEquatable(Of Shaped) = New Shaped(1)
+        System.Console.Write(loose.Equals(New Loose(13)) & "" "" & (New Loose(3) = New Loose(13)) & "" "" & tight.Equals(New Tight(2)) & "" "" & spot.Equals(New Spot(2)) & "" "" & shaped.Equals(New Shaped(2)))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="True True True True False").VerifyDiagnostics()
+            Dim looseEquals = compilation.GetTypeByMetadataName("Loose").GetMembers("Equals").OfType(Of IMethodSymbol)().
+                Single(Function(m) m.Parameters.Length = 1 AndAlso m.Parameters(0).Type.Name = "Loose")
+            Assert.Equal("System.IEquatable(Of Loose)", looseEquals.ExplicitInterfaceImplementations.Single().ContainingType.ToDisplayString())
+            Dim shapedEquals = compilation.GetTypeByMetadataName("Shaped").GetMembers("Equals").OfType(Of IMethodSymbol)().
+                Single(Function(m) m.Parameters.Length = 2)
+            Assert.Empty(shapedEquals.ExplicitInterfaceImplementations)
+        End Sub
+
+        <Fact>
+        Public Sub Record_DeclaredDeconstructBesideTheSynthesizedOne()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Point(X As Integer, Y As Integer)
+    Public Sub Deconstruct(ByRef x As Integer)
+        x = Me.X
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Dim p As New Point(1, 2)
+        Dim a As Integer
+        p.Deconstruct(a)
+        Dim (b, c) = p
+        System.Console.Write(a & b & c)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="112").VerifyDiagnostics()
         End Sub
 
         <Fact>

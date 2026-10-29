@@ -74,6 +74,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _parameters = parameters
         End Sub
 
+        ''' <summary>
+        ''' A record member keeps the name it is synthesized with when declared members of that name, such as an
+        ''' <c>Equals(other As R)</c> or a <c>Deconstruct</c>, have their metadata names unified.
+        ''' </summary>
+        Friend Overrides Sub SetMetadataName(metadataName As String)
+        End Sub
+
         Public Overrides ReadOnly Property IsOverloads As Boolean
             Get
                 Return _kind <> RecordMethodKind.Deconstruct OrElse _isOverloads

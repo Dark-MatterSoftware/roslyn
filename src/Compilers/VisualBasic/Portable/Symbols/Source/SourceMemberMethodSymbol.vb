@@ -3,6 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
+Imports System.Linq
 Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Collections
@@ -435,6 +436,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return ProcessImplementsClause(Of MethodSymbol)(syntax.ImplementsClause, Me, DirectCast(ContainingType, SourceMemberContainerTypeSymbol), binder, diagBag)
                 End If
             End If
+
+            Return GetImplicitlyImplementedRecordEquals()
+        End Function
+
+        ''' <summary>
+        ''' A record's declared <c>Equals(other As R) As Boolean</c> without an Implements clause supplies the
+        ''' <c>IEquatable(Of R).Equals</c> that the record implements, as a C# 9 record's declared <c>Equals(R)</c> does.
+        ''' </summary>
+        Private Function GetImplicitlyImplementedRecordEquals() As ImmutableArray(Of MethodSymbol)
+            Dim container = ContainingType
+            If Not container.IsRecord OrElse Me.IsShared OrElse
+               Not CaseInsensitiveComparison.Equals(Me.Name, WellKnownMemberNames.ObjectEquals) OrElse
+               Me.ParameterCount <> 1 OrElse Me.Parameters(0).IsByRef OrElse
+               Me.ReturnType.SpecialType <> SpecialType.System_Boolean OrElse
+               Not TypeSymbol.Equals(Me.Parameters(0).Type, container, TypeCompareKind.ConsiderEverything) Then
+                Return ImmutableArray(Of MethodSymbol).Empty
+            End If
+
+            Dim equatable = DeclaringCompilation.GetWellKnownType(WellKnownType.System_IEquatable_T)
+            For Each [interface] In container.InterfacesNoUseSiteDiagnostics
+                If TypeSymbol.Equals([interface].OriginalDefinition, equatable, TypeCompareKind.ConsiderEverything) AndAlso
+                   TypeSymbol.Equals([interface].TypeArgumentsNoUseSiteDiagnostics(0), container, TypeCompareKind.ConsiderEverything) Then
+                    Dim equals = [interface].GetMembers(WellKnownMemberNames.ObjectEquals).OfType(Of MethodSymbol)().FirstOrDefault()
+                    If equals IsNot Nothing Then
+                        Return ImmutableArray.Create(equals)
+                    End If
+                End If
+            Next
 
             Return ImmutableArray(Of MethodSymbol).Empty
         End Function
