@@ -336,6 +336,16 @@ Checked against this tree after wave 19, by compiling and running against .NET 1
 | VB-147 | `AddressOf` in `If` and array literals | Done in phase 119: on `vbnext`, dominant type inference counts each `AddressOf` as the type phase 116 infers, as it counts a lambda. Before that, `If(flag, AddressOf Hello, AddressOf Bye)` reported BC36911, "Cannot infer a common type", and `{AddressOf Hello, AddressOf Bye}` reports BC36717 and BC30581, because the dominant type of the branches and elements does not use the type phase 116 infers. C# 10 infers `Action` for `flag ? Hello : Bye`. No new syntax. |
 | VB-148 | Visual Basic records that inherit C# records | Done in phase 120: a class from metadata with a `<Clone>$` method is a record, so on `vbnext` Visual Basic records chain to C# records and `With` copies them. Before that, `Record Class VbDog(Name As String, Breed As String)` that `Inherits CsAnimal(Name)`, where `CsAnimal` is a C# 9 record, reports BC40005, "property 'EqualityContract' shadows an overridable method", and prints `VbDog { Breed = Lab }`, because `IsRecord` is `False` for record types from metadata, so the derived record declares a new `EqualityContract`, compares and prints only its own members, and does not chain to the C# `Equals`. C# recognizes a record from metadata by its `<Clone>$` method. No new syntax. |
 
+## Wave 21
+
+Checked against this tree after wave 20, by compiling and running against .NET 11 with `LangVersion` `vbnext` the shapes that wave 20 code meets next, in records and in `AddressOf`. Several shapes already work: `Public ReadOnly Property Fahrenheit As Double = Degrees * 9 / 5 + 32` initialized from a positional parameter, a `Sub New()` that calls `Me.New("anonymous")`, `ReadOnly Record Structure`, a record that `Implements IComparable(Of Version)`, `Dim f As Func(Of Integer, Integer) = t` where `t` is set from `AddressOf Twice`, `Apply(AddressOf Twice, 5)` and `Make(AddressOf Answer)`, which infer their type arguments from the method, and `Dim f As Func(Of Action) = Function() AddressOf Hello`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-149 | Lambda return types from `AddressOf` | Open. `Dim factory = Function() AddressOf Hello` infers `Function <generated method>() As Object`, so `factory()()` reports BC30454, "Expression is not a method", because return type inference does not use the type phase 116 infers. C# 10 infers `Func<Action>` for `() => Hello`. No new syntax. |
+| VB-150 | `IEquatable(Of T)` on records | Open. `GetType(IEquatable(Of Point)).IsAssignableFrom(GetType(Point))` is `False`, because records declare `Equals(other As Point)` but not the interface, so code that constrains `T As IEquatable(Of T)` cannot take a record. C# 9 records implement `IEquatable<R>`. No new syntax. |
+| VB-151 | Unread positional parameters | Open. `Record Class Account(Id As Integer, Owner As String)` that declares `Public Property Owner As String` drops the `Owner` argument without a warning, so `New Account(1, "Ann").Owner` is `Nothing`; so does a parameter of a derived record that is not passed to the base record, since phase 113. C# 9 reports CS8907, "Parameter 'Owner' is unread. Did you forget to use it to initialize the property with that name?". A new warning, but no new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -614,3 +624,13 @@ The `AddressOf` gaps that finish phase 116 come first, smallest first, then the 
 | 2 | VB-147 | `AddressOf` in `If` and array literals | M | Feeds the phase 116 type into dominant type inference. |
 | 3 | VB-148 | Visual Basic records that inherit C# records | M | Recognizes C# records from metadata, so phases 113 to 115 chain to them. |
 | 4 | VB-145 | C# records that inherit Visual Basic records | M | Splits `ToString` into `PrintMembers`, which every record then overrides, so it comes last. |
+
+### Wave 21 order
+
+The record gaps come first, smallest first, then the lambda inference, which touches return type inference.
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-150 | `IEquatable(Of T)` on records | S | Declares the interface the typed `Equals` already implements. |
+| 2 | VB-151 | Unread positional parameters | S | One new warning where a record drops an argument. |
+| 3 | VB-149 | Lambda return types from `AddressOf` | M | Feeds the phase 116 type into return type inference, so it comes last. |
