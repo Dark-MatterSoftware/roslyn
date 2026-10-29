@@ -455,7 +455,7 @@ End Class
 
             Dim csCompilation = CreateCSharpCompilation("
 public record Cat(string Name, int Lives) : Animal(Name);
-", referencedAssemblies:={MscorlibRef, vbReference}, assemblyName:="CsRecords")
+", referencedAssemblies:=vbCompilation.References.Concat({vbReference}), assemblyName:="CsRecords")
             csCompilation.VerifyDiagnostics()
 
             Dim program = CreateCompilation("

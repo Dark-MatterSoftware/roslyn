@@ -94,7 +94,7 @@ End Module
   .maxstack  2
   IL_0000:  ldarg.0
   IL_0001:  ldflda     ""Holder.P As Point2""
-  IL_0006:  call       ""Function Point2.Length() As Integer""
+  IL_0006:  call       ""ReadOnly Function Point2.Length() As Integer""
   IL_000b:  ldarg.0
   IL_000c:  ldflda     ""Holder.P As Point2""
   IL_0011:  call       ""Function Point2.get_Scale() As Integer""
