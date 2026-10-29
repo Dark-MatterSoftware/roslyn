@@ -604,6 +604,57 @@ End Module", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestLambdaReturningAddressOf() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Module M
+    Sub Hello()
+    End Sub
+
+    Sub Use()
+        Dim factory = Function() AddressOf Hello
+        facto$$ry()()
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.local_variable}) factory As 'a"),
+                    AnonymousTypes(vbCrLf & FeaturesResources.Types_colon & vbCrLf &
+                                   $"    'a {FeaturesResources.is_} Delegate Function () As 'b" & vbCrLf &
+                                   $"    'b {FeaturesResources.is_} Delegate Sub ()"))
+            End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestRecordMeetsIEquatableConstraint() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Record Structure Point(X As Integer, Y As Integer)
+End Structure
+
+Module M
+    Function Same(Of T As System.IEquatable(Of T))(a As T, b As T) As Boolean
+        Return a.Equals(b)
+    End Function
+
+    Function Use() As Boolean
+        Return Sa$$me(New Point(1, 2), New Point(1, 2))
+    End Function
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription("Function M.Same(Of Point)(a As Point, b As Point) As Boolean"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))

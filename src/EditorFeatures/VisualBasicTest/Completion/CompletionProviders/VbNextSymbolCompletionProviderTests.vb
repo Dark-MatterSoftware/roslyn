@@ -179,6 +179,25 @@ End Module
         End Function
 
         <Fact>
+        Public Async Function InvokeAfterLambdaReturningAddressOf() As Task
+            Await VerifyItemExistsAsync("<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Module M
+    Sub Hello()
+    End Sub
+
+    Sub Use()
+        Dim factory = Function() AddressOf Hello
+        factory().$$
+    End Sub
+End Module
+        </Document>
+    </Project>
+</Workspace>", "Invoke")
+        End Function
+
+        <Fact>
         Public Async Function InvokeAfterAddressOfLocal() As Task
             Await VerifyItemExistsAsync(AddressOfLocal("vbnext"), "Invoke")
         End Function
