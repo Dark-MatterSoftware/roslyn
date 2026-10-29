@@ -2122,6 +2122,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_PossibleNullArgument = 42513
         WRN_UndecoratedCancellationTokenParameter = 42514
         WRN_UnconsumedEnumeratorCancellationAttributeUsage = 42515
+        WRN_UnreadRecordParameter = 42516
 
         ' // AVAILABLE                             42600 - 49998
         WRN_NextAvailable = 42600

@@ -1633,6 +1633,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ImplementWithReadOnlyByRef2,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
+                     ERRID.WRN_UnreadRecordParameter,
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,

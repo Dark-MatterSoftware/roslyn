@@ -6091,6 +6091,12 @@
   <data name="WRN_UnconsumedEnumeratorCancellationAttributeUsage_Title" xml:space="preserve">
     <value>'EnumeratorCancellation' has no effect on this parameter.</value>
   </data>
+  <data name="WRN_UnreadRecordParameter" xml:space="preserve">
+    <value>Parameter '{0}' is never read. Initialize the member named '{0}' from it, as in '= {0}', or pass it to the base record.</value>
+  </data>
+  <data name="WRN_UnreadRecordParameter_Title" xml:space="preserve">
+    <value>Record parameter is never read.</value>
+  </data>
   <data name="ERR_FieldInPropertyWithParameters" xml:space="preserve">
     <value>'Field' cannot be used in a property with parameters, because the property would need storage for each argument.</value>
   </data>

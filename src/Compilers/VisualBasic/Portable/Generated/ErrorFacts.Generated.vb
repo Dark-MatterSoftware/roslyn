@@ -184,7 +184,8 @@
                      ERRID.WRN_PossibleNullReference,
                      ERRID.WRN_PossibleNullArgument,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
-                     ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage
+                     ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
+                     ERRID.WRN_UnreadRecordParameter
                     Return True
                 Case Else
                     Return False

@@ -650,6 +650,50 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub PositionalRecord_WarnsAboutUnreadParameters()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Account(Id As Integer, Owner As String)
+    Public Property Owner As String
+End Class
+
+Record Class Kept(Id As Integer, Owner As String)
+    Public Property Owner As String = Owner
+End Class
+
+Record Class Animal(Name As String)
+End Class
+
+Record Class Passed(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Record Class Dropped(Name As String, Breed As String)
+    Inherits Animal(""fixed"")
+End Class
+
+Record Class Qualified(Owner As String)
+    Public Property Owner As String
+    Public ReadOnly Property Copy As String = Me.Owner
+End Class
+
+Record Class Field(Count As Integer)
+    Public Count As Integer = Count
+End Class
+
+Module Program
+    Sub Main()
+        System.Console.Write(New Kept(1, ""Ann"").Owner & "" "" & New Passed(""Rex"", ""Lab"").Name & "" "" & New Field(3).Count)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="Ann Rex 3").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UnreadRecordParameter, "Owner").WithArguments("Owner").WithLocation(7, 37),
+                Diagnostic(ERRID.WRN_UnreadRecordParameter, "Name").WithArguments("Name").WithLocation(22, 22),
+                Diagnostic(ERRID.WRN_UnreadRecordParameter, "Owner").WithArguments("Owner").WithLocation(26, 24))
+        End Sub
+
+        <Fact>
         Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
             Dim compilation = CreateCompilation(ExternalInit & "
 Record Class Animal(Name As String)

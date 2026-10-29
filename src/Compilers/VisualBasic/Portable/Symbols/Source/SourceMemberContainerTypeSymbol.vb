@@ -3264,6 +3264,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 slots.Add((name, parameterType))
                 Dim existing As ArrayBuilder(Of Symbol) = Nothing
                 If members.Members.TryGetValue(name, existing) OrElse HasInheritedPositionalProperty(name, parameterType) Then
+                    If Not ReadsPositionalParameter(name) Then
+                        diagnostics.Add(ERRID.WRN_UnreadRecordParameter, parameterSyntax.Identifier.GetLocation(), name)
+                    End If
+
                     Continue For
                 End If
 
@@ -3324,6 +3328,61 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                 current = current.BaseTypeNoUseSiteDiagnostics
             End While
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Whether a positional parameter that declares no property is read by a base constructor argument or by a
+        ''' field or property initializer, the only places that can read it, as C# 9 checks before reporting CS8907.
+        ''' </summary>
+        Private Function ReadsPositionalParameter(name As String) As Boolean
+            For Each syntaxRef In SyntaxReferences
+                Dim typeBlock = TryCast(syntaxRef.GetSyntax(), TypeBlockSyntax)
+                If typeBlock Is Nothing Then
+                    Continue For
+                End If
+
+                For Each inheritsStatement In typeBlock.Inherits
+                    If inheritsStatement.ArgumentList IsNot Nothing AndAlso MentionsName(inheritsStatement.ArgumentList, name) Then
+                        Return True
+                    End If
+                Next
+
+                For Each member In typeBlock.Members
+                    Dim field = TryCast(member, FieldDeclarationSyntax)
+                    If field IsNot Nothing Then
+                        For Each declarator In field.Declarators
+                            If (declarator.Initializer IsNot Nothing AndAlso MentionsName(declarator.Initializer, name)) OrElse
+                               (TypeOf declarator.AsClause Is AsNewClauseSyntax AndAlso MentionsName(declarator.AsClause, name)) Then
+                                Return True
+                            End If
+                        Next
+                    End If
+
+                    Dim [property] = TryCast(member, PropertyStatementSyntax)
+                    If [property] IsNot Nothing AndAlso
+                       ((Not [property].Initializer Is Nothing AndAlso MentionsName([property].Initializer, name)) OrElse
+                        (TypeOf [property].AsClause Is AsNewClauseSyntax AndAlso MentionsName([property].AsClause, name))) Then
+                        Return True
+                    End If
+                Next
+            Next
+
+            Return False
+        End Function
+
+        Private Shared Function MentionsName(node As SyntaxNode, name As String) As Boolean
+            For Each identifier In node.DescendantNodesAndSelf().OfType(Of IdentifierNameSyntax)()
+                If Not CaseInsensitiveComparison.Equals(identifier.Identifier.ValueText, name) Then
+                    Continue For
+                End If
+
+                Dim memberAccess = TryCast(identifier.Parent, MemberAccessExpressionSyntax)
+                If memberAccess Is Nothing OrElse memberAccess.Name IsNot identifier Then
+                    Return True
+                End If
+            Next
 
             Return False
         End Function

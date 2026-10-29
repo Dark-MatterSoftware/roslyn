@@ -1371,6 +1371,16 @@
         <target state="new">'Async Iterator' function has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WRN_UnreadRecordParameter">
+        <source>Parameter '{0}' is never read. Initialize the member named '{0}' from it, as in '= {0}', or pass it to the base record.</source>
+        <target state="new">Parameter '{0}' is never read. Initialize the member named '{0}' from it, as in '= {0}', or pass it to the base record.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UnreadRecordParameter_Title">
+        <source>Record parameter is never read.</source>
+        <target state="new">Record parameter is never read.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WrongNumberOfTypeArguments">
         <source>Wrong number of type arguments</source>
         <target state="translated">Nieprawidłowa liczba argumentów typu</target>
