@@ -355,6 +355,14 @@ Checked against this tree after wave 21, by compiling and running against .NET 1
 | VB-152 | Records under a sealed `ToString` | Done in phase 127: on `vbnext`, such a record declares no `ToString` and keeps `PrintMembers`. Before that, a record that inherits a record whose `ToString` is `NotOverridable Overrides`, in Visual Basic, or `sealed override`, in C# 10, reports BC30267, "cannot override ... because it is declared 'NotOverridable'", because every record class declares its own `ToString`. C# 10 declares no `ToString` in such a record. No new syntax. |
 | VB-153 | Declared typed `Equals` on records | Done in phase 128: on `vbnext`, a record's declared `Equals(other As R)` implements `IEquatable(Of R).Equals` without an `Implements` clause, as in C# 9. Before that, since phase 123, a record that declares its own `Public Overloads Function Equals(other As R) As Boolean` reports BC30149 until it adds `Implements IEquatable(Of R).Equals`, because Visual Basic implements interface members only through an `Implements` clause. C# 9 records implement `IEquatable<R>` with a declared `Equals(R)` implicitly. No new syntax; whether the record implements it implicitly is a semantic choice to settle in phase 128. |
 
+## Wave 23
+
+Checked against this tree after wave 22, by compiling and running against .NET 11 with `LangVersion` `vbnext` shapes from newer C# and .NET code beyond records and delegates, with a C# library alongside. Several shapes already work: `Async Function Main() As Task`; `Debug.Assert(True, $"{Expensive()}")`, which does not call `Expensive` through the interpolated string handler; `Function Names(Of T As {Structure, [Enum]})()`; calling a C# method constrained to `unmanaged` with a Visual Basic structure; and `Select Case` on a `ReadOnlySpan(Of Char)` with string cases.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-154 | `[Delegate]` and `MulticastDelegate` constraints | Open. `Function Combine(Of T As [Delegate])(a As T, b As T) As T` reports BC32061, "'[Delegate]' cannot be used as a type constraint", though `[Enum]` already can be one. C# 7.3 allows `where T : System.Delegate` and `where T : System.MulticastDelegate`. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -652,3 +660,9 @@ The record that cannot compile comes first, then the convenience that needs a de
 | --- | --- | --- | --- | --- |
 | 1 | VB-152 | Records under a sealed `ToString` | S | Unblocks records that inherit from a record with a sealed `ToString`, in either language. |
 | 2 | VB-153 | Declared typed `Equals` on records | S | Changes how a declared member implements an interface, after its semantics are settled. |
+
+### Wave 23 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-154 | `[Delegate]` and `MulticastDelegate` constraints | S | Lifts one constraint check, as `[Enum]` is already allowed. |
