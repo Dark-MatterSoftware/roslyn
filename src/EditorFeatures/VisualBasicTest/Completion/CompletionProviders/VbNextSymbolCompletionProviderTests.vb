@@ -137,6 +137,28 @@ End Module
 Class Unused"), "Name")
         End Function
 
+        <Fact>
+        Public Async Function PrintMembersInsideDerivedRecord() As Task
+            Await VerifyItemExistsAsync(Records("
+    Function Describe(builder As System.Text.StringBuilder) As Boolean
+        Return Me.$$
+    End Function"), "PrintMembers")
+        End Function
+
+        <Fact>
+        Public Async Function PrintMembersMissingOutsideRecord() As Task
+            Await VerifyItemIsAbsentAsync(Records("
+End Class
+
+Module M
+    Sub Use(d As Dog)
+        d.$$
+    End Sub
+End Module
+
+Class Unused"), "PrintMembers")
+        End Function
+
         Private Shared Function AddressOfLocal(languageVersion As String) As String
             Return "<Workspace>
     <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""" & languageVersion & """>
