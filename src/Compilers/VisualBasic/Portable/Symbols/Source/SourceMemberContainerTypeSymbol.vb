@@ -3118,7 +3118,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 AddRecordPrintMembersIfNeeded(members, binder, syntax, booleanType)
             End If
 
-            If objectPrint IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectToString, 0, Nothing) Then
+            If objectPrint IsNot Nothing AndAlso Not HasRecordMethod(members, WellKnownMemberNames.ObjectToString, 0, Nothing) AndAlso
+               Not InheritsNotOverridableToString() Then
                 AddRecordMethod(members, binder, syntax, WellKnownMemberNames.ObjectToString, stringType, SynthesizedRecordMethodSymbol.RecordMethodKind.Print, objectPrint,
                                 Function(method) ImmutableArray(Of ParameterSymbol).Empty)
             End If
@@ -3383,6 +3384,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return True
                 End If
             Next
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Whether the nearest <c>ToString()</c> a base type declares is <c>NotOverridable</c>, in which case a record
+        ''' declares no <c>ToString</c> of its own, as C# 10 does under a sealed <c>ToString</c>.
+        ''' </summary>
+        Private Function InheritsNotOverridableToString() As Boolean
+            Dim current = BaseTypeNoUseSiteDiagnostics
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                For Each member In current.GetMembers(WellKnownMemberNames.ObjectToString)
+                    Dim method = TryCast(member, MethodSymbol)
+                    If method IsNot Nothing AndAlso Not method.IsShared AndAlso method.ParameterCount = 0 AndAlso method.Arity = 0 Then
+                        Return method.IsNotOverridable
+                    End If
+                Next
+
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
 
             Return False
         End Function

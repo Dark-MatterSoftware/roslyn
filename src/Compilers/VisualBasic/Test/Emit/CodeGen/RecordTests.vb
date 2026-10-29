@@ -694,6 +694,54 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub DerivedRecord_KeepsASealedBaseToString()
+            Dim library = CreateCSharpCompilation("
+namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }
+public record CsSealedBase(int Id)
+{
+    public sealed override string ToString() => ""CsSealedBase#"" + Id;
+}
+", referencedAssemblies:={MscorlibRef})
+            library.VerifyDiagnostics()
+
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class SealedBase(Id As Integer)
+    Public NotOverridable Overrides Function ToString() As String
+        Return ""SealedBase#"" & Id
+    End Function
+End Class
+
+Record Class Derived(Id As Integer, Extra As String)
+    Inherits SealedBase(Id)
+
+    Function Members() As String
+        Dim builder As New System.Text.StringBuilder()
+        PrintMembers(builder)
+        Return builder.ToString()
+    End Function
+End Class
+
+Record Class Deeper(Id As Integer, Extra As String, More As Integer)
+    Inherits Derived(Id, Extra)
+End Class
+
+Record Class FromCSharp(Id As Integer, Extra As String)
+    Inherits CsSealedBase(Id)
+End Class
+
+Module Program
+    Sub Main()
+        System.Console.Write(New Derived(1, ""x"").ToString() & "" | "" & New Derived(1, ""x"").Members() & "" | "" & New Deeper(2, ""y"", 3).ToString() & "" | "" & New FromCSharp(4, ""z"").ToString())
+    End Sub
+End Module
+", references:={library.EmitToImageReference()}, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="SealedBase#1 | Id = 1, Extra = x | SealedBase#2 | CsSealedBase#4").VerifyDiagnostics()
+            Assert.Empty(compilation.GetTypeByMetadataName("Derived").GetMembers("ToString"))
+            Assert.Single(compilation.GetTypeByMetadataName("Derived").GetMembers("PrintMembers"))
+        End Sub
+
+        <Fact>
         Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
             Dim compilation = CreateCompilation(ExternalInit & "
 Record Class Animal(Name As String)
