@@ -311,7 +311,6 @@ Namespace Microsoft.CodeAnalysis.Operations
                      BoundKind.XmlProcessingInstruction,
                      BoundKind.UnboundLambda,
                      BoundKind.UnstructuredExceptionHandlingStatement,
-                     BoundKind.Sequence,
                      BoundKind.FromEndIndexExpression,
                      BoundKind.RangeExpression,
                      BoundKind.RefFieldAssignment,
@@ -328,11 +327,59 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Dim children As ImmutableArray(Of IOperation) = GetIOperationChildren(boundNode)
                     Return New NoneOperation(children, _semanticModel, boundNode.Syntax, type, constantValue, isImplicit)
 
+                Case BoundKind.Sequence
+                    Dim sequence = DirectCast(boundNode, BoundSequence)
+                    Dim tupleBinary = TryCreateTupleBinaryOperation(sequence)
+                    If tupleBinary IsNot Nothing Then
+                        Return tupleBinary
+                    End If
+
+                    Return New NoneOperation(GetIOperationChildren(sequence), _semanticModel, sequence.Syntax, sequence.Type, sequence.ConstantValueOpt, sequence.WasCompilerGenerated)
+
                 Case Else
                     ' If you're hitting this because the IOperation test hook has failed, see
                     ' <roslyn-root>/docs/Compilers/IOperation Test Hook.md for instructions on how to fix.
                     Throw ExceptionUtilities.UnexpectedValue(boundNode.Kind)
             End Select
+        End Function
+
+        ''' <summary>
+        ''' A tuple <c>=</c> or <c>&lt;&gt;</c> binds to a sequence that stores both operands in temporaries before comparing
+        ''' their elements; it is the tuple binary operation C# reports for <c>==</c> and <c>!=</c> on tuples.
+        ''' </summary>
+        Private Function TryCreateTupleBinaryOperation(sequence As BoundSequence) As ITupleBinaryOperation
+            Dim operatorKind As BinaryOperatorKind
+            Select Case sequence.Syntax.Kind
+                Case SyntaxKind.EqualsExpression
+                    operatorKind = BinaryOperatorKind.Equals
+                Case SyntaxKind.NotEqualsExpression
+                    operatorKind = BinaryOperatorKind.NotEquals
+                Case Else
+                    Return Nothing
+            End Select
+
+            If sequence.Locals.Length <> 2 OrElse sequence.SideEffects.Length <> 2 Then
+                Return Nothing
+            End If
+
+            Dim operands = ArrayBuilder(Of BoundExpression).GetInstance(2)
+            For i = 0 To 1
+                Dim store = TryCast(sequence.SideEffects(i), BoundAssignmentOperator)
+                Dim temp = TryCast(store?.Left, BoundLocal)
+                Dim tupleType = sequence.Locals(i).Type
+                If temp Is Nothing OrElse temp.LocalSymbol IsNot sequence.Locals(i) OrElse
+                   Not (tupleType.IsTupleType OrElse (tupleType.IsNullableType() AndAlso tupleType.GetNullableUnderlyingType().IsTupleType)) Then
+                    operands.Free()
+                    Return Nothing
+                End If
+
+                operands.Add(store.Right)
+            Next
+
+            Dim left = Create(operands(0))
+            Dim right = Create(operands(1))
+            operands.Free()
+            Return New TupleBinaryOperation(operatorKind, left, right, _semanticModel, sequence.Syntax, sequence.Type, sequence.WasCompilerGenerated)
         End Function
 
         Public Function CreateFromArray(Of TBoundNode As BoundNode, TOperation As {Class, IOperation})(nodeArray As ImmutableArray(Of TBoundNode)) As ImmutableArray(Of TOperation)

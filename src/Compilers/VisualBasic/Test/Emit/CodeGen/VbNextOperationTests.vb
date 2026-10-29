@@ -175,6 +175,112 @@ End Class
 ")
         End Sub
 
+        <Fact>
+        Public Sub RecentFormsHaveOperationsForEveryNode()
+            Dim source = "
+Imports System.Collections.Generic
+Imports Pair = (Integer, String)
+
+Namespace System.Runtime.CompilerServices
+    Public Class IsExternalInit
+    End Class
+End Namespace
+
+Structure Spot
+    Public X As Integer
+    Public Y As Integer
+End Structure
+
+Class Box
+    Public Count As Integer
+    Public Name As String
+End Class
+
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Module Program
+    Sub Hello()
+    End Sub
+
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Function Count(values As List(Of Integer)) As Integer
+        Return values.Count
+    End Function
+
+    Function Generic(Of T)(values As List(Of T)) As Integer
+        Return values.Count
+    End Function
+
+    Function Join(separator As String, values As List(Of String)) As String
+        Return String.Join(separator, values)
+    End Function
+
+    Sub Forms(box As Box, a As Integer(), flag As Boolean, t As (Integer, Integer), n As (Integer, Integer)?, d As Dog, other As Dog, spot As Spot)
+        Dim pair As Pair = (1, ""one"")
+        Dim sameTuple = t = (1, 2)
+        Dim differentTuple = t <> (3, 4)
+        Dim sameNullable = n = (1, 2)
+        Dim moved = spot With {.X = 5}
+        Dim anon = New With {.A = 1, .B = 2}
+        Dim anonCopy = anon With {.B = 3}
+        box?.Count += 1
+        box?.Name ?= ""x""
+        Dim list As List(Of Integer) = {1, 2}
+        Dim spread As List(Of Integer) = {..a, 3}
+        Dim setSpread As HashSet(Of Integer) = {..a, 4}
+        Dim counted = Count({1, 2})
+        Dim joined = Join(values:={""a"", ""b""}, separator:=""-"")
+        Dim chosen As List(Of Integer) = If(flag, {1}, {2, 3})
+        Dim inferred = Generic({1, 2})
+        Dim lambda = Function(Optional x As Integer = 3) x
+        Dim sameRecord = d = other
+        Dim differentRecord = d <> other
+        Dim copy = d With {.Breed = ""Pug""}
+        Dim handler = AddressOf Hello
+        Dim boxed As Object = AddressOf Twice
+        Dim picked = If(flag, AddressOf Hello, AddressOf Hello)
+        Dim handlers = {AddressOf Twice, AddressOf Twice}
+        Dim factory = Function() AddressOf Hello
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim missing As New List(Of String)
+            Dim tupleBinaries As New List(Of String)
+            For Each block In tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)()
+                Dim operation = model.GetOperation(block)
+                Assert.NotNull(operation)
+                For Each descendant In operation.DescendantsAndSelf()
+                    If descendant.Kind = OperationKind.None Then
+                        missing.Add(descendant.Syntax.ToString())
+                    End If
+
+                    Dim tupleBinary = TryCast(descendant, ITupleBinaryOperation)
+                    If tupleBinary IsNot Nothing Then
+                        tupleBinaries.Add(tupleBinary.OperatorKind.ToString() & " " & tupleBinary.LeftOperand.Syntax.ToString() & " " & tupleBinary.RightOperand.Syntax.ToString())
+                    End If
+                Next
+
+                Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+            Next
+
+            ' With on structures and anonymous types has no operation yet; C# reports IWithOperation for both.
+            Assert.Equal("spot With {.X = 5} | anon With {.B = 3}", String.Join(" | ", missing))
+            Assert.Equal("Equals t (1, 2) | NotEquals t (3, 4) | Equals n (1, 2)", String.Join(" | ", tupleBinaries))
+        End Sub
+
         Private Shared Sub VerifyOperationTrees(source As String)
             Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
             compilation.VerifyDiagnostics()
