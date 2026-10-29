@@ -1357,6 +1357,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 MakeDeclaredInterfacesInPart(syntaxRef.SyntaxTree, syntaxRef.GetVisualBasicSyntax(), interfaces, basesBeingResolved, diagnostics)
             Next
 
+            ' A record implements IEquatable(Of R) through its typed Equals, as a C# 9 record does.
+            If IsRecord AndAlso (TypeKind = TypeKind.Class OrElse TypeKind = TypeKind.Structure) Then
+                Dim equatable = DeclaringCompilation.GetWellKnownType(WellKnownType.System_IEquatable_T)
+                If Not equatable.IsErrorType() Then
+                    interfaces.Add(equatable.Construct(Me))
+                End If
+            End If
+
             Return interfaces.AsImmutable
         End Function
 
@@ -1403,7 +1411,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             ' In recursive or circular cases, the BindTypeSyntax fails to give the same result as the circularity
             ' removing algorithm does. In this case, use the entire Inherits or Implements statement as the location. 
-            Return backupLocation
+            ' The IEquatable(Of R) a record implements has no statement, so it uses the record's name.
+            Return If(backupLocation, GetFirstLocation())
         End Function
 
         Friend Overrides Function MakeAcyclicBaseType(diagnostics As BindingDiagnosticBag) As NamedTypeSymbol

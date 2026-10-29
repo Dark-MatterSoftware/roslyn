@@ -113,6 +113,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Public Overrides ReadOnly Property ExplicitInterfaceImplementations As ImmutableArray(Of MethodSymbol)
+            Get
+                If _kind <> RecordMethodKind.TypedEquals Then
+                    Return ImmutableArray(Of MethodSymbol).Empty
+                End If
+
+                For Each [interface] In ContainingType.InterfacesNoUseSiteDiagnostics
+                    If [interface].OriginalDefinition.Equals(DeclaringCompilation.GetWellKnownType(WellKnownType.System_IEquatable_T)) AndAlso
+                       TypeSymbol.Equals([interface].TypeArgumentsNoUseSiteDiagnostics(0), ContainingType, TypeCompareKind.ConsiderEverything) Then
+                        Dim equals = [interface].GetMembers(WellKnownMemberNames.ObjectEquals).OfType(Of MethodSymbol)().FirstOrDefault()
+                        If equals IsNot Nothing Then
+                            Return ImmutableArray.Create(equals)
+                        End If
+                    End If
+                Next
+
+                Return ImmutableArray(Of MethodSymbol).Empty
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property DeclaredAccessibility As Accessibility
             Get
                 If _kind = RecordMethodKind.PrintMembers Then

@@ -592,6 +592,64 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub Records_ImplementIEquatable()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Animal(Name As String)
+End Class
+
+Record Class Dog(Name As String, Breed As String)
+    Inherits Animal(Name)
+End Class
+
+Record Structure Point(X As Integer, Y As Integer)
+End Structure
+
+Record Class Box(Of T)(Value As T)
+End Class
+
+Module Program
+    Function Same(Of T As System.IEquatable(Of T))(a As T, b As T) As Boolean
+        Return a.Equals(b)
+    End Function
+
+    Sub Main()
+        System.Console.Write(Same(New Point(1, 2), New Point(1, 2)) & "" "" & Same(New Dog(""Rex"", ""Lab""), New Dog(""Rex"", ""Pug"")) & "" "" & Same(New Box(Of Integer)(1), New Box(Of Integer)(1)) & "" "")
+        Dim asAnimal As System.IEquatable(Of Animal) = New Dog(""Rex"", ""Lab"")
+        System.Console.Write(asAnimal.Equals(New Animal(""Rex"")) & "" "" & asAnimal.Equals(New Dog(""Rex"", ""Lab"")))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="True False True False True").VerifyDiagnostics()
+            Dim animal = compilation.GetTypeByMetadataName("Animal")
+            Assert.Contains("System.IEquatable(Of Animal)", animal.Interfaces.Select(Function(i) i.ToDisplayString()))
+            Dim typedEquals = animal.GetMembers("Equals").OfType(Of IMethodSymbol)().Single(Function(m) m.Parameters(0).Type.Equals(animal))
+            Assert.Equal("System.IEquatable(Of Animal)", typedEquals.ExplicitInterfaceImplementations.Single().ContainingType.ToDisplayString())
+            Dim point = compilation.GetTypeByMetadataName("Point")
+            Assert.Contains("System.IEquatable(Of Point)", point.Interfaces.Select(Function(i) i.ToDisplayString()))
+        End Sub
+
+        <Fact>
+        Public Sub Record_DeclaredTypedEqualsImplementsIEquatableExplicitly()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Record Class Loose(X As Integer)
+    Public Overloads Function Equals(other As Loose) As Boolean
+        Return True
+    End Function
+End Class
+
+Record Class Tight(X As Integer)
+    Public Overloads Function Equals(other As Tight) As Boolean Implements System.IEquatable(Of Tight).Equals
+        Return True
+    End Function
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_UnimplementedMember3, "Loose").WithArguments("Class", "Loose", "Function Equals(other As Loose) As Boolean", "IEquatable(Of Loose)").WithLocation(7, 14))
+        End Sub
+
+        <Fact>
         Public Sub DerivedPositionalRecord_PrintsAndDeconstructsEveryLevel()
             Dim compilation = CreateCompilation(ExternalInit & "
 Record Class Animal(Name As String)
