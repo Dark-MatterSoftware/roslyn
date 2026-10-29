@@ -338,6 +338,79 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub LambdasReturningAddressOfInferItsType()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Hello()
+        System.Console.Write(""hello "")
+    End Sub
+
+    Function Twice(x As Integer) As Integer
+        Return x * 2
+    End Function
+
+    Function Pick(Of R)(f As System.Func(Of R)) As R
+        Return f()
+    End Function
+
+    Sub Main()
+        Dim factory = Function() AddressOf Hello
+        factory()()
+        Dim maker = Function() (AddressOf Twice)
+        System.Console.Write(maker()(5) & "" "")
+        Dim multi = Function()
+                        Return AddressOf Twice
+                    End Function
+        System.Console.Write(multi()(6) & "" "")
+        Dim chosen = Pick(Function() AddressOf Twice)
+        System.Console.Write(chosen(7))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="hello 10 12 14").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub LambdaReturningAnOverloadedGroupHasNoType()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Log(value As Integer)
+    End Sub
+
+    Sub Log(value As String)
+    End Sub
+
+    Sub Main()
+        Dim factory = Function() AddressOf Log
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Log").WithArguments("Object").WithLocation(10, 34))
+        End Sub
+
+        <Fact>
+        Public Sub LambdaReturningAddressOfOn17_13()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Hello()
+    End Sub
+
+    Sub Main()
+        Dim factory = Function() AddressOf Hello
+        factory()()
+    End Sub
+End Module
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_AddressOfNotDelegate1, "AddressOf Hello").WithArguments("Object").WithLocation(7, 34),
+                Diagnostic(ERRID.ERR_ExpectedProcedure, "factory()").WithLocation(8, 9))
+        End Sub
+
+        <Fact>
         Public Sub RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Module Program

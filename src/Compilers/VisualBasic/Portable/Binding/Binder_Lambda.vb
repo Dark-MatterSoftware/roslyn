@@ -1083,12 +1083,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Debug.Assert(returnExpressions.Count < 2)
 
                     Dim returnExpression As BoundExpression = Nothing
+                    Dim addressOfDelegateType As NamedTypeSymbol = Nothing
 
                     If returnExpressions.Count > 0 Then
-                        returnExpression = MakeRValue(returnExpressions(0), diagnostics)
+                        Dim returned = returnExpressions(0).GetMostEnclosedParenthesizedExpression()
+                        If returned.Kind = BoundKind.AddressOfOperator Then
+                            addressOfDelegateType = InferAnonymousDelegateForAddressOf(DirectCast(returned, BoundAddressOfOperator))
+                        End If
+
+                        If addressOfDelegateType Is Nothing Then
+                            returnExpression = MakeRValue(returnExpressions(0), diagnostics)
+                        End If
                     End If
 
-                    If returnExpression IsNot Nothing AndAlso Not returnExpression.HasErrors AndAlso Not diagnostics.HasAnyErrors() Then
+                    If addressOfDelegateType IsNot Nothing Then
+                        lambdaReturnType = addressOfDelegateType
+                    ElseIf returnExpression IsNot Nothing AndAlso Not returnExpression.HasErrors AndAlso Not diagnostics.HasAnyErrors() Then
                         lambdaReturnType = returnExpression.Type
                     Else
                         lambdaReturnType = GetSpecialType(SpecialType.System_Object, source.Syntax, diagnostics)
