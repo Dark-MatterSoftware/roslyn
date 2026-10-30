@@ -62,6 +62,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             SymbolDeclaredEvent = &H1           ' Bit value for generating SymbolDeclaredEvent
 
             TypeConstraintsChecked = &H2
+
+            DefaultPropertyParametersChecked = &H4
         End Enum
 
         Private Sub New(container As SourceMemberContainerTypeSymbol,
@@ -966,7 +968,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     diagnostics)
 
                 diagnostics.Free()
+
+                If IsDefault AndAlso DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext Then
+                    CheckDefaultPropertyParameters(sourceModule)
+                End If
             End If
+        End Sub
+
+        Private Sub CheckDefaultPropertyParameters(sourceModule As SourceModuleSymbol)
+            If (_lazyState And StateFlags.DefaultPropertyParametersChecked) <> 0 Then
+                Return
+            End If
+
+            Dim diagnostics = BindingDiagnosticBag.GetInstance()
+            If Not HasRequiredParameters(_lazyParameters) Then
+                diagnostics.Add(ERRID.ERR_DefaultPropertyWithNoParams, _location)
+            End If
+
+            sourceModule.AtomicSetFlagAndStoreDiagnostics(_lazyState, StateFlags.DefaultPropertyParametersChecked, 0, diagnostics)
+            diagnostics.Free()
         End Sub
 
         Friend Sub SetStaticExtensionType(extendedType As TypeSymbol)
@@ -1054,8 +1074,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                 binder.DecodeExtensionPropertyParameterList(Me, extensionParameters, syntax.ParameterList, diagnostics))
 
             If IsDefault Then
-                ' Default properties must have required parameters.
-                If Not HasRequiredParameters(parameters) Then
+                ' Default properties must have required parameters. On vbnext, NameOf in the attributes of the
+                ' parameters finds the parameters, so the check waits until they are stored.
+                If DeclaringCompilation.LanguageVersion < LanguageVersion.VbNext AndAlso Not HasRequiredParameters(parameters) Then
                     diagnostics.Add(ERRID.ERR_DefaultPropertyWithNoParams, _location)
                 End If
 

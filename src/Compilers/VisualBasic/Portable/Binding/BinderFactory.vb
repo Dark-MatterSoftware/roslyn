@@ -688,9 +688,9 @@ lAgain:
 
                 End If
 
-                Dim attributedMethod = GetAttributedMethod(containingBinder, attributeBlock)
-                If attributedMethod IsNot Nothing Then
-                    containingBinder = New AttributeParametersBinder(containingBinder, attributedMethod)
+                Dim attributedMember = GetAttributedMember(containingBinder, attributeBlock)
+                If attributedMember IsNot Nothing Then
+                    containingBinder = New AttributeParametersBinder(containingBinder, attributedMember)
                 End If
             End If
 
@@ -698,10 +698,10 @@ lAgain:
         End Function
 
         ''' <summary>
-        ''' On vbnext, the method whose parameters NameOf finds in an attribute on the method, on one of its
-        ''' parameters, or on its return type.
+        ''' On vbnext, the parameters that NameOf finds in an attribute on a method, a property, or a delegate,
+        ''' on one of their parameters, or on their return type.
         ''' </summary>
-        Private Function GetAttributedMethod(containingBinder As Binder, attributeBlock As SyntaxNode) As MethodSymbol
+        Private Function GetAttributedMember(containingBinder As Binder, attributeBlock As SyntaxNode) As Symbol
             If containingBinder.Compilation.LanguageVersion < LanguageVersion.VbNext OrElse attributeBlock.Parent Is Nothing Then
                 Return Nothing
             End If
@@ -729,9 +729,42 @@ lAgain:
                      SyntaxKind.DeclareSubStatement
                     Dim containingType = GetParameterDeclarationContainingType(containingBinder)
                     If containingType IsNot Nothing Then
-                        Return TryCast(SourceMethodSymbol.FindSymbolFromSyntax(methodSyntax, _tree, containingType), MethodSymbol)
+                        Return MethodOrProperty(SourceMethodSymbol.FindSymbolFromSyntax(methodSyntax, _tree, containingType))
                     End If
+
+                Case SyntaxKind.PropertyStatement
+                    Dim containingType = GetParameterDeclarationContainingType(containingBinder)
+                    If containingType IsNot Nothing Then
+                        Dim identifier = DirectCast(methodSyntax, PropertyStatementSyntax).Identifier
+                        Return MethodOrProperty(containingType.FindMember(identifier.ValueText, SymbolKind.Property, identifier.Span, _tree))
+                    End If
+
+                Case SyntaxKind.DelegateFunctionStatement, SyntaxKind.DelegateSubStatement
+                    Return FindDelegateType(containingBinder, DirectCast(methodSyntax, DelegateStatementSyntax))?.DelegateInvokeMethod
             End Select
+
+            Return Nothing
+        End Function
+
+        Private Shared Function MethodOrProperty(member As Symbol) As Symbol
+            Return If(member IsNot Nothing AndAlso (member.Kind = SymbolKind.Method OrElse member.Kind = SymbolKind.Property), member, Nothing)
+        End Function
+
+        Private Function FindDelegateType(containingBinder As Binder, syntax As DelegateStatementSyntax) As NamedTypeSymbol
+            Dim identifier = syntax.Identifier
+            Dim container = containingBinder.ContainingNamespaceOrType
+            Dim candidates = If(container Is Nothing, ImmutableArray(Of NamedTypeSymbol).Empty, container.GetTypeMembers(identifier.ValueText))
+            Dim self = TryCast(container, NamedTypeSymbol)
+            If self IsNot Nothing Then
+                candidates = candidates.Add(self)
+            End If
+
+            For Each candidate In candidates
+                If candidate.TypeKind = TypeKind.Delegate AndAlso
+                   candidate.Locations.Any(Function(location) location.SourceTree Is _tree AndAlso location.SourceSpan = identifier.Span) Then
+                    Return candidate
+                End If
+            Next
 
             Return Nothing
         End Function

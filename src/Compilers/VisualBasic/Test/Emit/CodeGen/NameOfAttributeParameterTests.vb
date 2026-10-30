@@ -103,6 +103,101 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub NameOfFindsPropertyAndDelegateParameters()
+            Dim compilation = CreateCompilation(NoteAttribute & "
+Class Table
+    <Note(NameOf(key))>
+    Default ReadOnly Property Item(<Note(NameOf(key))> key As String) As Integer
+        Get
+            Return key.Length
+        End Get
+    End Property
+End Class
+
+Delegate Function Mapper(<Note(NameOf(value))> value As String) As String
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim item = compilation.GetTypeByMetadataName("Table").GetMembers("Item").OfType(Of IPropertySymbol)().Single()
+            Dim invoke = compilation.GetTypeByMetadataName("Mapper").DelegateInvokeMethod
+            Assert.Equal("key", item.GetAttributes().Single().ConstructorArguments.Single().Value)
+            Assert.Equal("key", item.Parameters.Single().GetAttributes().Single().ConstructorArguments.Single().Value)
+            Assert.Equal("value", invoke.Parameters.Single().GetAttributes().Single().ConstructorArguments.Single().Value)
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim arguments = tree.GetRoot().DescendantNodes().OfType(Of NameOfExpressionSyntax)().Select(Function(n) n.Argument).ToArray()
+            Assert.Equal({"key As System.String", "key As System.String", "value As System.String"},
+                         arguments.Select(Function(argument) model.GetSymbolInfo(argument).Symbol.ToTestDisplayString()).ToArray())
+        End Sub
+
+        <Fact>
+        Public Sub NameOfFindsAnotherParameterOfDefaultProperty()
+            Dim compilation = CreateCompilation(NoteAttribute & "
+Class Table
+    Default ReadOnly Property Item(<Note(NameOf(count))> key As String, count As Integer) As Integer
+        Get
+            Return count
+        End Get
+    End Property
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim item = compilation.GetTypeByMetadataName("Table").GetMembers("Item").OfType(Of IPropertySymbol)().Single()
+            Assert.Equal("count", item.Parameters.First().GetAttributes().Single().ConstructorArguments.Single().Value)
+        End Sub
+
+        <Fact>
+        Public Sub PropertyParametersStayOutOfScopeOutsideNameOf()
+            Dim compilation = CreateCompilation(NoteAttribute & "
+Class Table
+    <Note(key)>
+    Default ReadOnly Property Item(key As String) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "key").WithArguments("key").WithLocation(10, 11))
+        End Sub
+
+        <Fact>
+        Public Sub DefaultPropertyWithoutRequiredParametersStillReported()
+            Dim compilation = CreateCompilation(NoteAttribute & "
+Class Table
+    Default ReadOnly Property Item(<Note(NameOf(key))> Optional key As String = Nothing) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DefaultPropertyWithNoParams, "Item").WithLocation(10, 31))
+        End Sub
+
+        <Fact>
+        Public Sub PropertyParametersRejectedOn17_13()
+            Dim compilation = CreateCompilation(NoteAttribute & "
+Class Table
+    Default ReadOnly Property Item(<Note(NameOf(key))> key As String) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "key").WithArguments("key").WithLocation(10, 49))
+        End Sub
+
+        <Fact>
         Public Sub RejectedOn17_13()
             Dim compilation = CreateCompilation(NoteAttribute & "
 Class C
