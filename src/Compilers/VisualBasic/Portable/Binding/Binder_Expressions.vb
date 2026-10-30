@@ -4196,12 +4196,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim rangeCount = 0
-            Dim onlyRange As BoundRangeExpression = Nothing
+            Dim onlyRange As BoundExpression = Nothing
             For Each argument In boundArguments
                 Dim range = UnwrapRange(argument)
                 If range IsNot Nothing Then
                     rangeCount += 1
                     onlyRange = range
+                ElseIf IsRangeValue(argument) Then
+                    rangeCount += 1
+                    onlyRange = argument
                 End If
             Next
 
@@ -4218,7 +4221,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim hasFromEnd = False
             For Each argument In boundArguments
-                If UnwrapFromEndIndex(argument) IsNot Nothing Then
+                If UnwrapFromEndIndex(argument) IsNot Nothing OrElse IsIndexValue(argument) Then
                     hasFromEnd = True
                     Exit For
                 End If
@@ -4244,6 +4247,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim fromEnd = UnwrapFromEndIndex(argument)
                 If fromEnd IsNot Nothing AndAlso receiver.Type IsNot Nothing AndAlso receiver.Type.IsArrayType() Then
                     convertedArguments.Add(RewriteFromEndIndex(fromEnd, receiver, dimension, int32Type))
+                ElseIf receiver.Type IsNot Nothing AndAlso receiver.Type.IsArrayType() AndAlso IsIndexValue(argument) Then
+                    convertedArguments.Add(IndexValueOffset(argument, ArrayDimensionLength(receiver, dimension, argument.Syntax, int32Type), int32Type, diagnostics))
                 Else
                     convertedArguments.Add(ApplyImplicitConversion(argument.Syntax, int32Type, argument, diagnostics))
                 End If
@@ -4422,13 +4427,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
-            Dim fromEnd = UnwrapFromEndIndex(boundArguments(0))
-            Dim range = UnwrapRange(boundArguments(0))
-            If fromEnd Is Nothing AndAlso range Is Nothing Then
+            Dim argument = boundArguments(0)
+            If UnwrapFromEndIndex(argument) Is Nothing AndAlso UnwrapRange(argument) Is Nothing AndAlso Not IsIndexValue(argument) AndAlso Not IsRangeValue(argument) Then
                 Return Nothing
             End If
 
-            Return BindSpanIndexOrSlice(node, receiver, fromEnd, range, members, diagnostics)
+            Return BindSpanIndexOrSlice(node, receiver, argument, members, diagnostics)
         End Function
 
         ''' <summary>
@@ -4449,26 +4453,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
-            Dim fromEnd = UnwrapFromEndIndex(boundArguments(0))
-            Dim range = UnwrapRange(boundArguments(0))
+            Dim argument = boundArguments(0)
+            Dim fromEnd = UnwrapFromEndIndex(argument)
+            Dim range = UnwrapRange(argument)
+            Dim isIndex = fromEnd IsNot Nothing OrElse IsIndexValue(argument)
+            Dim isRange = range IsNot Nothing OrElse IsRangeValue(argument)
             Dim receiver = group.ReceiverOpt
-            If (fromEnd Is Nothing AndAlso range Is Nothing) OrElse receiver Is Nothing OrElse receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() Then
+            If (Not isIndex AndAlso Not isRange) OrElse receiver Is Nothing OrElse receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() OrElse
+               HasIndexOrRangeDefaultProperty(DirectCast(group, BoundPropertyGroup), If(isIndex, WellKnownType.System_Index, WellKnownType.System_Range)) Then
                 Return Nothing
             End If
 
             Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
             Dim lengthGetter = FindCountOrLength(receiver.Type, useSiteInfo)
             Dim slice As MethodSymbol = Nothing
-            If lengthGetter IsNot Nothing AndAlso range IsNot Nothing Then
+            If lengthGetter IsNot Nothing AndAlso isRange Then
                 slice = FindSliceMethod(receiver.Type, useSiteInfo)
             End If
 
-            If lengthGetter Is Nothing OrElse (range IsNot Nothing AndAlso slice Is Nothing) Then
+            If lengthGetter Is Nothing OrElse (isRange AndAlso slice Is Nothing) Then
                 Return Nothing
             End If
 
             diagnostics.Add(node, useSiteInfo)
-            Dim syntax = If(fromEnd IsNot Nothing, fromEnd.Syntax, range.Syntax)
+            Dim syntax = If(fromEnd IsNot Nothing, fromEnd.Syntax, If(range IsNot Nothing, range.Syntax, argument.Syntax))
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
@@ -4483,15 +4491,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim members = New SpanMembers(lengthGetter, Nothing, slice)
             Dim result As BoundExpression
-            If fromEnd IsNot Nothing Then
+            If isIndex Then
                 ' The default property access stands for list(^1), so it can be read or written.
-                Dim index = New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, lengthGetter, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated()
+                Dim index = If(fromEnd IsNot Nothing,
+                               New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, lengthGetter, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
+                               IndexValueOffset(argument, SpanLength(receiver, lengthGetter, syntax, int32Type), int32Type, diagnostics))
                 Dim propertyGroup = DirectCast(group, BoundPropertyGroup)
                 Dim rebound = propertyGroup.Update(propertyGroup.Properties, propertyGroup.ResultKind, receiver, propertyGroup.QualificationKind)
                 result = BindInvocationExpression(node, target, typeChar, rebound, ImmutableArray.Create(Of BoundExpression)(index), argumentNames, diagnostics, callerInfoOpt)
             Else
-                Dim startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
-                Dim endValue = If(range.RightOperandOpt Is Nothing, SpanLength(receiver, lengthGetter, syntax, int32Type), SpanNormalizeBound(range.RightOperandOpt, receiver, members, int32Type, diagnostics))
+                Dim startValue As BoundExpression = Nothing
+                Dim endValue As BoundExpression = Nothing
+                If range Is Nothing Then
+                    RangeValueOffsets(argument, Function() SpanLength(receiver, lengthGetter, syntax, int32Type), locals, sideEffects, int32Type, diagnostics, startValue, endValue)
+                Else
+                    startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
+                    endValue = If(range.RightOperandOpt Is Nothing, SpanLength(receiver, lengthGetter, syntax, int32Type), SpanNormalizeBound(range.RightOperandOpt, receiver, members, int32Type, diagnostics))
+                End If
+
                 Dim startLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
                 Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
                 locals.Add(startLocal)
@@ -4514,6 +4531,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), value, result.Type).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' Whether the default property takes an Index or a Range itself, which C# 8 binds instead of the pattern.
+        ''' </summary>
+        Private Function HasIndexOrRangeDefaultProperty(group As BoundPropertyGroup, type As WellKnownType) As Boolean
+            Dim valueType = GetIndexOrRangeValueType(type)
+            Return valueType IsNot Nothing AndAlso group.Properties.Any(
+                Function(p) p.ParameterCount = 1 AndAlso TypeSymbol.Equals(p.Parameters(0).Type, valueType, TypeCompareKind.ConsiderEverything))
         End Function
 
         ''' <summary>
@@ -4617,8 +4643,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New SpanMembers(lengthMethod.AsMember(named), itemMethod.AsMember(named), sliceMethod.AsMember(named))
         End Function
 
-        Private Function BindSpanIndexOrSlice(node As SyntaxNode, receiver As BoundExpression, fromEnd As BoundFromEndIndexExpression, range As BoundRangeExpression, members As SpanMembers, diagnostics As BindingDiagnosticBag) As BoundExpression
-            Dim syntax = If(fromEnd IsNot Nothing, fromEnd.Syntax, range.Syntax)
+        Private Function BindSpanIndexOrSlice(node As SyntaxNode, receiver As BoundExpression, argument As BoundExpression, members As SpanMembers, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim fromEnd = UnwrapFromEndIndex(argument)
+            Dim range = UnwrapRange(argument)
+            Dim isIndex = fromEnd IsNot Nothing OrElse IsIndexValue(argument)
+            Dim syntax = If(fromEnd IsNot Nothing, fromEnd.Syntax, If(range IsNot Nothing, range.Syntax, argument.Syntax))
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
@@ -4633,12 +4662,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ' The Item or Slice call stands for the access. The length arithmetic around it is synthesized.
             Dim result As BoundExpression
-            If fromEnd IsNot Nothing Then
-                Dim index = New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated()
+            If isIndex Then
+                Dim index = If(fromEnd IsNot Nothing,
+                               New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
+                               IndexValueOffset(argument, SpanLength(receiver, members.Length, syntax, int32Type), int32Type, diagnostics))
                 result = New BoundCall(node, members.Item, Nothing, receiver, ImmutableArray.Create(Of BoundExpression)(index), Nothing, members.Item.ReturnType)
             Else
-                Dim startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
-                Dim endValue = If(range.RightOperandOpt Is Nothing, SpanLength(receiver, members.Length, syntax, int32Type), SpanNormalizeBound(range.RightOperandOpt, receiver, members, int32Type, diagnostics))
+                Dim startValue As BoundExpression = Nothing
+                Dim endValue As BoundExpression = Nothing
+                If range Is Nothing Then
+                    RangeValueOffsets(argument, Function() SpanLength(receiver, members.Length, syntax, int32Type), locals, sideEffects, int32Type, diagnostics, startValue, endValue)
+                Else
+                    startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
+                    endValue = If(range.RightOperandOpt Is Nothing, SpanLength(receiver, members.Length, syntax, int32Type), SpanNormalizeBound(range.RightOperandOpt, receiver, members, int32Type, diagnostics))
+                End If
+
                 Dim startLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
                 Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
                 locals.Add(startLocal)
@@ -4664,6 +4702,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New BoundBinaryOperator(fromEnd.Syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, fromEnd.Syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type)
             End If
 
+            If IsIndexValue(operand) Then
+                Return IndexValueOffset(operand, SpanLength(receiver, members.Length, operand.Syntax, int32Type), int32Type, diagnostics)
+            End If
+
             Return ApplyImplicitConversion(operand.Syntax, int32Type, operand, diagnostics)
         End Function
 
@@ -4671,13 +4713,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundCall(syntax, lengthMethod, Nothing, receiver, ImmutableArray(Of BoundExpression).Empty, Nothing, int32Type)
         End Function
 
-        Private Function BindArrayRange(node As InvocationExpressionSyntax, expr As BoundExpression, range As BoundRangeExpression, arrayType As ArrayTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+        Private Function BindArrayRange(node As InvocationExpressionSyntax, expr As BoundExpression, rangeArgument As BoundExpression, arrayType As ArrayTypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim copyMethod = FindArrayCopy(node, diagnostics)
             If copyMethod Is Nothing OrElse ContainingMember Is Nothing Then
                 Return BadExpression(node, expr, arrayType)
             End If
 
-            Dim syntax = range.Syntax
+            Dim range = UnwrapRange(rangeArgument)
+            Dim syntax = rangeArgument.Syntax
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
             Dim receiver = expr
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
@@ -4698,12 +4741,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             locals.Add(startLocal)
             locals.Add(endLocal)
 
-            Dim startValue = If(range.LeftOperandOpt Is Nothing,
-                                 IntegerLiteral(syntax, 0, int32Type),
-                                 NormalizeRangeBound(range.LeftOperandOpt, receiver, int32Type, diagnostics))
-            Dim endValue = If(range.RightOperandOpt Is Nothing,
-                               ArrayDimensionLength(receiver, 0, syntax, int32Type),
-                               NormalizeRangeBound(range.RightOperandOpt, receiver, int32Type, diagnostics))
+            Dim startValue As BoundExpression = Nothing
+            Dim endValue As BoundExpression = Nothing
+            If range Is Nothing Then
+                RangeValueOffsets(rangeArgument, Function() ArrayDimensionLength(receiver, 0, syntax, int32Type), locals, sideEffects, int32Type, diagnostics, startValue, endValue)
+            Else
+                startValue = If(range.LeftOperandOpt Is Nothing,
+                                IntegerLiteral(syntax, 0, int32Type),
+                                NormalizeRangeBound(range.LeftOperandOpt, receiver, int32Type, diagnostics))
+                endValue = If(range.RightOperandOpt Is Nothing,
+                              ArrayDimensionLength(receiver, 0, syntax, int32Type),
+                              NormalizeRangeBound(range.RightOperandOpt, receiver, int32Type, diagnostics))
+            End If
 
             sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, int32Type), startValue, suppressObjectClone:=True, type:=int32Type))
             sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, int32Type), endValue, suppressObjectClone:=True, type:=int32Type))
@@ -4745,6 +4794,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim fromEnd = UnwrapFromEndIndex(operand)
             If fromEnd IsNot Nothing Then
                 Return RewriteFromEndIndex(fromEnd, receiver, 0, int32Type)
+            End If
+
+            If IsIndexValue(operand) Then
+                Return IndexValueOffset(operand, ArrayDimensionLength(receiver, 0, operand.Syntax, int32Type), int32Type, diagnostics)
             End If
 
             Return ApplyImplicitConversion(operand.Syntax, int32Type, operand, diagnostics)
@@ -4795,6 +4848,70 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ReportDiagnostic(diagnostics, fromEnd.Syntax, ERRID.ERR_IndexFromEndRequiresArray)
             Return True
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, an expression of type System.Index, other than ^n written in place.
+        ''' </summary>
+        Private Function IsIndexValue(argument As BoundExpression) As Boolean
+            Return UnwrapFromEndIndex(argument) Is Nothing AndAlso HasWellKnownValueType(argument, WellKnownType.System_Index)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, an expression of type System.Range, other than a..b written in place.
+        ''' </summary>
+        Private Function IsRangeValue(argument As BoundExpression) As Boolean
+            Return UnwrapRange(argument) Is Nothing AndAlso HasWellKnownValueType(argument, WellKnownType.System_Range)
+        End Function
+
+        Private Function HasWellKnownValueType(argument As BoundExpression, type As WellKnownType) As Boolean
+            Dim valueType = GetIndexOrRangeValueType(type)
+            Return valueType IsNot Nothing AndAlso argument IsNot Nothing AndAlso argument.Type IsNot Nothing AndAlso
+                TypeSymbol.Equals(argument.Type, valueType, TypeCompareKind.ConsiderEverything)
+        End Function
+
+        ''' <summary>
+        ''' The offset from the start that an Index value stands for in a receiver of the given length: index.GetOffset(length).
+        ''' </summary>
+        Private Function IndexValueOffset(value As BoundExpression, length As BoundExpression, int32Type As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim getOffset = TryCast(GetWellKnownTypeMember(WellKnownMember.System_Index__GetOffset, value.Syntax, diagnostics), MethodSymbol)
+            If getOffset Is Nothing Then
+                Return BadExpression(value.Syntax, ImmutableArray.Create(value, length), int32Type)
+            End If
+
+            Return New BoundCall(value.Syntax, getOffset, Nothing, value.MakeRValue(), ImmutableArray.Create(length.MakeTreeCompilerGenerated()), Nothing, int32Type).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' The start and end offsets that a Range value stands for in a receiver whose length each call of length reads.
+        ''' The range is stored once.
+        ''' </summary>
+        Private Sub RangeValueOffsets(value As BoundExpression,
+                                      length As Func(Of BoundExpression),
+                                      locals As ArrayBuilder(Of LocalSymbol),
+                                      sideEffects As ArrayBuilder(Of BoundExpression),
+                                      int32Type As TypeSymbol,
+                                      diagnostics As BindingDiagnosticBag,
+                                      <Out> ByRef startValue As BoundExpression,
+                                      <Out> ByRef endValue As BoundExpression)
+            Dim syntax = value.Syntax
+            Dim rangeLocal = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
+            locals.Add(rangeLocal)
+            sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, rangeLocal, isLValue:=True, type:=value.Type).MakeCompilerGenerated(), value.MakeRValue(), suppressObjectClone:=True, type:=value.Type).MakeCompilerGenerated())
+
+            startValue = RangeEndpointOffset(syntax, rangeLocal, WellKnownMember.System_Range__get_Start, length(), int32Type, diagnostics)
+            endValue = RangeEndpointOffset(syntax, rangeLocal, WellKnownMember.System_Range__get_End, length(), int32Type, diagnostics)
+        End Sub
+
+        Private Function RangeEndpointOffset(syntax As SyntaxNode, rangeLocal As LocalSymbol, endpoint As WellKnownMember, length As BoundExpression, int32Type As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Dim getter = TryCast(GetWellKnownTypeMember(endpoint, syntax, diagnostics), MethodSymbol)
+            Dim rangeRead = New BoundLocal(syntax, rangeLocal, isLValue:=True, type:=rangeLocal.Type).MakeCompilerGenerated()
+            If getter Is Nothing Then
+                Return BadExpression(syntax, ImmutableArray.Create(Of BoundExpression)(rangeRead, length), int32Type)
+            End If
+
+            Dim index = New BoundCall(syntax, getter, Nothing, rangeRead, ImmutableArray(Of BoundExpression).Empty, Nothing, getter.ReturnType).MakeCompilerGenerated()
+            Return IndexValueOffset(index, length, int32Type, diagnostics)
         End Function
 
         Private Shared Function UnwrapFromEndIndex(argument As BoundExpression) As BoundFromEndIndexExpression
