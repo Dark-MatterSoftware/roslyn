@@ -1222,7 +1222,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ImmutableArray.Create(copy),
                 sideEffects.ToImmutableAndFree(),
                 New BoundLocal(node, copy, structureType).MakeCompilerGenerated().MakeRValue(),
-                structureType).MakeCompilerGenerated()
+                structureType)
         End Function
 
         ''' <summary>
@@ -1324,7 +1324,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 locals.ToImmutableAndFree(),
                 sideEffects.ToImmutableAndFree(),
                 creation,
-                anonymousType).MakeCompilerGenerated()
+                anonymousType)
         End Function
 
         Private NotInheritable Class WithPlaceholderReplacer

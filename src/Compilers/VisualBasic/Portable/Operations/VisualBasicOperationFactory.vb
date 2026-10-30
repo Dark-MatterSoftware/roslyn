@@ -334,6 +334,11 @@ Namespace Microsoft.CodeAnalysis.Operations
                         Return tupleBinary
                     End If
 
+                    Dim withCopy = TryCreateWithOperation(sequence)
+                    If withCopy IsNot Nothing Then
+                        Return withCopy
+                    End If
+
                     Return New NoneOperation(GetIOperationChildren(sequence), _semanticModel, sequence.Syntax, sequence.Type, sequence.ConstantValueOpt, sequence.WasCompilerGenerated)
 
                 Case Else
@@ -381,6 +386,106 @@ Namespace Microsoft.CodeAnalysis.Operations
             operands.Free()
             Return New TupleBinaryOperation(operatorKind, left, right, _semanticModel, sequence.Syntax, sequence.Type, sequence.WasCompilerGenerated)
         End Function
+
+        ''' <summary>
+        ''' A With copy of a structure or an anonymous type binds to a sequence that stores the original in a temporary;
+        ''' it is the with operation C# reports, whose initializer assigns the listed members of the implicit receiver.
+        ''' </summary>
+        Private Function TryCreateWithOperation(sequence As BoundSequence) As IWithOperation
+            Dim withSyntax = TryCast(sequence.Syntax, WithExpressionSyntax)
+            If withSyntax Is Nothing OrElse sequence.Locals.IsEmpty OrElse sequence.SideEffects.IsEmpty OrElse sequence.ValueOpt Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim original = sequence.Locals(0)
+            Dim store = TryCast(sequence.SideEffects(0), BoundAssignmentOperator)
+            Dim storedLocal = TryCast(store?.Left, BoundLocal)
+            If storedLocal Is Nothing OrElse storedLocal.LocalSymbol IsNot original Then
+                Return Nothing
+            End If
+
+            Dim receiver = New WithReceiverReplacer(original)
+            Dim initializers = ArrayBuilder(Of IOperation).GetInstance()
+            Dim copied = TryCast(sequence.ValueOpt, BoundLocal)
+            Dim anonymousCreation = TryCast(sequence.ValueOpt, BoundAnonymousTypeCreationExpression)
+
+            If copied IsNot Nothing AndAlso copied.LocalSymbol Is original AndAlso sequence.Locals.Length = 1 Then
+                For i = 1 To sequence.SideEffects.Length - 1
+                    initializers.Add(Create(receiver.Visit(sequence.SideEffects(i))))
+                Next
+            ElseIf anonymousCreation IsNot Nothing Then
+                Dim anonymousType = TryCast(anonymousCreation.Type, AnonymousTypeManager.AnonymousTypePublicSymbol)
+                If anonymousType Is Nothing Then
+                    initializers.Free()
+                    Return Nothing
+                End If
+
+                For i = 1 To sequence.SideEffects.Length - 1
+                    Dim valueStore = TryCast(sequence.SideEffects(i), BoundAssignmentOperator)
+                    Dim valueTemp = TryCast(valueStore?.Left, BoundLocal)
+                    Dim index = -1
+                    For j = 0 To anonymousCreation.Arguments.Length - 1
+                        Dim argument = TryCast(anonymousCreation.Arguments(j), BoundLocal)
+                        If valueTemp IsNot Nothing AndAlso argument IsNot Nothing AndAlso argument.LocalSymbol Is valueTemp.LocalSymbol Then
+                            index = j
+                            Exit For
+                        End If
+                    Next
+
+                    If index < 0 Then
+                        initializers.Free()
+                        Return Nothing
+                    End If
+
+                    ' A value that reads the original, as .A does, has no with operation: C# cannot read the original
+                    ' in the initializer of an anonymous type's with, so its control flow graph has no receiver for it.
+                    Dim rewritten = DirectCast(receiver.Visit(valueStore.Right), BoundExpression)
+                    If receiver.Replaced Then
+                        initializers.Free()
+                        Return Nothing
+                    End If
+
+                    Dim [property] = anonymousType.Properties(index)
+                    Dim named = TryCast(valueStore.Syntax, NamedFieldInitializerSyntax)
+                    Dim targetSyntax As SyntaxNode = If(named?.Name, valueStore.Syntax)
+                    Dim instance = New InstanceReferenceOperation(InstanceReferenceKind.ImplicitReceiver, _semanticModel, targetSyntax, anonymousType, isImplicit:=True)
+                    Dim target = New PropertyReferenceOperation([property], constrainedToType:=Nothing, ImmutableArray(Of IArgumentOperation).Empty, instance, _semanticModel, targetSyntax, [property].Type, isImplicit:=False)
+                    Dim value = Create(rewritten)
+                    initializers.Add(New SimpleAssignmentOperation(isRef:=False, target, value, _semanticModel, valueStore.Syntax, [property].Type, constantValue:=Nothing, isImplicit:=False))
+                Next
+            Else
+                initializers.Free()
+                Return Nothing
+            End If
+
+            Dim initializer = New ObjectOrCollectionInitializerOperation(initializers.ToImmutableAndFree(), _semanticModel, withSyntax.Initializer, sequence.Type, isImplicit:=False)
+            Return New WithOperation(Create(store.Right), cloneMethod:=Nothing, initializer, _semanticModel, withSyntax, sequence.Type, sequence.WasCompilerGenerated)
+        End Function
+
+        ''' <summary>
+        ''' Reads of the temporary that holds the copy, or the original of an anonymous type, are the implicit receiver
+        ''' of the with operation's initializer.
+        ''' </summary>
+        Private NotInheritable Class WithReceiverReplacer
+            Inherits BoundTreeRewriterWithStackGuard
+
+            Private ReadOnly _local As LocalSymbol
+
+            Public Sub New(local As LocalSymbol)
+                _local = local
+            End Sub
+
+            Public ReadOnly Property Replaced As Boolean
+
+            Public Overrides Function VisitLocal(node As BoundLocal) As BoundNode
+                If node.LocalSymbol Is _local Then
+                    _Replaced = True
+                    Return New BoundWithLValueExpressionPlaceholder(node.Syntax, node.Type).MakeCompilerGenerated()
+                End If
+
+                Return node
+            End Function
+        End Class
 
         Public Function CreateFromArray(Of TBoundNode As BoundNode, TOperation As {Class, IOperation})(nodeArray As ImmutableArray(Of TBoundNode)) As ImmutableArray(Of TOperation)
             Dim builder = ArrayBuilder(Of TOperation).GetInstance(nodeArray.Length)

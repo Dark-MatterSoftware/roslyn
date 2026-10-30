@@ -276,9 +276,51 @@ End Module
                 Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
             Next
 
-            ' With on structures and anonymous types has no operation yet; C# reports IWithOperation for both.
-            Assert.Equal("spot With {.X = 5} | anon With {.B = 3}", String.Join(" | ", missing))
+            Assert.Empty(missing)
             Assert.Equal("Equals t (1, 2) | NotEquals t (3, 4) | Equals n (1, 2)", String.Join(" | ", tupleBinaries))
+        End Sub
+
+        <Fact>
+        Public Sub WithCopiesOfStructuresAndAnonymousTypesAreWithOperations()
+            Dim source = "
+Structure Spot
+    Public X As Integer
+    Public Y As Integer
+End Structure
+
+Module Program
+    Sub Copies(spot As Spot)
+        Dim moved = spot With {.X = .Y + 1}
+        Dim anon = New With {.A = 1, .B = 2}
+        Dim anonCopy = anon With {.B = 3}
+        Dim readsOriginal = anon With {.B = .A + 10}
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim copies = tree.GetRoot().DescendantNodes().OfType(Of WithExpressionSyntax)().ToArray()
+            Assert.Equal(3, copies.Length)
+            ' Reading the original in an anonymous type's With has no with operation; C# cannot write it.
+            Dim methodOperation = model.GetOperation(tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)().Single())
+            Assert.Contains(methodOperation.DescendantsAndSelf(), Function(o) o.Syntax Is copies(2) AndAlso o.Kind = OperationKind.None)
+            Dim shapes As New List(Of String)
+            For Each copy In copies.Take(2)
+                Dim operation = Assert.IsAssignableFrom(Of IWithOperation)(model.GetOperation(copy))
+                Assert.Null(operation.CloneMethod)
+                Assert.Empty(operation.DescendantsAndSelf().OfType(Of ILocalReferenceOperation)().Where(Function(l) l.Local.IsImplicitlyDeclared))
+                Dim assignment = DirectCast(operation.Initializer.Initializers.Single(), ISimpleAssignmentOperation)
+                Dim target = DirectCast(assignment.Target, IMemberReferenceOperation)
+                Assert.Equal(InstanceReferenceKind.ImplicitReceiver, DirectCast(target.Instance, IInstanceReferenceOperation).ReferenceKind)
+                shapes.Add(operation.Operand.Syntax.ToString() & ":" & target.Member.Name & "=" & assignment.Value.Syntax.ToString())
+            Next
+
+            Assert.Equal("spot:X=.Y + 1 | anon:B=3", String.Join(" | ", shapes))
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)().Single()
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
         End Sub
 
         <Fact>
