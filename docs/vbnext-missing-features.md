@@ -383,6 +383,14 @@ Checked against this tree after wave 26, by compiling and running against .NET 1
 | VB-159 | Range on types without an indexer | Done in phase 141: on `vbnext`, `mem(1..3)` and `mem(r)` slice a `Memory(Of T)`, a `ReadOnlyMemory(Of T)`, or any type with a `Count` or `Length` and a `Slice` method that has no default property. Before that, `mem(1..3)` on a `Memory(Of Integer)` reports BC30690, "Structure 'Memory(Of Integer)' cannot be indexed because it has no default property", though it has `Length` and `Slice(start, length)`. C# 8 slices any type with a `Count` or `Length` and a `Slice` method, with or without an indexer. No new syntax. |
 | VB-160 | `NameOf` of property parameters in attributes | Done in phase 142: on `vbnext`, a property's parameters are in scope for `NameOf` in the attributes of the property and its parameters, and the semantic model finds them there and on a `Delegate` declaration's parameters. Before that, `Default ReadOnly Property Item(<Note(NameOf(key))> key As String)` reports BC30451, "'key' is not declared", because phase 137 put only a method's parameters in scope. C# 11 finds an indexer's parameters in `nameof` in attributes on them. The semantic model also does not give the parameter for `NameOf` in attributes on a `Delegate` declaration's parameters, though compilation accepts it. No new syntax. |
 
+## Wave 28
+
+Checked against this tree after wave 27, by compiling and running against .NET 11 with `LangVersion` `vbnext` the shapes that wave 27 code meets next, with a C# program alongside. Several shapes already work: `list(i) += 10` and `Bump(list(i))` to a `ByRef` parameter with an `Index` variable; `Bump(arr(i))` and `Bump(arr(^2))`; `span(i) = 7` and `span(^2) += 1` through a `Span(Of Integer)`; `sb(^1)` on a `StringBuilder`; `imm(^1)` and `imm(1..^1)` on an `ImmutableArray(Of Integer)`; `ro(^1)` on an `IReadOnlyList(Of Integer)` and `il(^2)` on an `IList(Of Integer)`; `list(^Await GetCountAsync())`; `arr(^1)` in an expression tree; and `NameOf(T)` in an attribute on a parameter of a generic `Delegate`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-161 | Lifted index and range | Open. With `n As Integer?`, `^n` and `..n` report BC30512, "Option Strict On disallows implicit conversions from 'Integer?' to 'Integer'", because phase 140 converts their operands to `Integer`. C# 8 lifts both: `^n` is an `Index?` and `..n` a `Range?`, which have no value when an operand has none. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -701,3 +709,9 @@ The record that cannot compile comes first, then the convenience that needs a de
 | 1 | VB-158 | Index and range values | M | Gives `^` and `..` the types C# 8 gives them, which the index and slice of every earlier wave then take. |
 | 2 | VB-159 | Range on types without an indexer | S | Lets the phase 138 slice pattern apply before the default property is required. |
 | 3 | VB-160 | `NameOf` of property parameters in attributes | S | Widens the phase 137 scope to property parameters, and brings the semantic model to delegates. |
+
+### Wave 28 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-161 | Lifted index and range | S | Lifts the phase 140 values over `Nullable`, as VB already lifts its operators. |
