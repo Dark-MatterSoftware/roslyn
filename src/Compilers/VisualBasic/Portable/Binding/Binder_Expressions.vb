@@ -775,7 +775,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             ' Bind the argument
-            Dim argument As BoundExpression = BindExpression(node.Argument, diagnostics)
+            Dim argument As BoundExpression = New NameOfArgumentBinder(Me).BindExpression(node.Argument, diagnostics)
 
             Select Case argument.Kind
                 Case BoundKind.MethodGroup

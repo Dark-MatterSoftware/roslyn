@@ -370,7 +370,7 @@ Checked against this tree after wave 25, by compiling and running against .NET 1
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-156 | `NameOf` of parameters in attributes | Open. `Sub Check(<NotNullIfNotNull(NameOf(value))> value As String)` and `Function Echo(value As String) As <NotNullIfNotNull(NameOf(value))> String` report BC30451, "'value' is not declared", because a method's parameters are not in scope in its attributes. C# 11 puts them in scope for `nameof` in attributes on the method, its parameters, and its return value, which the nullable attributes of .NET name their parameters with. No new syntax. |
+| VB-156 | `NameOf` of parameters in attributes | Done in phase 137: on `vbnext`, a method's parameters are in scope for `NameOf` in the attributes of the method, its parameters, and its return type. Before that, `Sub Check(<NotNullIfNotNull(NameOf(value))> value As String)` and `Function Echo(value As String) As <NotNullIfNotNull(NameOf(value))> String` report BC30451, "'value' is not declared", because a method's parameters are not in scope in its attributes. C# 11 puts them in scope for `nameof` in attributes on the method, its parameters, and its return value, which the nullable attributes of .NET name their parameters with. No new syntax. |
 | VB-157 | Index and range on lists and strings | Open. `list(^1)` and `s(^1)` report BC37358, "An index from the end can only be used as an array index", and `list(1..3)` and `s(1..3)` report BC37359, though arrays and spans take both. C# 8 indexes any type with a `Count` or `Length` and an `Integer` indexer from the end, and slices any type with a `Count` or `Length` and a `Slice(start, length)` method, and a `String` through `Substring`. No new syntax. |
 
 ## Parked

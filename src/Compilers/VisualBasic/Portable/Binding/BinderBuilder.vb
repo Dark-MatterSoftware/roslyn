@@ -295,6 +295,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 containingBinder = BinderBuilder.CreateBinderForMethodDeclaration(sourceMethod, containingBinder)
             End If
 
+            Dim attributedMethod = If(TryCast(target, MethodSymbol), TryCast(If(target.Kind = SymbolKind.Parameter, target.ContainingSymbol, Nothing), MethodSymbol))
+            If attributedMethod IsNot Nothing AndAlso moduleSymbol.ContainingSourceAssembly.DeclaringCompilation.LanguageVersion >= LanguageVersion.VbNext Then
+                containingBinder = New AttributeParametersBinder(containingBinder, attributedMethod)
+            End If
+
             Return New AttributeBinder(containingBinder, tree)
         End Function
 

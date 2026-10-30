@@ -688,9 +688,52 @@ lAgain:
 
                 End If
 
+                Dim attributedMethod = GetAttributedMethod(containingBinder, attributeBlock)
+                If attributedMethod IsNot Nothing Then
+                    containingBinder = New AttributeParametersBinder(containingBinder, attributedMethod)
+                End If
             End If
 
             Return BinderBuilder.CreateBinderForAttribute(_tree, containingBinder, node)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, the method whose parameters NameOf finds in an attribute on the method, on one of its
+        ''' parameters, or on its return type.
+        ''' </summary>
+        Private Function GetAttributedMethod(containingBinder As Binder, attributeBlock As SyntaxNode) As MethodSymbol
+            If containingBinder.Compilation.LanguageVersion < LanguageVersion.VbNext OrElse attributeBlock.Parent Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim owner = attributeBlock.Parent
+            Dim methodSyntax As MethodBaseSyntax
+            If TypeOf owner Is ParameterSyntax Then
+                methodSyntax = TryCast(owner.Parent?.Parent, MethodBaseSyntax)
+            ElseIf TypeOf owner Is SimpleAsClauseSyntax Then
+                methodSyntax = TryCast(owner.Parent, MethodBaseSyntax)
+            Else
+                methodSyntax = TryCast(owner, MethodBaseSyntax)
+            End If
+
+            If methodSyntax Is Nothing Then
+                Return Nothing
+            End If
+
+            Select Case methodSyntax.Kind
+                Case SyntaxKind.SubNewStatement,
+                     SyntaxKind.FunctionStatement,
+                     SyntaxKind.OperatorStatement,
+                     SyntaxKind.SubStatement,
+                     SyntaxKind.DeclareFunctionStatement,
+                     SyntaxKind.DeclareSubStatement
+                    Dim containingType = GetParameterDeclarationContainingType(containingBinder)
+                    If containingType IsNot Nothing Then
+                        Return TryCast(SourceMethodSymbol.FindSymbolFromSyntax(methodSyntax, _tree, containingType), MethodSymbol)
+                    End If
+            End Select
+
+            Return Nothing
         End Function
 
     End Class
