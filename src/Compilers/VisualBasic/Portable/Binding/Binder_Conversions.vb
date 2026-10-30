@@ -1138,6 +1138,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return TryBindParenthesizedCollection(element, winner, diagnostics)
         End Function
 
+        Private Function IndexOrRangeValueConverts(value As BoundExpression, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As Boolean
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Dim conversion = Conversions.ClassifyConversion(value.Type, targetType, useSiteInfo).Key
+            diagnostics.Add(value, useSiteInfo)
+            Return Conversions.ConversionExists(conversion)
+        End Function
+
+        Private Shared Function ReplaceRange(argument As BoundExpression, range As BoundRangeExpression) As BoundExpression
+            If argument.Kind = BoundKind.Parenthesized Then
+                Dim parenthesized = DirectCast(argument, BoundParenthesized)
+                Return parenthesized.Update(ReplaceRange(parenthesized.Expression, range), parenthesized.Type)
+            End If
+
+            Return range
+        End Function
+
         Private Function ApplyConversion(
             node As SyntaxNode,
             targetType As TypeSymbol,
@@ -1152,7 +1168,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(argument.IsValue())
 
             Dim fromEnd = UnwrapFromEndIndex(argument)
-            If fromEnd IsNot Nothing Then
+            If fromEnd IsNot Nothing AndAlso Not (IsIndexOrRangeValue(fromEnd) AndAlso IndexOrRangeValueConverts(argument, targetType, diagnostics)) Then
                 If Not fromEnd.HasErrors Then
                     ReportDiagnostic(diagnostics, fromEnd.Syntax, ERRID.ERR_IndexFromEndRequiresArray)
                 End If
@@ -1162,11 +1178,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim range = UnwrapRange(argument)
             If range IsNot Nothing Then
-                If Not range.HasErrors Then
-                    ReportDiagnostic(diagnostics, range.Syntax, ERRID.ERR_RangeRequiresArray)
+                If Not (IsIndexOrRangeValue(range) AndAlso IndexOrRangeValueConverts(argument, targetType, diagnostics)) Then
+                    If Not range.HasErrors Then
+                        ReportDiagnostic(diagnostics, range.Syntax, ERRID.ERR_RangeRequiresArray)
+                    End If
+
+                    Return BadExpression(node, argument, ErrorTypeSymbol.UnknownResultType)
                 End If
 
-                Return BadExpression(node, argument, ErrorTypeSymbol.UnknownResultType)
+                argument = ReplaceRange(argument, NormalizeRangeValueBounds(range, diagnostics))
             End If
 
             ' Target-typed New is unbound until this conversion supplies the type.

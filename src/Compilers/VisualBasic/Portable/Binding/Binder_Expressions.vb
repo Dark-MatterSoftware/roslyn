@@ -4290,6 +4290,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' An index argument is checked by the invocation or array access that consumes it.
             ' A bound of a range is checked with that range. Every other use is diagnosed here,
             ' before an error type would hide the failure.
+            Dim indexType = GetIndexOrRangeValueType(WellKnownType.System_Index)
+            If indexType IsNot Nothing Then
+                Return New BoundFromEndIndexExpression(node, operand, indexType)
+            End If
+
             Dim reported = False
             If Not IsInsideRange(node) AndAlso Not IsIndexArgument(node) Then
                 ReportDiagnostic(diagnostics, node, ERRID.ERR_IndexFromEndRequiresArray)
@@ -4297,6 +4302,41 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundFromEndIndexExpression(node, operand, ErrorTypeSymbol.UnknownResultType, hasErrors:=reported)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, where the framework declares System.Index and System.Range, ^n is a value of type Index and
+        ''' a..b a value of type Range, as in C# 8. An index or a slice still consumes them directly.
+        ''' </summary>
+        Private Function GetIndexOrRangeValueType(type As WellKnownType) As TypeSymbol
+            If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return Nothing
+            End If
+
+            Dim symbol = Compilation.GetWellKnownType(type)
+            Return If(symbol.IsErrorType(), Nothing, symbol)
+        End Function
+
+        Private Shared Function IsIndexOrRangeValue(expression As BoundExpression) As Boolean
+            Return expression.Type IsNot Nothing AndAlso Not expression.Type.IsErrorType()
+        End Function
+
+        ''' <summary>
+        ''' The bounds of a Range value are Integer, or Index for a bound from the end.
+        ''' </summary>
+        Private Function NormalizeRangeValueBounds(range As BoundRangeExpression, diagnostics As BindingDiagnosticBag) As BoundRangeExpression
+            Dim left = NormalizeRangeValueBound(range.LeftOperandOpt, diagnostics)
+            Dim right = NormalizeRangeValueBound(range.RightOperandOpt, diagnostics)
+            Return range.Update(left, right, range.Type)
+        End Function
+
+        Private Function NormalizeRangeValueBound(bound As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If bound Is Nothing OrElse UnwrapFromEndIndex(bound) IsNot Nothing OrElse
+               (bound.Type IsNot Nothing AndAlso TypeSymbol.Equals(bound.Type, Compilation.GetWellKnownType(WellKnownType.System_Index), TypeCompareKind.ConsiderEverything)) Then
+                Return bound
+            End If
+
+            Return ApplyImplicitConversion(bound.Syntax, GetSpecialType(SpecialType.System_Int32, bound.Syntax, diagnostics), bound, diagnostics)
         End Function
 
         Private Shared Function IsIndexArgument(node As SyntaxNode) As Boolean
@@ -4328,6 +4368,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim right As BoundExpression = Nothing
             If node.Right IsNot Nothing Then
                 right = BindValue(node.Right, diagnostics)
+            End If
+
+            If Not IsCollectionSpread(node) Then
+                Dim rangeType = GetIndexOrRangeValueType(WellKnownType.System_Range)
+                If rangeType IsNot Nothing Then
+                    Dim range = New BoundRangeExpression(node, left, right, rangeType)
+                    Return If(IsIndexArgument(node), range, NormalizeRangeValueBounds(range, diagnostics))
+                End If
             End If
 
             Dim reported = False
@@ -4731,7 +4779,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function ReportRangeUsedOutsideArray(argument As BoundExpression, diagnostics As BindingDiagnosticBag) As Boolean
             Dim range = UnwrapRange(argument)
-            If range Is Nothing Then
+            If range Is Nothing OrElse IsIndexOrRangeValue(range) Then
                 Return False
             End If
 
@@ -4741,7 +4789,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function ReportFromEndIndexUsedOutsideArray(argument As BoundExpression, diagnostics As BindingDiagnosticBag) As Boolean
             Dim fromEnd = UnwrapFromEndIndex(argument)
-            If fromEnd Is Nothing Then
+            If fromEnd Is Nothing OrElse IsIndexOrRangeValue(fromEnd) Then
                 Return False
             End If
 
