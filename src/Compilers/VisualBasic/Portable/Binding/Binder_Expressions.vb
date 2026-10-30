@@ -4383,6 +4383,148 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return BindSpanIndexOrSlice(node, receiver, fromEnd, range, members, diagnostics)
         End Function
 
+        ''' <summary>
+        ''' On vbnext, list(^1) and s(1..3) on any type with a Count or Length, as C# 8 indexes and slices by pattern:
+        ''' an index from the end becomes Length - n in the default property's argument, and a range calls
+        ''' Slice(start, length), or Substring(start, length) on a String. The receiver is evaluated once.
+        ''' </summary>
+        Private Function TryBindPatternIndexOrSlice(node As SyntaxNode,
+                                                    target As SyntaxNode,
+                                                    typeChar As TypeCharacter,
+                                                    group As BoundMethodOrPropertyGroup,
+                                                    boundArguments As ImmutableArray(Of BoundExpression),
+                                                    argumentNames As ImmutableArray(Of String),
+                                                    diagnostics As BindingDiagnosticBag,
+                                                    callerInfoOpt As SyntaxNode) As BoundExpression
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse boundArguments.Length <> 1 OrElse group.Kind <> BoundKind.PropertyGroup OrElse
+               (Not argumentNames.IsDefault AndAlso argumentNames.Length > 0) OrElse ContainingMember Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim fromEnd = UnwrapFromEndIndex(boundArguments(0))
+            Dim range = UnwrapRange(boundArguments(0))
+            Dim receiver = group.ReceiverOpt
+            If (fromEnd Is Nothing AndAlso range Is Nothing) OrElse receiver Is Nothing OrElse receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
+            Dim lengthGetter = FindCountOrLength(receiver.Type, useSiteInfo)
+            Dim slice As MethodSymbol = Nothing
+            If lengthGetter IsNot Nothing AndAlso range IsNot Nothing Then
+                slice = FindSliceMethod(receiver.Type, useSiteInfo)
+            End If
+
+            If lengthGetter Is Nothing OrElse (range IsNot Nothing AndAlso slice Is Nothing) Then
+                Return Nothing
+            End If
+
+            diagnostics.Add(node, useSiteInfo)
+            Dim syntax = If(fromEnd IsNot Nothing, fromEnd.Syntax, range.Syntax)
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
+            Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+
+            If receiver.Kind <> BoundKind.Local AndAlso receiver.Kind <> BoundKind.Parameter AndAlso receiver.Kind <> BoundKind.MeReference Then
+                Dim spillLocal = New SynthesizedLocal(ContainingMember, receiver.Type, SynthesizedLocalKind.LoweringTemp)
+                Dim storeTarget = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=True, type:=receiver.Type).MakeCompilerGenerated()
+                sideEffects.Add(New BoundAssignmentOperator(receiver.Syntax, storeTarget, receiver.MakeRValue(), suppressObjectClone:=True, type:=receiver.Type).MakeCompilerGenerated())
+                locals.Add(spillLocal)
+                receiver = New BoundLocal(receiver.Syntax, spillLocal, isLValue:=receiver.Type.IsValueType, type:=receiver.Type).MakeCompilerGenerated()
+            End If
+
+            Dim members = New SpanMembers(lengthGetter, Nothing, slice)
+            Dim result As BoundExpression
+            If fromEnd IsNot Nothing Then
+                ' The default property access stands for list(^1), so it can be read or written.
+                Dim index = New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, lengthGetter, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated()
+                Dim propertyGroup = DirectCast(group, BoundPropertyGroup)
+                Dim rebound = propertyGroup.Update(propertyGroup.Properties, propertyGroup.ResultKind, receiver, propertyGroup.QualificationKind)
+                result = BindInvocationExpression(node, target, typeChar, rebound, ImmutableArray.Create(Of BoundExpression)(index), argumentNames, diagnostics, callerInfoOpt)
+            Else
+                Dim startValue = If(range.LeftOperandOpt Is Nothing, IntegerLiteral(syntax, 0, int32Type), SpanNormalizeBound(range.LeftOperandOpt, receiver, members, int32Type, diagnostics))
+                Dim endValue = If(range.RightOperandOpt Is Nothing, SpanLength(receiver, lengthGetter, syntax, int32Type), SpanNormalizeBound(range.RightOperandOpt, receiver, members, int32Type, diagnostics))
+                Dim startLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
+                Dim endLocal = New SynthesizedLocal(ContainingMember, int32Type, SynthesizedLocalKind.LoweringTemp)
+                locals.Add(startLocal)
+                locals.Add(endLocal)
+                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, isLValue:=True, type:=int32Type), startValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
+                sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, isLValue:=True, type:=int32Type), endValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
+                Dim count = SliceLength(syntax, startLocal, endLocal, int32Type).MakeTreeCompilerGenerated()
+                result = New BoundCall(node, slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeCompilerGenerated().MakeRValue(), count), Nothing, slice.ReturnType)
+            End If
+
+            If locals.Count = 0 Then
+                locals.Free()
+                sideEffects.Free()
+                Return result
+            End If
+
+            Dim value = result.MakeRValue()
+            If value.IsPropertyOrXmlPropertyAccess() Then
+                value = value.SetAccessKind(PropertyAccessKind.Get)
+            End If
+
+            Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), value, result.Type).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' The getter of an accessible instance Length, or else Count, property of type Integer, found on the type,
+        ''' its base types, or its interfaces.
+        ''' </summary>
+        Private Function FindCountOrLength(type As TypeSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As MethodSymbol
+            For Each name In {"Length", "Count"}
+                Dim found = FindInstanceMember(type, name, useSiteInfo,
+                    Function(member)
+                        Dim [property] = TryCast(member, PropertySymbol)
+                        Return [property] IsNot Nothing AndAlso [property].Parameters.Length = 0 AndAlso [property].GetMethod IsNot Nothing AndAlso
+                               [property].Type.SpecialType = SpecialType.System_Int32
+                    End Function)
+                If found IsNot Nothing Then
+                    Return DirectCast(found, PropertySymbol).GetMethod
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' An accessible instance Slice(Integer, Integer), or Substring(Integer, Integer) on a String.
+        ''' </summary>
+        Private Function FindSliceMethod(type As TypeSymbol, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As MethodSymbol
+            Dim name = If(type.SpecialType = SpecialType.System_String, "Substring", "Slice")
+            Return DirectCast(FindInstanceMember(type, name, useSiteInfo,
+                Function(member)
+                    Dim method = TryCast(member, MethodSymbol)
+                    Return method IsNot Nothing AndAlso Not method.IsSub AndAlso method.Arity = 0 AndAlso method.ParameterCount = 2 AndAlso
+                           method.Parameters.All(Function(p) Not p.IsByRef AndAlso p.Type.SpecialType = SpecialType.System_Int32)
+                End Function), MethodSymbol)
+        End Function
+
+        Private Function FindInstanceMember(type As TypeSymbol, name As String, <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol), matches As Func(Of Symbol, Boolean)) As Symbol
+            Dim candidates = ArrayBuilder(Of TypeSymbol).GetInstance()
+            Dim current = type
+            While current IsNot Nothing AndAlso Not current.IsErrorType()
+                candidates.Add(current)
+                current = current.BaseTypeNoUseSiteDiagnostics
+            End While
+
+            candidates.AddRange(type.AllInterfacesNoUseSiteDiagnostics)
+            Try
+                For Each candidate In candidates
+                    For Each member In candidate.GetMembers(name)
+                        If Not member.IsShared AndAlso matches(member) AndAlso IsAccessible(member, useSiteInfo) Then
+                            Return member
+                        End If
+                    Next
+                Next
+
+                Return Nothing
+            Finally
+                candidates.Free()
+            End Try
+        End Function
+
         Private Class SpanMembers
             Friend ReadOnly Length As MethodSymbol
             Friend ReadOnly Item As MethodSymbol

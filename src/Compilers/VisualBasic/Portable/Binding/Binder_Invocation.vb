@@ -822,6 +822,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return spanAccess
                 End If
 
+                Dim patternAccess = TryBindPatternIndexOrSlice(node, target, typeChar, group, boundArguments, argumentNames, diagnostics, callerInfoOpt)
+                If patternAccess IsNot Nothing Then
+                    Return patternAccess
+                End If
+
                 For Each argument In boundArguments
                     ReportFromEndIndexUsedOutsideArray(argument, diagnostics)
                     ReportRangeUsedOutsideArray(argument, diagnostics)
