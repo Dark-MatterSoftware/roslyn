@@ -281,6 +281,39 @@ End Module
             Assert.Equal("Equals t (1, 2) | NotEquals t (3, 4) | Equals n (1, 2)", String.Join(" | ", tupleBinaries))
         End Sub
 
+        <Fact>
+        Public Sub UnboundTargetTypedNewIsInvalid()
+            Dim source = "
+Class C
+    Function ToMissing() As Missing
+        Return New(1)
+    End Function
+
+    Sub AssignMissing()
+        Dim x As Undefined = New(2)
+    End Sub
+
+    Function BadTypeName(value As Short) As Integer
+        Return New à–¾(value)
+    End Function
+End Class
+"
+            Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
+            Assert.NotEmpty(compilation.GetDiagnostics().Where(Function(d) d.Severity = DiagnosticSeverity.Error))
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim creations = tree.GetRoot().DescendantNodes().OfType(Of ObjectCreationExpressionSyntax)().ToArray()
+            Assert.Equal(3, creations.Length)
+            For Each creation In creations
+                Assert.Equal(OperationKind.Invalid, model.GetOperation(creation).Kind)
+            Next
+
+            For Each block In tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)()
+                Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+            Next
+        End Sub
+
         Private Shared Sub VerifyOperationTrees(source As String)
             Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
             compilation.VerifyDiagnostics()

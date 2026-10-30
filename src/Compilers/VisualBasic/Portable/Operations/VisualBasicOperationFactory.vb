@@ -1089,6 +1089,13 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim type As ITypeSymbol = boundRValuePlaceholder.Type
             Dim isImplicit As Boolean = boundRValuePlaceholder.WasCompilerGenerated
 
+            ' A New without a type that no conversion bound to a target type, as when the type is missing
+            ' or the target is an error type, failed to bind.
+            Dim creation = TryCast(syntax, ObjectCreationExpressionSyntax)
+            If creation IsNot Nothing AndAlso creation.Type.IsMissing Then
+                Return New InvalidOperation(ImmutableArray(Of IOperation).Empty, _semanticModel, syntax, type, constantValue:=Nothing, isImplicit)
+            End If
+
             Dim knownParent As BoundNode = TryGetParent(boundRValuePlaceholder)
             Dim placeholderKind As PlaceholderKind = PlaceholderKind.Unspecified
 
