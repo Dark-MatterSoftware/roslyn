@@ -68,6 +68,102 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="4oelhelo 40 30 40 2 8 2 6").VerifyDiagnostics()
         End Sub
 
+        <Fact>
+        Public Sub SlicesTypesWithoutDefaultProperty()
+            Dim compilation = CreateCompilation("
+Class Chunk
+    Private ReadOnly _items As Integer()
+
+    Public Sub New(ParamArray items As Integer())
+        _items = items
+    End Sub
+
+    Public ReadOnly Property Length As Integer
+        Get
+            Return _items.Length
+        End Get
+    End Property
+
+    Public Function Slice(start As Integer, count As Integer) As Chunk
+        Dim part(count - 1) As Integer
+        System.Array.Copy(_items, start, part, 0, count)
+        Return New Chunk(part)
+    End Function
+
+    Public Overrides Function ToString() As String
+        Return String.Join("","", _items)
+    End Function
+End Class
+
+Module Program
+    Private Calls As Integer
+
+    Function Make() As Chunk
+        Calls += 1
+        Return New Chunk(5, 6, 7, 8)
+    End Function
+
+    ReadOnly Property Held As Chunk
+        Get
+            Return New Chunk(9, 8, 7)
+        End Get
+    End Property
+
+    Sub Main()
+        Dim c As New Chunk(1, 2, 3, 4, 5)
+        System.Console.Write(c(1..3).ToString() & "" "" & c(^2..).ToString() & "" "" & c(..^3).ToString() & "" "" & Make()(1..^1).ToString() & "" "" & Calls & "" "" & (Held)(2..).ToString())
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="2,3 4,5 1,2 6,7 1 7").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub IndexFromEndStillNeedsDefaultProperty()
+            Dim compilation = CreateCompilation("
+Class Chunk
+    Public ReadOnly Property Length As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+
+    Public Function Slice(start As Integer, count As Integer) As Chunk
+        Return Me
+    End Function
+End Class
+
+Module Program
+    Sub Main()
+        Dim c As New Chunk()
+        Dim last = c(^1)
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NoDefaultNotExtend1, "c").WithArguments("Chunk").WithLocation(17, 20))
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub SlicesMemory()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Sub Main()
+        Dim mem As Memory(Of Integer) = New Integer() {5, 6, 7, 8}
+        Dim ro As ReadOnlyMemory(Of Char) = ""hello"".AsMemory()
+        Dim r As Range = 1..^1
+        Console.Write(mem(1..3).Length & "" "" & mem(r).Span(0) & "" "" & ro(r).ToString() & "" "" & ro(^2..).ToString())
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="2 6 ell lo", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
         <ConditionalFact(GetType(CoreClrOnly))>
         Public Sub SlicesListsThroughSlice()
             Dim compilation = CreateCompilation("

@@ -4464,6 +4464,52 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End If
 
+            Return BindPatternIndexOrSlice(node, target, typeChar, DirectCast(group, BoundPropertyGroup), receiver, argument, argumentNames, diagnostics, callerInfoOpt)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, mem(1..3) on a type without a default property, such as Memory(Of T), slices it by the C# 8
+        ''' pattern, which needs only a Count or Length and a Slice method.
+        ''' </summary>
+        Friend Function TryBindSliceWithoutDefaultProperty(node As InvocationExpressionSyntax,
+                                                           receiver As BoundExpression,
+                                                           boundArguments As ImmutableArray(Of BoundExpression),
+                                                           argumentNames As ImmutableArray(Of String),
+                                                           diagnostics As BindingDiagnosticBag) As BoundExpression
+            If Compilation.LanguageVersion < LanguageVersion.VbNext OrElse boundArguments.Length <> 1 OrElse
+               (Not argumentNames.IsDefault AndAlso argumentNames.Length > 0) OrElse ContainingMember Is Nothing OrElse
+               receiver.Type Is Nothing OrElse receiver.Type.IsErrorType() Then
+                Return Nothing
+            End If
+
+            Dim argument = boundArguments(0)
+            If UnwrapRange(argument) Is Nothing AndAlso Not IsRangeValue(argument) Then
+                Return Nothing
+            End If
+
+            Return BindPatternIndexOrSlice(node, node.Expression, TypeCharacter.None, Nothing, MakeRValue(receiver, diagnostics), argument, argumentNames, diagnostics, Nothing)
+        End Function
+
+        ''' <summary>
+        ''' The pattern index or slice of the receiver. Without a default property, only a slice binds.
+        ''' </summary>
+        Private Function BindPatternIndexOrSlice(node As SyntaxNode,
+                                                 target As SyntaxNode,
+                                                 typeChar As TypeCharacter,
+                                                 propertyGroupOpt As BoundPropertyGroup,
+                                                 receiver As BoundExpression,
+                                                 argument As BoundExpression,
+                                                 argumentNames As ImmutableArray(Of String),
+                                                 diagnostics As BindingDiagnosticBag,
+                                                 callerInfoOpt As SyntaxNode) As BoundExpression
+            Dim fromEnd = UnwrapFromEndIndex(argument)
+            Dim range = UnwrapRange(argument)
+            Dim isIndex = fromEnd IsNot Nothing OrElse IsIndexValue(argument)
+            Dim isRange = range IsNot Nothing OrElse IsRangeValue(argument)
+            If isIndex AndAlso propertyGroupOpt Is Nothing Then
+                Return Nothing
+            End If
+
             Dim useSiteInfo = GetNewCompoundUseSiteInfo(diagnostics)
             Dim lengthGetter = FindCountOrLength(receiver.Type, useSiteInfo)
             Dim slice As MethodSymbol = Nothing
@@ -4496,8 +4542,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim index = If(fromEnd IsNot Nothing,
                                New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, lengthGetter, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
                                IndexValueOffset(argument, SpanLength(receiver, lengthGetter, syntax, int32Type), int32Type, diagnostics))
-                Dim propertyGroup = DirectCast(group, BoundPropertyGroup)
-                Dim rebound = propertyGroup.Update(propertyGroup.Properties, propertyGroup.ResultKind, receiver, propertyGroup.QualificationKind)
+                Dim rebound = propertyGroupOpt.Update(propertyGroupOpt.Properties, propertyGroupOpt.ResultKind, receiver, propertyGroupOpt.QualificationKind)
                 result = BindInvocationExpression(node, target, typeChar, rebound, ImmutableArray.Create(Of BoundExpression)(index), argumentNames, diagnostics, callerInfoOpt)
             Else
                 Dim startValue As BoundExpression = Nothing

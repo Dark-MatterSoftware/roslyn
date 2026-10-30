@@ -444,6 +444,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                 diagnostics)
                         End If
                     Else
+                        Dim slice = TryBindSliceWithoutDefaultProperty(node, target, boundArguments, argumentNames, diagnostics)
+                        If slice IsNot Nothing Then
+                            hasIndexableTarget = True
+                            Return slice
+                        End If
+
                         ReportNoDefaultProperty(target, diagnostics)
                     End If
                 End If
