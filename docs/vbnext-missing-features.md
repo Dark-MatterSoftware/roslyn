@@ -364,6 +364,15 @@ Checked against this tree after wave 22, by compiling and running against .NET 1
 | VB-154 | `[Delegate]` and `MulticastDelegate` constraints | Done in phase 130: on `vbnext`, both can constrain a type parameter. Before that, `Function Combine(Of T As [Delegate])(a As T, b As T) As T` reports BC32061, "'[Delegate]' cannot be used as a type constraint", though `[Enum]` already can be one. C# 7.3 allows `where T : System.Delegate` and `where T : System.MulticastDelegate`. No new syntax. |
 | VB-155 | Operations for `With` on structures and anonymous types | Done in phase 135: both report `IWithOperation`, except an anonymous type's `With` whose value reads the original, which C# cannot write. Found in phase 133. `spot With {.X = 5}` and `anon With {.B = 3}` report `OperationKind.None` to analyzers, because phases 97 and 98 bind the copy to a sequence of a temporary and member assignments. C# reports `IWithOperation` for `with` on structures and anonymous types. No new syntax. |
 
+## Wave 26
+
+Checked against this tree after wave 25, by compiling and running against .NET 11 with `LangVersion` `vbnext` features of C# 8 to 14 and .NET 8 to 11 that earlier waves had not probed. Several shapes already work: `"abc"u8`; `Const Message As String = $"{Greeting} there"`; `<SkipLocalsInit>`; `MemoryExtensions.TryWrite(buffer.AsSpan(), $"n={42}", written)` through its interpolated string handler; `IntPtr` arithmetic; `String.Concat` with five arguments; an `Overrides Function Clone() As Dog` that narrows the base return type; and `span(^1)` and `span(1..3)` on a `ReadOnlySpan(Of Integer)`. `Dim p As IntPtr = 5` reports BC30512 under `Option Strict On`, because `IntPtr` declares only an explicit conversion from `Integer`; C# 11 allows it only because `IntPtr` is its `nint`, a language type Visual Basic does not have, so it is not listed.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-156 | `NameOf` of parameters in attributes | Open. `Sub Check(<NotNullIfNotNull(NameOf(value))> value As String)` and `Function Echo(value As String) As <NotNullIfNotNull(NameOf(value))> String` report BC30451, "'value' is not declared", because a method's parameters are not in scope in its attributes. C# 11 puts them in scope for `nameof` in attributes on the method, its parameters, and its return value, which the nullable attributes of .NET name their parameters with. No new syntax. |
+| VB-157 | Index and range on lists and strings | Open. `list(^1)` and `s(^1)` report BC37358, "An index from the end can only be used as an array index", and `list(1..3)` and `s(1..3)` report BC37359, though arrays and spans take both. C# 8 indexes any type with a `Count` or `Length` and an `Integer` indexer from the end, and slices any type with a `Count` or `Length` and a `Slice(start, length)` method, and a `String` through `Substring`. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -667,3 +676,10 @@ The record that cannot compile comes first, then the convenience that needs a de
 | # | Id | Feature | Rank | Why this slot |
 | --- | --- | --- | --- | --- |
 | 1 | VB-154 | `[Delegate]` and `MulticastDelegate` constraints | S | Lifts one constraint check, as `[Enum]` is already allowed. |
+
+### Wave 26 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-156 | `NameOf` of parameters in attributes | S | Widens one lookup scope, inside `NameOf` only. |
+| 2 | VB-157 | Index and range on lists and strings | M | Extends the array index and slice of earlier waves to the patterns C# 8 binds. |
