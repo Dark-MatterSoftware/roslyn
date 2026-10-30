@@ -253,5 +253,65 @@ End Module
         Public Async Function InvokeMissingAfterAddressOfLocalOn17_13() As Task
             Await VerifyItemIsAbsentAsync(AddressOfLocal("17.13"), "Invoke")
         End Function
+
+        Private Shared Function NameOfInAttribute(languageVersion As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""" & languageVersion & """>
+        <Document>
+Class NoteAttribute
+    Inherits System.Attribute
+    Sub New(name As String)
+    End Sub
+End Class
+
+Module M
+    &lt;Note(NameOf($$))&gt;
+    Sub F(count As Integer)
+    End Sub
+End Module
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function ParameterInNameOfInAttribute() As Task
+            Await VerifyItemExistsAsync(NameOfInAttribute("vbnext"), "count")
+        End Function
+
+        <Fact>
+        Public Async Function ParameterMissingInNameOfInAttributeOn17_13() As Task
+            Await VerifyItemIsAbsentAsync(NameOfInAttribute("17.13"), "count")
+        End Function
+
+        <Fact>
+        Public Async Function StringMembersAfterStringRange() As Task
+            Await VerifyItemExistsAsync("<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Module M
+    Sub F(s As String)
+        s(1..3).$$
+    End Sub
+End Module
+        </Document>
+    </Project>
+</Workspace>", "Length")
+        End Function
+
+        <Fact>
+        Public Async Function ElementMembersAfterListIndexFromEnd() As Task
+            Await VerifyItemExistsAsync("<Workspace>
+    <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Module M
+    Sub F(values As System.Collections.Generic.List(Of String))
+        values(^1).$$
+    End Sub
+End Module
+        </Document>
+    </Project>
+</Workspace>", "Length")
+        End Function
     End Class
 End Namespace

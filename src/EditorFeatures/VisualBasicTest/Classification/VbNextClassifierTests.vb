@@ -579,5 +579,33 @@ End Module",
                 [Class]("FromQuery"),
                 Parameter("id"))
         End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestWaveTwentySixForms(testHost As TestHost) As Task
+            Await TestAsync("Class NoteAttribute
+    Inherits System.Attribute
+    Sub New(name As String)
+    End Sub
+End Class
+Module M
+    <Note(NameOf(count))>
+    Sub F(count As Integer, values As System.Collections.Generic.List(Of Integer), s As String)
+        Dim last = values(^1)
+        Dim part = s(1..3)
+    End Sub
+End Module",
+                testHost,
+                s_vbNext,
+                [Namespace]("System"),
+                [Class]("Attribute"),
+                [Class]("Note"),
+                Parameter("count"),
+                [Namespace]("System"),
+                [Namespace]("Collections"),
+                [Namespace]("Generic"),
+                [Class]("List"),
+                Parameter("values"),
+                Parameter("s"))
+        End Function
     End Class
 End Namespace

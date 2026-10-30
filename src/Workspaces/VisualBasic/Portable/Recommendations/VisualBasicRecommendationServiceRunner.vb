@@ -129,6 +129,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Recommendations
                 Dim lookupPosition = _context.TargetToken.SpanStart
                 If _context.FollowsEndOfStatement Then
                     lookupPosition = _context.Position
+                ElseIf _context.IsNameOfContext Then
+                    ' Inside the parentheses, where a method's parameters are in scope for NameOf in its attributes.
+                    lookupPosition = _context.TargetToken.Span.End
                 End If
 
                 Dim symbols = If(

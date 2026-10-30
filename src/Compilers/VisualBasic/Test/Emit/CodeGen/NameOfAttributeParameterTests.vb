@@ -76,6 +76,33 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub LookupSymbolsFindsParametersOnlyInsideNameOf()
+            Dim source = NoteAttribute & "
+Class C
+    <Note(NameOf(count))>
+    Sub Counted(count As Integer)
+    End Sub
+
+    <Note(NameOf())>
+    Sub Empty(size As Integer)
+    End Sub
+End Class
+"
+            Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+
+            Dim inside = source.IndexOf("NameOf(count)", StringComparison.Ordinal) + "NameOf(".Length
+            Dim outside = source.IndexOf("Note(NameOf(count)", StringComparison.Ordinal) + "Note(".Length
+            Dim empty = source.IndexOf("NameOf())", StringComparison.Ordinal) + "NameOf(".Length
+
+            Assert.Contains("count", model.LookupNames(inside))
+            Assert.Equal("count As Integer", model.LookupSymbols(inside, name:="count").Single().ToDisplayString())
+            Assert.DoesNotContain("count", model.LookupNames(outside))
+            Assert.Contains("size", model.LookupNames(empty))
+        End Sub
+
+        <Fact>
         Public Sub RejectedOn17_13()
             Dim compilation = CreateCompilation(NoteAttribute & "
 Class C

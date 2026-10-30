@@ -1367,6 +1367,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     current = current.Parent
                     ' Proceed to the end of If statement
 
+                ElseIf current IsNot binderRoot AndAlso InNameOfArgumentInterior(current, position) Then
+                    Return New NameOfArgumentBinder(GetEnclosingBinderInternal(memberBinder, binderRoot, current.Parent, position))
+
                 End If
 
                 binder = memberBinder.GetBinder(current)
@@ -1380,6 +1383,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 current = current.Parent
             Loop
+        End Function
+
+        ''' <summary>
+        ''' Whether position is between the parentheses of a NameOf, where lookups are for NameOf, as binding
+        ''' the argument through a <see cref="NameOfArgumentBinder"/> marks them.
+        ''' </summary>
+        Private Shared Function InNameOfArgumentInterior(node As SyntaxNode, position As Integer) As Boolean
+            If node.Kind <> SyntaxKind.NameOfExpression Then
+                Return False
+            End If
+
+            Dim nameOfSyntax = DirectCast(node, NameOfExpressionSyntax)
+            Return position > nameOfSyntax.OpenParenToken.SpanStart AndAlso
+                   (nameOfSyntax.CloseParenToken.IsMissing OrElse position <= nameOfSyntax.CloseParenToken.SpanStart)
         End Function
 
         ''' <summary>

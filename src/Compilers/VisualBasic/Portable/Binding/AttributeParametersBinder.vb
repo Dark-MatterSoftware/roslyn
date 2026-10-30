@@ -52,6 +52,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
         End Sub
 
+        Friend Overrides Sub AddLookupSymbolsInfoInSingleBinder(nameSet As LookupSymbolsInfo,
+                                                                options As LookupOptions,
+                                                                originalBinder As Binder)
+            If (options And (LookupOptions.NamespacesOrTypesOnly Or LookupOptions.LabelsOnly)) <> 0 OrElse Not IsInNameOf(originalBinder) Then
+                Return
+            End If
+
+            For Each parameter In _method.Parameters
+                If originalBinder.CanAddLookupSymbolInfo(parameter, options, nameSet, Nothing) Then
+                    nameSet.AddSymbol(parameter, parameter.Name, 0)
+                End If
+            Next
+        End Sub
+
         Private Function IsInNameOf(originalBinder As Binder) As Boolean
             Dim current = originalBinder
             While current IsNot Nothing AndAlso current IsNot Me

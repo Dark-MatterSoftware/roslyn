@@ -709,6 +709,45 @@ End Module", code, position)
         End Function
 
         <Fact>
+        Public Async Function TestNameOfParameterInAttribute() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Class NoteAttribute
+    Inherits System.Attribute
+    Sub New(name As String)
+    End Sub
+End Class
+
+Module M
+    <Note(NameOf(cou$$nt))>
+    Sub F(count As Integer)
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.parameter}) count As Integer"))
+            End Using
+        End Function
+
+        <Fact>
+        Public Async Function TestIndexFromEndAndRangeOnListAndString() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Module M
+    Sub F(values As System.Collections.Generic.List(Of Integer), s As String)
+        Dim last = values(^1)
+        Dim pa$$rt = s(1..3)
+    End Sub
+End Module", code, position)
+
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.local_variable}) part As String"))
+            End Using
+        End Function
+
+        <Fact>
         Public Async Function TestInt32() As Task
             Await TestInClassAsync("Dim i As $$Int32",
              MainDescription("Structure System.Int32"))
