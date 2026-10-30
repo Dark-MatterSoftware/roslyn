@@ -373,6 +373,16 @@ Checked against this tree after wave 25, by compiling and running against .NET 1
 | VB-156 | `NameOf` of parameters in attributes | Done in phase 137: on `vbnext`, a method's parameters are in scope for `NameOf` in the attributes of the method, its parameters, and its return type. Before that, `Sub Check(<NotNullIfNotNull(NameOf(value))> value As String)` and `Function Echo(value As String) As <NotNullIfNotNull(NameOf(value))> String` report BC30451, "'value' is not declared", because a method's parameters are not in scope in its attributes. C# 11 puts them in scope for `nameof` in attributes on the method, its parameters, and its return value, which the nullable attributes of .NET name their parameters with. No new syntax. |
 | VB-157 | Index and range on lists and strings | Done in phase 138: on `vbnext`, `list(^1)` and `s(^1)` index from the end of any type with a `Count` or `Length` and an `Integer` indexer, and `list(1..3)` and `s(1..3)` slice any type with a `Count` or `Length` and a `Slice(start, length)` method, and a `String` through `Substring`, evaluating the receiver once, as C# 8 does. `List(Of T)` slices on .NET 8 or later, where it has `Slice`. Visual Basic 17.13 still reports BC37358 and BC37359. No new syntax. |
 
+## Wave 27
+
+Checked against this tree after wave 26, by compiling and running against .NET 11 with `LangVersion` `vbnext` the shapes that wave 26 code meets next, with a C# library and a C# program alongside. Several shapes already work: `list(^1) += 10`; `Bump(list(^2))` to a `ByRef` parameter, which writes the result back; `w(^1) = 30` through a C# `ref` indexer; `arr(^1) += 1` and `arr(1..^1)`; `Dim imm As ImmutableArray(Of Integer) = {1, 2, 3}`; `NameOf(T)` in an attribute on a generic method; and `NameOf` of a parameter in an attribute on a lambda parameter or on a `Delegate` declaration's parameter, in compilation. Using a C# API marked `<Experimental("LIB001")>` reports warning LIB001 in Visual Basic and error LIB001 in C#; both come that way from upstream, and the difference is not planned for wave 27.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-158 | Index and range values | Open. `^1` and `1..3` are allowed only as the argument of an index or a slice, so `Dim i As Index = ^1` reports BC37358 and `Dim r As Range = 1..3` reports BC37359, and an index or slice with a variable of type `Index` or `Range`, such as `list(i)`, `arr(i)`, or `s(r)`, reports BC30311, "Value of type 'Index' cannot be converted to 'Integer'". C# 8 gives `^1` the type `System.Index` and `1..3` the type `System.Range`, and indexes and slices with values of those types. No new syntax. |
+| VB-159 | Range on types without an indexer | Open. `mem(1..3)` on a `Memory(Of Integer)` reports BC30690, "Structure 'Memory(Of Integer)' cannot be indexed because it has no default property", though it has `Length` and `Slice(start, length)`. C# 8 slices any type with a `Count` or `Length` and a `Slice` method, with or without an indexer. No new syntax. |
+| VB-160 | `NameOf` of property parameters in attributes | Open. `Default ReadOnly Property Item(<Note(NameOf(key))> key As String)` reports BC30451, "'key' is not declared", because phase 137 put only a method's parameters in scope. C# 11 finds an indexer's parameters in `nameof` in attributes on them. The semantic model also does not give the parameter for `NameOf` in attributes on a `Delegate` declaration's parameters, though compilation accepts it. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -683,3 +693,11 @@ The record that cannot compile comes first, then the convenience that needs a de
 | --- | --- | --- | --- | --- |
 | 1 | VB-156 | `NameOf` of parameters in attributes | S | Widens one lookup scope, inside `NameOf` only. |
 | 2 | VB-157 | Index and range on lists and strings | M | Extends the array index and slice of earlier waves to the patterns C# 8 binds. |
+
+### Wave 27 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-158 | Index and range values | M | Gives `^` and `..` the types C# 8 gives them, which the index and slice of every earlier wave then take. |
+| 2 | VB-159 | Range on types without an indexer | S | Lets the phase 138 slice pattern apply before the default property is required. |
+| 3 | VB-160 | `NameOf` of property parameters in attributes | S | Widens the phase 137 scope to property parameters, and brings the semantic model to delegates. |
