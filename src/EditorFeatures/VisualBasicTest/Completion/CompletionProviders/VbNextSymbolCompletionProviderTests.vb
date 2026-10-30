@@ -1,4 +1,4 @@
-' Licensed to the .NET Foundation under one or more agreements.
+﻿' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -282,6 +282,73 @@ End Module
         <Fact>
         Public Async Function ParameterMissingInNameOfInAttributeOn17_13() As Task
             Await VerifyItemIsAbsentAsync(NameOfInAttribute("17.13"), "count")
+        End Function
+
+        Private Shared Function WaveTwentySeven(body As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferencesNet6=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Imports System
+
+Class NoteAttribute
+    Inherits Attribute
+    Sub New(name As String)
+    End Sub
+End Class
+" & body & "
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function IndexMembersAfterIndexValue() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim fromEnd = ^1
+        fromEnd.$$
+    End Sub
+End Module"), "IsFromEnd")
+        End Function
+
+        <Fact>
+        Public Async Function RangeMembersAfterRangeValue() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim r = 1..^1
+        r.$$
+    End Sub
+End Module"), "Start")
+        End Function
+
+        <Fact>
+        Public Async Function MemoryMembersAfterMemorySlice() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F(mem As Memory(Of Integer))
+        mem(1..3).$$
+    End Sub
+End Module"), "Span")
+        End Function
+
+        <Fact>
+        Public Async Function PropertyParameterInNameOfInAttribute() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Class Table
+    Default ReadOnly Property Item(&lt;Note(NameOf($$))&gt; key As String) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+End Class"), "key")
+        End Function
+
+        <Fact>
+        Public Async Function DelegateParameterInNameOfInAttribute() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Delegate Function Mapper(&lt;Note(NameOf($$))&gt; value As String) As String"), "value")
         End Function
 
         <Fact>

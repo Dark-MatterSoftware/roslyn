@@ -1,4 +1,4 @@
-' Licensed to the .NET Foundation under one or more agreements.
+﻿' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -728,6 +728,62 @@ End Module", code, position)
             Using workspace = EditorTestWorkspace.CreateVisualBasic(code, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext))
                 Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.parameter}) count As Integer"))
             End Using
+        End Function
+
+        Private Shared Function WaveTwentySeven(body As String) As String
+            Return "<Workspace>
+    <Project Language=""Visual Basic"" CommonReferencesNet6=""true"" LanguageVersion=""vbnext"">
+        <Document>
+Imports System
+
+Class NoteAttribute
+    Inherits Attribute
+    Sub New(name As String)
+    End Sub
+End Class
+" & body & "
+        </Document>
+    </Project>
+</Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function TestIndexValue() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim fro$$mEnd = ^1
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) fromEnd As Index"))
+        End Function
+
+        <Fact>
+        Public Async Function TestRangeValueSlice() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F(mem As Memory(Of Integer))
+        Dim r As Range = 1..^1
+        Dim pa$$rt = mem(r)
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) part As Memory(Of Integer)"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNameOfPropertyParameterInAttribute() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Class Table
+    Default ReadOnly Property Item(&lt;Note(NameOf(k$$ey))&gt; key As String) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+End Class"), MainDescription($"({FeaturesResources.parameter}) key As String"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNameOfDelegateParameterInAttribute() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Delegate Function Mapper(&lt;Note(NameOf(val$$ue))&gt; value As String) As String"), MainDescription($"({FeaturesResources.parameter}) value As String"))
         End Function
 
         <Fact>

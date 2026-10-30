@@ -607,5 +607,33 @@ End Module",
                 Parameter("values"),
                 Parameter("s"))
         End Function
+
+        <Theory, CombinatorialData>
+        Public Async Function TestWaveTwentySevenForms(testHost As TestHost) As Task
+            Await TestAsync("Class NoteAttribute
+    Inherits System.Attribute
+    Sub New(name As String)
+    End Sub
+End Class
+Class Table
+    <Note(NameOf(key))>
+    Default ReadOnly Property Item(<Note(NameOf(key))> key As String) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+End Class
+Delegate Function Mapper(<Note(NameOf(value))> value As String) As String",
+                testHost,
+                s_vbNext,
+                [Namespace]("System"),
+                [Class]("Attribute"),
+                [Class]("Note"),
+                Parameter("key"),
+                [Class]("Note"),
+                Parameter("key"),
+                [Class]("Note"),
+                Parameter("value"))
+        End Function
     End Class
 End Namespace
