@@ -400,6 +400,16 @@ Checked against this tree after wave 28, by compiling and running against .NET 1
 | VB-162 | Operations for index and range | Done in phase 146: on `vbnext`, `^1` and `1..3` are `Hat` and range operations, and `list(^1)`, `s(1..3)`, and `span(r)` are implicit indexer references, as C# reports them. Before that, analyzers see `^1` and `1..3` as `OperationKind.None`, and `list(^1)`, `s(1..3)`, and `span(^1)` as the sequences that phases 138 to 141 bind them to. C# reports `^1` as an `IUnaryOperation` of kind `Hat`, `1..3` as an `IRangeOperation`, and an index or slice by the pattern as an `IImplicitIndexerReferenceOperation`. No new syntax. |
 | VB-163 | Open-ended range at the end of a line | Open. Found in phase 146. `Dim d = 3..` reports BC30201, "Expression expected", on the next line, because `..` at the end of a line continues the statement onto the next line; `Dim d = (3..)` and `Show(3..)` compile. C# 8 writes `var d = 3..;`. Not yet planned. |
 
+## Wave 30
+
+Checked against this tree after wave 29, by compiling and running against .NET 11 with `LangVersion` `vbnext` the deconstruction shapes that C# 7 code writes, with a C# program alongside. Several shapes already work: `(a, b) = (b, a)`, which swaps two locals; `(n, s) = Pair()` into existing variables; and `Dim (n, ) = Pair()`, which skips a slot, as slice 5c spells a discard where C# writes `_`. VB-163, an open-ended range at the end of a line, stays logged and is not planned for wave 30.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-164 | Empty slots in `For Each` deconstruction | Open. `For Each (k, ) In pairs` reports BC30203, "Identifier expected", though slice 5c skips an empty slot in `Dim (x, , z) = point` and `(x, , z) = point`. C# 7 writes `foreach (var (k, _) in pairs)`. No new syntax: the slot is spelled as slice 5c spells it. |
+| VB-165 | Deconstruction into properties, fields, and array elements | Open. `(box.Width, cells(1)) = (7, 8)` reports BC30198, "')' expected", because slice 5b assigns only into variables named alone. C# 7 assigns each element into any variable, property, field, or array element. No new syntax: the targets are the left-hand sides that an assignment already takes. |
+| VB-166 | Nested deconstruction | Open. `Dim ((x, y), label) = Nested()` reports BC30638, "Array bounds cannot appear in type specifiers". C# 7 writes `var ((x, y), label) = Nested();` and the same in assignments and `foreach`. New syntax: parentheses nested in the deconstruction list, locked in slice 149a. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -730,3 +740,11 @@ The record that cannot compile comes first, then the convenience that needs a de
 | # | Id | Feature | Rank | Why this slot |
 | --- | --- | --- | --- | --- |
 | 1 | VB-162 | Operations for index and range | M | Gives analyzers the operation kinds that C# reports for the index and range forms of waves 26 to 28, as VB-155 did for `With`. |
+
+### Wave 30 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-164 | Empty slots in `For Each` deconstruction | S | Brings the slice 5c slot to the `For Each` form of phase 39. |
+| 2 | VB-165 | Deconstruction into properties, fields, and array elements | M | Widens the slice 5b targets to every assignable left-hand side. |
+| 3 | VB-166 | Nested deconstruction | M | New syntax, so it needs a lock first; reuses the deconstruction of slices 5a to 5d at each level. |
