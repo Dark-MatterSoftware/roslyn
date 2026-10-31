@@ -758,6 +758,26 @@ End Module"), MainDescription($"({FeaturesResources.local_variable}) fromEnd As 
         End Function
 
         <Fact>
+        Public Async Function TestLiftedIndexValue() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F(n As Integer?)
+        Dim may$$be = ^n
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) maybe As Index?"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLiftedRangeValue() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F(n As Integer?)
+        Dim spa$$n = ..n
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) span As Range?"))
+        End Function
+
+        <Fact>
         Public Async Function TestRangeValueSlice() As Task
             Await TestFromXmlAsync(WaveTwentySeven("
 Module M

@@ -313,6 +313,28 @@ End Module"), "IsFromEnd")
         End Function
 
         <Fact>
+        Public Async Function NullableMembersAfterLiftedIndex() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F(n As Integer?)
+        Dim maybe = ^n
+        maybe.$$
+    End Sub
+End Module"), "HasValue")
+        End Function
+
+        <Fact>
+        Public Async Function NullableMembersAfterLiftedRange() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F(n As Integer?)
+        Dim r = ..n
+        r.$$
+    End Sub
+End Module"), "HasValue")
+        End Function
+
+        <Fact>
         Public Async Function RangeMembersAfterRangeValue() As Task
             Await VerifyItemExistsAsync(WaveTwentySeven("
 Module M
