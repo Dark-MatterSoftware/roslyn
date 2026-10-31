@@ -34,6 +34,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FromEndIndexExpression
         RefFieldAssignment
         RangeExpression
+        IndexOffset
+        PatternSlice
         ArrayLength
         [GetType]
         FieldInfo
@@ -954,6 +956,137 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(leftOperandOpt As BoundExpression, rightOperandOpt As BoundExpression, type As TypeSymbol) As BoundRangeExpression
             If leftOperandOpt IsNot Me.LeftOperandOpt OrElse rightOperandOpt IsNot Me.RightOperandOpt OrElse type IsNot Me.Type Then
                 Dim result = New BoundRangeExpression(Me.Syntax, leftOperandOpt, rightOperandOpt, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundIndexOffset
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, argument As BoundExpression, receiverOpt As BoundExpression, lengthOrCountOpt As PropertySymbol, value As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.IndexOffset, syntax, type, hasErrors OrElse argument.NonNullAndHasErrors() OrElse receiverOpt.NonNullAndHasErrors() OrElse value.NonNullAndHasErrors())
+
+            Debug.Assert(argument IsNot Nothing, "Field 'argument' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(value IsNot Nothing, "Field 'value' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._Argument = argument
+            Me._ReceiverOpt = receiverOpt
+            Me._LengthOrCountOpt = lengthOrCountOpt
+            Me._Value = value
+        End Sub
+
+
+        Private ReadOnly _Argument As BoundExpression
+        Public ReadOnly Property Argument As BoundExpression
+            Get
+                Return _Argument
+            End Get
+        End Property
+
+        Private ReadOnly _ReceiverOpt As BoundExpression
+        Public ReadOnly Property ReceiverOpt As BoundExpression
+            Get
+                Return _ReceiverOpt
+            End Get
+        End Property
+
+        Private ReadOnly _LengthOrCountOpt As PropertySymbol
+        Public ReadOnly Property LengthOrCountOpt As PropertySymbol
+            Get
+                Return _LengthOrCountOpt
+            End Get
+        End Property
+
+        Private ReadOnly _Value As BoundExpression
+        Public ReadOnly Property Value As BoundExpression
+            Get
+                Return _Value
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitIndexOffset(Me)
+        End Function
+
+        Public Function Update(argument As BoundExpression, receiverOpt As BoundExpression, lengthOrCountOpt As PropertySymbol, value As BoundExpression, type As TypeSymbol) As BoundIndexOffset
+            If argument IsNot Me.Argument OrElse receiverOpt IsNot Me.ReceiverOpt OrElse lengthOrCountOpt IsNot Me.LengthOrCountOpt OrElse value IsNot Me.Value OrElse type IsNot Me.Type Then
+                Dim result = New BoundIndexOffset(Me.Syntax, argument, receiverOpt, lengthOrCountOpt, value, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundPatternSlice
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, receiver As BoundExpression, argument As BoundExpression, lengthOrCount As PropertySymbol, sliceMethod As MethodSymbol, value As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.PatternSlice, syntax, type, hasErrors OrElse receiver.NonNullAndHasErrors() OrElse argument.NonNullAndHasErrors() OrElse value.NonNullAndHasErrors())
+
+            Debug.Assert(receiver IsNot Nothing, "Field 'receiver' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(argument IsNot Nothing, "Field 'argument' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(lengthOrCount IsNot Nothing, "Field 'lengthOrCount' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(sliceMethod IsNot Nothing, "Field 'sliceMethod' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(value IsNot Nothing, "Field 'value' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._Receiver = receiver
+            Me._Argument = argument
+            Me._LengthOrCount = lengthOrCount
+            Me._SliceMethod = sliceMethod
+            Me._Value = value
+        End Sub
+
+
+        Private ReadOnly _Receiver As BoundExpression
+        Public ReadOnly Property Receiver As BoundExpression
+            Get
+                Return _Receiver
+            End Get
+        End Property
+
+        Private ReadOnly _Argument As BoundExpression
+        Public ReadOnly Property Argument As BoundExpression
+            Get
+                Return _Argument
+            End Get
+        End Property
+
+        Private ReadOnly _LengthOrCount As PropertySymbol
+        Public ReadOnly Property LengthOrCount As PropertySymbol
+            Get
+                Return _LengthOrCount
+            End Get
+        End Property
+
+        Private ReadOnly _SliceMethod As MethodSymbol
+        Public ReadOnly Property SliceMethod As MethodSymbol
+            Get
+                Return _SliceMethod
+            End Get
+        End Property
+
+        Private ReadOnly _Value As BoundExpression
+        Public ReadOnly Property Value As BoundExpression
+            Get
+                Return _Value
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitPatternSlice(Me)
+        End Function
+
+        Public Function Update(receiver As BoundExpression, argument As BoundExpression, lengthOrCount As PropertySymbol, sliceMethod As MethodSymbol, value As BoundExpression, type As TypeSymbol) As BoundPatternSlice
+            If receiver IsNot Me.Receiver OrElse argument IsNot Me.Argument OrElse lengthOrCount IsNot Me.LengthOrCount OrElse sliceMethod IsNot Me.SliceMethod OrElse value IsNot Me.Value OrElse type IsNot Me.Type Then
+                Dim result = New BoundPatternSlice(Me.Syntax, receiver, argument, lengthOrCount, sliceMethod, value, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9636,6 +9769,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitRefFieldAssignment(CType(node, BoundRefFieldAssignment), arg)
                 Case BoundKind.RangeExpression
                     Return VisitRangeExpression(CType(node, BoundRangeExpression), arg)
+                Case BoundKind.IndexOffset
+                    Return VisitIndexOffset(CType(node, BoundIndexOffset), arg)
+                Case BoundKind.PatternSlice
+                    Return VisitPatternSlice(CType(node, BoundPatternSlice), arg)
                 Case BoundKind.ArrayLength
                     Return VisitArrayLength(CType(node, BoundArrayLength), arg)
                 Case BoundKind.[GetType]
@@ -10036,6 +10173,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitRangeExpression(node As BoundRangeExpression, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitIndexOffset(node As BoundIndexOffset, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitPatternSlice(node As BoundPatternSlice, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10763,6 +10908,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11504,6 +11657,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
             Me.Visit(node.LeftOperandOpt)
             Me.Visit(node.RightOperandOpt)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
+            Me.Visit(node.Value)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
+            Me.Visit(node.Value)
             Return Nothing
         End Function
 
@@ -12500,6 +12663,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim rightOperandOpt As BoundExpression = DirectCast(Me.Visit(node.RightOperandOpt), BoundExpression)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(leftOperandOpt, rightOperandOpt, type)
+        End Function
+
+        Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
+            Dim argument As BoundExpression = node.Argument
+            Dim receiverOpt As BoundExpression = node.ReceiverOpt
+            Dim value As BoundExpression = DirectCast(Me.Visit(node.Value), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(argument, receiverOpt, node.LengthOrCountOpt, value, type)
+        End Function
+
+        Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
+            Dim receiver As BoundExpression = node.Receiver
+            Dim argument As BoundExpression = node.Argument
+            Dim value As BoundExpression = DirectCast(Me.Visit(node.Value), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(receiver, argument, node.LengthOrCount, node.SliceMethod, value, type)
         End Function
 
         Public Overrides Function VisitArrayLength(node As BoundArrayLength) As BoundNode
@@ -13655,6 +13834,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New TreeDumperNode("rangeExpression", Nothing, New TreeDumperNode() {
                 New TreeDumperNode("leftOperandOpt", Nothing, new TreeDumperNode() {Visit(node.LeftOperandOpt, Nothing)}),
                 New TreeDumperNode("rightOperandOpt", Nothing, new TreeDumperNode() {Visit(node.RightOperandOpt, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitIndexOffset(node As BoundIndexOffset, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("indexOffset", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("argument", Nothing, new TreeDumperNode() {Visit(node.Argument, Nothing)}),
+                New TreeDumperNode("receiverOpt", Nothing, new TreeDumperNode() {Visit(node.ReceiverOpt, Nothing)}),
+                New TreeDumperNode("lengthOrCountOpt", node.LengthOrCountOpt, Nothing),
+                New TreeDumperNode("value", Nothing, new TreeDumperNode() {Visit(node.Value, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitPatternSlice(node As BoundPatternSlice, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("patternSlice", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("receiver", Nothing, new TreeDumperNode() {Visit(node.Receiver, Nothing)}),
+                New TreeDumperNode("argument", Nothing, new TreeDumperNode() {Visit(node.Argument, Nothing)}),
+                New TreeDumperNode("lengthOrCount", node.LengthOrCount, Nothing),
+                New TreeDumperNode("sliceMethod", node.SliceMethod, Nothing),
+                New TreeDumperNode("value", Nothing, new TreeDumperNode() {Visit(node.Value, Nothing)}),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

@@ -397,7 +397,7 @@ Checked against this tree after wave 28, by compiling and running against .NET 1
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-162 | Operations for index and range | Partly done in slice 146a: on `vbnext`, `^1` and `1..3` are `Hat` and range operations; index and slice accesses are slice 146b. Before that, analyzers see `^1` and `1..3` as `OperationKind.None`, and `list(^1)`, `s(1..3)`, and `span(^1)` as the sequences that phases 138 to 141 bind them to. C# reports `^1` as an `IUnaryOperation` of kind `Hat`, `1..3` as an `IRangeOperation`, and an index or slice by the pattern as an `IImplicitIndexerReferenceOperation`. No new syntax. |
+| VB-162 | Operations for index and range | Done in phase 146: on `vbnext`, `^1` and `1..3` are `Hat` and range operations, and `list(^1)`, `s(1..3)`, and `span(r)` are implicit indexer references, as C# reports them. Before that, analyzers see `^1` and `1..3` as `OperationKind.None`, and `list(^1)`, `s(1..3)`, and `span(^1)` as the sequences that phases 138 to 141 bind them to. C# reports `^1` as an `IUnaryOperation` of kind `Hat`, `1..3` as an `IRangeOperation`, and an index or slice by the pattern as an `IImplicitIndexerReferenceOperation`. No new syntax. |
 | VB-163 | Open-ended range at the end of a line | Open. Found in phase 146. `Dim d = 3..` reports BC30201, "Expression expected", on the next line, because `..` at the end of a line continues the statement onto the next line; `Dim d = (3..)` and `Show(3..)` compile. C# 8 writes `var d = 3..;`. Not yet planned. |
 
 ## Parked

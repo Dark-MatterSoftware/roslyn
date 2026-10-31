@@ -79,7 +79,15 @@ Namespace Microsoft.CodeAnalysis.Operations
                 Case BoundKind.Lambda
                     Return CreateBoundLambdaOperation(DirectCast(boundNode, BoundLambda))
                 Case BoundKind.Call
-                    Return CreateBoundCallOperation(DirectCast(boundNode, BoundCall))
+                    Dim boundCall = DirectCast(boundNode, BoundCall)
+                    Return If(TryCreateImplicitIndexerReference(boundCall, boundCall.ReceiverOpt, boundCall.Arguments, boundCall.Method.AssociatedSymbol),
+                              CreateBoundCallOperation(boundCall))
+                Case BoundKind.IndexOffset
+                    Return Create(DirectCast(boundNode, BoundIndexOffset).Argument)
+                Case BoundKind.PatternSlice
+                    Dim slice = DirectCast(boundNode, BoundPatternSlice)
+                    Return New ImplicitIndexerReferenceOperation(Create(slice.Receiver), Create(slice.Argument), slice.LengthOrCount, slice.SliceMethod,
+                                                                 _semanticModel, slice.Syntax, slice.Type, slice.WasCompilerGenerated)
                 Case BoundKind.OmittedArgument
                     Return CreateBoundOmittedArgumentOperation(DirectCast(boundNode, BoundOmittedArgument))
                 Case BoundKind.Parenthesized
@@ -135,7 +143,9 @@ Namespace Microsoft.CodeAnalysis.Operations
                 Case BoundKind.ArrayInitialization
                     Return CreateBoundArrayInitializationOperation(DirectCast(boundNode, BoundArrayInitialization))
                 Case BoundKind.PropertyAccess
-                    Return CreateBoundPropertyAccessOperation(DirectCast(boundNode, BoundPropertyAccess))
+                    Dim propertyAccess = DirectCast(boundNode, BoundPropertyAccess)
+                    Return If(TryCreateImplicitIndexerReference(propertyAccess, propertyAccess.ReceiverOpt, propertyAccess.Arguments, propertyAccess.PropertySymbol),
+                              CreateBoundPropertyAccessOperation(propertyAccess))
                 Case BoundKind.EventAccess
                     Return CreateBoundEventAccessOperation(DirectCast(boundNode, BoundEventAccess))
                 Case BoundKind.FieldAccess
@@ -339,6 +349,11 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Dim withCopy = TryCreateWithOperation(sequence)
                     If withCopy IsNot Nothing Then
                         Return withCopy
+                    End If
+
+                    ' list(^1) of a receiver that had to be stored is the implicit indexer reference of its value.
+                    If sequence.ValueOpt IsNot Nothing AndAlso IsImplicitIndexerAccess(sequence.ValueOpt) Then
+                        Return Create(sequence.ValueOpt)
                     End If
 
                     Return New NoneOperation(GetIOperationChildren(sequence), _semanticModel, sequence.Syntax, sequence.Type, sequence.ConstantValueOpt, sequence.WasCompilerGenerated)
@@ -667,6 +682,40 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim isChecked As Boolean = boundUnaryOperator.Checked
             Dim isImplicit As Boolean = boundUnaryOperator.WasCompilerGenerated
             Return New UnaryOperation(operatorKind, operand, isLifted, isChecked, operatorMethod, constrainedToType:=Nothing, _semanticModel, syntax, type, constantValue, isImplicit)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, list(^1) or span(i) by the pattern is an implicit indexer reference to the receiver, with the
+        ''' source index argument and the length and indexer symbols, as C# reports it.
+        ''' </summary>
+        Private Function TryCreateImplicitIndexerReference(access As BoundExpression, receiver As BoundExpression, arguments As ImmutableArray(Of BoundExpression), indexer As Symbol) As IOperation
+            Dim offset = GetPatternIndexOffset(arguments)
+            If offset Is Nothing OrElse indexer Is Nothing Then
+                Return Nothing
+            End If
+
+            Return New ImplicitIndexerReferenceOperation(Create(If(offset.ReceiverOpt, receiver)), Create(offset.Argument), offset.LengthOrCountOpt, indexer,
+                                                         _semanticModel, access.Syntax, access.Type, access.WasCompilerGenerated)
+        End Function
+
+        Private Shared Function GetPatternIndexOffset(arguments As ImmutableArray(Of BoundExpression)) As BoundIndexOffset
+            If arguments.Length <> 1 OrElse arguments(0).Kind <> BoundKind.IndexOffset Then
+                Return Nothing
+            End If
+
+            Dim offset = DirectCast(arguments(0), BoundIndexOffset)
+            Return If(offset.LengthOrCountOpt Is Nothing, Nothing, offset)
+        End Function
+
+        Private Shared Function IsImplicitIndexerAccess(value As BoundExpression) As Boolean
+            Select Case value.Kind
+                Case BoundKind.PropertyAccess
+                    Return GetPatternIndexOffset(DirectCast(value, BoundPropertyAccess).Arguments) IsNot Nothing
+                Case BoundKind.Call
+                    Return GetPatternIndexOffset(DirectCast(value, BoundCall).Arguments) IsNot Nothing
+                Case Else
+                    Return False
+            End Select
         End Function
 
         ''' <summary>

@@ -2597,6 +2597,33 @@ EnteredRegion:
             Return Nothing
         End Function
 
+        Public Overrides Function VisitFromEndIndexExpression(node As BoundFromEndIndexExpression) As BoundNode
+            VisitRvalue(node.Operand)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitRangeExpression(node As BoundRangeExpression) As BoundNode
+            If node.LeftOperandOpt IsNot Nothing Then
+                VisitRvalue(node.LeftOperandOpt)
+            End If
+
+            If node.RightOperandOpt IsNot Nothing Then
+                VisitRvalue(node.RightOperandOpt)
+            End If
+
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
+            VisitRvalue(node.Value)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
+            VisitRvalue(node.Value)
+            Return Nothing
+        End Function
+
         Public Overrides Function VisitConditionalGoto(node As BoundConditionalGoto) As BoundNode
             VisitCondition(node.Condition)
             Debug.Assert(Me.IsConditionalState)

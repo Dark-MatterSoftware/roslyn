@@ -8,6 +8,14 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend NotInheritable Class LocalRewriter
+        Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
+            Return Visit(node.Value)
+        End Function
+
+        Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
+            Return Visit(node.Value)
+        End Function
+
         ''' <summary>
         ''' ^n that no index consumed is the value New Index(n, fromEnd:=True). Of a nullable n, it is Nothing when
         ''' n is Nothing.

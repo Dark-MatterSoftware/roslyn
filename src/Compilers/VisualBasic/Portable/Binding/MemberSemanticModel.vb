@@ -2253,6 +2253,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return False
             End Function
 
+            Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
+                RecordConsumedIndexOrRange(node.Argument)
+                Return MyBase.VisitIndexOffset(node)
+            End Function
+
+            Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
+                RecordConsumedIndexOrRange(node.Argument)
+                Return MyBase.VisitPatternSlice(node)
+            End Function
+
+            ''' <summary>
+            ''' The ^n or a..b that an index or a slice consumed is kept outside the value it binds to, which reads its
+            ''' operands, so it is recorded without visiting them again. An Index or Range variable is in the value.
+            ''' </summary>
+            Private Sub RecordConsumedIndexOrRange(argument As BoundExpression)
+                Dim current = argument
+                While current IsNot Nothing
+                    Select Case current.Kind
+                        Case BoundKind.Parenthesized
+                            RecordConsumedNode(current)
+                            current = DirectCast(current, BoundParenthesized).Expression
+                        Case BoundKind.FromEndIndexExpression
+                            RecordConsumedNode(current)
+                            Return
+                        Case BoundKind.RangeExpression
+                            RecordConsumedNode(current)
+                            Dim range = DirectCast(current, BoundRangeExpression)
+                            RecordConsumedIndexOrRange(range.LeftOperandOpt)
+                            RecordConsumedIndexOrRange(range.RightOperandOpt)
+                            Return
+                        Case Else
+                            Return
+                    End Select
+                End While
+            End Sub
+
+            Private Sub RecordConsumedNode(node As BoundNode)
+                If RecordNode(node) Then
+                    _nodeCache.Add(node.Syntax, node)
+                End If
+            End Sub
+
             Public Overrides Function VisitBinaryOperator(node As BoundBinaryOperator) As BoundNode
                 If node.Left.Kind <> BoundKind.BinaryOperator Then
                     Return MyBase.VisitBinaryOperator(node)

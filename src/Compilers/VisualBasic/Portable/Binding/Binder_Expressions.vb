@@ -4246,9 +4246,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each argument In boundArguments
                 Dim fromEnd = UnwrapFromEndIndex(argument)
                 If fromEnd IsNot Nothing AndAlso receiver.Type IsNot Nothing AndAlso receiver.Type.IsArrayType() Then
-                    convertedArguments.Add(RewriteFromEndIndex(fromEnd, receiver, dimension, int32Type))
+                    convertedArguments.Add(MakeIndexOffset(argument, Nothing, Nothing, RewriteFromEndIndex(fromEnd, receiver, dimension, int32Type)))
                 ElseIf receiver.Type IsNot Nothing AndAlso receiver.Type.IsArrayType() AndAlso IsIndexValue(argument) Then
-                    convertedArguments.Add(IndexValueOffset(argument, ArrayDimensionLength(receiver, dimension, argument.Syntax, int32Type), int32Type, diagnostics))
+                    convertedArguments.Add(MakeIndexOffset(argument, Nothing, Nothing, IndexValueOffset(argument, ArrayDimensionLength(receiver, dimension, argument.Syntax, int32Type), int32Type, diagnostics)))
                 Else
                     convertedArguments.Add(ApplyImplicitConversion(argument.Syntax, int32Type, argument, diagnostics))
                 End If
@@ -4564,6 +4564,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+            Dim sourceReceiver = receiver
+            Dim lengthProperty = DirectCast(lengthGetter.AssociatedSymbol, PropertySymbol)
 
             If receiver.Kind <> BoundKind.Local AndAlso receiver.Kind <> BoundKind.Parameter AndAlso receiver.Kind <> BoundKind.MeReference Then
                 Dim spillLocal = New SynthesizedLocal(ContainingMember, receiver.Type, SynthesizedLocalKind.LoweringTemp)
@@ -4577,9 +4579,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim result As BoundExpression
             If isIndex Then
                 ' The default property access stands for list(^1), so it can be read or written.
-                Dim index = If(fromEnd IsNot Nothing,
-                               New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, lengthGetter, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
-                               IndexValueOffset(argument, SpanLength(receiver, lengthGetter, syntax, int32Type), int32Type, diagnostics))
+                Dim index = MakeIndexOffset(argument, sourceReceiver, lengthProperty,
+                                            If(fromEnd IsNot Nothing,
+                                               New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, lengthGetter, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
+                                               IndexValueOffset(argument, SpanLength(receiver, lengthGetter, syntax, int32Type), int32Type, diagnostics)))
                 Dim rebound = propertyGroupOpt.Update(propertyGroupOpt.Properties, propertyGroupOpt.ResultKind, receiver, propertyGroupOpt.QualificationKind)
                 result = BindInvocationExpression(node, target, typeChar, rebound, ImmutableArray.Create(Of BoundExpression)(index), argumentNames, diagnostics, callerInfoOpt)
             Else
@@ -4599,7 +4602,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, isLValue:=True, type:=int32Type), startValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
                 sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, isLValue:=True, type:=int32Type), endValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
                 Dim count = SliceLength(syntax, startLocal, endLocal, int32Type).MakeTreeCompilerGenerated()
-                result = New BoundCall(node, slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeCompilerGenerated().MakeRValue(), count), Nothing, slice.ReturnType)
+                Dim sliceCall = New BoundCall(node, slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeCompilerGenerated().MakeRValue(), count), Nothing, slice.ReturnType).MakeCompilerGenerated()
+                Dim sequence = New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), sliceCall, sliceCall.Type).MakeCompilerGenerated()
+                Return New BoundPatternSlice(node, sourceReceiver, argument, lengthProperty, slice, sequence, sequence.Type)
             End If
 
             If locals.Count = 0 Then
@@ -4614,6 +4619,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), value, result.Type).MakeCompilerGenerated()
+        End Function
+
+        ''' <summary>
+        ''' The offset an index takes, with the source argument, and for a span or the pattern the receiver and its
+        ''' length, kept for operations.
+        ''' </summary>
+        Private Shared Function MakeIndexOffset(argument As BoundExpression, receiverOpt As BoundExpression, lengthOrCountOpt As PropertySymbol, value As BoundExpression) As BoundExpression
+            Return New BoundIndexOffset(argument.Syntax, argument, receiverOpt, lengthOrCountOpt, value, value.Type).MakeCompilerGenerated()
         End Function
 
         ''' <summary>
@@ -4734,6 +4747,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, syntax, diagnostics)
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
             Dim sideEffects = ArrayBuilder(Of BoundExpression).GetInstance()
+            Dim sourceReceiver = receiver
+            Dim lengthProperty = DirectCast(members.Length.AssociatedSymbol, PropertySymbol)
 
             If receiver.Kind <> BoundKind.Local AndAlso receiver.Kind <> BoundKind.Parameter AndAlso ContainingMember IsNot Nothing Then
                 Dim spillLocal = New SynthesizedLocal(ContainingMember, receiver.Type, SynthesizedLocalKind.LoweringTemp)
@@ -4746,9 +4761,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' The Item or Slice call stands for the access. The length arithmetic around it is synthesized.
             Dim result As BoundExpression
             If isIndex Then
-                Dim index = If(fromEnd IsNot Nothing,
-                               New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
-                               IndexValueOffset(argument, SpanLength(receiver, members.Length, syntax, int32Type), int32Type, diagnostics))
+                Dim index = MakeIndexOffset(argument, sourceReceiver, lengthProperty,
+                                            If(fromEnd IsNot Nothing,
+                                               New BoundBinaryOperator(syntax, BinaryOperatorKind.Subtract, SpanLength(receiver, members.Length, syntax, int32Type), fromEnd.Operand, CheckOverflow, int32Type).MakeTreeCompilerGenerated(),
+                                               IndexValueOffset(argument, SpanLength(receiver, members.Length, syntax, int32Type), int32Type, diagnostics)))
                 result = New BoundCall(node, members.Item, Nothing, receiver, ImmutableArray.Create(Of BoundExpression)(index), Nothing, members.Item.ReturnType)
             Else
                 Dim startValue As BoundExpression = Nothing
@@ -4767,7 +4783,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, startLocal, isLValue:=True, type:=int32Type), startValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
                 sideEffects.Add(New BoundAssignmentOperator(syntax, New BoundLocal(syntax, endLocal, isLValue:=True, type:=int32Type), endValue, suppressObjectClone:=True, type:=int32Type).MakeTreeCompilerGenerated())
                 Dim count = SliceLength(syntax, startLocal, endLocal, int32Type).MakeTreeCompilerGenerated()
-                result = New BoundCall(node, members.Slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeCompilerGenerated().MakeRValue(), count), Nothing, members.Slice.ReturnType)
+                Dim sliceCall = New BoundCall(node, members.Slice, Nothing, receiver, ImmutableArray.Create(New BoundLocal(syntax, startLocal, int32Type).MakeCompilerGenerated().MakeRValue(), count), Nothing, members.Slice.ReturnType).MakeCompilerGenerated()
+                Dim sequence = New BoundSequence(node, locals.ToImmutableAndFree(), sideEffects.ToImmutableAndFree(), sliceCall, sliceCall.Type).MakeCompilerGenerated()
+                Return New BoundPatternSlice(node, sourceReceiver, argument, lengthProperty, members.Slice, sequence, sequence.Type)
             End If
 
             If locals.Count = 0 Then

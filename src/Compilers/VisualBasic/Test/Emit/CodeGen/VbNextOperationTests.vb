@@ -362,6 +362,76 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub IndexAndSliceAccessesAreImplicitIndexerReferences()
+            Dim source = "
+Imports System
+Imports System.Collections.Generic
+
+Module Program
+    Function Make() As List(Of Integer)
+        Return New List(Of Integer)
+    End Function
+
+    Sub Uses(list As List(Of Integer), s As String, span As ReadOnlySpan(Of Integer), arr As Integer(), i As Index, r As Range, mem As Memory(Of Integer))
+        Dim a = list(^1)
+        Dim b = list(i)
+        Dim c = s(1..3)
+        Dim d = span(^2)
+        Dim e = span(r)
+        Dim f = Make()(^1)
+        Dim g = arr(^1)
+        Dim h = arr(i)
+        Dim k = mem(1..2)
+        list(^1) = 4
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim describe = Function(operation As IOperation) As String
+                               If TypeOf operation Is IUnaryOperation Then
+                                   Return DirectCast(operation, IUnaryOperation).OperatorKind.ToString()
+                               ElseIf TypeOf operation Is IRangeOperation Then
+                                   Return "Range"
+                               ElseIf TypeOf operation Is IParameterReferenceOperation Then
+                                   Return "Parameter"
+                               End If
+
+                               Return operation.GetType().Name
+                           End Function
+
+            Dim accesses = tree.GetRoot().DescendantNodes().OfType(Of InvocationExpressionSyntax)().
+                Where(Function(invocation) invocation.ArgumentList IsNot Nothing AndAlso invocation.ArgumentList.Arguments.Count = 1).
+                Select(Function(invocation)
+                           Dim operation = model.GetOperation(invocation)
+                           If TypeOf operation Is IArrayElementReferenceOperation Then
+                               Return invocation.ToString() & ":Array|" & describe(DirectCast(operation, IArrayElementReferenceOperation).Indices.Single())
+                           End If
+
+                           Dim indexer = Assert.IsAssignableFrom(Of IImplicitIndexerReferenceOperation)(operation)
+                           Return invocation.ToString() & ":" & indexer.Instance.Syntax.ToString() & "|" & describe(indexer.Argument) & "|" & indexer.LengthSymbol.Name & "|" & indexer.IndexerSymbol.Name
+                       End Function)
+
+            Assert.Equal({
+                "list(^1):list|Hat|Count|Item",
+                "list(i):list|Parameter|Count|Item",
+                "s(1..3):s|Range|Length|Substring",
+                "span(^2):span|Hat|Length|Item",
+                "span(r):span|Parameter|Length|Slice",
+                "Make()(^1):Make()|Hat|Count|Item",
+                "arr(^1):Array|Hat",
+                "arr(i):Array|Parameter",
+                "mem(1..2):mem|Range|Length|Slice",
+                "list(^1):list|Hat|Count|Item"}, accesses.ToArray())
+
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)().Last()
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+        End Sub
+
+        <Fact>
         Public Sub UnboundTargetTypedNewIsInvalid()
             Dim source = "
 Class C

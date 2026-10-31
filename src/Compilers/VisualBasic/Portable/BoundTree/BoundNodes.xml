@@ -190,6 +190,32 @@
       <Field Name="RightOperandOpt" Type="BoundExpression" Null="allow"/>
     </Node>
 
+    <!--
+    vbnext: the Integer offset that arr(^1), span(i), or list(^1) indexes with. Value computes it. The source argument,
+    and for a span or the pattern the receiver before it was stored, are kept for operations. Visitors skip them,
+    because Value reads what they read.
+    -->
+    <Node Name="BoundIndexOffset" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+      <Field Name="Argument" Type="BoundExpression" SkipInVisitor="true"/>
+      <Field Name="ReceiverOpt" Type="BoundExpression" Null="allow" SkipInVisitor="true"/>
+      <Field Name="LengthOrCountOpt" Type="PropertySymbol" Null="allow"/>
+      <Field Name="Value" Type="BoundExpression"/>
+    </Node>
+
+    <!--
+    vbnext: span(1..3), s(1..3), or list(r) sliced by the pattern. Value slices it. The receiver before it was stored
+    and the source argument are kept for operations. Visitors skip them, because Value reads what they read.
+    -->
+    <Node Name="BoundPatternSlice" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+      <Field Name="Receiver" Type="BoundExpression" SkipInVisitor="true"/>
+      <Field Name="Argument" Type="BoundExpression" SkipInVisitor="true"/>
+      <Field Name="LengthOrCount" Type="PropertySymbol"/>
+      <Field Name="SliceMethod" Type="MethodSymbol"/>
+      <Field Name="Value" Type="BoundExpression"/>
+    </Node>
+
     <Node Name="BoundArrayLength" Base="BoundExpression">
       <!-- Non-null type is required for this node kind -->
       <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
