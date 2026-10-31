@@ -1264,6 +1264,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                 Case SyntaxKind.OpenParenToken
                     If CheckFeatureAvailability(Feature.TupleDeconstruction) Then
+                        ' (box.Width, cells(1)) = value deconstructs into targets that are not names alone, so it is an
+                        ' assignment to a tuple expression. A list of names alone keeps the deconstruction statement.
+                        If IsTupleTargetAssignmentStart() Then
+                            Return ParseAssignmentOrInvocationStatement()
+                        End If
+
                         Dim emptyAttributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax) = Nothing
                         Dim emptyModifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax) = Nothing
                         Return ParseTupleDeconstructionStatement(emptyAttributes, emptyModifiers)
@@ -2290,6 +2296,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Return result
 
+        End Function
+
+        ''' <summary>
+        ''' Whether a statement that starts with an opening parenthesis is (target, target, ...) = value with a target that
+        ''' is not a name alone or an empty slot: its matching closing parenthesis, on the same line, is followed by =.
+        ''' </summary>
+        Private Function IsTupleTargetAssignmentStart() As Boolean
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.OpenParenToken)
+
+            Dim namesOnly = True
+            Dim depth = 0
+            Dim expectSlot = True
+            Dim i = 1
+            Do
+                Dim token = PeekToken(i)
+                Select Case token.Kind
+                    Case SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken, SyntaxKind.ColonToken
+                        Return False
+                    Case SyntaxKind.OpenParenToken
+                        depth += 1
+                        namesOnly = False
+                    Case SyntaxKind.CloseParenToken
+                        If depth = 0 Then
+                            Return Not namesOnly AndAlso PeekToken(i + 1).Kind = SyntaxKind.EqualsToken
+                        End If
+
+                        depth -= 1
+                    Case SyntaxKind.CommaToken
+                        If depth = 0 Then
+                            expectSlot = True
+                            i += 1
+                            Continue Do
+                        End If
+                    Case SyntaxKind.IdentifierToken
+                        If depth = 0 AndAlso Not expectSlot Then
+                            namesOnly = False
+                        End If
+                    Case Else
+                        namesOnly = False
+                End Select
+
+                expectSlot = False
+                i += 1
+            Loop
         End Function
 
         Private Function ParseTupleDeconstructionStatement(

@@ -316,5 +316,120 @@ End Class
 
             CompileAndVerify(compilation, expectedOutput:="78").VerifyDiagnostics()
         End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_PropertiesFieldsAndElements()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+
+Class Box
+    Public Width As Integer
+    Public Property Height As Integer
+End Class
+
+Structure Spot
+    Public X As Integer
+    Public Y As Integer
+End Structure
+
+Class Program
+    Shared Log As String = """"
+
+    Shared Function Pick(label As String, value As Integer) As Integer
+        Log &= label
+        Return value
+    End Function
+
+    Shared Sub Main()
+        Dim box As New Box()
+        Dim cells(2) As Integer
+        Dim spot As Spot
+        Dim spots(1) As Spot
+        Dim list As New List(Of String) From {""a"", ""b""}
+        (box.Width, box.Height, cells(1), spot.X, spots(1).Y, list(0)) = (1, 2, 3, 4, 5, ""z"")
+        Console.Write(box.Width & box.Height & cells(1) & spot.X & spots(1).Y & list(0) & "" "")
+        (cells(Pick(""i"", 0)), cells(Pick(""j"", 2))) = (Pick(""v"", 7), Pick(""w"", 9))
+        Console.Write(cells(0) & cells(2) & "" "" & Log)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="12345z 79 ijvw").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_DeconstructIntoProperties()
+            Dim compilation = CreateCompilation("
+Class Point
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = 3
+        y = 4
+    End Sub
+End Class
+
+Class Box
+    Public Width As Integer
+    Public Property Height As Integer
+End Class
+
+Class Program
+    Shared Sub Main()
+        Dim box As New Box()
+        (box.Width, box.Height) = New Point()
+        System.Console.Write(box.Width & box.Height)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="34").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_TargetsThatCannotBeAssigned()
+            Dim compilation = CreateCompilation("
+Class Box
+    Public ReadOnly Property Size As Integer
+    Public Width As Integer
+End Class
+
+Class Program
+    Shared Function Value() As Integer
+        Return 0
+    End Function
+
+    Shared Sub Main()
+        Dim box As New Box()
+        (box.Size, box.Width) = (1, 2)
+        (Value(), box.Width) = (1, 2)
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NoSetProperty1, "box.Size").WithArguments("Size").WithLocation(14, 10),
+                Diagnostic(ERRID.ERR_LValueRequired, "Value()").WithLocation(15, 10))
+        End Sub
+
+        <Fact>
+        Public Sub TupleDeconstructionAssignment_MembersRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Box
+    Public Width As Integer
+End Class
+
+Class Program
+    Shared Sub Main()
+        Dim box As New Box()
+        Dim x As Integer
+        (box.Width, x) = (1, 2)
+    End Sub
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UnusedLocal, "x").WithArguments("x").WithLocation(9, 13),
+                Diagnostic(ERRID.ERR_Syntax, "(").WithLocation(10, 9))
+        End Sub
     End Class
 End Namespace

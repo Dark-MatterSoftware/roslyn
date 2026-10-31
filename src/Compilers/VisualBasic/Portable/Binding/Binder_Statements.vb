@@ -1240,6 +1240,163 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
         End Function
 
+        ''' <summary>
+        ''' On vbnext, (box.Width, cells(1)) = value assigns each element into a variable, a property, a field, an array
+        ''' element, or a default property, as C# 7 deconstructs into them. The receivers and indexes of the targets are
+        ''' evaluated once, left to right, before the value, and the elements are assigned left to right. A structure
+        ''' variable stays a variable, so a field or property of it is assigned in place.
+        ''' </summary>
+        Private Function BindTupleTargetDeconstruction(node As AssignmentStatementSyntax, tuple As TupleExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim temps = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim targets = ArrayBuilder(Of BoundExpression).GetInstance(tuple.Arguments.Count)
+            Dim hasErrors = False
+
+            For Each argument In tuple.Arguments
+                Dim target = BindAssignmentTarget(argument.Expression, diagnostics)
+                hasErrors = hasErrors OrElse target.HasErrors
+                targets.Add(If(target.HasErrors, target, StoreTargetOperands(target, temps, statements)))
+            Next
+
+            Dim value = BindValue(node.Right, diagnostics).MakeRValue()
+            Dim count = targets.Count
+            Dim elements = GetDeconstructionElements(value, count)
+            Dim method As MethodSymbol = Nothing
+            If elements.IsDefault Then
+                method = FindDeconstructMethod(value, count, diagnostics, node)
+                If method Is Nothing AndAlso Not value.HasErrors Then
+                    ReportDiagnostic(diagnostics, node.Right, ERRID.ERR_DeconstructionRequiresTuple, count)
+                End If
+            End If
+
+            If elements.IsDefault AndAlso method Is Nothing Then
+                statements.Add(New BoundExpressionStatement(node.Right, BadExpression(node.Right, value, ErrorTypeSymbol.UnknownResultType)).MakeCompilerGenerated())
+                targets.Free()
+                Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=True)
+            End If
+
+            Dim valueTemp = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
+            temps.Add(valueTemp)
+            statements.Add(StoreInTemp(node.Right, valueTemp, value))
+
+            If Not elements.IsDefault Then
+                For i = 0 To count - 1
+                    Dim element = New BoundFieldAccess(tuple.Arguments(i), New BoundLocal(node.Right, valueTemp, value.Type).MakeCompilerGenerated().MakeRValue(),
+                                                       elements(i), isLValue:=False, type:=elements(i).Type).MakeCompilerGenerated()
+                    statements.Add(AssignDeconstructedElement(tuple.Arguments(i), targets(i), element, diagnostics))
+                Next
+            Else
+                Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(count)
+                Dim followUps = ArrayBuilder(Of BoundStatement).GetInstance()
+                For i = 0 To count - 1
+                    Dim target = targets(i)
+                    Dim parameterType = method.Parameters(i).Type
+                    If CanPassByRef(target, parameterType) Then
+                        arguments.Add(target)
+                    Else
+                        Dim slot = ByRefSlot(tuple.Arguments(i), parameterType, temps)
+                        arguments.Add(slot)
+                        followUps.Add(AssignDeconstructedElement(tuple.Arguments(i), target, slot.MakeRValue(), diagnostics))
+                    End If
+                Next
+
+                Dim invocation = New BoundCall(node, method, Nothing, DeconstructReceiver(node, valueTemp, method), arguments.ToImmutableAndFree(), Nothing, method.ReturnType).MakeCompilerGenerated()
+                Dim callStatement = New BoundExpressionStatement(node, invocation)
+                callStatement.SetWasCompilerGenerated()
+                statements.Add(callStatement)
+                statements.AddRange(followUps)
+                followUps.Free()
+            End If
+
+            For Each target In targets
+                hasErrors = hasErrors OrElse target.HasErrors
+            Next
+
+            targets.Free()
+            Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors OrElse value.HasErrors)
+        End Function
+
+        Private Function AssignDeconstructedElement(syntax As SyntaxNode, target As BoundExpression, element As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundStatement
+            Dim assignment = If(target.HasErrors,
+                                New BoundAssignmentOperator(syntax, target, element, suppressObjectClone:=True, hasErrors:=True),
+                                BindAssignment(syntax, target, element, diagnostics))
+            Dim statement = New BoundExpressionStatement(syntax, assignment.MakeCompilerGenerated())
+            statement.SetWasCompilerGenerated()
+            Return statement
+        End Function
+
+        ''' <summary>
+        ''' The target with the receivers and indexes it reads stored in temporaries, in order, so that each is evaluated
+        ''' once, before the value. A structure receiver keeps its own operands stored instead, so it stays a variable.
+        ''' </summary>
+        Private Function StoreTargetOperands(target As BoundExpression, temps As ArrayBuilder(Of LocalSymbol), statements As ArrayBuilder(Of BoundStatement)) As BoundExpression
+            Select Case target.Kind
+                Case BoundKind.FieldAccess
+                    Dim field = DirectCast(target, BoundFieldAccess)
+                    Return field.Update(StoreReceiver(field.ReceiverOpt, temps, statements), field.FieldSymbol, field.IsLValue, field.SuppressVirtualCalls, field.ConstantsInProgressOpt, field.Type)
+
+                Case BoundKind.ArrayAccess
+                    Dim access = DirectCast(target, BoundArrayAccess)
+                    Dim array = StoreValue(access.Expression, temps, statements)
+                    Dim indices = ArrayBuilder(Of BoundExpression).GetInstance(access.Indices.Length)
+                    For Each index In access.Indices
+                        indices.Add(StoreValue(index, temps, statements))
+                    Next
+
+                    Return access.Update(array, indices.ToImmutableAndFree(), access.IsLValue, access.Type)
+
+                Case BoundKind.PropertyAccess
+                    Dim access = DirectCast(target, BoundPropertyAccess)
+                    Dim receiver = StoreReceiver(access.ReceiverOpt, temps, statements)
+                    Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(access.Arguments.Length)
+                    For Each argument In access.Arguments
+                        arguments.Add(StoreValue(argument, temps, statements))
+                    Next
+
+                    Return access.Update(access.PropertySymbol, access.PropertyGroupOpt, access.AccessKind, access.IsWriteable, access.IsLValue,
+                                         receiver, arguments.ToImmutableAndFree(), access.DefaultArguments, access.Type)
+
+                Case Else
+                    Return target
+            End Select
+        End Function
+
+        Private Function StoreReceiver(receiver As BoundExpression, temps As ArrayBuilder(Of LocalSymbol), statements As ArrayBuilder(Of BoundStatement)) As BoundExpression
+            If receiver Is Nothing OrElse receiver.Type Is Nothing Then
+                Return receiver
+            End If
+
+            If receiver.Type.IsValueType Then
+                Return StoreTargetOperands(receiver, temps, statements)
+            End If
+
+            Return StoreValue(receiver, temps, statements)
+        End Function
+
+        Private Function StoreValue(value As BoundExpression, temps As ArrayBuilder(Of LocalSymbol), statements As ArrayBuilder(Of BoundStatement)) As BoundExpression
+            Select Case value.Kind
+                Case BoundKind.MeReference, BoundKind.MyBaseReference, BoundKind.MyClassReference
+                    Return value
+            End Select
+
+            If value.IsConstant OrElse value.Type Is Nothing Then
+                Return value
+            End If
+
+            Dim temp = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
+            temps.Add(temp)
+            statements.Add(StoreInTemp(value.Syntax, temp, value.MakeRValue()))
+            Return New BoundLocal(value.Syntax, temp, value.Type).MakeCompilerGenerated().MakeRValue()
+        End Function
+
+        Private Shared Function StoreInTemp(syntax As SyntaxNode, temp As LocalSymbol, value As BoundExpression) As BoundStatement
+            Dim statement = New BoundExpressionStatement(
+                syntax,
+                New BoundAssignmentOperator(syntax, New BoundLocal(syntax, temp, temp.Type).MakeCompilerGenerated(), value, suppressObjectClone:=True, type:=temp.Type).MakeCompilerGenerated())
+            statement.SetWasCompilerGenerated()
+            Return statement
+        End Function
+
         Private Function BindDeconstructionTarget(name As ModifiedIdentifierSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim identifier = name.Identifier.ValueText
             If String.IsNullOrEmpty(identifier) Then
@@ -3203,6 +3360,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If node.Right.Kind = SyntaxKind.ByRefExpression Then
                 Return BindRefFieldAssignment(node, diagnostics)
+            End If
+
+            If node.Kind = SyntaxKind.SimpleAssignmentStatement AndAlso node.Left.Kind = SyntaxKind.TupleExpression AndAlso
+               InternalSyntax.Parser.CheckFeatureAvailability(DirectCast(node.SyntaxTree.Options, VisualBasicParseOptions).LanguageVersion, InternalSyntax.Feature.TupleDeconstruction) Then
+                Return BindTupleTargetDeconstruction(node, DirectCast(node.Left, TupleExpressionSyntax), diagnostics)
             End If
 
             Dim compoundOperatorCall = TryBindUserDefinedCompoundAssignment(node, diagnostics)
