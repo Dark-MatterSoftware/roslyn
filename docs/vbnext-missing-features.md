@@ -391,6 +391,14 @@ Checked against this tree after wave 27, by compiling and running against .NET 1
 | --- | --- | --- |
 | VB-161 | Lifted index and range | Done in phase 144: on `vbnext`, `^n` of a nullable `n` is an `Index?`, and a range with a nullable bound a `Range?`, which is `Nothing` when an operand is `Nothing`. Before that, with `n As Integer?`, `^n` and `..n` report BC30512, "Option Strict On disallows implicit conversions from 'Integer?' to 'Integer'", because phase 140 converts their operands to `Integer`. C# 8 lifts both: `^n` is an `Index?` and `..n` a `Range?`, which have no value when an operand has none. No new syntax. |
 
+## Wave 29
+
+Checked against this tree after wave 28, by compiling and running against .NET 11 with `LangVersion` `vbnext` the pattern-based shapes that newer C# code relies on, with a C# library and a C# program alongside. Every shape already works: `For Each` over a type with an extension `GetEnumerator`; `Dim (left, right) = pair` and `For Each (l, r) In pairs` through an extension `Deconstruct`; `Await` of a `TimeSpan` through an extension `GetAwaiter`; `Await Each` over an `Integer` through an extension `GetAsyncEnumerator`, and over `Task.WhenEach`; a lambda converted to `[Delegate]`, `MulticastDelegate`, and `Object`; `Dim imm As ImmutableArray(Of Integer) = {..list, 3}`; and `CallerArgumentExpression` on an extension method's receiver and with named arguments in another order. For `(x + 1).Describe()`, Visual Basic passes `(x + 1)` where C# passes `x + 1`; both come that way from upstream, and the difference is not listed. The gap that remains is in the operation trees of earlier waves.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-162 | Operations for index and range | Open. Analyzers see `^1` and `1..3` as `OperationKind.None`, and `list(^1)`, `s(1..3)`, and `span(^1)` as the sequences that phases 138 to 141 bind them to. C# reports `^1` as an `IUnaryOperation` of kind `Hat`, `1..3` as an `IRangeOperation`, and an index or slice by the pattern as an `IImplicitIndexerReferenceOperation`. No new syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -715,3 +723,9 @@ The record that cannot compile comes first, then the convenience that needs a de
 | # | Id | Feature | Rank | Why this slot |
 | --- | --- | --- | --- | --- |
 | 1 | VB-161 | Lifted index and range | S | Lifts the phase 140 values over `Nullable`, as VB already lifts its operators. |
+
+### Wave 29 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-162 | Operations for index and range | M | Gives analyzers the operation kinds that C# reports for the index and range forms of waves 26 to 28, as VB-155 did for `With`. |
