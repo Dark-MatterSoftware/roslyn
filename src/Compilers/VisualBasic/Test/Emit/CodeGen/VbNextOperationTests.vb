@@ -324,6 +324,44 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub IndexAndRangeValuesAreHatAndRangeOperations()
+            Dim source = "
+Module Program
+    Sub Values(n As Integer, maybe As Integer?)
+        Dim a = ^1
+        Dim b = 1..^n
+        Dim c = ..2
+        Dim d = (3..)
+        Dim e = ^maybe
+        Dim f = ..maybe
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim hats = tree.GetRoot().DescendantNodes().OfType(Of UnaryExpressionSyntax)().Select(
+                Function(syntax)
+                    Dim operation = Assert.IsAssignableFrom(Of IUnaryOperation)(model.GetOperation(syntax))
+                    Assert.Equal(Operations.UnaryOperatorKind.Hat, operation.OperatorKind)
+                    Return syntax.ToString() & ":" & operation.IsLifted & ":" & operation.Type.ToTestDisplayString()
+                End Function)
+            Assert.Equal("^1:False:System.Index | ^n:False:System.Index | ^maybe:True:System.Nullable(Of System.Index)", String.Join(" | ", hats))
+
+            Dim ranges = tree.GetRoot().DescendantNodes().OfType(Of RangeExpressionSyntax)().Select(
+                Function(syntax)
+                    Dim operation = Assert.IsAssignableFrom(Of IRangeOperation)(model.GetOperation(syntax))
+                    Return syntax.ToString() & ":" & operation.Method.Name & ":" & operation.IsLifted & ":" & operation.Type.ToTestDisplayString()
+                End Function)
+            Assert.Equal("1..^n:.ctor:False:System.Range | ..2:EndAt:False:System.Range | 3..:StartAt:False:System.Range | ..maybe:EndAt:True:System.Nullable(Of System.Range)", String.Join(" | ", ranges))
+
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)().Single()
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+        End Sub
+
+        <Fact>
         Public Sub UnboundTargetTypedNewIsInvalid()
             Dim source = "
 Class C

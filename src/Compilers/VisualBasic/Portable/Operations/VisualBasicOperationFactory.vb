@@ -88,6 +88,10 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Return CreateBoundArrayAccessOperation(DirectCast(boundNode, BoundArrayAccess))
                 Case BoundKind.UnaryOperator
                     Return CreateBoundUnaryOperatorOperation(DirectCast(boundNode, BoundUnaryOperator))
+                Case BoundKind.FromEndIndexExpression
+                    Return CreateBoundFromEndIndexExpressionOperation(DirectCast(boundNode, BoundFromEndIndexExpression))
+                Case BoundKind.RangeExpression
+                    Return CreateBoundRangeExpressionOperation(DirectCast(boundNode, BoundRangeExpression))
                 Case BoundKind.UserDefinedUnaryOperator
                     Return CreateBoundUserDefinedUnaryOperatorOperation(DirectCast(boundNode, BoundUserDefinedUnaryOperator))
                 Case BoundKind.BinaryOperator
@@ -311,8 +315,6 @@ Namespace Microsoft.CodeAnalysis.Operations
                      BoundKind.XmlProcessingInstruction,
                      BoundKind.UnboundLambda,
                      BoundKind.UnstructuredExceptionHandlingStatement,
-                     BoundKind.FromEndIndexExpression,
-                     BoundKind.RangeExpression,
                      BoundKind.RefFieldAssignment,
                      BoundKind.ArrayLength
 
@@ -665,6 +667,59 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim isChecked As Boolean = boundUnaryOperator.Checked
             Dim isImplicit As Boolean = boundUnaryOperator.WasCompilerGenerated
             Return New UnaryOperation(operatorKind, operand, isLifted, isChecked, operatorMethod, constrainedToType:=Nothing, _semanticModel, syntax, type, constantValue, isImplicit)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, ^n that no index consumes is an operation of kind Hat, as C# reports it. Without System.Index,
+        ''' or in an error, it stays None.
+        ''' </summary>
+        Private Function CreateBoundFromEndIndexExpressionOperation(boundIndex As BoundFromEndIndexExpression) As IOperation
+            If boundIndex.Type.IsErrorType() Then
+                Return New NoneOperation(GetIOperationChildren(boundIndex), _semanticModel, boundIndex.Syntax, boundIndex.Type, constantValue:=Nothing, boundIndex.WasCompilerGenerated)
+            End If
+
+            Return New UnaryOperation(Microsoft.CodeAnalysis.Operations.UnaryOperatorKind.Hat,
+                                      Create(boundIndex.Operand),
+                                      isLifted:=boundIndex.Type.IsNullableType(),
+                                      isChecked:=False,
+                                      operatorMethod:=Nothing,
+                                      constrainedToType:=Nothing,
+                                      _semanticModel,
+                                      boundIndex.Syntax,
+                                      boundIndex.Type,
+                                      constantValue:=Nothing,
+                                      boundIndex.WasCompilerGenerated)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, a..b that no slice consumes is a range operation, as C# reports it, with the Range member
+        ''' that C# names: the constructor, StartAt, EndAt, or All. Without System.Range, or in an error, it stays None.
+        ''' </summary>
+        Private Function CreateBoundRangeExpressionOperation(boundRange As BoundRangeExpression) As IOperation
+            If boundRange.Type.IsErrorType() Then
+                Return New NoneOperation(GetIOperationChildren(boundRange), _semanticModel, boundRange.Syntax, boundRange.Type, constantValue:=Nothing, boundRange.WasCompilerGenerated)
+            End If
+
+            Dim member As WellKnownMember
+            If boundRange.LeftOperandOpt IsNot Nothing AndAlso boundRange.RightOperandOpt IsNot Nothing Then
+                member = WellKnownMember.System_Range__ctor
+            ElseIf boundRange.LeftOperandOpt IsNot Nothing Then
+                member = WellKnownMember.System_Range__StartAt
+            ElseIf boundRange.RightOperandOpt IsNot Nothing Then
+                member = WellKnownMember.System_Range__EndAt
+            Else
+                member = WellKnownMember.System_Range__get_All
+            End If
+
+            Dim method = TryCast(DirectCast(_semanticModel.Compilation, VisualBasicCompilation).GetWellKnownTypeMember(member), IMethodSymbol)
+            Return New RangeOperation(Create(boundRange.LeftOperandOpt),
+                                      Create(boundRange.RightOperandOpt),
+                                      isLifted:=boundRange.Type.IsNullableType(),
+                                      method,
+                                      _semanticModel,
+                                      boundRange.Syntax,
+                                      boundRange.Type,
+                                      boundRange.WasCompilerGenerated)
         End Function
 
         Private Function CreateBoundUserDefinedUnaryOperatorOperation(boundUserDefinedUnaryOperator As BoundUserDefinedUnaryOperator) As IUnaryOperation
