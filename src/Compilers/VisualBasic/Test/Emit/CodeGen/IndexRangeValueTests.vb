@@ -237,6 +237,61 @@ End Module
             CompileAndVerify(compilation, expectedOutput:="^1 1..^2 Integer Index Range", verify:=Verification.Skipped).VerifyDiagnostics()
         End Sub
 
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub LiftedIndexAndRange()
+            Dim compilation = CreateCompilation("
+Imports System
+
+Module Program
+    Private Calls As Integer
+
+    Function Count(value As Integer?) As Integer?
+        Calls += 1
+        Return value
+    End Function
+
+    Function Show(r As Range?) As String
+        Return If(r.HasValue, r.Value.ToString(), ""none"")
+    End Function
+
+    Sub Main()
+        Dim n As Integer? = 2
+        Dim none As Integer? = Nothing
+        Dim a = ^n
+        Dim b = ^none
+        Dim i As Index? = ^1
+        Console.Write(a.ToString() & "" "" & b.HasValue & "" "" & a.GetType().Name & "" "")
+        Console.Write(Show(..n) & "" "" & Show(n..) & "" "" & Show(1..n) & "" "" & Show(^n..) & "" "" & Show(none..3) & "" "" & Show(i..) & "" "")
+        Dim c = Count(none)..Count(3)
+        Console.Write(Calls & "" "" & c.HasValue)
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="^2 False Index 0..2 2..^0 1..2 ^2..^0 none ^1..^0 2 False", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub LiftedValuesDoNotIndexOrSlice()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main(arr As Integer(), s As String, n As Integer?)
+        Dim a = arr(^n)
+        Dim b = s(..n)
+        Dim fromEnd = ^n
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_TypeMismatch2, "^n").WithArguments("System.Index?", "Integer").WithLocation(4, 21),
+                Diagnostic(ERRID.ERR_TypeMismatch2, "..n").WithArguments("System.Range?", "Integer").WithLocation(5, 19))
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim fromEnd = tree.GetRoot().DescendantNodes().OfType(Of UnaryExpressionSyntax)().Last()
+            Assert.Equal("System.Nullable(Of System.Index)", model.GetTypeInfo(fromEnd).Type.ToTestDisplayString())
+        End Sub
+
         <Fact>
         Public Sub RejectedOn17_13()
             Dim compilation = CreateCompilation("

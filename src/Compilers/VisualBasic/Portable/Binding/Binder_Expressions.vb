@@ -4290,12 +4290,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function BindFromEndIndexExpression(node As UnaryExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundExpression
             Dim operand = BindValue(node.Operand, diagnostics)
             Dim int32Type = GetSpecialType(SpecialType.System_Int32, node, diagnostics)
+            Dim indexType = GetIndexOrRangeValueType(WellKnownType.System_Index)
+
+            ' ^n of a nullable n is lifted to an Index?, as in C# 8. No index or slice takes it.
+            If indexType IsNot Nothing AndAlso operand.Type IsNot Nothing AndAlso operand.Type.IsNullableType() Then
+                operand = ApplyImplicitConversion(node.Operand, MakeNullableType(int32Type, node, diagnostics), operand, diagnostics)
+                Return New BoundFromEndIndexExpression(node, operand, MakeNullableType(indexType, node, diagnostics))
+            End If
+
             operand = ApplyImplicitConversion(node.Operand, int32Type, operand, diagnostics)
 
             ' An index argument is checked by the invocation or array access that consumes it.
             ' A bound of a range is checked with that range. Every other use is diagnosed here,
             ' before an error type would hide the failure.
-            Dim indexType = GetIndexOrRangeValueType(WellKnownType.System_Index)
             If indexType IsNot Nothing Then
                 Return New BoundFromEndIndexExpression(node, operand, indexType)
             End If
@@ -4333,6 +4340,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim left = NormalizeRangeValueBound(range.LeftOperandOpt, diagnostics)
             Dim right = NormalizeRangeValueBound(range.RightOperandOpt, diagnostics)
             Return range.Update(left, right, range.Type)
+        End Function
+
+        Private Shared Function IsNullableBound(bound As BoundExpression) As Boolean
+            Return bound IsNot Nothing AndAlso bound.Type IsNot Nothing AndAlso bound.Type.IsNullableType()
+        End Function
+
+        ''' <summary>
+        ''' A bound of a lifted range is an Index or an Index?, or else an Integer or an Integer?.
+        ''' </summary>
+        Private Function NormalizeLiftedRangeBound(bound As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If bound Is Nothing OrElse bound.Type Is Nothing Then
+                Return bound
+            End If
+
+            Dim indexType = Compilation.GetWellKnownType(WellKnownType.System_Index)
+            If TypeSymbol.Equals(bound.Type.GetNullableUnderlyingTypeOrSelf(), indexType, TypeCompareKind.ConsiderEverything) Then
+                Return bound
+            End If
+
+            Dim int32Type = GetSpecialType(SpecialType.System_Int32, bound.Syntax, diagnostics)
+            Return ApplyImplicitConversion(bound.Syntax, If(bound.Type.IsNullableType(), MakeNullableType(int32Type, bound.Syntax, diagnostics), int32Type), bound, diagnostics)
+        End Function
+
+        Private Function MakeNullableType(underlyingType As TypeSymbol, syntax As SyntaxNode, diagnostics As BindingDiagnosticBag) As TypeSymbol
+            Return GetSpecialType(SpecialType.System_Nullable_T, syntax, diagnostics).Construct(underlyingType)
         End Function
 
         Private Function NormalizeRangeValueBound(bound As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundExpression
@@ -4377,6 +4409,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If Not IsCollectionSpread(node) Then
                 Dim rangeType = GetIndexOrRangeValueType(WellKnownType.System_Range)
+
+                ' A range with a nullable bound is lifted to a Range?, as in C# 8. No index or slice takes it.
+                If rangeType IsNot Nothing AndAlso (IsNullableBound(left) OrElse IsNullableBound(right)) Then
+                    Return New BoundRangeExpression(node, NormalizeLiftedRangeBound(left, diagnostics), NormalizeLiftedRangeBound(right, diagnostics), MakeNullableType(rangeType, node, diagnostics))
+                End If
+
                 If rangeType IsNot Nothing Then
                     Dim range = New BoundRangeExpression(node, left, right, rangeType)
                     Return If(IsIndexArgument(node), range, NormalizeRangeValueBounds(range, diagnostics))
@@ -4872,7 +4910,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 current = DirectCast(current, BoundParenthesized).Expression
             End While
 
-            Return TryCast(current, BoundRangeExpression)
+            Dim range = TryCast(current, BoundRangeExpression)
+            Return If(range IsNot Nothing AndAlso IsNullableBound(range), Nothing, range)
         End Function
 
         Private Function ReportRangeUsedOutsideArray(argument As BoundExpression, diagnostics As BindingDiagnosticBag) As Boolean
@@ -4965,7 +5004,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 current = DirectCast(current, BoundParenthesized).Expression
             End While
 
-            Return TryCast(current, BoundFromEndIndexExpression)
+            Dim fromEnd = TryCast(current, BoundFromEndIndexExpression)
+            Return If(fromEnd IsNot Nothing AndAlso IsNullableBound(fromEnd), Nothing, fromEnd)
         End Function
 
         Private Function RewriteFromEndIndex(fromEnd As BoundFromEndIndexExpression, receiver As BoundExpression, dimension As Integer, int32Type As TypeSymbol) As BoundExpression

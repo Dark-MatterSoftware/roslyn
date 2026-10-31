@@ -389,7 +389,7 @@ Checked against this tree after wave 27, by compiling and running against .NET 1
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-161 | Lifted index and range | Open. With `n As Integer?`, `^n` and `..n` report BC30512, "Option Strict On disallows implicit conversions from 'Integer?' to 'Integer'", because phase 140 converts their operands to `Integer`. C# 8 lifts both: `^n` is an `Index?` and `..n` a `Range?`, which have no value when an operand has none. No new syntax. |
+| VB-161 | Lifted index and range | Done in phase 144: on `vbnext`, `^n` of a nullable `n` is an `Index?`, and a range with a nullable bound a `Range?`, which is `Nothing` when an operand is `Nothing`. Before that, with `n As Integer?`, `^n` and `..n` report BC30512, "Option Strict On disallows implicit conversions from 'Integer?' to 'Integer'", because phase 140 converts their operands to `Integer`. C# 8 lifts both: `^n` is an `Index?` and `..n` a `Range?`, which have no value when an operand has none. No new syntax. |
 
 ## Parked
 
