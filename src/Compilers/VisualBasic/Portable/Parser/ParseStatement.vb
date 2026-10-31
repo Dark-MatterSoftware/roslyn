@@ -929,17 +929,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         ''' <summary>
-        ''' Whether a For Each control variable is a deconstruction list: an opening parenthesis, a name, and then a
-        ''' comma or an As clause.
+        ''' Whether a For Each control variable is a deconstruction list: an opening parenthesis, and then a name followed
+        ''' by a comma or an As clause, or an empty slot followed by a comma.
         ''' </summary>
         Private Function IsForEachDeconstructionStart() As Boolean
             Return CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso
-                   PeekToken(1).Kind = SyntaxKind.IdentifierToken AndAlso
-                   (PeekToken(2).Kind = SyntaxKind.CommaToken OrElse PeekToken(2).Kind = SyntaxKind.AsKeyword)
+                   (PeekToken(1).Kind = SyntaxKind.CommaToken OrElse
+                    (PeekToken(1).Kind = SyntaxKind.IdentifierToken AndAlso
+                     (PeekToken(2).Kind = SyntaxKind.CommaToken OrElse PeekToken(2).Kind = SyntaxKind.AsKeyword)))
         End Function
 
         ''' <summary>
         ''' Parses (name [As type], name [As type], ...) as the variables a For Each statement deconstructs each item into.
+        ''' A slot may be empty, as in Dim (x, , z) = point.
         ''' </summary>
         Private Function ParseForEachDeconstruction() As ForEachDeconstructionSyntax
             Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
@@ -947,7 +949,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim variables = _pool.AllocateSeparated(Of VariableDeclaratorSyntax)()
             Do
-                variables.Add(ParseForLoopVariableDeclaration())
+                If CurrentToken.Kind = SyntaxKind.CommaToken OrElse
+                   (CurrentToken.Kind = SyntaxKind.CloseParenToken AndAlso variables.Count > 0) Then
+                    ' An empty slot is a discard, the same shape as in Dim (x, , z) = point.
+                    Dim emptySlot = SyntaxFactory.ModifiedIdentifier(InternalSyntaxFactory.MissingIdentifier(), Nothing, Nothing, Nothing)
+                    Dim names = _pool.AllocateSeparated(Of ModifiedIdentifierSyntax)()
+                    names.Add(emptySlot)
+                    variables.Add(SyntaxFactory.VariableDeclarator(names.ToList, Nothing, Nothing))
+                    _pool.Free(names)
+                Else
+                    variables.Add(ParseForLoopVariableDeclaration())
+                End If
 
                 Dim comma As PunctuationSyntax = Nothing
                 If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then

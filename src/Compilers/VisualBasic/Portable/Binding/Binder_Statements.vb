@@ -5174,7 +5174,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     declared.Add(local)
                     targets.Add(New BoundLocal(name, local, isLValue:=True, type:=local.Type))
                 ElseIf name.Identifier.IsMissing Then
-                    targets.Add(BadExpression(name, ErrorTypeSymbol.UnknownResultType))
+                    ' An empty slot, as in Dim (x, , z) = point, takes no element.
+                    targets.Add(Nothing)
                 Else
                     targets.Add(BindDeconstructionTarget(name, diagnostics))
                 End If
@@ -5187,6 +5188,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If Not elements.IsDefault Then
                 For i = 0 To count - 1
                     Dim target = targets(i)
+                    If target Is Nothing Then
+                        Continue For
+                    End If
+
                     Dim element = New BoundFieldAccess(variables(i), value, elements(i), isLValue:=False, type:=elements(i).Type)
                     Dim storedValue = If(target.HasErrors, element, ApplyImplicitConversion(variables(i), target.Type, element, diagnostics)).MakeTreeCompilerGenerated()
                     Dim assignment = New BoundExpressionStatement(
@@ -5204,6 +5209,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 For i = 0 To count - 1
                     Dim target = targets(i)
                     Dim parameterType = method.Parameters(i).Type
+                    If target Is Nothing Then
+                        arguments.Add(ByRefSlot(variables(i), parameterType, temps))
+                        Continue For
+                    End If
+
                     If CanPassByRef(target, parameterType) Then
                         arguments.Add(target)
                     Else

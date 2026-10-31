@@ -171,6 +171,93 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub ForEachDeconstruction_EmptySlots()
+            CompileAndRun("
+Imports System
+
+Class Point
+    Public ReadOnly X As Integer
+    Public ReadOnly Y As Integer
+
+    Public Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X
+        y = Me.Y
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        For Each (k, ) In {(1, ""x""), (2, ""y"")}
+            Console.Write(k & "" "")
+        Next
+        For Each (, v) In {(1, ""x""), (2, ""y"")}
+            Console.Write(v & "" "")
+        Next
+        For Each (a, , c) In {(1, 2, 3)}
+            Console.Write(a + c & "" "")
+        Next
+        For Each (x, ) In {New Point(5, 6)}
+            Console.Write(x & "" "")
+        Next
+        For Each (, y As Long) In {New Point(7, 8)}
+            Console.Write(y)
+        Next
+    End Sub
+End Module
+", "1 2 x y 4 5 8")
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ForEachDeconstruction_EmptySlotInAwaitEach()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Module Program
+    Async Iterator Function Stream() As IAsyncEnumerable(Of (Integer, String))
+        Await Task.Yield()
+        Yield (1, ""one"")
+        Yield (2, ""two"")
+    End Function
+
+    Async Function RunAsync() As Task
+        Await Each (, word) In Stream()
+            Console.Write(word & "" "")
+        Next
+    End Function
+
+    Sub Main()
+        RunAsync().GetAwaiter().GetResult()
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="one two ", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_EmptySlotNotAvailableIn17_13()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        For Each (k, ) In {(1, ""a"")}
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "k").WithArguments("k").WithLocation(4, 19),
+                Diagnostic(ERRID.ERR_ExpectedExpression, "").WithLocation(4, 22))
+        End Sub
+
+        <Fact>
         Public Sub ForEachDeconstruction_NotAvailableIn17_13()
             Dim compilation = CreateCompilation("
 Module Program
