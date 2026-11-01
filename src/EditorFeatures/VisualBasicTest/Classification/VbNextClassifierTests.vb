@@ -609,6 +609,28 @@ End Module",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestWaveThirtyOneForms(testHost As TestHost) As Task
+            Await TestAsync("Class Box
+End Class
+Module M
+    Sub F()
+        Dim ((item As Box, n As Long), label As String) = ((New Box(), 1), ""a"")
+        System.Console.Write(n & label)
+    End Sub
+End Module",
+                testHost,
+                s_vbNext,
+                [Class]("Box"),
+                [Class]("Box"),
+                [Namespace]("System"),
+                [Class]("Console"),
+                Method("Write"),
+                [Static]("Write"),
+                Local("n"),
+                Local("label"))
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestWaveThirtyForms(testHost As TestHost) As Task
             Await TestAsync("Class Box
     Public Width As Integer

@@ -336,6 +336,29 @@ End Module"), "Length")
         End Function
 
         <Fact>
+        Public Async Function StringMembersAfterTypedDeconstructionLocal() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim (count As Long, word As String) = (7, ""seven"")
+        word.$$
+    End Sub
+End Module"), "Length")
+        End Function
+
+        <Fact>
+        Public Async Function TypesAfterAsInDeconstructionSlot() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Class Box
+End Class
+Module M
+    Sub F()
+        Dim (count As Long, item As $$
+    End Sub
+End Module"), "Box")
+        End Function
+
+        <Fact>
         Public Async Function NullableMembersAfterLiftedIndex() As Task
             Await VerifyItemExistsAsync(WaveTwentySeven("
 Module M

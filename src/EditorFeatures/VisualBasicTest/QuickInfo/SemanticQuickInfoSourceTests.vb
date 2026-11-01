@@ -779,6 +779,36 @@ End Module"), MainDescription($"({FeaturesResources.local_variable}) y As Intege
         End Function
 
         <Fact>
+        Public Async Function TestTypedDeconstructionName() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim (cou$$nt As Long, word As String) = (7, ""seven"")
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) count As Long"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNestedTypedDeconstructionName() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim ((a As Long, $$b), label As Object) = ((1, 2), ""pair"")
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) b As Integer"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNestedTypedDeconstructionOuterName() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim ((a As Long, b), lab$$el As Object) = ((1, 2), ""pair"")
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) label As Object"))
+        End Function
+
+        <Fact>
         Public Async Function TestLiftedIndexValue() As Task
             Await TestFromXmlAsync(WaveTwentySeven("
 Module M
