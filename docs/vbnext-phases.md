@@ -6,7 +6,7 @@ A **phase** is a stretch of the implementation order that ends in a usable compi
 
 `default` and `latest` stay on `17.13` until a later, explicit decision says otherwise. Every slice after 0b is rejected on `17.13`.
 
-Local test for a slice is the Visual Basic project under `src/Compilers/VisualBasic/Test/` that owns the layer just changed. The full suite stays out of the slice exit check.
+While a slice is in progress, its local test is the Visual Basic project under `src/Compilers/VisualBasic/Test/` that owns the layer just changed. A slice is done when the seven Visual Basic suites pass: Syntax, Semantic, Symbol, and Emit under `src/Compilers/VisualBasic/Test/`, and the Visual Basic Features, EditorFeatures, and Workspaces tests.
 
 ## Phase map
 

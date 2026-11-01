@@ -56,6 +56,7 @@ Before a feature is recommended or implemented, it is classified as one of:
 - **Native VB syntax.** VB developers author the capability with new VB syntax.
 - **Interop/runtime support.** VB consumes or emits the .NET capability without new syntax.
 - **Native syntax + interop.** Both are justified, and each is evaluated on its own.
+- **Tooling/diagnostics.** No new syntax and no new runtime capability: what the compiler reports, such as diagnostics and the operations that analyzers see. VB-170, which stops a cascading error, is one.
 - **Deferred.** Possibly valuable, but not yet justified, too risky, too complex, or waiting on another decision.
 - **Rejected.** Conflicts with the mission, adds unacceptable complexity, or has too little value.
 
@@ -142,7 +143,7 @@ When uncertain, do not add syntax or begin implementation. Investigate, explain 
 A new proposal uses these sections:
 
 - **Proposal.** Name and a short description.
-- **Classification.** Native VB syntax, Interop/runtime support, Native syntax + interop, Deferred, or Rejected.
+- **Classification.** Native VB syntax, Interop/runtime support, Native syntax + interop, Tooling/diagnostics, Deferred, or Rejected.
 - **Developer problem.** The concrete problem being solved.
 - **Why this is VB.** Why the capability, and any syntax, fit VB.
 - **Alternatives.** Existing VB idioms and interop-only support.
