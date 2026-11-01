@@ -418,6 +418,17 @@ Checked against this tree after wave 30, by compiling against .NET 11 with `Lang
 | --- | --- | --- |
 | VB-167 | `As` clauses in `Dim` deconstruction | Done in phase 151: on `vbnext`, `Dim (x As Long, y As String) = Pair()` and `Dim ((a As Long, b), label As String) = value` declare each name with its `As` clause's type, converting its element, and a name without one infers its type, so under `Option Infer Off` a list whose names all have `As` clauses compiles. Before that, they report BC30198, "')' expected", because slice 5a and `docs/vbnext-vb166-syntax.md` let `Dim` deconstruction only infer its types, so under `Option Infer Off` it reports BC37388. `For Each (a As Long, b) In items` already takes `As` clauses, and C# 7 writes `(long x, string y) = Pair();`. No new syntax: the `For Each` spelling of phase 39. |
 
+## Wave 32
+
+Checked against this tree after wave 31, by compiling and running against .NET 11 with `LangVersion` `vbnext` the deconstruction shapes that wave 31 code writes next, with a C# library alongside, and by comparing the operation trees of deconstruction and positional patterns with those C# reports. Many shapes already work: `Dim (a, b, c, d, e, f, g, h) = Eight()` over eight elements; `For Each (k, v) In dict` and `Dim (k, v) = dict.First()` through `KeyValuePair.Deconstruct`; `Dim (n, s) = Await PairAsync()`; `Dim` deconstruction inside a multiline lambda; `(.A, .B) = Pair()` inside `With`; `(n, s) = Pair()` into `ByRef` parameters; `Deconstruct` overloads picked by the number of names; a `Deconstruct` extension declared in Visual Basic; `(arr(0), arr(1)) = (arr(1), arr(0))`, which swaps; `Dim (a, b) = If(flag, Pair(), (0, "zero"))`; and `Case Is ((1, 2), "a")`, which compares a nested tuple. `Dim (a, b) = Pair(), z = 3` reports BC30205, but C# does not mix the two forms in one declaration either, so it is not listed. `For Each (key, value) In table` over a `Hashtable` reports BC37363, as C# rejects it, because the items are `Object`.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-168 | Operations for deconstruction | Open. Analyzers see `Dim (n, s) = Pair()`, `(n, s) = Pair()`, and `(box.Width, ) = Pair()` as implicit blocks that assign a temporary and then each element, and `For Each (k, v) In items` as a loop whose variable is a declarator without a name, followed by an implicit block of assignments. C# reports an `IDeconstructionAssignmentOperation` whose target is an `IDeclarationExpressionOperation` over an `ITupleOperation` for `var (n, s)`, an `ITupleOperation` of the targets for an assignment, with an `IDiscardOperation` for `_`, and a `foreach` whose variable is that declaration expression. No new syntax. |
+| VB-169 | Operations for positional patterns | Open. Analyzers see `Case Is (1, "a")` as a case clause over implicit comparisons of each element, and `Case Is ((1, 2), "a")` as an `OperationKind.None` sequence that compares the inner tuple through temporaries. C# reports a pattern case clause whose pattern is an `IRecursivePatternOperation` with an `IConstantPatternOperation` for each value, nested for `((1, 2), "a")`. No new syntax. |
+| VB-170 | Cascading BC37251 after an error in an interpolated string | Open. `Dim x = Undefined` followed by `Console.WriteLine($"plain {x}")` reports BC30451 and then BC37251, "There were one or more errors emitting a call to String.Format", on the interpolated string, because `x` has an error type that the check for errors in interpolations does not see. Visual Basic 17.13 reports both too, from upstream, so the fix applies on `vbnext` only. No new syntax. |
+| VB-171 | Relational tests inside positional patterns | Found by this probe, not yet planned. `Case Is (> 0, "a")` reports BC30201, "Expression expected", because a positional pattern compares each element to a value. C# 9 writes `(> 0, "a")`. New syntax. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -762,3 +773,11 @@ The record that cannot compile comes first, then the convenience that needs a de
 | # | Id | Feature | Rank | Why this slot |
 | --- | --- | --- | --- | --- |
 | 1 | VB-167 | `As` clauses in `Dim` deconstruction | S | Brings the phase 39 `As` clause to `Dim`, at every level of wave 30's nesting, and makes the form usable under `Option Infer Off`. |
+
+### Wave 32 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-168 | Operations for deconstruction | M | Gives analyzers the operation kinds that C# reports for the deconstruction forms of waves 30 and 31, as VB-162 did for index and range. |
+| 2 | VB-169 | Operations for positional patterns | M | Gives analyzers the pattern operations that C# reports for the slice 5g positional pattern, nested as wave 30 nests deconstruction. |
+| 3 | VB-170 | Cascading BC37251 after an error in an interpolated string | S | Widens one check for errors in interpolations, on `vbnext` only. |
