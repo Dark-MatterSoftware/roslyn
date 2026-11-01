@@ -42,6 +42,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
+        ''' <summary>
+        ''' The locals that Dim ((x, y), label) = value declares: each name of the list and its nested lists.
+        ''' </summary>
+        Private Sub AddDeconstructionListLocals(list As DeconstructionListSyntax, locals As ArrayBuilder(Of LocalSymbol))
+            For Each slot In list.Slots
+                If slot.List IsNot Nothing Then
+                    AddDeconstructionListLocals(slot.List, locals)
+                ElseIf slot.Name IsNot Nothing AndAlso Not slot.Name.Identifier.IsMissing Then
+                    locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, slot.Name.Identifier, slot.Name, Nothing, Nothing, LocalDeclarationKind.Variable))
+                End If
+            Next
+        End Sub
+
         ' Build a read only array of all the local variables declared in this statement list.
         Private Function BuildLocals() As ImmutableArray(Of LocalSymbol)
             Dim locals As ArrayBuilder(Of LocalSymbol) = Nothing
@@ -64,6 +77,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Nothing, Nothing,
                             LocalDeclarationKind.Variable))
                     Next
+                End If
+
+                If statement.Kind = SyntaxKind.DeconstructionDeclarationStatement Then
+                    If locals Is Nothing Then
+                        locals = ArrayBuilder(Of LocalSymbol).GetInstance()
+                    End If
+
+                    AddDeconstructionListLocals(DirectCast(statement, DeconstructionDeclarationStatementSyntax).List, locals)
                 End If
 
                 If statement.Kind = SyntaxKind.LocalDeclarationStatement Then

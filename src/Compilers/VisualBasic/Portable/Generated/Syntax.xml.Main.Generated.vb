@@ -239,6 +239,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable Function VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
+        Public Overridable Function VisitDeconstructionDeclarationStatement(ByVal node As DeconstructionDeclarationStatementSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
+        Public Overridable Function VisitDeconstructionList(ByVal node As DeconstructionListSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
+        Public Overridable Function VisitDeconstructionSlot(ByVal node As DeconstructionSlotSyntax) As TResult
+            Return Me.DefaultVisit(node)
+        End Function
         Public Overridable Function VisitLabelStatement(ByVal node As LabelStatementSyntax) As TResult
             Return Me.DefaultVisit(node)
         End Function
@@ -1029,6 +1038,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitTupleDeconstructionStatement(ByVal node As TupleDeconstructionStatementSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitDeconstructionDeclarationStatement(ByVal node As DeconstructionDeclarationStatementSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitDeconstructionList(ByVal node As DeconstructionListSyntax)
+            Me.DefaultVisit(node) : Return
+        End Sub
+        Public Overridable Sub VisitDeconstructionSlot(ByVal node As DeconstructionSlotSyntax)
             Me.DefaultVisit(node) : Return
         End Sub
         Public Overridable Sub VisitLabelStatement(ByVal node As LabelStatementSyntax)
@@ -2966,6 +2984,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If anyChanges Then
                 Return New TupleDeconstructionStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newModifiers.Node, newOpenParenToken, newNames.Node, newCloseParenToken, newInitializer)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitDeconstructionDeclarationStatement(ByVal node As DeconstructionDeclarationStatementSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newModifiers = VisitList(node.Modifiers)
+            If node.Modifiers.Node IsNot newModifiers.Node Then anyChanges = True
+            Dim newList = DirectCast(Visit(node.List), DeconstructionListSyntax)
+            If node.List IsNot newList Then anyChanges = True
+            Dim newInitializer = DirectCast(Visit(node.Initializer), EqualsValueSyntax)
+            If node.Initializer IsNot newInitializer Then anyChanges = True
+
+            If anyChanges Then
+                Return New DeconstructionDeclarationStatementSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newModifiers.Node, newList, newInitializer)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitDeconstructionList(ByVal node As DeconstructionListSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newOpenParenToken = DirectCast(VisitToken(node.OpenParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.OpenParenToken.Node IsNot newOpenParenToken Then anyChanges = True
+            Dim newSlots = VisitList(node.Slots)
+            If node._slots IsNot newSlots.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(VisitToken(node.CloseParenToken).Node, InternalSyntax.PunctuationSyntax)
+            If node.CloseParenToken.Node IsNot newCloseParenToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New DeconstructionListSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newOpenParenToken, newSlots.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitDeconstructionSlot(ByVal node As DeconstructionSlotSyntax) As SyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newName = DirectCast(Visit(node.Name), ModifiedIdentifierSyntax)
+            If node.Name IsNot newName Then anyChanges = True
+            Dim newAsClause = DirectCast(Visit(node.AsClause), SimpleAsClauseSyntax)
+            If node.AsClause IsNot newAsClause Then anyChanges = True
+            Dim newList = DirectCast(Visit(node.List), DeconstructionListSyntax)
+            If node.List IsNot newList Then anyChanges = True
+
+            If anyChanges Then
+                Return New DeconstructionSlotSyntax(node.Kind, node.Green.GetDiagnostics, node.Green.GetAnnotations, newName, newAsClause, newList)
             Else
                 Return node
             End If
@@ -13832,6 +13901,134 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </param>
         Public Shared Function TupleDeconstructionStatement(names As SeparatedSyntaxList(Of ModifiedIdentifierSyntax), initializer As EqualsValueSyntax) As TupleDeconstructionStatementSyntax
             Return SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.OpenParenToken), names, SyntaxFactory.Token(SyntaxKind.CloseParenToken), initializer)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a value apart into locals through nested
+        ''' lists, Dim ((x, y), label) = value.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The Dim keyword that introduces the declaration.
+        ''' </param>
+        ''' <param name="list">
+        ''' The slots the value is taken apart into.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value taken apart into the locals.
+        ''' </param>
+        Public Shared Function DeconstructionDeclarationStatement(modifiers As SyntaxTokenList, list As DeconstructionListSyntax, initializer As EqualsValueSyntax) As DeconstructionDeclarationStatementSyntax
+            if list Is Nothing Then
+                Throw New ArgumentNullException(NameOf(list))
+            End If
+            Select Case list.Kind()
+                Case SyntaxKind.DeconstructionList
+                Case Else
+                    Throw new ArgumentException("list")
+            End Select
+            if initializer Is Nothing Then
+                Throw New ArgumentNullException(NameOf(initializer))
+            End If
+            Select Case initializer.Kind()
+                Case SyntaxKind.EqualsValue
+                Case Else
+                    Throw new ArgumentException("initializer")
+            End Select
+            Return New DeconstructionDeclarationStatementSyntax(SyntaxKind.DeconstructionDeclarationStatement, Nothing, Nothing, modifiers.Node, list, initializer)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a value apart into locals through nested
+        ''' lists, Dim ((x, y), label) = value.
+        ''' </summary>
+        ''' <param name="list">
+        ''' The slots the value is taken apart into.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value taken apart into the locals.
+        ''' </param>
+        Public Shared Function DeconstructionDeclarationStatement(list As DeconstructionListSyntax, initializer As EqualsValueSyntax) As DeconstructionDeclarationStatementSyntax
+            Return SyntaxFactory.DeconstructionDeclarationStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), list, initializer)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+        ''' value apart into, ((x, y), label).
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="slots">
+        ''' The slots, in order.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Public Shared Function DeconstructionList(openParenToken As SyntaxToken, slots As SeparatedSyntaxList(Of DeconstructionSlotSyntax), closeParenToken As SyntaxToken) As DeconstructionListSyntax
+            Select Case openParenToken.Kind()
+                Case SyntaxKind.OpenParenToken
+                Case Else
+                    Throw new ArgumentException("openParenToken")
+            End Select
+            Select Case closeParenToken.Kind()
+                Case SyntaxKind.CloseParenToken
+                Case Else
+                    Throw new ArgumentException("closeParenToken")
+            End Select
+            Return New DeconstructionListSyntax(SyntaxKind.DeconstructionList, Nothing, Nothing, DirectCast(openParenToken.Node, InternalSyntax.PunctuationSyntax), slots.Node, DirectCast(closeParenToken.Node, InternalSyntax.PunctuationSyntax))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+        ''' value apart into, ((x, y), label).
+        ''' </summary>
+        ''' <param name="slots">
+        ''' The slots, in order.
+        ''' </param>
+        Public Shared Function DeconstructionList(slots As SeparatedSyntaxList(Of DeconstructionSlotSyntax)) As DeconstructionListSyntax
+            Return SyntaxFactory.DeconstructionList(SyntaxFactory.Token(SyntaxKind.OpenParenToken), slots, SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+        ''' value apart into, ((x, y), label).
+        ''' </summary>
+        ''' <param name="slots">
+        ''' The slots, in order.
+        ''' </param>
+        Public Shared Function DeconstructionList(ParamArray slots As DeconstructionSlotSyntax()) As DeconstructionListSyntax
+            Return SyntaxFactory.DeconstructionList(SyntaxFactory.Token(SyntaxKind.OpenParenToken), SyntaxFactory.SeparatedList(Of DeconstructionSlotSyntax)().AddRange(slots), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+
+        ''' <summary>
+        ''' Represents one slot of a deconstruction list: a name with an optional As
+        ''' clause, a nested list, or nothing for an empty slot.
+        ''' </summary>
+        ''' <param name="name">
+        ''' The name the slot declares or assigns, or Nothing.
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The As clause of the name, or Nothing.
+        ''' </param>
+        ''' <param name="list">
+        ''' The nested list the slot takes its element apart into, or Nothing.
+        ''' </param>
+        Public Shared Function DeconstructionSlot(name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax) As DeconstructionSlotSyntax
+            Return New DeconstructionSlotSyntax(SyntaxKind.DeconstructionSlot, Nothing, Nothing, name, asClause, list)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents one slot of a deconstruction list: a name with an optional As
+        ''' clause, a nested list, or nothing for an empty slot.
+        ''' </summary>
+        Public Shared Function DeconstructionSlot() As DeconstructionSlotSyntax
+            Return SyntaxFactory.DeconstructionSlot(Nothing, Nothing, Nothing)
         End Function
 
 
@@ -40449,6 +40646,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.WithBlock,
                      SyntaxKind.LocalDeclarationStatement,
                      SyntaxKind.TupleDeconstructionStatement,
+                     SyntaxKind.DeconstructionDeclarationStatement,
                      SyntaxKind.LabelStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.StopStatement,
@@ -40758,6 +40956,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.WithBlock,
                      SyntaxKind.LocalDeclarationStatement,
                      SyntaxKind.TupleDeconstructionStatement,
+                     SyntaxKind.DeconstructionDeclarationStatement,
                      SyntaxKind.LabelStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.StopStatement,
@@ -41075,6 +41274,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.WithBlock,
                      SyntaxKind.LocalDeclarationStatement,
                      SyntaxKind.TupleDeconstructionStatement,
+                     SyntaxKind.DeconstructionDeclarationStatement,
                      SyntaxKind.LabelStatement,
                      SyntaxKind.GoToStatement,
                      SyntaxKind.StopStatement,

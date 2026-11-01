@@ -2967,6 +2967,72 @@ Unify Enum declarations with other block type declarations.
       </child>
     </node-structure>
 
+    <!--********************
+      -  DeconstructionDeclarationStatement
+      **********************-->
+    <node-structure name="DeconstructionDeclarationStatementSyntax" parent="ExecutableStatementSyntax">
+      <description>Represents a declaration that takes a value apart into locals through nested lists, <c>Dim ((x, y), label) = value</c>.</description>
+
+      <node-kind name="DeconstructionDeclarationStatement" />
+
+      <child name="Modifiers" list="true" kind="DimKeyword" min-count="1">
+        <description>The Dim keyword that introduces the declaration.</description>
+      </child>
+
+      <child name="List" kind="DeconstructionList">
+        <description>The slots the value is taken apart into.</description>
+      </child>
+
+      <child name="Initializer" kind="EqualsValue">
+        <description>The value taken apart into the locals.</description>
+      </child>
+    </node-structure>
+
+    <!--********************
+      -  DeconstructionList
+      **********************-->
+    <node-structure name="DeconstructionListSyntax" parent="VisualBasicSyntaxNode">
+      <description>Represents a parenthesized list of slots that a nested deconstruction takes a value apart into, <c>((x, y), label)</c>.</description>
+
+      <node-kind name="DeconstructionList" />
+
+      <child name="OpenParenToken" kind="OpenParenToken">
+        <description>The opening parenthesis.</description>
+      </child>
+
+      <child name="Slots" list="true" separator-kind="CommaToken" separator-name="CommaTokens" kind="DeconstructionSlot" min-count="1">
+        <description>The slots, in order.</description>
+      </child>
+
+      <child name="CloseParenToken" kind="CloseParenToken">
+        <description>The closing parenthesis.</description>
+      </child>
+    </node-structure>
+
+    <!--********************
+      -  DeconstructionSlot
+      **********************-->
+    <node-structure name="DeconstructionSlotSyntax" parent="VisualBasicSyntaxNode">
+      <description>
+        Represents one slot of a deconstruction list: a name with an optional As clause, a nested list, or nothing for an
+        empty slot.
+      </description>
+
+      <node-kind name="DeconstructionSlot" />
+
+      <child name="Name" kind="ModifiedIdentifier" optional="true">
+        <description>The name the slot declares or assigns, or Nothing.</description>
+      </child>
+
+      <child name="AsClause" kind="SimpleAsClause" optional="true">
+        <description>The As clause of the name, or Nothing.</description>
+      </child>
+
+      <child name="List" kind="DeconstructionList" optional="true">
+        <description>The nested list the slot takes its element apart into, or Nothing.</description>
+      </child>
+    </node-structure>
+
     <!--****************
       -  Label
       ******************-->

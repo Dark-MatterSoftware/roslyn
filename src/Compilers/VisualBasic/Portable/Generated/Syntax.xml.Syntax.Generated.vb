@@ -14057,6 +14057,451 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' Represents a declaration that takes a value apart into locals through nested
+    ''' lists, Dim ((x, y), label) = value.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.DeconstructionDeclarationStatement"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class DeconstructionDeclarationStatementSyntax
+        Inherits ExecutableStatementSyntax
+
+        Friend _list as DeconstructionListSyntax
+        Friend _initializer as EqualsValueSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), modifiers As GreenNode, list As DeconstructionListSyntax, initializer As EqualsValueSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionDeclarationStatementSyntax(kind, errors, annotations, modifiers, DirectCast(list.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionListSyntax), DirectCast(initializer.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.EqualsValueSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The Dim keyword that introduces the declaration.
+        ''' </summary>
+        Public ReadOnly Property Modifiers As SyntaxTokenList
+            Get
+                Dim slot = DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionDeclarationStatementSyntax)._modifiers
+                If slot IsNot Nothing
+                    return new SyntaxTokenList(Me, slot, Me.Position, 0)
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Modifiers property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithModifiers(modifiers as SyntaxTokenList) As DeconstructionDeclarationStatementSyntax
+            return Update(modifiers, Me.List, Me.Initializer)
+        End Function
+
+        Public Shadows Function AddModifiers(ParamArray items As SyntaxToken()) As DeconstructionDeclarationStatementSyntax
+            Return Me.WithModifiers(Me.Modifiers.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The slots the value is taken apart into.
+        ''' </summary>
+        Public ReadOnly Property List As DeconstructionListSyntax
+            Get
+                Return GetRed(_list, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the List property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithList(list as DeconstructionListSyntax) As DeconstructionDeclarationStatementSyntax
+            return Update(Me.Modifiers, list, Me.Initializer)
+        End Function
+
+        Public Shadows Function AddListSlots(ParamArray items As DeconstructionSlotSyntax()) As DeconstructionDeclarationStatementSyntax
+            Dim _child = If(Me.List IsNot Nothing, Me.List, SyntaxFactory.DeconstructionList())
+            Return Me.WithList(_child.AddSlots(items))
+        End Function
+
+        ''' <summary>
+        ''' The value taken apart into the locals.
+        ''' </summary>
+        Public ReadOnly Property Initializer As EqualsValueSyntax
+            Get
+                Return GetRed(_initializer, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Initializer property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithInitializer(initializer as EqualsValueSyntax) As DeconstructionDeclarationStatementSyntax
+            return Update(Me.Modifiers, Me.List, initializer)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._list
+                Case 2
+                    Return Me._initializer
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me.List
+                Case 2
+                    Return Me.Initializer
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitDeconstructionDeclarationStatement(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitDeconstructionDeclarationStatement(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The value for the Modifiers property.
+        ''' </param>
+        ''' <param name="list">
+        ''' The value for the List property.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value for the Initializer property.
+        ''' </param>
+        Public Function Update(modifiers As SyntaxTokenList, list As DeconstructionListSyntax, initializer As EqualsValueSyntax) As DeconstructionDeclarationStatementSyntax
+            If modifiers <> Me.Modifiers OrElse list IsNot Me.List OrElse initializer IsNot Me.Initializer Then
+                Dim newNode = SyntaxFactory.DeconstructionDeclarationStatement(modifiers, list, initializer)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+    ''' value apart into, ((x, y), label).
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.DeconstructionList"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class DeconstructionListSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend _slots as SyntaxNode
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openParenToken As InternalSyntax.PunctuationSyntax, slots As SyntaxNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionListSyntax(kind, errors, annotations, openParenToken, if(slots IsNot Nothing, slots.Green, Nothing), closeParenToken), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Public ReadOnly Property OpenParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionListSyntax)._openParenToken, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OpenParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithOpenParenToken(openParenToken as SyntaxToken) As DeconstructionListSyntax
+            return Update(openParenToken, Me.Slots, Me.CloseParenToken)
+        End Function
+
+        ''' <summary>
+        ''' The slots, in order.
+        ''' </summary>
+        Public ReadOnly Property Slots As SeparatedSyntaxList(Of DeconstructionSlotSyntax)
+            Get
+                Dim listNode = GetRed(_slots, 1)
+                If listNode IsNot Nothing
+                    Return new SeparatedSyntaxList(Of DeconstructionSlotSyntax)(listNode, Me.GetChildIndex(1))
+                End If
+                Return Nothing
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Slots property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithSlots(slots as SeparatedSyntaxList(Of DeconstructionSlotSyntax)) As DeconstructionListSyntax
+            return Update(Me.OpenParenToken, slots, Me.CloseParenToken)
+        End Function
+
+        Public Shadows Function AddSlots(ParamArray items As DeconstructionSlotSyntax()) As DeconstructionListSyntax
+            Return Me.WithSlots(Me.Slots.AddRange(items))
+        End Function
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Public ReadOnly Property CloseParenToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionListSyntax)._closeParenToken, Me.GetChildPosition(2), Me.GetChildIndex(2))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the CloseParenToken property changed to the
+        ''' specified value. Returns this instance if the specified value is the same as
+        ''' the current value.
+        ''' </summary>
+        Public Shadows Function WithCloseParenToken(closeParenToken as SyntaxToken) As DeconstructionListSyntax
+            return Update(Me.OpenParenToken, Me.Slots, closeParenToken)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._slots
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return GetRed(_slots, 1)
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitDeconstructionList(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitDeconstructionList(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The value for the OpenParenToken property.
+        ''' </param>
+        ''' <param name="slots">
+        ''' The value for the Slots property.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The value for the CloseParenToken property.
+        ''' </param>
+        Public Function Update(openParenToken As SyntaxToken, slots As SeparatedSyntaxList(Of DeconstructionSlotSyntax), closeParenToken As SyntaxToken) As DeconstructionListSyntax
+            If openParenToken <> Me.OpenParenToken OrElse slots <> Me.Slots OrElse closeParenToken <> Me.CloseParenToken Then
+                Dim newNode = SyntaxFactory.DeconstructionList(openParenToken, slots, closeParenToken)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents one slot of a deconstruction list: a name with an optional As
+    ''' clause, a nested list, or nothing for an empty slot.
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.DeconstructionSlot"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class DeconstructionSlotSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend _name as ModifiedIdentifierSyntax
+        Friend _asClause as SimpleAsClauseSyntax
+        Friend _list as DeconstructionListSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionSlotSyntax(kind, errors, annotations, if(name IsNot Nothing, DirectCast(name.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ModifiedIdentifierSyntax), Nothing), if(asClause IsNot Nothing, DirectCast(asClause.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.SimpleAsClauseSyntax), Nothing), if(list IsNot Nothing, DirectCast(list.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.DeconstructionListSyntax), Nothing)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The name the slot declares or assigns, or Nothing.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property Name As ModifiedIdentifierSyntax
+            Get
+                Return GetRedAtZero(_name)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Name property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithName(name as ModifiedIdentifierSyntax) As DeconstructionSlotSyntax
+            return Update(name, Me.AsClause, Me.List)
+        End Function
+
+        ''' <summary>
+        ''' The As clause of the name, or Nothing.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property AsClause As SimpleAsClauseSyntax
+            Get
+                Return GetRed(_asClause, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the AsClause property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithAsClause(asClause as SimpleAsClauseSyntax) As DeconstructionSlotSyntax
+            return Update(Me.Name, asClause, Me.List)
+        End Function
+
+        ''' <summary>
+        ''' The nested list the slot takes its element apart into, or Nothing.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Public ReadOnly Property List As DeconstructionListSyntax
+            Get
+                Return GetRed(_list, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the List property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithList(list as DeconstructionListSyntax) As DeconstructionSlotSyntax
+            return Update(Me.Name, Me.AsClause, list)
+        End Function
+
+        Public Shadows Function AddListSlots(ParamArray items As DeconstructionSlotSyntax()) As DeconstructionSlotSyntax
+            Dim _child = If(Me.List IsNot Nothing, Me.List, SyntaxFactory.DeconstructionList())
+            Return Me.WithList(_child.AddSlots(items))
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._name
+                Case 1
+                    Return Me._asClause
+                Case 2
+                    Return Me._list
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.Name
+                Case 1
+                    Return Me.AsClause
+                Case 2
+                    Return Me.List
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitDeconstructionSlot(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitDeconstructionSlot(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="name">
+        ''' The value for the Name property.
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The value for the AsClause property.
+        ''' </param>
+        ''' <param name="list">
+        ''' The value for the List property.
+        ''' </param>
+        Public Function Update(name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax) As DeconstructionSlotSyntax
+            If name IsNot Me.Name OrElse asClause IsNot Me.AsClause OrElse list IsNot Me.List Then
+                Dim newNode = SyntaxFactory.DeconstructionSlot(name, asClause, list)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a label statement.
     ''' </summary>
     ''' <remarks>

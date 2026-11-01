@@ -1267,7 +1267,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         ' (box.Width, cells(1)) = value deconstructs into targets that are not names alone, so it is an
                         ' assignment to a tuple expression. A list of names alone keeps the deconstruction statement.
                         If IsTupleTargetAssignmentStart() Then
-                            Return ParseAssignmentOrInvocationStatement()
+                            Return ParseTupleTargetAssignment()
                         End If
 
                         Dim emptyAttributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax) = Nothing
@@ -2342,10 +2342,179 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Loop
         End Function
 
+        ''' <summary>
+        ''' (target, target, ...) = value, where a target is anything an assignment takes, a nested list, or an empty slot,
+        ''' as docs/vbnext-vb166-syntax.md locks. The list is a tuple expression, and an empty slot is a missing expression.
+        ''' </summary>
+        Private Function ParseTupleTargetAssignment() As StatementSyntax
+            Dim targets = ParseTupleTargetList()
+
+            Dim equalsToken As PunctuationSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.EqualsToken, equalsToken, createIfMissing:=True)
+            Dim value = ParseExpressionCore()
+            Return SyntaxFactory.SimpleAssignmentStatement(targets, equalsToken, value)
+        End Function
+
+        Private Function ParseTupleTargetList() As TupleExpressionSyntax
+            Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim arguments = _pool.AllocateSeparated(Of SimpleArgumentSyntax)()
+            Do
+                Dim target As ExpressionSyntax
+                If CurrentToken.Kind = SyntaxKind.CommaToken OrElse
+                   (CurrentToken.Kind = SyntaxKind.CloseParenToken AndAlso arguments.Count > 0) Then
+                    target = InternalSyntaxFactory.MissingExpression()
+                ElseIf CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso IsNestedTargetList() Then
+                    target = ParseTupleTargetList()
+                Else
+                    target = ParseExpressionCore()
+                End If
+
+                arguments.Add(SyntaxFactory.SimpleArgument(Nothing, target))
+
+                Dim comma As PunctuationSyntax = Nothing
+                If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                    Exit Do
+                End If
+
+                arguments.AddSeparator(comma)
+            Loop
+
+            Dim closeParen As PunctuationSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
+
+            Dim result = SyntaxFactory.TupleExpression(openParen, arguments.ToList, closeParen)
+            _pool.Free(arguments)
+            Return result
+        End Function
+
+        ''' <summary>
+        ''' Whether the parenthesis at the current token opens a nested target list, which has a comma at its own level,
+        ''' rather than a parenthesized target.
+        ''' </summary>
+        Private Function IsNestedTargetList() As Boolean
+            Dim depth = 0
+            Dim i = 1
+            Do
+                Select Case PeekToken(i).Kind
+                    Case SyntaxKind.OpenParenToken
+                        depth += 1
+                    Case SyntaxKind.CloseParenToken
+                        If depth = 0 Then
+                            Return False
+                        End If
+
+                        depth -= 1
+                    Case SyntaxKind.CommaToken
+                        If depth = 0 Then
+                            Return True
+                        End If
+                    Case SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken, SyntaxKind.ColonToken
+                        Return False
+                End Select
+
+                i += 1
+            Loop
+        End Function
+
+        ''' <summary>
+        ''' Dim ((x, y), label) = value, as docs/vbnext-vb166-syntax.md locks.
+        ''' </summary>
+        Private Function ParseDeconstructionDeclarationStatement(
+            attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
+            modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
+        ) As StatementSyntax
+
+            Dim list = ParseDeconstructionList(allowAsClause:=False)
+
+            Dim equalsToken As PunctuationSyntax = Nothing
+            Dim value As ExpressionSyntax
+            If TryGetTokenAndEatNewLine(SyntaxKind.EqualsToken, equalsToken) Then
+                value = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+            Else
+                equalsToken = DirectCast(ReportSyntaxError(InternalSyntaxFactory.MissingToken(SyntaxKind.EqualsToken), ERRID.ERR_ExpectedEQ), PunctuationSyntax)
+                value = InternalSyntaxFactory.MissingExpression()
+            End If
+
+            Dim result As StatementSyntax = SyntaxFactory.DeconstructionDeclarationStatement(modifiers, list, SyntaxFactory.EqualsValue(equalsToken, value))
+            If attributes.Any Then
+                result = result.AddLeadingSyntax(attributes.Node, ERRID.ERR_LocalsCannotHaveAttributes)
+            End If
+
+            Return result
+        End Function
+
+        ''' <summary>
+        ''' Whether the deconstruction list that starts at the current opening parenthesis nests another list in a slot.
+        ''' </summary>
+        Private Function IsNestedDeconstructionList() As Boolean
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.OpenParenToken)
+
+            Dim i = 1
+            Do
+                Select Case PeekToken(i).Kind
+                    Case SyntaxKind.OpenParenToken
+                        Return True
+                    Case SyntaxKind.CloseParenToken, SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken, SyntaxKind.ColonToken
+                        Return False
+                End Select
+
+                i += 1
+            Loop
+        End Function
+
+        ''' <summary>
+        ''' Parses (slot, slot, ...), where a slot is a name, with an As clause when allowed, a nested list, or empty, as
+        ''' docs/vbnext-vb166-syntax.md locks.
+        ''' </summary>
+        Private Function ParseDeconstructionList(allowAsClause As Boolean) As DeconstructionListSyntax
+            Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim slots = _pool.AllocateSeparated(Of DeconstructionSlotSyntax)()
+            Do
+                If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
+                    slots.Add(SyntaxFactory.DeconstructionSlot(Nothing, Nothing, ParseDeconstructionList(allowAsClause)))
+                ElseIf CurrentToken.Kind = SyntaxKind.CommaToken OrElse
+                       (CurrentToken.Kind = SyntaxKind.CloseParenToken AndAlso slots.Count > 0) Then
+                    slots.Add(SyntaxFactory.DeconstructionSlot(Nothing, Nothing, Nothing))
+                Else
+                    Dim name = ParseModifiedIdentifier(False, False)
+                    Dim asClause As SimpleAsClauseSyntax = Nothing
+                    If allowAsClause AndAlso CurrentToken.Kind = SyntaxKind.AsKeyword Then
+                        Dim asKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                        GetNextToken()
+                        asClause = SyntaxFactory.SimpleAsClause(asKeyword, Nothing, ParseGeneralType())
+                    End If
+
+                    slots.Add(SyntaxFactory.DeconstructionSlot(name, asClause, Nothing))
+                End If
+
+                Dim comma As PunctuationSyntax = Nothing
+                If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                    Exit Do
+                End If
+
+                slots.AddSeparator(comma)
+            Loop
+
+            Dim closeParen As PunctuationSyntax = Nothing
+            TryGetTokenAndEatNewLine(SyntaxKind.CloseParenToken, closeParen, createIfMissing:=True)
+
+            Dim result = SyntaxFactory.DeconstructionList(openParen, slots.ToList, closeParen)
+            _pool.Free(slots)
+            Return result
+        End Function
+
         Private Function ParseTupleDeconstructionStatement(
             attributes As CoreInternalSyntax.SyntaxList(Of AttributeListSyntax),
             modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
         ) As StatementSyntax
+
+            If modifiers.Any AndAlso IsNestedDeconstructionList() Then
+                Return ParseDeconstructionDeclarationStatement(attributes, modifiers)
+            End If
 
             Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
             GetNextToken()

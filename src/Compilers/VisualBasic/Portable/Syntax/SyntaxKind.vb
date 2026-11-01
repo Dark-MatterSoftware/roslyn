@@ -3348,5 +3348,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ByRefExpression = 822                        ' ByRefExpressionSyntax : ExpressionSyntax
         TypeAliasImportsClause = 823                 ' TypeAliasImportsClauseSyntax : ImportsClauseSyntax
 
+        ''' <summary>
+        ''' Represents a declaration that takes a value apart into locals through nested lists, <c>Dim ((x, y), label) = value</c>.
+        ''' </summary>
+        DeconstructionDeclarationStatement = 824     ' DeconstructionDeclarationStatementSyntax : ExecutableStatementSyntax : StatementSyntax
+
+        ''' <summary>
+        ''' Represents a parenthesized list of slots that a nested deconstruction takes a value apart into, <c>((x, y), label)</c>.
+        ''' </summary>
+        DeconstructionList = 825                     ' DeconstructionListSyntax : VisualBasicSyntaxNode
+
+        ''' <summary>
+        ''' Represents one slot of a deconstruction list: a name with an optional As clause, a nested list, or nothing.
+        ''' </summary>
+        DeconstructionSlot = 826                     ' DeconstructionSlotSyntax : VisualBasicSyntaxNode
+
     End Enum
 End Namespace

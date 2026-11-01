@@ -411,6 +411,147 @@ End Class
                 Diagnostic(ERRID.ERR_LValueRequired, "Value()").WithLocation(15, 10))
         End Sub
 
+        Private Const NestedSource As String = "
+Option Strict On
+Imports System
+
+Class Point
+    Public ReadOnly X As Integer
+    Public ReadOnly Y As Integer
+
+    Public Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X
+        y = Me.Y
+    End Sub
+End Class
+
+Class Box
+    Public Width As Integer
+    Public Property Height As Integer
+    Public Property Label As String
+End Class
+"
+
+        <Fact>
+        Public Sub NestedDeconstruction_Dim()
+            Dim compilation = CreateCompilation(NestedSource & "
+Class Program
+    Shared Function Nested() As ((Integer, Integer), String)
+        Return ((2, 3), ""pair"")
+    End Function
+
+    Shared Sub Main()
+        Dim ((x, y), label) = Nested()
+        Dim ((first, ), ) = Nested()
+        Dim (p, (q, r)) = (1, New Point(4, 5))
+        Dim ((a, b), (c, d)) = ((1, 2), (3, 4))
+        Dim text As String = label
+        Dim total As Integer = x + y
+        Console.Write(total & text & first & p & q & r & a & b & c & d)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="5pair21451234").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub NestedDeconstruction_AssignmentAndEmptySlotsWithMembers()
+            Dim compilation = CreateCompilation(NestedSource & "
+Class Program
+    Shared Function Nested() As ((Integer, Integer), String)
+        Return ((2, 3), ""pair"")
+    End Function
+
+    Shared Sub Main()
+        Dim box As New Box()
+        Dim m As Integer
+        Dim n As Integer
+        ((m, n), box.Label) = Nested()
+        (box.Width, ) = (9, ""skip"")
+        ((box.Height, ), ) = Nested()
+        Console.Write(m & n & box.Label & box.Width & box.Height)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="23pair92").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub NestedDeconstruction_NestedListOfAnotherLength()
+            Dim compilation = CreateCompilation(NestedSource & "
+Class Program
+    Shared Function Nested() As ((Integer, Integer), String)
+        Return ((2, 3), ""pair"")
+    End Function
+
+    Shared Sub Main()
+        Dim ((x, y, z), label) = Nested()
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DeconstructionRequiresTuple, "(x, y, z)").WithArguments("3").WithLocation(32, 14))
+        End Sub
+
+        <Fact>
+        Public Sub NestedDeconstruction_SemanticModel()
+            Dim compilation = CreateCompilation(NestedSource & "
+Class Program
+    Shared Function Nested() As ((Integer, Integer), String)
+        Return ((2, 3), ""pair"")
+    End Function
+
+    Shared Sub Main()
+        Dim ((x, y), label) = Nested()
+        Console.Write(x)
+        Console.Write(label)
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim names = tree.GetRoot().DescendantNodes().OfType(Of Syntax.DeconstructionSlotSyntax)().Where(Function(s) s.Name IsNot Nothing).Select(Function(s) s.Name).ToArray()
+            Assert.Equal({"x As System.Int32", "y As System.Int32", "label As System.String"},
+                         names.Select(Function(n) model.GetDeclaredSymbol(n).ToTestDisplayString()).ToArray())
+            Dim main = tree.GetRoot().DescendantNodes().OfType(Of Syntax.MethodBlockSyntax)().Last()
+            Dim usages = main.DescendantNodes().OfType(Of Syntax.IdentifierNameSyntax)().Where(Function(i) i.Identifier.ValueText = "x" OrElse i.Identifier.ValueText = "label").ToArray()
+            Assert.Equal({"x As System.Int32", "label As System.String"}, usages.Select(Function(u) model.GetSymbolInfo(u).Symbol.ToTestDisplayString()).ToArray())
+        End Sub
+
+        <Fact>
+        Public Sub NestedDeconstruction_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Function Nested() As ((Integer, Integer), String)
+        Return ((2, 3), ""pair"")
+    End Function
+
+    Shared Sub Main()
+        Dim ((x, y), label) = Nested()
+    End Sub
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedIdentifier, "").WithLocation(8, 13),
+                Diagnostic(ERRID.ERR_InferringNonArrayType1, "").WithArguments("((Integer, Integer), String)").WithLocation(8, 13),
+                Diagnostic(ERRID.ERR_InitWithExplicitArraySizes, "((x, y), label)").WithLocation(8, 13),
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "x").WithArguments("x").WithLocation(8, 15),
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "y").WithArguments("y").WithLocation(8, 18),
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "label").WithArguments("label").WithLocation(8, 22),
+                Diagnostic(ERRID.ERR_TypeMismatch2, "Nested()").WithArguments("((Integer, Integer), String)", "Object(*,*)").WithLocation(8, 31))
+        End Sub
+
         <Fact>
         Public Sub TupleDeconstructionAssignment_MembersRejectedOn17_13()
             Dim compilation = CreateCompilation("

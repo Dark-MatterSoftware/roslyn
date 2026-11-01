@@ -280,6 +280,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.SyncLockBlock,
                      SyntaxKind.LocalDeclarationStatement,
                      SyntaxKind.TupleDeconstructionStatement,
+                     SyntaxKind.DeconstructionDeclarationStatement,
                      SyntaxKind.SimpleDoLoopBlock,
                      SyntaxKind.DoWhileLoopBlock,
                      SyntaxKind.DoUntilLoopBlock,

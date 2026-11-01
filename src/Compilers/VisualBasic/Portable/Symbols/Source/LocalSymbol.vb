@@ -939,6 +939,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     End Try
                 End If
 
+                ' A name in Dim ((x, y), label) = value has the type of its element along its path of nested lists.
+                If _asClauseOpt Is Nothing AndAlso
+                   _modifiedIdentifierOpt IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent IsNot Nothing AndAlso
+                   _modifiedIdentifierOpt.Parent.Kind = SyntaxKind.DeconstructionSlot Then
+
+                    If _deconstructionTypeGuard <> 0 Then
+                        Return ErrorTypeSymbol.UnknownResultType
+                    End If
+
+                    _deconstructionTypeGuard = 1
+                    Try
+                        Return localBinder.GetNestedDeconstructionElementType(Me)
+                    Finally
+                        _deconstructionTypeGuard = 0
+                    End Try
+                End If
+
                 ' A name in For Each (a, b) In items without an As clause has the type of its element of the item.
                 If _asClauseOpt Is Nothing AndAlso
                    _modifiedIdentifierOpt IsNot Nothing AndAlso

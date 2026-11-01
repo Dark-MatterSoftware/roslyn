@@ -33,7 +33,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Semantics
                 SyntaxKind.ExtensionBlock,
                 SyntaxKind.GuidLiteralExpression,
                 SyntaxKind.ForEachDeconstruction,
-                SyntaxKind.ByRefExpression
+                SyntaxKind.ByRefExpression,
+                SyntaxKind.DeconstructionDeclarationStatement,
+                SyntaxKind.DeconstructionList,
+                SyntaxKind.DeconstructionSlot
             })
             analyzer.VerifyOnCodeBlockCalledForAllSymbolAndMethodKinds()
         End Sub

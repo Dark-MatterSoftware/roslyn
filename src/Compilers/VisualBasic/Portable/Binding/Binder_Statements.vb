@@ -82,6 +82,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Case SyntaxKind.LocalDeclarationStatement
                     Return BindLocalDeclaration(DirectCast(node, LocalDeclarationStatementSyntax), diagnostics)
 
+                Case SyntaxKind.DeconstructionDeclarationStatement
+                    Return BindDeconstructionDeclaration(DirectCast(node, DeconstructionDeclarationStatementSyntax), diagnostics)
+
                 Case SyntaxKind.TupleDeconstructionStatement
                     Dim deconstruction = DirectCast(node, TupleDeconstructionStatementSyntax)
                     If deconstruction.Modifiers.Any(SyntaxKind.DimKeyword) Then
@@ -1249,71 +1252,271 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function BindTupleTargetDeconstruction(node As AssignmentStatementSyntax, tuple As TupleExpressionSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
             Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
             Dim temps = ArrayBuilder(Of LocalSymbol).GetInstance()
-            Dim targets = ArrayBuilder(Of BoundExpression).GetInstance(tuple.Arguments.Count)
-            Dim hasErrors = False
+            Dim targetErrors = False
+            Dim slots = BindTupleTargetSlots(tuple, temps, statements, targetErrors, diagnostics)
+            Dim value = BindValue(node.Right, diagnostics).MakeRValue()
+            Dim hasErrors = DeconstructIntoSlots(node.Right, value, slots, temps, statements, diagnostics)
+            Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors OrElse targetErrors)
+        End Function
 
+        ''' <summary>
+        ''' On vbnext, Dim ((x, y), label) = value declares the names of nested lists, as docs/vbnext-vb166-syntax.md locks.
+        ''' </summary>
+        Private Function BindDeconstructionDeclaration(node As DeconstructionDeclarationStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
+            If Not OptionInfer Then
+                ReportDiagnostic(diagnostics, node.List, ERRID.ERR_DeconstructionRequiresOptionInfer)
+            End If
+
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim temps = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim slots = DeclarationSlots(node.List)
+            AddDeclaredLocals(slots, temps)
+            Dim value = BindValue(node.Initializer.Value, diagnostics).MakeRValue()
+            Dim hasErrors = DeconstructIntoSlots(node.Initializer, value, slots, temps, statements, diagnostics)
+            Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+        End Function
+
+        Private Shared Sub AddDeclaredLocals(slots As ImmutableArray(Of DeconstructionSlotTarget), locals As ArrayBuilder(Of LocalSymbol))
+            For Each slot In slots
+                If Not slot.Nested.IsDefault Then
+                    AddDeclaredLocals(slot.Nested, locals)
+                ElseIf slot.DeclaredLocal IsNot Nothing Then
+                    locals.Add(slot.DeclaredLocal)
+                End If
+            Next
+        End Sub
+
+        ''' <summary>
+        ''' One slot of a deconstruction: an assignment target, a local the deconstruction declares, a nested list, or empty.
+        ''' </summary>
+        Private NotInheritable Class DeconstructionSlotTarget
+            Public ReadOnly Syntax As SyntaxNode
+            Public ReadOnly Target As BoundExpression
+            Public ReadOnly DeclaredLocal As LocalSymbol
+            Public ReadOnly Name As ModifiedIdentifierSyntax
+            Public ReadOnly Nested As ImmutableArray(Of DeconstructionSlotTarget)
+
+            Public Sub New(syntax As SyntaxNode, target As BoundExpression, declaredLocal As LocalSymbol, name As ModifiedIdentifierSyntax, nested As ImmutableArray(Of DeconstructionSlotTarget))
+                Me.Syntax = syntax
+                Me.Target = target
+                Me.DeclaredLocal = declaredLocal
+                Me.Name = name
+                Me.Nested = nested
+            End Sub
+
+            Public ReadOnly Property IsEmpty As Boolean
+                Get
+                    Return Target Is Nothing AndAlso DeclaredLocal Is Nothing AndAlso Nested.IsDefault
+                End Get
+            End Property
+        End Class
+
+        Private Function BindTupleTargetSlots(tuple As TupleExpressionSyntax, temps As ArrayBuilder(Of LocalSymbol), statements As ArrayBuilder(Of BoundStatement),
+                                              ByRef hasErrors As Boolean, diagnostics As BindingDiagnosticBag) As ImmutableArray(Of DeconstructionSlotTarget)
+            Dim slots = ArrayBuilder(Of DeconstructionSlotTarget).GetInstance(tuple.Arguments.Count)
             For Each argument In tuple.Arguments
-                Dim target = BindAssignmentTarget(argument.Expression, diagnostics)
-                hasErrors = hasErrors OrElse target.HasErrors
-                targets.Add(If(target.HasErrors, target, StoreTargetOperands(target, temps, statements)))
+                Dim expression = argument.Expression
+                If expression.IsMissing Then
+                    slots.Add(New DeconstructionSlotTarget(argument, Nothing, Nothing, Nothing, Nothing))
+                ElseIf expression.Kind = SyntaxKind.TupleExpression Then
+                    slots.Add(New DeconstructionSlotTarget(argument, Nothing, Nothing, Nothing,
+                                                           BindTupleTargetSlots(DirectCast(expression, TupleExpressionSyntax), temps, statements, hasErrors, diagnostics)))
+                Else
+                    Dim target = BindAssignmentTarget(expression, diagnostics)
+                    hasErrors = hasErrors OrElse target.HasErrors
+                    slots.Add(New DeconstructionSlotTarget(argument, If(target.HasErrors, target, StoreTargetOperands(target, temps, statements)), Nothing, Nothing, Nothing))
+                End If
             Next
 
-            Dim value = BindValue(node.Right, diagnostics).MakeRValue()
-            Dim count = targets.Count
+            Return slots.ToImmutableAndFree()
+        End Function
+
+        Private Function DeclarationSlots(list As DeconstructionListSyntax) As ImmutableArray(Of DeconstructionSlotTarget)
+            Dim slots = ArrayBuilder(Of DeconstructionSlotTarget).GetInstance(list.Slots.Count)
+            For Each slot In list.Slots
+                If slot.List IsNot Nothing Then
+                    slots.Add(New DeconstructionSlotTarget(slot, Nothing, Nothing, Nothing, DeclarationSlots(slot.List)))
+                ElseIf slot.Name IsNot Nothing AndAlso Not slot.Name.Identifier.IsMissing Then
+                    slots.Add(New DeconstructionSlotTarget(slot, Nothing, GetLocalForDeclaration(slot.Name.Identifier), slot.Name, Nothing))
+                Else
+                    slots.Add(New DeconstructionSlotTarget(slot, Nothing, Nothing, Nothing, Nothing))
+                End If
+            Next
+
+            Return slots.ToImmutableAndFree()
+        End Function
+
+        ''' <summary>
+        ''' Takes the value apart into the slots: by the elements of a tuple of that length, or else by Deconstruct, and a
+        ''' nested list in turn takes its element apart. The value is evaluated once, and the slots are assigned left to
+        ''' right, depth first. Returns whether there were errors.
+        ''' </summary>
+        Private Function DeconstructIntoSlots(syntax As SyntaxNode, value As BoundExpression, slots As ImmutableArray(Of DeconstructionSlotTarget),
+                                              temps As ArrayBuilder(Of LocalSymbol), statements As ArrayBuilder(Of BoundStatement),
+                                              diagnostics As BindingDiagnosticBag) As Boolean
+            Dim count = slots.Length
             Dim elements = GetDeconstructionElements(value, count)
             Dim method As MethodSymbol = Nothing
             If elements.IsDefault Then
-                method = FindDeconstructMethod(value, count, diagnostics, node)
-                If method Is Nothing AndAlso Not value.HasErrors Then
-                    ReportDiagnostic(diagnostics, node.Right, ERRID.ERR_DeconstructionRequiresTuple, count)
-                End If
-            End If
+                method = FindDeconstructMethod(value, count, diagnostics, syntax)
+                If method Is Nothing Then
+                    If Not value.HasErrors Then
+                        ReportDiagnostic(diagnostics, syntax, ERRID.ERR_DeconstructionRequiresTuple, count)
+                    End If
 
-            If elements.IsDefault AndAlso method Is Nothing Then
-                statements.Add(New BoundExpressionStatement(node.Right, BadExpression(node.Right, value, ErrorTypeSymbol.UnknownResultType)).MakeCompilerGenerated())
-                targets.Free()
-                Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=True)
+                    statements.Add(New BoundExpressionStatement(syntax, BadExpression(syntax, value, ErrorTypeSymbol.UnknownResultType)).MakeCompilerGenerated())
+                    DeclareWithErrorType(slots, diagnostics)
+                    Return True
+                End If
             End If
 
             Dim valueTemp = New SynthesizedLocal(ContainingMember, value.Type, SynthesizedLocalKind.LoweringTemp)
             temps.Add(valueTemp)
-            statements.Add(StoreInTemp(node.Right, valueTemp, value))
+            statements.Add(StoreInTemp(syntax, valueTemp, value))
+            Dim hasErrors = value.HasErrors
 
             If Not elements.IsDefault Then
                 For i = 0 To count - 1
-                    Dim element = New BoundFieldAccess(tuple.Arguments(i), New BoundLocal(node.Right, valueTemp, value.Type).MakeCompilerGenerated().MakeRValue(),
-                                                       elements(i), isLValue:=False, type:=elements(i).Type).MakeCompilerGenerated()
-                    statements.Add(AssignDeconstructedElement(tuple.Arguments(i), targets(i), element, diagnostics))
-                Next
-            Else
-                Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(count)
-                Dim followUps = ArrayBuilder(Of BoundStatement).GetInstance()
-                For i = 0 To count - 1
-                    Dim target = targets(i)
-                    Dim parameterType = method.Parameters(i).Type
-                    If CanPassByRef(target, parameterType) Then
-                        arguments.Add(target)
-                    Else
-                        Dim slot = ByRefSlot(tuple.Arguments(i), parameterType, temps)
-                        arguments.Add(slot)
-                        followUps.Add(AssignDeconstructedElement(tuple.Arguments(i), target, slot.MakeRValue(), diagnostics))
+                    Dim slot = slots(i)
+                    If slot.IsEmpty Then
+                        Continue For
                     End If
+
+                    Dim element = New BoundFieldAccess(slot.Syntax, New BoundLocal(syntax, valueTemp, valueTemp.Type).MakeCompilerGenerated().MakeRValue(),
+                                                       elements(i), isLValue:=False, type:=elements(i).Type).MakeCompilerGenerated()
+                    hasErrors = AssignSlot(slot, element, temps, statements, diagnostics) OrElse hasErrors
                 Next
 
-                Dim invocation = New BoundCall(node, method, Nothing, DeconstructReceiver(node, valueTemp, method), arguments.ToImmutableAndFree(), Nothing, method.ReturnType).MakeCompilerGenerated()
-                Dim callStatement = New BoundExpressionStatement(node, invocation)
-                callStatement.SetWasCompilerGenerated()
-                statements.Add(callStatement)
-                statements.AddRange(followUps)
-                followUps.Free()
+                Return hasErrors
             End If
 
-            For Each target In targets
-                hasErrors = hasErrors OrElse target.HasErrors
+            Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(count)
+            Dim pendingSlots = ArrayBuilder(Of DeconstructionSlotTarget).GetInstance()
+            Dim pendingLocals = ArrayBuilder(Of LocalSymbol).GetInstance()
+            For i = 0 To count - 1
+                Dim slot = slots(i)
+                Dim parameterType = method.Parameters(i).Type
+                If slot.IsEmpty Then
+                    arguments.Add(ByRefSlot(slot.Syntax, parameterType, temps))
+                    Continue For
+                End If
+
+                Dim target = If(slot.Nested.IsDefault, SlotTarget(slot, parameterType, diagnostics), Nothing)
+                If target IsNot Nothing AndAlso CanPassByRef(target, parameterType) Then
+                    arguments.Add(target)
+                Else
+                    Dim local = New SynthesizedLocal(ContainingMember, parameterType, SynthesizedLocalKind.LoweringTemp)
+                    temps.Add(local)
+                    arguments.Add(New BoundLocal(slot.Syntax, local, parameterType).MakeCompilerGenerated())
+                    pendingSlots.Add(slot)
+                    pendingLocals.Add(local)
+                End If
             Next
 
-            targets.Free()
-            Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors OrElse value.HasErrors)
+            Dim invocation = New BoundCall(syntax, method, Nothing, DeconstructReceiver(syntax, valueTemp, method), arguments.ToImmutableAndFree(), Nothing, method.ReturnType).MakeCompilerGenerated()
+            Dim callStatement = New BoundExpressionStatement(syntax, invocation)
+            callStatement.SetWasCompilerGenerated()
+            statements.Add(callStatement)
+
+            For i = 0 To pendingSlots.Count - 1
+                Dim slotValue = New BoundLocal(pendingSlots(i).Syntax, pendingLocals(i), pendingLocals(i).Type).MakeCompilerGenerated().MakeRValue()
+                hasErrors = AssignSlot(pendingSlots(i), slotValue, temps, statements, diagnostics) OrElse hasErrors
+            Next
+
+            pendingSlots.Free()
+            pendingLocals.Free()
+            Return hasErrors
+        End Function
+
+        Private Function AssignSlot(slot As DeconstructionSlotTarget, element As BoundExpression, temps As ArrayBuilder(Of LocalSymbol),
+                                    statements As ArrayBuilder(Of BoundStatement), diagnostics As BindingDiagnosticBag) As Boolean
+            If Not slot.Nested.IsDefault Then
+                Return DeconstructIntoSlots(slot.Syntax, element, slot.Nested, temps, statements, diagnostics)
+            End If
+
+            Dim target = SlotTarget(slot, element.Type, diagnostics)
+            statements.Add(AssignDeconstructedElement(slot.Syntax, target, element, diagnostics))
+            Return target.HasErrors
+        End Function
+
+        ''' <summary>
+        ''' The target of a slot; a local the deconstruction declares takes the type of its element.
+        ''' </summary>
+        Private Function SlotTarget(slot As DeconstructionSlotTarget, elementType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
+            If slot.DeclaredLocal Is Nothing Then
+                Return slot.Target
+            End If
+
+            VerifyLocalSymbolNameAndSetType(slot.DeclaredLocal, elementType, slot.Name, slot.Name.Identifier, diagnostics)
+            Return New BoundLocal(slot.Name, slot.DeclaredLocal, isLValue:=True, type:=slot.DeclaredLocal.Type)
+        End Function
+
+        Private Sub DeclareWithErrorType(slots As ImmutableArray(Of DeconstructionSlotTarget), diagnostics As BindingDiagnosticBag)
+            For Each slot In slots
+                If Not slot.Nested.IsDefault Then
+                    DeclareWithErrorType(slot.Nested, diagnostics)
+                ElseIf slot.DeclaredLocal IsNot Nothing Then
+                    VerifyLocalSymbolNameAndSetType(slot.DeclaredLocal, ErrorTypeSymbol.UnknownResultType, slot.Name, slot.Name.Identifier, diagnostics)
+                End If
+            Next
+        End Sub
+
+        ''' <summary>
+        ''' The type of a name in a nested deconstruction list: the type of its element, found along the path of lists from
+        ''' the statement down to its slot.
+        ''' </summary>
+        Friend Function GetNestedDeconstructionElementType(local As LocalSymbol) As TypeSymbol
+            Dim name = TryCast(local.IdentifierToken.Parent, ModifiedIdentifierSyntax)
+            Dim slot = TryCast(name?.Parent, DeconstructionSlotSyntax)
+            Dim path = ArrayBuilder(Of DeconstructionSlotSyntax).GetInstance()
+            Dim statement As DeconstructionDeclarationStatementSyntax = Nothing
+            Try
+                While slot IsNot Nothing
+                    path.Add(slot)
+                    Dim list = TryCast(slot.Parent, DeconstructionListSyntax)
+                    If list Is Nothing Then
+                        Return ErrorTypeSymbol.UnknownResultType
+                    End If
+
+                    statement = TryCast(list.Parent, DeconstructionDeclarationStatementSyntax)
+                    slot = TryCast(list.Parent, DeconstructionSlotSyntax)
+                End While
+
+                If statement Is Nothing Then
+                    Return ErrorTypeSymbol.UnknownResultType
+                End If
+
+                Dim current = BindValue(statement.Initializer.Value, BindingDiagnosticBag.Discarded)
+                Dim type As TypeSymbol = ErrorTypeSymbol.UnknownResultType
+                For i = path.Count - 1 To 0 Step -1
+                    Dim pathSlot = path(i)
+                    Dim list = DirectCast(pathSlot.Parent, DeconstructionListSyntax)
+                    type = DeconstructionElementType(current, list.Slots.Count, list.Slots.IndexOf(pathSlot), list)
+                    If type.IsErrorType() Then
+                        Return type
+                    End If
+
+                    current = New BoundRValuePlaceholder(list, type)
+                Next
+
+                Return type
+            Finally
+                path.Free()
+            End Try
+        End Function
+
+        Private Function DeconstructionElementType(value As BoundExpression, count As Integer, index As Integer, syntax As SyntaxNode) As TypeSymbol
+            Dim elements = GetDeconstructionElements(value, count)
+            If Not elements.IsDefault AndAlso index >= 0 AndAlso index < elements.Length Then
+                Return elements(index).Type
+            End If
+
+            Dim method = FindDeconstructMethod(value, count, BindingDiagnosticBag.Discarded, syntax)
+            If method Is Nothing OrElse index < 0 OrElse index >= method.ParameterCount Then
+                Return ErrorTypeSymbol.UnknownResultType
+            End If
+
+            Return method.Parameters(index).Type
         End Function
 
         Private Function AssignDeconstructedElement(syntax As SyntaxNode, target As BoundExpression, element As BoundExpression, diagnostics As BindingDiagnosticBag) As BoundStatement
@@ -3129,7 +3332,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case BoundKind.Block
                         ' Dim (x, y) = value declares x and y in this statement list, like Dim x, y.
                         ' The statement's own block keeps only its temporaries.
-                        If boundStatement.Syntax.Kind = SyntaxKind.TupleDeconstructionStatement Then
+                        If boundStatement.Syntax.Kind = SyntaxKind.TupleDeconstructionStatement OrElse
+                           boundStatement.Syntax.Kind = SyntaxKind.DeconstructionDeclarationStatement Then
                             boundStatements(i) = HoistDeconstructedLocals(DirectCast(boundStatement, BoundBlock), locals)
                         End If
 

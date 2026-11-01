@@ -9591,6 +9591,378 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' Represents a declaration that takes a value apart into locals through nested
+    ''' lists, Dim ((x, y), label) = value.
+    ''' </summary>
+    Friend NotInheritable Class DeconstructionDeclarationStatementSyntax
+        Inherits ExecutableStatementSyntax
+
+        Friend ReadOnly _modifiers as GreenNode
+        Friend ReadOnly _list as DeconstructionListSyntax
+        Friend ReadOnly _initializer as EqualsValueSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, modifiers As GreenNode, list As DeconstructionListSyntax, initializer As EqualsValueSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            If modifiers IsNot Nothing Then
+                AdjustFlagsAndWidth(modifiers)
+                Me._modifiers = modifiers
+            End If
+            AdjustFlagsAndWidth(list)
+            Me._list = list
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, modifiers As GreenNode, list As DeconstructionListSyntax, initializer As EqualsValueSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            If modifiers IsNot Nothing Then
+                AdjustFlagsAndWidth(modifiers)
+                Me._modifiers = modifiers
+            End If
+            AdjustFlagsAndWidth(list)
+            Me._list = list
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), modifiers As GreenNode, list As DeconstructionListSyntax, initializer As EqualsValueSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            If modifiers IsNot Nothing Then
+                AdjustFlagsAndWidth(modifiers)
+                Me._modifiers = modifiers
+            End If
+            AdjustFlagsAndWidth(list)
+            Me._list = list
+            AdjustFlagsAndWidth(initializer)
+            Me._initializer = initializer
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.DeconstructionDeclarationStatementSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The Dim keyword that introduces the declaration.
+        ''' </summary>
+        Friend ReadOnly Property Modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(Of KeywordSyntax)
+            Get
+                Return New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode)(Me._modifiers)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The slots the value is taken apart into.
+        ''' </summary>
+        Friend ReadOnly Property List As InternalSyntax.DeconstructionListSyntax
+            Get
+                Return Me._list
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The value taken apart into the locals.
+        ''' </summary>
+        Friend ReadOnly Property Initializer As InternalSyntax.EqualsValueSyntax
+            Get
+                Return Me._initializer
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._modifiers
+                Case 1
+                    Return Me._list
+                Case 2
+                    Return Me._initializer
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new DeconstructionDeclarationStatementSyntax(Me.Kind, newErrors, GetAnnotations, _modifiers, _list, _initializer)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new DeconstructionDeclarationStatementSyntax(Me.Kind, GetDiagnostics, annotations, _modifiers, _list, _initializer)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitDeconstructionDeclarationStatement(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+    ''' value apart into, ((x, y), label).
+    ''' </summary>
+    Friend NotInheritable Class DeconstructionListSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend ReadOnly _openParenToken as PunctuationSyntax
+        Friend ReadOnly _slots as GreenNode
+        Friend ReadOnly _closeParenToken as PunctuationSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, openParenToken As InternalSyntax.PunctuationSyntax, slots As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If slots IsNot Nothing Then
+                AdjustFlagsAndWidth(slots)
+                Me._slots = slots
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, openParenToken As InternalSyntax.PunctuationSyntax, slots As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If slots IsNot Nothing Then
+                AdjustFlagsAndWidth(slots)
+                Me._slots = slots
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), openParenToken As InternalSyntax.PunctuationSyntax, slots As GreenNode, closeParenToken As InternalSyntax.PunctuationSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(openParenToken)
+            Me._openParenToken = openParenToken
+            If slots IsNot Nothing Then
+                AdjustFlagsAndWidth(slots)
+                Me._slots = slots
+            End If
+            AdjustFlagsAndWidth(closeParenToken)
+            Me._closeParenToken = closeParenToken
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.DeconstructionListSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The opening parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property OpenParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._openParenToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The slots, in order.
+        ''' </summary>
+        Friend ReadOnly Property Slots As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of DeconstructionSlotSyntax)
+            Get
+                Return new Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(Of DeconstructionSlotSyntax)(New Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of DeconstructionSlotSyntax)(Me._slots))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The closing parenthesis.
+        ''' </summary>
+        Friend ReadOnly Property CloseParenToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._closeParenToken
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._openParenToken
+                Case 1
+                    Return Me._slots
+                Case 2
+                    Return Me._closeParenToken
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new DeconstructionListSyntax(Me.Kind, newErrors, GetAnnotations, _openParenToken, _slots, _closeParenToken)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new DeconstructionListSyntax(Me.Kind, GetDiagnostics, annotations, _openParenToken, _slots, _closeParenToken)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitDeconstructionList(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' Represents one slot of a deconstruction list: a name with an optional As
+    ''' clause, a nested list, or nothing for an empty slot.
+    ''' </summary>
+    Friend NotInheritable Class DeconstructionSlotSyntax
+        Inherits VisualBasicSyntaxNode
+
+        Friend ReadOnly _name as ModifiedIdentifierSyntax
+        Friend ReadOnly _asClause as SimpleAsClauseSyntax
+        Friend ReadOnly _list as DeconstructionListSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            If name IsNot Nothing Then
+                AdjustFlagsAndWidth(name)
+                Me._name = name
+            End If
+            If asClause IsNot Nothing Then
+                AdjustFlagsAndWidth(asClause)
+                Me._asClause = asClause
+            End If
+            If list IsNot Nothing Then
+                AdjustFlagsAndWidth(list)
+                Me._list = list
+            End If
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            If name IsNot Nothing Then
+                AdjustFlagsAndWidth(name)
+                Me._name = name
+            End If
+            If asClause IsNot Nothing Then
+                AdjustFlagsAndWidth(asClause)
+                Me._asClause = asClause
+            End If
+            If list IsNot Nothing Then
+                AdjustFlagsAndWidth(list)
+                Me._list = list
+            End If
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            If name IsNot Nothing Then
+                AdjustFlagsAndWidth(name)
+                Me._name = name
+            End If
+            If asClause IsNot Nothing Then
+                AdjustFlagsAndWidth(asClause)
+                Me._asClause = asClause
+            End If
+            If list IsNot Nothing Then
+                AdjustFlagsAndWidth(list)
+                Me._list = list
+            End If
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.DeconstructionSlotSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The name the slot declares or assigns, or Nothing.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property Name As InternalSyntax.ModifiedIdentifierSyntax
+            Get
+                Return Me._name
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The As clause of the name, or Nothing.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property AsClause As InternalSyntax.SimpleAsClauseSyntax
+            Get
+                Return Me._asClause
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The nested list the slot takes its element apart into, or Nothing.
+        ''' </summary>
+        ''' <remarks>
+        ''' This child is optional. If it is not present, then Nothing is returned.
+        ''' </remarks>
+        Friend ReadOnly Property List As InternalSyntax.DeconstructionListSyntax
+            Get
+                Return Me._list
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._name
+                Case 1
+                    Return Me._asClause
+                Case 2
+                    Return Me._list
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new DeconstructionSlotSyntax(Me.Kind, newErrors, GetAnnotations, _name, _asClause, _list)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new DeconstructionSlotSyntax(Me.Kind, GetDiagnostics, annotations, _name, _asClause, _list)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitDeconstructionSlot(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Represents a label statement.
     ''' </summary>
     Friend NotInheritable Class LabelStatementSyntax
@@ -31884,6 +32256,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitExecutableStatement(node)
         End Function
+        Public Overridable Function VisitDeconstructionDeclarationStatement(ByVal node As DeconstructionDeclarationStatementSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExecutableStatement(node)
+        End Function
+        Public Overridable Function VisitDeconstructionList(ByVal node As DeconstructionListSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitVisualBasicSyntaxNode(node)
+        End Function
+        Public Overridable Function VisitDeconstructionSlot(ByVal node As DeconstructionSlotSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitVisualBasicSyntaxNode(node)
+        End Function
         Public Overridable Function VisitLabelStatement(ByVal node As LabelStatementSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitExecutableStatement(node)
@@ -34090,6 +34474,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New TupleDeconstructionStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newModifiers.Node, newOpenParenToken, newNames.Node, newCloseParenToken, newInitializer)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitDeconstructionDeclarationStatement(ByVal node As DeconstructionDeclarationStatementSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newModifiers = VisitList(node.Modifiers)
+            If node._modifiers IsNot newModifiers.Node Then anyChanges = True
+            Dim newList = DirectCast(Visit(node._list), DeconstructionListSyntax)
+            If node._list IsNot newList Then anyChanges = True
+            Dim newInitializer = DirectCast(Visit(node._initializer), EqualsValueSyntax)
+            If node._initializer IsNot newInitializer Then anyChanges = True
+
+            If anyChanges Then
+                Return New DeconstructionDeclarationStatementSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newModifiers.Node, newList, newInitializer)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitDeconstructionList(ByVal node As DeconstructionListSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newOpenParenToken = DirectCast(Visit(node.OpenParenToken), PunctuationSyntax)
+            If node._openParenToken IsNot newOpenParenToken Then anyChanges = True
+            Dim newSlots = VisitList(node.Slots)
+            If node._slots IsNot newSlots.Node Then anyChanges = True
+            Dim newCloseParenToken = DirectCast(Visit(node.CloseParenToken), PunctuationSyntax)
+            If node._closeParenToken IsNot newCloseParenToken Then anyChanges = True
+
+            If anyChanges Then
+                Return New DeconstructionListSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOpenParenToken, newSlots.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitDeconstructionSlot(ByVal node As DeconstructionSlotSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newName = DirectCast(Visit(node._name), ModifiedIdentifierSyntax)
+            If node._name IsNot newName Then anyChanges = True
+            Dim newAsClause = DirectCast(Visit(node._asClause), SimpleAsClauseSyntax)
+            If node._asClause IsNot newAsClause Then anyChanges = True
+            Dim newList = DirectCast(Visit(node._list), DeconstructionListSyntax)
+            If node._list IsNot newList Then anyChanges = True
+
+            If anyChanges Then
+                Return New DeconstructionSlotSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newName, newAsClause, newList)
             Else
                 Return node
             End If
@@ -41198,6 +41633,100 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Debug.Assert(initializer IsNot Nothing)
             Return New TupleDeconstructionStatementSyntax(SyntaxKind.TupleDeconstructionStatement, modifiers.Node, openParenToken, names.Node, closeParenToken, initializer)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a value apart into locals through nested
+        ''' lists, Dim ((x, y), label) = value.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The Dim keyword that introduces the declaration.
+        ''' </param>
+        ''' <param name="list">
+        ''' The slots the value is taken apart into.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value taken apart into the locals.
+        ''' </param>
+        Friend Shared Function DeconstructionDeclarationStatement(modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), list As DeconstructionListSyntax, initializer As EqualsValueSyntax) As DeconstructionDeclarationStatementSyntax
+            Debug.Assert(list IsNot Nothing)
+            Debug.Assert(initializer IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.DeconstructionDeclarationStatement, modifiers.Node, list, initializer, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, DeconstructionDeclarationStatementSyntax)
+            End If
+
+            Dim result = New DeconstructionDeclarationStatementSyntax(SyntaxKind.DeconstructionDeclarationStatement, modifiers.Node, list, initializer)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+        ''' value apart into, ((x, y), label).
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="slots">
+        ''' The slots, in order.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Friend Shared Function DeconstructionList(openParenToken As PunctuationSyntax, slots As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As DeconstructionListSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.DeconstructionList, openParenToken, slots.Node, closeParenToken, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, DeconstructionListSyntax)
+            End If
+
+            Dim result = New DeconstructionListSyntax(SyntaxKind.DeconstructionList, openParenToken, slots.Node, closeParenToken)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents one slot of a deconstruction list: a name with an optional As
+        ''' clause, a nested list, or nothing for an empty slot.
+        ''' </summary>
+        ''' <param name="name">
+        ''' The name the slot declares or assigns, or Nothing.
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The As clause of the name, or Nothing.
+        ''' </param>
+        ''' <param name="list">
+        ''' The nested list the slot takes its element apart into, or Nothing.
+        ''' </param>
+        Friend Shared Function DeconstructionSlot(name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax) As DeconstructionSlotSyntax
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.DeconstructionSlot, name, asClause, list, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, DeconstructionSlotSyntax)
+            End If
+
+            Dim result = New DeconstructionSlotSyntax(SyntaxKind.DeconstructionSlot, name, asClause, list)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 
@@ -54066,6 +54595,100 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Debug.Assert(initializer IsNot Nothing)
             Return New TupleDeconstructionStatementSyntax(SyntaxKind.TupleDeconstructionStatement, modifiers.Node, openParenToken, names.Node, closeParenToken, initializer, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a declaration that takes a value apart into locals through nested
+        ''' lists, Dim ((x, y), label) = value.
+        ''' </summary>
+        ''' <param name="modifiers">
+        ''' The Dim keyword that introduces the declaration.
+        ''' </param>
+        ''' <param name="list">
+        ''' The slots the value is taken apart into.
+        ''' </param>
+        ''' <param name="initializer">
+        ''' The value taken apart into the locals.
+        ''' </param>
+        Friend Function DeconstructionDeclarationStatement(modifiers As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList(of GreenNode), list As DeconstructionListSyntax, initializer As EqualsValueSyntax) As DeconstructionDeclarationStatementSyntax
+            Debug.Assert(list IsNot Nothing)
+            Debug.Assert(initializer IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.DeconstructionDeclarationStatement, modifiers.Node, list, initializer, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, DeconstructionDeclarationStatementSyntax)
+            End If
+
+            Dim result = New DeconstructionDeclarationStatementSyntax(SyntaxKind.DeconstructionDeclarationStatement, modifiers.Node, list, initializer, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents a parenthesized list of slots that a nested deconstruction takes a
+        ''' value apart into, ((x, y), label).
+        ''' </summary>
+        ''' <param name="openParenToken">
+        ''' The opening parenthesis.
+        ''' </param>
+        ''' <param name="slots">
+        ''' The slots, in order.
+        ''' </param>
+        ''' <param name="closeParenToken">
+        ''' The closing parenthesis.
+        ''' </param>
+        Friend Function DeconstructionList(openParenToken As PunctuationSyntax, slots As Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode), closeParenToken As PunctuationSyntax) As DeconstructionListSyntax
+            Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
+            Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.DeconstructionList, openParenToken, slots.Node, closeParenToken, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, DeconstructionListSyntax)
+            End If
+
+            Dim result = New DeconstructionListSyntax(SyntaxKind.DeconstructionList, openParenToken, slots.Node, closeParenToken, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' Represents one slot of a deconstruction list: a name with an optional As
+        ''' clause, a nested list, or nothing for an empty slot.
+        ''' </summary>
+        ''' <param name="name">
+        ''' The name the slot declares or assigns, or Nothing.
+        ''' </param>
+        ''' <param name="asClause">
+        ''' The As clause of the name, or Nothing.
+        ''' </param>
+        ''' <param name="list">
+        ''' The nested list the slot takes its element apart into, or Nothing.
+        ''' </param>
+        Friend Function DeconstructionSlot(name As ModifiedIdentifierSyntax, asClause As SimpleAsClauseSyntax, list As DeconstructionListSyntax) As DeconstructionSlotSyntax
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.DeconstructionSlot, name, asClause, list, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, DeconstructionSlotSyntax)
+            End If
+
+            Dim result = New DeconstructionSlotSyntax(SyntaxKind.DeconstructionSlot, name, asClause, list, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 

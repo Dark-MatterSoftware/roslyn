@@ -468,6 +468,18 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.TupleDeconstructionStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.DimKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing), GenerateGreenEqualsValue())
         End Function
 
+        Private Shared Function GenerateGreenDeconstructionDeclarationStatement() As InternalSyntax.DeconstructionDeclarationStatementSyntax
+            return InternalSyntax.SyntaxFactory.DeconstructionDeclarationStatement(new InternalSyntax.KeywordSyntax(SyntaxKind.DimKeyword, String.Empty, Nothing, Nothing), GenerateGreenDeconstructionList(), GenerateGreenEqualsValue())
+        End Function
+
+        Private Shared Function GenerateGreenDeconstructionList() As InternalSyntax.DeconstructionListSyntax
+            return InternalSyntax.SyntaxFactory.DeconstructionList(new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
+        End Function
+
+        Private Shared Function GenerateGreenDeconstructionSlot() As InternalSyntax.DeconstructionSlotSyntax
+            return InternalSyntax.SyntaxFactory.DeconstructionSlot(Nothing, Nothing, Nothing)
+        End Function
+
         Private Shared Function GenerateGreenLabelStatement() As InternalSyntax.LabelStatementSyntax
             return InternalSyntax.SyntaxFactory.LabelStatement(GenerateGreenIdentifierToken(), new InternalSyntax.PunctuationSyntax(SyntaxKind.ColonToken, String.Empty, Nothing, Nothing))
         End Function
@@ -2326,6 +2338,24 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenTupleDeconstructionStatement()
             dim objectUnderTest = GenerateGreenTupleDeconstructionStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionDeclarationStatement()
+            dim objectUnderTest = GenerateGreenDeconstructionDeclarationStatement()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionList()
+            dim objectUnderTest = GenerateGreenDeconstructionList()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionSlot()
+            dim objectUnderTest = GenerateGreenDeconstructionSlot()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -5001,6 +5031,30 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenTupleDeconstructionStatementRewriter()
             dim oldNode = GenerateGreenTupleDeconstructionStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionDeclarationStatementRewriter()
+            dim oldNode = GenerateGreenDeconstructionDeclarationStatement()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionListRewriter()
+            dim oldNode = GenerateGreenDeconstructionList()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionSlotRewriter()
+            dim oldNode = GenerateGreenDeconstructionSlot()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -8012,6 +8066,27 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenTupleDeconstructionStatementVisitor()
             Dim oldNode = GenerateGreenTupleDeconstructionStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionDeclarationStatementVisitor()
+            Dim oldNode = GenerateGreenDeconstructionDeclarationStatement()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionListVisitor()
+            Dim oldNode = GenerateGreenDeconstructionList()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenDeconstructionSlotVisitor()
+            Dim oldNode = GenerateGreenDeconstructionSlot()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -12513,6 +12588,53 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.TupleDeconstructionStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ModifiedIdentifierSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken), GenerateRedEqualsValue())
+        End Function
+
+        Private Shared Function GenerateRedDeconstructionDeclarationStatement() As DeconstructionDeclarationStatementSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.DeconstructionDeclarationStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), Nothing, GenerateRedEqualsValue())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.DeconstructionDeclarationStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), GenerateRedDeconstructionList(), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.DeconstructionDeclarationStatement(SyntaxTokenList.Create(SyntaxFactory.Token(SyntaxKind.DimKeyword)), GenerateRedDeconstructionList(), GenerateRedEqualsValue())
+        End Function
+
+        Private Shared Function GenerateRedDeconstructionList() As DeconstructionListSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.DeconstructionList(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), New SeparatedSyntaxList(Of DeconstructionSlotSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.DeconstructionList(SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of DeconstructionSlotSyntax)(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword))
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.DeconstructionList(SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of DeconstructionSlotSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+        Private Shared Function GenerateRedDeconstructionSlot() As DeconstructionSlotSyntax
+            Dim exceptionTest as boolean = false
+            return SyntaxFactory.DeconstructionSlot(Nothing, Nothing, Nothing)
         End Function
 
         Private Shared Function GenerateRedLabelStatement() As LabelStatementSyntax
@@ -20772,6 +20894,33 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedDeconstructionDeclarationStatement()
+            dim objectUnderTest = GenerateRedDeconstructionDeclarationStatement()
+            Assert.NotNull(objectUnderTest.modifiers)
+            Assert.NotNull(objectUnderTest.list)
+            Assert.NotNull(objectUnderTest.initializer)
+            Dim withObj = objectUnderTest.WithModifiers(objectUnderTest.Modifiers).WithList(objectUnderTest.List).WithInitializer(objectUnderTest.Initializer)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedDeconstructionList()
+            dim objectUnderTest = GenerateRedDeconstructionList()
+            Assert.NotNull(objectUnderTest.openParenToken)
+            Assert.NotNull(objectUnderTest.slots)
+            Assert.NotNull(objectUnderTest.closeParenToken)
+            Dim withObj = objectUnderTest.WithOpenParenToken(objectUnderTest.OpenParenToken).WithSlots(objectUnderTest.Slots).WithCloseParenToken(objectUnderTest.CloseParenToken)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedDeconstructionSlot()
+            dim objectUnderTest = GenerateRedDeconstructionSlot()
+            Dim withObj = objectUnderTest.WithName(objectUnderTest.Name).WithAsClause(objectUnderTest.AsClause).WithList(objectUnderTest.List)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedLabelStatement()
             dim objectUnderTest = GenerateRedLabelStatement()
             Assert.NotNull(objectUnderTest.labelToken)
@@ -24358,6 +24507,30 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedTupleDeconstructionStatementRewriter()
             dim oldNode = GenerateRedTupleDeconstructionStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedDeconstructionDeclarationStatementRewriter()
+            dim oldNode = GenerateRedDeconstructionDeclarationStatement()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedDeconstructionListRewriter()
+            dim oldNode = GenerateRedDeconstructionList()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedDeconstructionSlotRewriter()
+            dim oldNode = GenerateRedDeconstructionSlot()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

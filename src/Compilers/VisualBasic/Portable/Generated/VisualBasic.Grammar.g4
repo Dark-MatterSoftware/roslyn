@@ -840,6 +840,7 @@ executable_statement
   | assignment_statement
   | call_statement
   | continue_statement
+  | deconstruction_declaration_statement
   | do_loop_block
   | erase_statement
   | error_statement
@@ -907,6 +908,18 @@ continue_for_statement
 
 continue_while_statement
   : 'Continue' 'While'
+  ;
+
+deconstruction_declaration_statement
+  : modifier+ deconstruction_list equals_value
+  ;
+
+deconstruction_list
+  : '(' deconstruction_slot (',' deconstruction_slot)* ')'
+  ;
+
+deconstruction_slot
+  : modified_identifier? simple_as_clause? deconstruction_list?
   ;
 
 do_loop_block
