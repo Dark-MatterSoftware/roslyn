@@ -36,6 +36,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         RangeExpression
         IndexOffset
         PatternSlice
+        DeconstructionStatement
+        DeconstructionDiscard
         ArrayLength
         [GetType]
         FieldInfo
@@ -1087,6 +1089,99 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(receiver As BoundExpression, argument As BoundExpression, lengthOrCount As PropertySymbol, sliceMethod As MethodSymbol, value As BoundExpression, type As TypeSymbol) As BoundPatternSlice
             If receiver IsNot Me.Receiver OrElse argument IsNot Me.Argument OrElse lengthOrCount IsNot Me.LengthOrCount OrElse sliceMethod IsNot Me.SliceMethod OrElse value IsNot Me.Value OrElse type IsNot Me.Type Then
                 Dim result = New BoundPatternSlice(Me.Syntax, receiver, argument, lengthOrCount, sliceMethod, value, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundDeconstructionStatement
+        Inherits BoundStatement
+
+        Public Sub New(syntax As SyntaxNode, target As BoundExpression, value As BoundExpression, isDeclaration As Boolean, body As BoundBlock, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.DeconstructionStatement, syntax, hasErrors OrElse target.NonNullAndHasErrors() OrElse value.NonNullAndHasErrors() OrElse body.NonNullAndHasErrors())
+
+            Debug.Assert(target IsNot Nothing, "Field 'target' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(value IsNot Nothing, "Field 'value' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(body IsNot Nothing, "Field 'body' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._Target = target
+            Me._Value = value
+            Me._IsDeclaration = isDeclaration
+            Me._Body = body
+        End Sub
+
+
+        Private ReadOnly _Target As BoundExpression
+        Public ReadOnly Property Target As BoundExpression
+            Get
+                Return _Target
+            End Get
+        End Property
+
+        Private ReadOnly _Value As BoundExpression
+        Public ReadOnly Property Value As BoundExpression
+            Get
+                Return _Value
+            End Get
+        End Property
+
+        Private ReadOnly _IsDeclaration As Boolean
+        Public ReadOnly Property IsDeclaration As Boolean
+            Get
+                Return _IsDeclaration
+            End Get
+        End Property
+
+        Private ReadOnly _Body As BoundBlock
+        Public ReadOnly Property Body As BoundBlock
+            Get
+                Return _Body
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitDeconstructionStatement(Me)
+        End Function
+
+        Public Function Update(target As BoundExpression, value As BoundExpression, isDeclaration As Boolean, body As BoundBlock) As BoundDeconstructionStatement
+            If target IsNot Me.Target OrElse value IsNot Me.Value OrElse isDeclaration <> Me.IsDeclaration OrElse body IsNot Me.Body Then
+                Dim result = New BoundDeconstructionStatement(Me.Syntax, target, value, isDeclaration, body, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundDeconstructionDiscard
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, type As TypeSymbol, hasErrors As Boolean)
+            MyBase.New(BoundKind.DeconstructionDiscard, syntax, type, hasErrors)
+
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+        End Sub
+
+        Public Sub New(syntax As SyntaxNode, type As TypeSymbol)
+            MyBase.New(BoundKind.DeconstructionDiscard, syntax, type)
+
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+        End Sub
+
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitDeconstructionDiscard(Me)
+        End Function
+
+        Public Function Update(type As TypeSymbol) As BoundDeconstructionDiscard
+            If type IsNot Me.Type Then
+                Dim result = New BoundDeconstructionDiscard(Me.Syntax, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9773,6 +9868,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitIndexOffset(CType(node, BoundIndexOffset), arg)
                 Case BoundKind.PatternSlice
                     Return VisitPatternSlice(CType(node, BoundPatternSlice), arg)
+                Case BoundKind.DeconstructionStatement
+                    Return VisitDeconstructionStatement(CType(node, BoundDeconstructionStatement), arg)
+                Case BoundKind.DeconstructionDiscard
+                    Return VisitDeconstructionDiscard(CType(node, BoundDeconstructionDiscard), arg)
                 Case BoundKind.ArrayLength
                     Return VisitArrayLength(CType(node, BoundArrayLength), arg)
                 Case BoundKind.[GetType]
@@ -10181,6 +10280,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitPatternSlice(node As BoundPatternSlice, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitDeconstructionStatement(node As BoundDeconstructionStatement, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -10916,6 +11023,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11667,6 +11782,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
             Me.Visit(node.Value)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
+            Me.Visit(node.Body)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard) As BoundNode
             Return Nothing
         End Function
 
@@ -12679,6 +12803,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim value As BoundExpression = DirectCast(Me.Visit(node.Value), BoundExpression)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(receiver, argument, node.LengthOrCount, node.SliceMethod, value, type)
+        End Function
+
+        Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
+            Dim target As BoundExpression = node.Target
+            Dim value As BoundExpression = node.Value
+            Dim body As BoundBlock = DirectCast(Me.Visit(node.Body), BoundBlock)
+            Return node.Update(target, value, node.IsDeclaration, body)
+        End Function
+
+        Public Overrides Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard) As BoundNode
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(type)
         End Function
 
         Public Overrides Function VisitArrayLength(node As BoundArrayLength) As BoundNode
@@ -13855,6 +13991,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 New TreeDumperNode("lengthOrCount", node.LengthOrCount, Nothing),
                 New TreeDumperNode("sliceMethod", node.SliceMethod, Nothing),
                 New TreeDumperNode("value", Nothing, new TreeDumperNode() {Visit(node.Value, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("deconstructionStatement", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("target", Nothing, new TreeDumperNode() {Visit(node.Target, Nothing)}),
+                New TreeDumperNode("value", Nothing, new TreeDumperNode() {Visit(node.Value, Nothing)}),
+                New TreeDumperNode("isDeclaration", node.IsDeclaration, Nothing),
+                New TreeDumperNode("body", Nothing, new TreeDumperNode() {Visit(node.Body, Nothing)})
+            })
+        End Function
+
+        Public Overrides Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("deconstructionDiscard", Nothing, New TreeDumperNode() {
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

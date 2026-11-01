@@ -84,6 +84,11 @@ Namespace Microsoft.CodeAnalysis.Operations
                               CreateBoundCallOperation(boundCall))
                 Case BoundKind.IndexOffset
                     Return Create(DirectCast(boundNode, BoundIndexOffset).Argument)
+                Case BoundKind.DeconstructionStatement
+                    Return CreateBoundDeconstructionStatementOperation(DirectCast(boundNode, BoundDeconstructionStatement))
+                Case BoundKind.DeconstructionDiscard
+                    Dim discard = DirectCast(boundNode, BoundDeconstructionDiscard)
+                    Return New DiscardOperation(New DiscardSymbol(discard.Type), _semanticModel, discard.Syntax, discard.Type, isImplicit:=True)
                 Case BoundKind.PatternSlice
                     Dim slice = DirectCast(boundNode, BoundPatternSlice)
                     Return New ImplicitIndexerReferenceOperation(Create(slice.Receiver), Create(slice.Argument), slice.LengthOrCount, slice.SliceMethod,
@@ -1789,6 +1794,18 @@ Namespace Microsoft.CodeAnalysis.Operations
             Next
 
             Return Nothing
+        End Function
+
+        Private Function CreateBoundDeconstructionStatementOperation(statement As BoundDeconstructionStatement) As IExpressionStatementOperation
+            Dim syntax As SyntaxNode = statement.Syntax
+            Dim target As IOperation = Create(statement.Target)
+            If statement.IsDeclaration Then
+                Dim declarationSyntax = statement.Target.Syntax
+                target = New DeclarationExpressionOperation(target, _semanticModel, declarationSyntax, target.Type, isImplicit:=declarationSyntax Is syntax)
+            End If
+
+            Dim assignment = New DeconstructionAssignmentOperation(target, Create(statement.Value), _semanticModel, syntax, target.Type, isImplicit:=True)
+            Return New ExpressionStatementOperation(assignment, _semanticModel, syntax, statement.WasCompilerGenerated)
         End Function
 
         Private Function CreateBoundExpressionStatementOperation(boundExpressionStatement As BoundExpressionStatement) As IExpressionStatementOperation

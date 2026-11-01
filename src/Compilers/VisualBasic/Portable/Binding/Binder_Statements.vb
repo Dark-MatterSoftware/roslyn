@@ -1160,7 +1160,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             statements.Add(New BoundDimStatement(node, declarations.ToImmutableAndFree(), Nothing).MakeCompilerGenerated())
-            Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+            Dim body = New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+            Return MakeDeconstructionStatement(node, If(body.HasErrors, Nothing, FlatDeconstructionTuple(node, value, Nothing)), value, isDeclaration:=True, body)
         End Function
 
         Private Function BindTupleDeconstructionAssignment(node As TupleDeconstructionStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
@@ -1201,13 +1202,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim sawValue = False
+            Dim targets = ArrayBuilder(Of BoundExpression).GetInstance(names.Count)
             For i = 0 To names.Count - 1
                 Dim name = names(i)
                 If name.Identifier.IsMissing Then
+                    targets.Add(Nothing)
                     Continue For
                 End If
 
                 Dim target = BindDeconstructionTarget(name, diagnostics)
+                targets.Add(target)
                 Dim storedValue As BoundExpression
                 If matches Then
                     Dim element = New BoundFieldAccess(
@@ -1237,10 +1241,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If blockLocals.Count = 0 Then
                 blockLocals.Free()
+                targets.Free()
                 Return New BoundBlock(node, Nothing, ImmutableArray(Of LocalSymbol).Empty, statements.ToImmutableAndFree(), hasErrors:=True)
             End If
 
-            Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+            Dim body = New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=Not matches OrElse value.HasErrors)
+            Dim tuple = If(body.HasErrors, Nothing, FlatDeconstructionTuple(node, value, targets))
+            targets.Free()
+            Return MakeDeconstructionStatement(node, tuple, value, isDeclaration:=False, body)
         End Function
 
         ''' <summary>
@@ -1256,7 +1264,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim slots = BindTupleTargetSlots(tuple, temps, statements, targetErrors, diagnostics)
             Dim value = BindValue(node.Right, diagnostics).MakeRValue()
             Dim hasErrors = DeconstructIntoSlots(node.Right, value, slots, temps, statements, diagnostics)
-            Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors OrElse targetErrors)
+            Dim body = New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors OrElse targetErrors)
+            Return MakeDeconstructionStatement(node, If(body.HasErrors, Nothing, DeconstructionSlotsTuple(tuple, node.Right, value, slots)), value, isDeclaration:=False, body)
         End Function
 
         ''' <summary>
@@ -1274,7 +1283,104 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             AddDeclaredLocals(slots, temps)
             Dim value = BindValue(node.Initializer.Value, diagnostics).MakeRValue()
             Dim hasErrors = DeconstructIntoSlots(node.Initializer, value, slots, temps, statements, diagnostics)
-            Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+            Dim body = New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+            Dim target = If(body.HasErrors, Nothing, DeconstructionSlotsTuple(node.List, node.Initializer, value, slots))
+            target?.SetWasCompilerGenerated()
+            Return MakeDeconstructionStatement(node, target, value, isDeclaration:=True, body)
+        End Function
+
+        ''' <summary>
+        ''' Keeps the targets as written and the value beside the block that takes the value apart, for operations.
+        ''' </summary>
+        Private Shared Function MakeDeconstructionStatement(syntax As SyntaxNode, target As BoundExpression, value As BoundExpression, isDeclaration As Boolean, body As BoundBlock) As BoundStatement
+            If target Is Nothing OrElse body.HasErrors Then
+                Return body
+            End If
+
+            Return New BoundDeconstructionStatement(syntax, target, value, isDeclaration, body)
+        End Function
+
+        ''' <summary>
+        ''' The targets of the slots as a tuple, nested for a nested list, with a discard for an empty slot.
+        ''' </summary>
+        Private Function DeconstructionSlotsTuple(tupleSyntax As SyntaxNode, valueSyntax As SyntaxNode, value As BoundExpression,
+                                                  slots As ImmutableArray(Of DeconstructionSlotTarget)) As BoundExpression
+            Dim elements = ArrayBuilder(Of BoundExpression).GetInstance(slots.Length)
+            For i = 0 To slots.Length - 1
+                Dim slot = slots(i)
+                Dim elementType = DeconstructionElementType(value, slots.Length, i, valueSyntax)
+                If Not slot.Nested.IsDefault Then
+                    Dim nestedSyntax As SyntaxNode = If(DirectCast(TryCast(slot.Syntax, DeconstructionSlotSyntax)?.List, SyntaxNode), DirectCast(slot.Syntax, SimpleArgumentSyntax).Expression)
+                    elements.Add(DeconstructionSlotsTuple(nestedSyntax, slot.Syntax, New BoundRValuePlaceholder(slot.Syntax, elementType), slot.Nested))
+                ElseIf slot.DeclaredLocal IsNot Nothing Then
+                    elements.Add(New BoundLocal(slot.Name, slot.DeclaredLocal, slot.DeclaredLocal.Type))
+                ElseIf slot.SourceTarget IsNot Nothing Then
+                    elements.Add(slot.SourceTarget)
+                Else
+                    elements.Add(New BoundDeconstructionDiscard(slot.Syntax, elementType).MakeCompilerGenerated())
+                End If
+            Next
+
+            Return DeconstructionTargetTuple(tupleSyntax, elements.ToImmutableAndFree())
+        End Function
+
+        ''' <summary>
+        ''' The targets of Dim (x, , z) = value or (x, , z) = value as a tuple. A name is declared, or bound as a target in
+        ''' <paramref name="targets"/>, and a missing name is a discard.
+        ''' </summary>
+        Private Function FlatDeconstructionTuple(node As TupleDeconstructionStatementSyntax, value As BoundExpression, targets As ArrayBuilder(Of BoundExpression)) As BoundExpression
+            Dim names = node.Names
+            Dim elements = ArrayBuilder(Of BoundExpression).GetInstance(names.Count)
+            For i = 0 To names.Count - 1
+                Dim name = names(i)
+                If name.Identifier.IsMissing Then
+                    elements.Add(New BoundDeconstructionDiscard(name, DeconstructionElementType(value, names.Count, i, node)).MakeCompilerGenerated())
+                ElseIf targets IsNot Nothing Then
+                    elements.Add(targets(i))
+                Else
+                    Dim local = GetLocalForDeclaration(name.Identifier)
+                    elements.Add(New BoundLocal(name, local, local.Type))
+                End If
+            Next
+
+            Dim tuple = DeconstructionTargetTuple(node, elements.ToImmutableAndFree())
+            tuple?.SetWasCompilerGenerated()
+            Return tuple
+        End Function
+
+        Private Function DeconstructionTargetTuple(syntax As SyntaxNode, elements As ImmutableArray(Of BoundExpression)) As BoundExpression
+            If elements.Length < 2 OrElse elements.Any(Function(e) e Is Nothing OrElse e.Type Is Nothing OrElse e.Type.IsErrorType()) Then
+                Return Nothing
+            End If
+
+            ' Each element is named after its target, as C# names them, unless two targets share the name.
+            Dim inferred = elements.SelectAsArray(AddressOf DeconstructionTargetName)
+            Dim names = inferred.SelectAsArray(Function(name) If(name IsNot Nothing AndAlso inferred.Count(Function(other) IdentifierComparison.Equals(other, name)) = 1, name, Nothing))
+            If names.All(Function(name) name Is Nothing) Then
+                names = Nothing
+            End If
+
+            Dim type = TupleTypeSymbol.Create(Nothing, elements.SelectAsArray(Function(e) e.Type), Nothing, names, Compilation, shouldCheckConstraints:=False, errorPositions:=Nothing)
+            Return New BoundConvertedTupleLiteral(syntax, Nothing, elements, type)
+        End Function
+
+        Private Shared Function DeconstructionTargetName(target As BoundExpression) As String
+            Dim name As String
+            Select Case target.Kind
+                Case BoundKind.Local
+                    name = DirectCast(target, BoundLocal).LocalSymbol.Name
+                Case BoundKind.Parameter
+                    name = DirectCast(target, BoundParameter).ParameterSymbol.Name
+                Case BoundKind.FieldAccess
+                    name = DirectCast(target, BoundFieldAccess).FieldSymbol.Name
+                Case BoundKind.PropertyAccess
+                    Dim access = DirectCast(target, BoundPropertyAccess)
+                    name = If(access.Arguments.IsEmpty, access.PropertySymbol.Name, Nothing)
+                Case Else
+                    Return Nothing
+            End Select
+
+            Return If(name IsNot Nothing AndAlso TupleTypeSymbol.IsElementNameReserved(name) = -1, name, Nothing)
         End Function
 
         Private Shared Function HasNameWithoutAsClause(list As DeconstructionListSyntax) As Boolean
@@ -1311,12 +1417,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Public ReadOnly Name As ModifiedIdentifierSyntax
             Public ReadOnly Nested As ImmutableArray(Of DeconstructionSlotTarget)
 
-            Public Sub New(syntax As SyntaxNode, target As BoundExpression, declaredLocal As LocalSymbol, name As ModifiedIdentifierSyntax, nested As ImmutableArray(Of DeconstructionSlotTarget))
+            ''' <summary>
+            ''' The target as written, before its receivers and indexes were stored in temporaries.
+            ''' </summary>
+            Public ReadOnly SourceTarget As BoundExpression
+
+            Public Sub New(syntax As SyntaxNode, target As BoundExpression, declaredLocal As LocalSymbol, name As ModifiedIdentifierSyntax, nested As ImmutableArray(Of DeconstructionSlotTarget),
+                           Optional sourceTarget As BoundExpression = Nothing)
                 Me.Syntax = syntax
                 Me.Target = target
                 Me.DeclaredLocal = declaredLocal
                 Me.Name = name
                 Me.Nested = nested
+                Me.SourceTarget = If(sourceTarget, target)
             End Sub
 
             Public ReadOnly Property IsEmpty As Boolean
@@ -1339,7 +1452,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Else
                     Dim target = BindAssignmentTarget(expression, diagnostics)
                     hasErrors = hasErrors OrElse target.HasErrors
-                    slots.Add(New DeconstructionSlotTarget(argument, If(target.HasErrors, target, StoreTargetOperands(target, temps, statements)), Nothing, Nothing, Nothing))
+                    slots.Add(New DeconstructionSlotTarget(argument, If(target.HasErrors, target, StoreTargetOperands(target, temps, statements)), Nothing, Nothing, Nothing, target))
                 End If
             Next
 
@@ -1698,12 +1811,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim arguments = ArrayBuilder(Of BoundExpression).GetInstance(names.Count)
             Dim followUps = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim targets = If(declaringLocals, Nothing, ArrayBuilder(Of BoundExpression).GetInstance(names.Count))
 
             For i = 0 To names.Count - 1
                 Dim name = names(i)
                 Dim parameterType = method.Parameters(i).Type
                 If name.Identifier.IsMissing Then
                     arguments.Add(ByRefSlot(name, parameterType, blockLocals))
+                    targets?.Add(Nothing)
                     Continue For
                 End If
 
@@ -1714,6 +1829,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     arguments.Add(New BoundLocal(name, local, parameterType))
                 Else
                     Dim target = BindDeconstructionTarget(name, diagnostics)
+                    targets.Add(target)
                     If CanPassByRef(target, parameterType) Then
                         arguments.Add(target)
                     Else
@@ -1762,7 +1878,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
             followUps.Free()
 
-            Return New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+            Dim body = New BoundBlock(node, Nothing, blockLocals.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+            Dim tuple = If(body.HasErrors, Nothing, FlatDeconstructionTuple(node, value, targets))
+            targets?.Free()
+            Return MakeDeconstructionStatement(node, tuple, value, declaringLocals, body)
         End Function
 
         Private Function ByRefSlot(syntax As SyntaxNode, type As TypeSymbol, blockLocals As ArrayBuilder(Of LocalSymbol)) As BoundExpression
@@ -3363,6 +3482,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                            boundStatement.Syntax.Kind = SyntaxKind.DeconstructionDeclarationStatement Then
                             boundStatements(i) = HoistDeconstructedLocals(DirectCast(boundStatement, BoundBlock), locals)
                         End If
+
+                    Case BoundKind.DeconstructionStatement
+                        Dim deconstruction = DirectCast(boundStatement, BoundDeconstructionStatement)
+                        boundStatements(i) = deconstruction.Update(deconstruction.Target, deconstruction.Value, deconstruction.IsDeclaration,
+                                                                   HoistDeconstructedLocals(deconstruction.Body, locals))
 
                     Case BoundKind.IfStatement
                         ' A name declared with Into in an If or ElseIf condition is assigned in the condition, so this
@@ -5685,9 +5809,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' The type of a name without an As clause in For Each (a, b) In items: its element of the item.
-        ''' </summary>
-        ''' <summary>
         ''' The type of each item of a For Each statement's collection.
         ''' </summary>
         Private Function ForEachItemType(statement As ForEachStatementSyntax) As TypeSymbol
@@ -5702,6 +5823,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return If(elementType Is Nothing OrElse elementType.IsErrorType(), ErrorTypeSymbol.UnknownResultType, elementType)
         End Function
 
+        ''' <summary>
+        ''' The type of a name without an As clause in For Each (a, b) In items: its element of the item.
+        ''' </summary>
         Friend Function GetForEachDeconstructionElementType(local As LocalSymbol) As TypeSymbol
             Dim name = TryCast(local.IdentifierToken.Parent, ModifiedIdentifierSyntax)
             Dim variable = TryCast(name?.Parent, VariableDeclaratorSyntax)

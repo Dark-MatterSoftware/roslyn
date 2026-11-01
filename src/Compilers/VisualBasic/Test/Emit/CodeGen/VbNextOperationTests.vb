@@ -432,6 +432,99 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub DeconstructionsAreDeconstructionAssignments()
+            Dim source = "
+Class Box
+    Public Width As Integer
+    Public Property Label As String
+End Class
+
+Class Point
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = 1 : y = 2
+    End Sub
+End Class
+
+Module Program
+    Function Pair() As (Integer, String)
+        Return (1, ""a"")
+    End Function
+
+    Function Nested() As ((Integer, Integer), String)
+        Return ((1, 2), ""b"")
+    End Function
+
+    Sub Forms(box As Box, cells As Integer(), p As Point)
+        Dim (n, s) = Pair()
+        Dim (first, ) = Pair()
+        Dim (px, py) = p
+        Dim ((x, y), label As String) = Nested()
+        Dim ((a As Long, ), ) = Nested()
+        (n, s) = Pair()
+        (box.Width, cells(1)) = (7, 8)
+        (box.Width, ) = Pair()
+        ((x, y), box.Label) = Nested()
+        (px, py) = p
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockSyntax)().Single(Function(m) m.SubOrFunctionStatement.Identifier.ValueText = "Forms")
+            Dim body = model.GetOperation(block)
+            Assert.Empty(body.DescendantsAndSelf().Where(Function(o) o.Kind = OperationKind.None))
+
+            Dim describe As Func(Of IOperation, String) = Nothing
+            describe = Function(operation)
+                           Select Case operation.Kind
+                               Case OperationKind.DeclarationExpression
+                                   Return "Dim " & describe(DirectCast(operation, IDeclarationExpressionOperation).Expression)
+                               Case OperationKind.Tuple
+                                   Return "(" & String.Join(", ", DirectCast(operation, ITupleOperation).Elements.Select(describe)) & ")"
+                               Case OperationKind.Discard
+                                   Dim discard = DirectCast(operation, IDiscardOperation)
+                                   Assert.Equal(discard.Type, discard.DiscardSymbol.Type)
+                                   Return "_ As " & discard.Type.ToTestDisplayString()
+                               Case OperationKind.LocalReference
+                                   Return "local " & DirectCast(operation, ILocalReferenceOperation).Local.Name
+                               Case Else
+                                   Return operation.Kind.ToString() & " " & operation.Syntax.ToString()
+                           End Select
+                       End Function
+
+            Dim shapes = body.Descendants().OfType(Of IDeconstructionAssignmentOperation)().Select(
+                Function(assignment)
+                    Assert.True(assignment.IsImplicit)
+                    Dim statement = Assert.IsAssignableFrom(Of IExpressionStatementOperation)(assignment.Parent)
+                    Assert.False(statement.IsImplicit)
+                    Assert.Same(statement, model.GetOperation(statement.Syntax))
+                    Return describe(assignment.Target) & " = " & assignment.Value.Syntax.ToString() & " : " & assignment.Type.ToTestDisplayString()
+                End Function)
+
+            AssertEx.Equal({
+                "Dim (local n, local s) = Pair() : (n As System.Int32, s As System.String)",
+                "Dim (local first, _ As System.String) = Pair() : (first As System.Int32, System.String)",
+                "Dim (local px, local py) = p : (px As System.Int32, py As System.Int32)",
+                "Dim ((local x, local y), local label) = Nested() : ((x As System.Int32, y As System.Int32), label As System.String)",
+                "Dim ((local a, _ As System.Int32), _ As System.String) = Nested() : ((a As System.Int64, System.Int32), System.String)",
+                "(local n, local s) = Pair() : (n As System.Int32, s As System.String)",
+                "(FieldReference box.Width, ArrayElementReference cells(1)) = (7, 8) : (Width As System.Int32, System.Int32)",
+                "(FieldReference box.Width, _ As System.String) = Pair() : (Width As System.Int32, System.String)",
+                "((local x, local y), PropertyReference box.Label) = Nested() : ((x As System.Int32, y As System.Int32), Label As System.String)",
+                "(local px, local py) = p : (px As System.Int32, py As System.Int32)"}, shapes.ToArray())
+
+            Dim nestedName = tree.GetRoot().DescendantNodes().OfType(Of ModifiedIdentifierSyntax)().First(Function(m) m.Identifier.ValueText = "label")
+            Dim nestedLocal = Assert.IsAssignableFrom(Of ILocalReferenceOperation)(model.GetOperation(nestedName))
+            Assert.Equal(OperationKind.Tuple, nestedLocal.Parent.Kind)
+            Assert.Equal(OperationKind.DeclarationExpression, model.GetOperation(DirectCast(nestedName.Parent.Parent, DeconstructionListSyntax)).Kind)
+
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+        End Sub
+
+        <Fact>
         Public Sub UnboundTargetTypedNewIsInvalid()
             Dim source = "
 Class C

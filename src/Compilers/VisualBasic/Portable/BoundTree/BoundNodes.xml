@@ -216,6 +216,25 @@
       <Field Name="Value" Type="BoundExpression"/>
     </Node>
 
+    <!--
+    vbnext: Dim (x, y) = value, Dim ((x, y), label) = value, (a, b) = value, or (box.Width, ) = value. Body takes the
+    value apart. The targets as written, a tuple that nests for a nested list, and the value are kept for operations.
+    Visitors skip them, because Body reads what they read.
+    -->
+    <Node Name="BoundDeconstructionStatement" Base="BoundStatement">
+      <Field Name="Target" Type="BoundExpression" SkipInVisitor="true"/>
+      <Field Name="Value" Type="BoundExpression" SkipInVisitor="true"/>
+      <Field Name="IsDeclaration" Type="Boolean"/>
+      <Field Name="Body" Type="BoundBlock"/>
+    </Node>
+
+    <!--
+    vbnext: an empty slot among the targets of a BoundDeconstructionStatement, with the type of its element.
+    -->
+    <Node Name="BoundDeconstructionDiscard" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+    </Node>
+
     <Node Name="BoundArrayLength" Base="BoundExpression">
       <!-- Non-null type is required for this node kind -->
       <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>

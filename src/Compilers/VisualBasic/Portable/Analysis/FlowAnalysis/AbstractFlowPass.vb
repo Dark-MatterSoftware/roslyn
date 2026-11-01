@@ -2619,6 +2619,11 @@ EnteredRegion:
             Return Nothing
         End Function
 
+        Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
+            Visit(node.Body)
+            Return Nothing
+        End Function
+
         Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
             VisitRvalue(node.Value)
             Return Nothing
