@@ -22,13 +22,16 @@ For Each ((x As Long, y), label As String) In {Nested()}
 Next
 
 Dim ((first, ), ) = Nested()                    ' empty slots, as slice 5c spells a discard
+
+Dim (count As Long, word As String) = Pair()    ' slice 151b: As clauses in Dim, flat or nested
+Dim ((a As Long, b), label As String) = Nested()
 ```
 
 - A nested list is deconstructed the way a list at the top is: by the elements of a tuple of the same length, or else by an accessible `Deconstruct` method whose `ByRef` parameters match the slots, as slice 5d finds it.
 - The value is evaluated once. Each nested element is taken apart after the level that contains it, and the elements are assigned left to right, depth first.
 - An empty slot may appear at any level, and a nested list may be empty only in the sense that each of its slots is.
 - In the assignment form, a slot holds anything an assignment can target, as slice 148a allows, or a nested list or an empty slot. The receivers and indexes of all targets are evaluated once, left to right, before the value.
-- In `For Each` and `Await Each`, an `As` clause may follow any name at any level, as phase 39 allows at the top. `Dim` infers each type, as slice 5a does.
+- In `Dim`, `For Each`, and `Await Each`, an `As` clause may follow any name at any level, as phase 39 allows at the top of `For Each`. A name with one has that type, and its element converts to it as an assignment converts it; a name without one infers the type of its element, as slice 5a does. Slice 151a revised this rule, which first kept `As` clauses to `For Each`, so that `Dim` deconstruction compiles under `Option Infer Off` when every name has an `As` clause.
 - A nested list in a `Dim` deconstruction declares no name for the list itself; only names declare locals.
 - Visual Basic 17.13 still rejects every nested form.
 
