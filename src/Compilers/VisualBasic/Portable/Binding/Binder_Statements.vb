@@ -1447,7 +1447,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return slot.Target
             End If
 
-            VerifyLocalSymbolNameAndSetType(slot.DeclaredLocal, elementType, slot.Name, slot.Name.Identifier, diagnostics)
+            ' A name with an As clause keeps its type, and the element converts to it.
+            Dim slotSyntax = TryCast(slot.Syntax, DeconstructionSlotSyntax)
+            Dim localType = If(slotSyntax IsNot Nothing AndAlso slotSyntax.AsClause IsNot Nothing, slot.DeclaredLocal.Type, elementType)
+            VerifyLocalSymbolNameAndSetType(slot.DeclaredLocal, localType, slot.Name, slot.Name.Identifier, diagnostics)
             Return New BoundLocal(slot.Name, slot.DeclaredLocal, isLValue:=True, type:=slot.DeclaredLocal.Type)
         End Function
 
@@ -1469,7 +1472,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim name = TryCast(local.IdentifierToken.Parent, ModifiedIdentifierSyntax)
             Dim slot = TryCast(name?.Parent, DeconstructionSlotSyntax)
             Dim path = ArrayBuilder(Of DeconstructionSlotSyntax).GetInstance()
-            Dim statement As DeconstructionDeclarationStatementSyntax = Nothing
+            Dim root As SyntaxNode = Nothing
             Try
                 While slot IsNot Nothing
                     path.Add(slot)
@@ -1478,15 +1481,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Return ErrorTypeSymbol.UnknownResultType
                     End If
 
-                    statement = TryCast(list.Parent, DeconstructionDeclarationStatementSyntax)
+                    root = list.Parent
                     slot = TryCast(list.Parent, DeconstructionSlotSyntax)
                 End While
 
-                If statement Is Nothing Then
-                    Return ErrorTypeSymbol.UnknownResultType
-                End If
+                Dim current As BoundExpression
+                Select Case root?.Kind
+                    Case SyntaxKind.DeconstructionDeclarationStatement
+                        current = BindValue(DirectCast(root, DeconstructionDeclarationStatementSyntax).Initializer.Value, BindingDiagnosticBag.Discarded)
+                    Case SyntaxKind.ForEachStatement
+                        Dim itemType = ForEachItemType(DirectCast(root, ForEachStatementSyntax))
+                        If itemType.IsErrorType() Then
+                            Return itemType
+                        End If
 
-                Dim current = BindValue(statement.Initializer.Value, BindingDiagnosticBag.Discarded)
+                        current = New BoundRValuePlaceholder(root, itemType)
+                    Case Else
+                        Return ErrorTypeSymbol.UnknownResultType
+                End Select
                 Dim type As TypeSymbol = ErrorTypeSymbol.UnknownResultType
                 For i = path.Count - 1 To 0 Step -1
                     Dim pathSlot = path(i)
@@ -4506,7 +4518,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             declaredOrInferredLocalOpt = Nothing
             isInferredLocal = False
 
-            If controlVariableSyntax.Kind = SyntaxKind.ForEachDeconstruction Then
+            If controlVariableSyntax.Kind = SyntaxKind.ForEachDeconstruction OrElse controlVariableSyntax.Kind = SyntaxKind.DeconstructionList Then
                 ' For Each (a, b) In items iterates into a local of the element type, made once the collection is bound.
                 controlVariable = Nothing
                 Return False
@@ -4993,10 +5005,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim deconstruction = TryCast(forEachStatement.ControlVariable, ForEachDeconstructionSyntax)
-            If deconstruction IsNot Nothing Then
+            Dim nestedDeconstruction = TryCast(forEachStatement.ControlVariable, DeconstructionListSyntax)
+            If deconstruction IsNot Nothing OrElse nestedDeconstruction IsNot Nothing Then
                 Dim itemType = If(elementType, ErrorTypeSymbol.UnknownResultType)
                 declaredOrInferredLocalOpt = New SynthesizedLocal(ContainingMember, itemType, SynthesizedLocalKind.LoweringTemp)
-                controlVariableOpt = New BoundLocal(deconstruction, declaredOrInferredLocalOpt, itemType).MakeCompilerGenerated()
+                controlVariableOpt = New BoundLocal(forEachStatement.ControlVariable, declaredOrInferredLocalOpt, itemType).MakeCompilerGenerated()
             End If
 
             '
@@ -5143,6 +5156,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             loopBody = AddIterationIndexLocal(forEachStatement, loopBody)
             If deconstruction IsNot Nothing Then
                 loopBody = AddForEachDeconstruction(deconstruction, DirectCast(controlVariableOpt, BoundLocal), loopBody, diagnostics)
+            ElseIf nestedDeconstruction IsNot Nothing Then
+                loopBody = AddNestedForEachDeconstruction(nestedDeconstruction, DirectCast(controlVariableOpt, BoundLocal), loopBody, diagnostics)
             End If
 
             Dim enumeratorInfo = New ForEachEnumeratorInfo(boundGetEnumeratorCall,
@@ -5471,6 +5486,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' On vbnext, For Each ((x, y), label) In items takes each item apart at the start of the loop body, as
+        ''' docs/vbnext-vb166-syntax.md locks. A name declares a local, or refers to a variable outside the loop, by the
+        ''' rule of For Each (a, b) In items.
+        ''' </summary>
+        Private Function AddNestedForEachDeconstruction(list As DeconstructionListSyntax, item As BoundLocal, loopBody As BoundBlock, diagnostics As BindingDiagnosticBag) As BoundBlock
+            Dim slots = ForEachDeconstructionSlots(list, diagnostics)
+            Dim declared = ArrayBuilder(Of LocalSymbol).GetInstance()
+            AddDeclaredLocals(slots, declared)
+            Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
+            Dim temps = ArrayBuilder(Of LocalSymbol).GetInstance()
+            Dim hasErrors = DeconstructIntoSlots(list, item.MakeRValue(), slots, temps, statements, diagnostics)
+            Dim deconstruction = New BoundBlock(list, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors).MakeCompilerGenerated()
+            Return loopBody.Update(loopBody.StatementListSyntax,
+                                   loopBody.Locals.AddRange(declared.ToImmutableAndFree()),
+                                   loopBody.Statements.Insert(0, deconstruction))
+        End Function
+
+        Private Function ForEachDeconstructionSlots(list As DeconstructionListSyntax, diagnostics As BindingDiagnosticBag) As ImmutableArray(Of DeconstructionSlotTarget)
+            Dim slots = ArrayBuilder(Of DeconstructionSlotTarget).GetInstance(list.Slots.Count)
+            For Each slot In list.Slots
+                If slot.List IsNot Nothing Then
+                    slots.Add(New DeconstructionSlotTarget(slot, Nothing, Nothing, Nothing, ForEachDeconstructionSlots(slot.List, diagnostics)))
+                ElseIf slot.Name Is Nothing OrElse slot.Name.Identifier.IsMissing Then
+                    slots.Add(New DeconstructionSlotTarget(slot, Nothing, Nothing, Nothing, Nothing))
+                Else
+                    Dim local = GetForEachDeconstructionLocal(slot.Name.Identifier)
+                    If local IsNot Nothing Then
+                        slots.Add(New DeconstructionSlotTarget(slot, Nothing, local, slot.Name, Nothing))
+                    Else
+                        slots.Add(New DeconstructionSlotTarget(slot, BindDeconstructionTarget(slot.Name, diagnostics), Nothing, Nothing, Nothing))
+                    End If
+                End If
+            Next
+
+            Return slots.ToImmutableAndFree()
+        End Function
+
+        ''' <summary>
         ''' For Each (a, b) In items: the body starts by deconstructing the item into the names, and declares the names that
         ''' the loop declares, so each iteration has its own.
         ''' </summary>
@@ -5619,6 +5672,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' The type of a name without an As clause in For Each (a, b) In items: its element of the item.
         ''' </summary>
+        ''' <summary>
+        ''' The type of each item of a For Each statement's collection.
+        ''' </summary>
+        Private Function ForEachItemType(statement As ForEachStatementSyntax) As TypeSymbol
+            Dim collection = BindValue(statement.Expression, BindingDiagnosticBag.Discarded)
+            If Not collection.IsLValue AndAlso Not collection.IsNothingLiteral Then
+                collection = MakeRValue(collection, BindingDiagnosticBag.Discarded)
+            End If
+
+            Dim currentType As TypeSymbol = Nothing
+            Dim elementType As TypeSymbol = Nothing
+            InterpretForEachStatementCollection(collection, currentType, elementType, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, BindingDiagnosticBag.Discarded)
+            Return If(elementType Is Nothing OrElse elementType.IsErrorType(), ErrorTypeSymbol.UnknownResultType, elementType)
+        End Function
+
         Friend Function GetForEachDeconstructionElementType(local As LocalSymbol) As TypeSymbol
             Dim name = TryCast(local.IdentifierToken.Parent, ModifiedIdentifierSyntax)
             Dim variable = TryCast(name?.Parent, VariableDeclaratorSyntax)
@@ -5628,16 +5696,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return ErrorTypeSymbol.UnknownResultType
             End If
 
-            Dim collection = BindValue(statement.Expression, BindingDiagnosticBag.Discarded)
-            If Not collection.IsLValue AndAlso Not collection.IsNothingLiteral Then
-                collection = MakeRValue(collection, BindingDiagnosticBag.Discarded)
-            End If
-
-            Dim currentType As TypeSymbol = Nothing
-            Dim elementType As TypeSymbol = Nothing
-            InterpretForEachStatementCollection(collection, currentType, elementType, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, BindingDiagnosticBag.Discarded)
-            If elementType Is Nothing OrElse elementType.IsErrorType() Then
-                Return ErrorTypeSymbol.UnknownResultType
+            Dim elementType = ForEachItemType(statement)
+            If elementType.IsErrorType() Then
+                Return elementType
             End If
 
             Dim index = deconstruction.Variables.IndexOf(variable)

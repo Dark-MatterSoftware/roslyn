@@ -881,7 +881,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Dim controlVariable As VisualBasicSyntaxNode
             If IsForEachDeconstructionStart() AndAlso CheckFeatureAvailability(Feature.ForEachDeconstruction) Then
-                controlVariable = ParseForEachDeconstruction()
+                controlVariable = If(IsNestedForEachDeconstruction(),
+                                     DirectCast(ParseDeconstructionList(allowAsClause:=True), VisualBasicSyntaxNode),
+                                     ParseForEachDeconstruction())
             Else
                 controlVariable = ParseForLoopControlVariable()
             End If
@@ -935,8 +937,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         Private Function IsForEachDeconstructionStart() As Boolean
             Return CurrentToken.Kind = SyntaxKind.OpenParenToken AndAlso
                    (PeekToken(1).Kind = SyntaxKind.CommaToken OrElse
+                    PeekToken(1).Kind = SyntaxKind.OpenParenToken OrElse
                     (PeekToken(1).Kind = SyntaxKind.IdentifierToken AndAlso
                      (PeekToken(2).Kind = SyntaxKind.CommaToken OrElse PeekToken(2).Kind = SyntaxKind.AsKeyword)))
+        End Function
+
+        ''' <summary>
+        ''' Whether the For Each deconstruction list nests another list: a slot, at the list's own level, starts with an
+        ''' opening parenthesis. A parenthesis inside an As clause does not count.
+        ''' </summary>
+        Private Function IsNestedForEachDeconstruction() As Boolean
+            Dim depth = 0
+            Dim slotStart = True
+            Dim i = 1
+            Do
+                Select Case PeekToken(i).Kind
+                    Case SyntaxKind.OpenParenToken
+                        If depth = 0 AndAlso slotStart Then
+                            Return True
+                        End If
+
+                        depth += 1
+                        slotStart = False
+                    Case SyntaxKind.CloseParenToken
+                        If depth = 0 Then
+                            Return False
+                        End If
+
+                        depth -= 1
+                    Case SyntaxKind.CommaToken
+                        slotStart = depth = 0
+                    Case SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken, SyntaxKind.ColonToken
+                        Return False
+                    Case Else
+                        slotStart = False
+                End Select
+
+                i += 1
+            Loop
         End Function
 
         ''' <summary>

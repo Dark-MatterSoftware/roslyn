@@ -55,6 +55,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return BuildDeconstructionLocals(deconstruction)
             End If
 
+            Dim nested = TryCast(controlVariableSyntax, DeconstructionListSyntax)
+            If nested IsNot Nothing Then
+                Dim nestedLocals = ArrayBuilder(Of LocalSymbol).GetInstance()
+                AddNestedDeconstructionLocals(nested, nestedLocals)
+                Dim nestedIndexLocal = CreateIndexLocal()
+                If nestedIndexLocal IsNot Nothing Then
+                    nestedLocals.Add(nestedIndexLocal)
+                End If
+
+                Return nestedLocals.ToImmutableAndFree()
+            End If
+
             Dim declarator = TryCast(controlVariableSyntax, VariableDeclaratorSyntax)
             If declarator IsNot Nothing Then
 
@@ -147,6 +159,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return locals.ToImmutableAndFree()
         End Function
+
+        ''' <summary>
+        ''' The locals that For Each ((x, y), label) In items declares at every level, by the rule of For Each (a, b) In items.
+        ''' </summary>
+        Private Sub AddNestedDeconstructionLocals(list As DeconstructionListSyntax, locals As ArrayBuilder(Of LocalSymbol))
+            For Each slot In list.Slots
+                If slot.List IsNot Nothing Then
+                    AddNestedDeconstructionLocals(slot.List, locals)
+                ElseIf slot.Name IsNot Nothing AndAlso Not slot.Name.Identifier.IsMissing Then
+                    If slot.AsClause IsNot Nothing Then
+                        locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, slot.Name.Identifier, slot.Name, slot.AsClause, Nothing, LocalDeclarationKind.Variable))
+                    ElseIf OptionInfer AndAlso Not RefersToVariable(slot.Name.Identifier) Then
+                        locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, slot.Name.Identifier, slot.Name, Nothing, Nothing, LocalDeclarationKind.Variable))
+                    End If
+                End If
+            Next
+        End Sub
 
         Private Function RefersToVariable(identifier As SyntaxToken) As Boolean
             Dim result = LookupResult.GetInstance()

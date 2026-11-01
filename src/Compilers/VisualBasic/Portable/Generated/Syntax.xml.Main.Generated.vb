@@ -21263,7 +21263,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.NameOfExpression,
                      SyntaxKind.InterpolatedStringExpression,
                      SyntaxKind.VariableDeclarator,
-                     SyntaxKind.ForEachDeconstruction
+                     SyntaxKind.ForEachDeconstruction,
+                     SyntaxKind.DeconstructionList
                 Case Else
                     Throw new ArgumentException("controlVariable")
             End Select
@@ -21910,7 +21911,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      SyntaxKind.NameOfExpression,
                      SyntaxKind.InterpolatedStringExpression,
                      SyntaxKind.VariableDeclarator,
-                     SyntaxKind.ForEachDeconstruction
+                     SyntaxKind.ForEachDeconstruction,
+                     SyntaxKind.DeconstructionList
                 Case Else
                     Throw new ArgumentException("controlVariable")
             End Select

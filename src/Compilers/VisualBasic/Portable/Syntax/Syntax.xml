@@ -4781,7 +4781,7 @@ Unify Enum declarations with other block type declarations.
         <native-equiv name="ForStatement.ControlVariable"></native-equiv>
       </child>
 
-      <child name="ControlVariable" kind="@ExpressionSyntax|VariableDeclarator|ForEachDeconstruction" order="30">
+      <child name="ControlVariable" kind="@ExpressionSyntax|VariableDeclarator|ForEachDeconstruction|DeconstructionList" order="30">
         <description>
           If the For or For Each statement is of a form that does not declare a new loop control variable, this is the
           expression that denotes the loop control variable. If this loop is of a form that does declare a new control variable,

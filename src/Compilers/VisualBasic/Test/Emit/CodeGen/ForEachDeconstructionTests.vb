@@ -242,6 +242,117 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub ForEachDeconstruction_Nested()
+            CompileAndRun("
+Imports System
+Imports System.Collections.Generic
+
+Class Point
+    Public ReadOnly X As Integer
+    Public ReadOnly Y As Integer
+
+    Public Sub New(x As Integer, y As Integer)
+        Me.X = x
+        Me.Y = y
+    End Sub
+
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X
+        y = Me.Y
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Dim pairs = {((1, 2), ""a""), ((3, 4), ""b"")}
+        For Each ((x, y), label) In pairs
+            Console.Write(x + y & label & "" "")
+        Next
+        For Each ((first, ), ) In pairs
+            Console.Write(first & "" "")
+        Next
+        For Each ((big As Long, small), name As String) In pairs
+            Console.Write(big * 10 + small & name & "" "")
+        Next
+        For Each (n, (px, py)) In {(1, New Point(5, 6))}
+            Console.Write(n + px + py & "" "")
+        Next
+        Dim lastLabel As String = ""none""
+        For Each ((a, b), lastLabel) In pairs
+        Next
+        Console.Write(lastLabel & "" "")
+        For Each (k As Dictionary(Of String, Integer), v) In {(New Dictionary(Of String, Integer), 1)}
+            Console.Write(k.Count + v)
+        Next
+    End Sub
+End Module
+", "3a 7b 1 3 12a 34b 12 b 1")
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_FlatListWithGenericAsClauseStaysFlat()
+            Dim tree = VisualBasicSyntaxTree.ParseText("
+Module Program
+    Sub Main()
+        For Each (k As System.Collections.Generic.Dictionary(Of String, Integer), v) In {(New System.Collections.Generic.Dictionary(Of String, Integer), 1)}
+        Next
+        For Each ((x, y), label) In {((1, 2), ""a"")}
+        Next
+    End Sub
+End Module
+", VbNext)
+
+            Dim controls = tree.GetRoot().DescendantNodes().OfType(Of Syntax.ForEachStatementSyntax)().Select(Function(s) s.ControlVariable.Kind()).ToArray()
+            Assert.Equal({SyntaxKind.ForEachDeconstruction, SyntaxKind.DeconstructionList}, controls)
+        End Sub
+
+        <ConditionalFact(GetType(CoreClrOnly))>
+        Public Sub ForEachDeconstruction_NestedInAwaitEach()
+            Dim compilation = CreateCompilation("
+Imports System
+Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Module Program
+    Async Iterator Function Stream() As IAsyncEnumerable(Of ((Integer, Integer), String))
+        Await Task.Yield()
+        Yield ((1, 2), ""one"")
+        Yield ((3, 4), ""two"")
+    End Function
+
+    Async Function RunAsync() As Task
+        Await Each ((a, b), word) In Stream()
+            Console.Write(a + b & word & "" "")
+        Next
+    End Function
+
+    Sub Main()
+        RunAsync().GetAwaiter().GetResult()
+    End Sub
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseExe.WithOptionStrict(OptionStrict.On).WithOptionInfer(True), parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="3one 7two ", verify:=Verification.Skipped).VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub ForEachDeconstruction_NestedNotAvailableIn17_13()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        For Each ((x, y), label) In {((1, 2), ""a"")}
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "x").WithArguments("x").WithLocation(4, 20),
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "y").WithArguments("y").WithLocation(4, 23),
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "label").WithArguments("label").WithLocation(4, 27))
+        End Sub
+
+        <Fact>
         Public Sub ForEachDeconstruction_EmptySlotNotAvailableIn17_13()
             Dim compilation = CreateCompilation("
 Module Program
