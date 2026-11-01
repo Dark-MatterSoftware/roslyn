@@ -313,6 +313,29 @@ End Module"), "IsFromEnd")
         End Function
 
         <Fact>
+        Public Async Function StringMembersAfterNestedDeconstructionLocal() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim ((x, y), label) = ((1, 2), ""pair"")
+        label.$$
+    End Sub
+End Module"), "Length")
+        End Function
+
+        <Fact>
+        Public Async Function StringMembersAfterNestedForEachLocal() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        For Each ((x, y), label) In {((1, 2), ""a"")}
+            label.$$
+        Next
+    End Sub
+End Module"), "Length")
+        End Function
+
+        <Fact>
         Public Async Function NullableMembersAfterLiftedIndex() As Task
             Await VerifyItemExistsAsync(WaveTwentySeven("
 Module M

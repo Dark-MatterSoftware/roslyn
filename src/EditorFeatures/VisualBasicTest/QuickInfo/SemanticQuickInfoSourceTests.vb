@@ -758,6 +758,27 @@ End Module"), MainDescription($"({FeaturesResources.local_variable}) fromEnd As 
         End Function
 
         <Fact>
+        Public Async Function TestNestedDeconstructionName() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        Dim ((x, y), lab$$el) = ((1, 2), ""pair"")
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) label As String"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNestedForEachDeconstructionName() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Sub F()
+        For Each ((x, $$y), label) In {((1, 2), ""a"")}
+        Next
+    End Sub
+End Module"), MainDescription($"({FeaturesResources.local_variable}) y As Integer"))
+        End Function
+
+        <Fact>
         Public Async Function TestLiftedIndexValue() As Task
             Await TestFromXmlAsync(WaveTwentySeven("
 Module M
