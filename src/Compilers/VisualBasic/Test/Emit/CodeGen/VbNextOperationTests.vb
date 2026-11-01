@@ -525,6 +525,94 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub ForEachDeconstructionsAreLoopVariables()
+            Dim source = "
+Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Class Point
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = 1 : y = 2
+    End Sub
+End Class
+
+Module Program
+    Function Pairs() As (Integer, String)()
+        Return {(1, ""a"")}
+    End Function
+
+    Function Nested() As ((Integer, Integer), String)()
+        Return {((1, 2), ""b"")}
+    End Function
+
+    Sub Loops(points As Point(), dict As Dictionary(Of String, Integer))
+        Dim outer As Integer
+        For Each (k, v) In Pairs()
+        Next
+        For Each (k, ) In Pairs()
+        Next
+        For Each ((x, y), label As String) In Nested()
+        Next
+        For Each (px, py) In points
+        Next
+        For Each (outer, name) In Pairs()
+        Next
+        For Each (key, value) In dict
+        Next
+    End Sub
+
+    Async Function Consume(stream As IAsyncEnumerable(Of (Integer, String))) As Task
+        Await Each (a, b) In stream
+        Next
+    End Function
+End Module
+"
+            Dim compilation = CreateCompilation(source, targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim describe As Func(Of IOperation, String) = Nothing
+            describe = Function(operation)
+                           Select Case operation.Kind
+                               Case OperationKind.DeclarationExpression
+                                   Return If(operation.IsImplicit, "declare ", "Dim ") & describe(DirectCast(operation, IDeclarationExpressionOperation).Expression)
+                               Case OperationKind.Tuple
+                                   Return "(" & String.Join(", ", DirectCast(operation, ITupleOperation).Elements.Select(describe)) & ")"
+                               Case OperationKind.Discard
+                                   Return "_ As " & operation.Type.ToTestDisplayString()
+                               Case OperationKind.LocalReference
+                                   Return "local " & DirectCast(operation, ILocalReferenceOperation).Local.Name
+                               Case Else
+                                   Return operation.Kind.ToString() & " " & operation.Syntax.ToString()
+                           End Select
+                       End Function
+
+            Dim loops As New List(Of String)
+            For Each block In tree.GetRoot().DescendantNodes().OfType(Of MethodBlockSyntax)().Where(Function(m) m.SubOrFunctionStatement.Identifier.ValueText <> "Pairs" AndAlso m.SubOrFunctionStatement.Identifier.ValueText <> "Nested")
+                Dim body = model.GetOperation(block)
+                Assert.Empty(body.DescendantsAndSelf().Where(Function(o) o.Kind = OperationKind.None))
+                Assert.Empty(body.DescendantsAndSelf().OfType(Of IVariableDeclaratorOperation)().Where(Function(d) String.IsNullOrEmpty(d.Symbol.Name)))
+                For Each forEachLoop In body.Descendants().OfType(Of IForEachLoopOperation)()
+                    Assert.Same(forEachLoop.LoopControlVariable, model.GetOperation(forEachLoop.LoopControlVariable.Syntax))
+                    Assert.Empty(forEachLoop.Body.Descendants().OfType(Of ILocalReferenceOperation)().Where(Function(l) l.Local.IsImplicitlyDeclared))
+                    loops.Add(describe(forEachLoop.LoopControlVariable) & " | " & String.Join(", ", forEachLoop.Locals.Select(Function(l) l.Name)))
+                Next
+
+                Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+            Next
+
+            AssertEx.Equal({
+                "Dim (local k, local v) | k, v",
+                "Dim (local k, _ As System.String) | k",
+                "Dim ((local x, local y), local label) | x, y, label",
+                "Dim (local px, local py) | px, py",
+                "(local outer, declare local name) | name",
+                "Dim (local key, local value) | key, value",
+                "Dim (local a, local b) | a, b"}, loops.ToArray())
+        End Sub
+
+        <Fact>
         Public Sub UnboundTargetTypedNewIsInvalid()
             Dim source = "
 Class C

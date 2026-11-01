@@ -1544,7 +1544,66 @@ Namespace Microsoft.CodeAnalysis.Operations
             Dim exitLabel As ILabelSymbol = boundForEachStatement.ExitLabel
             Dim syntax As SyntaxNode = boundForEachStatement.Syntax
             Dim isImplicit As Boolean = boundForEachStatement.WasCompilerGenerated
+
+            ' For Each (k, v) In items: the loop variable is the deconstruction that starts the body, as C# reports
+            ' foreach (var (k, v) in items), and the loop declares its names.
+            Dim bodyBlock = TryCast(boundForEachStatement.Body, BoundBlock)
+            Dim deconstruction = If(bodyBlock IsNot Nothing AndAlso Not bodyBlock.Statements.IsEmpty,
+                                    TryCast(bodyBlock.Statements(0), BoundDeconstructionStatement),
+                                    Nothing)
+            If deconstruction IsNot Nothing Then
+                Dim declared = ArrayBuilder(Of LocalSymbol).GetInstance()
+                CollectDeclaredDeconstructionLocals(deconstruction.Target, bodyBlock.Locals, declared)
+                Dim declaredLocals = declared.ToImmutableAndFree()
+
+                If deconstruction.IsDeclaration Then
+                    Dim tuple = Create(deconstruction.Target)
+                    controlVariable = New DeclarationExpressionOperation(tuple, _semanticModel, deconstruction.Target.Syntax, tuple.Type, isImplicit:=False)
+                Else
+                    controlVariable = CreateForEachDeconstructionTarget(deconstruction.Target, declaredLocals)
+                End If
+
+                Dim bodyLocals = SequenceLocalsCollector.GetBlockLocals(bodyBlock).WhereAsArray(Function(local) Not declaredLocals.Contains(local))
+                body = New BlockOperation(CreateFromArray(Of BoundStatement, IOperation)(bodyBlock.Statements.RemoveAt(0)), bodyLocals.As(Of ILocalSymbol)(),
+                                          _semanticModel, bodyBlock.Syntax, bodyBlock.WasCompilerGenerated)
+                locals = declaredLocals.As(Of ILocalSymbol)()
+            End If
+
             Return New ForEachLoopOperation(controlVariable, collection, nextVariables, info, isAsynchronous:=boundForEachStatement.EnumeratorInfo.IsAsynchronous, body, locals, continueLabel, exitLabel, _semanticModel, syntax, isImplicit)
+        End Function
+
+        Private Shared Sub CollectDeclaredDeconstructionLocals(target As BoundExpression, blockLocals As ImmutableArray(Of LocalSymbol), declared As ArrayBuilder(Of LocalSymbol))
+            Select Case target.Kind
+                Case BoundKind.ConvertedTupleLiteral
+                    For Each element In DirectCast(target, BoundConvertedTupleLiteral).Arguments
+                        CollectDeclaredDeconstructionLocals(element, blockLocals, declared)
+                    Next
+                Case BoundKind.Local
+                    Dim local = DirectCast(target, BoundLocal).LocalSymbol
+                    If blockLocals.Contains(local) Then
+                        declared.Add(local)
+                    End If
+            End Select
+        End Sub
+
+        ''' <summary>
+        ''' The targets of For Each (a, b) In items where some name refers to a variable outside the loop: a tuple of the
+        ''' targets, with each name that the loop declares in a declaration expression.
+        ''' </summary>
+        Private Function CreateForEachDeconstructionTarget(target As BoundExpression, declared As ImmutableArray(Of LocalSymbol)) As IOperation
+            Select Case target.Kind
+                Case BoundKind.ConvertedTupleLiteral
+                    Dim tuple = DirectCast(target, BoundConvertedTupleLiteral)
+                    Dim elements = tuple.Arguments.SelectAsArray(Function(element) CreateForEachDeconstructionTarget(element, declared))
+                    Return New TupleOperation(elements, tuple.NaturalTypeOpt, _semanticModel, tuple.Syntax, tuple.Type, tuple.WasCompilerGenerated)
+                Case BoundKind.Local
+                    If declared.Contains(DirectCast(target, BoundLocal).LocalSymbol) Then
+                        Dim reference = Create(target)
+                        Return New DeclarationExpressionOperation(reference, _semanticModel, target.Syntax, reference.Type, isImplicit:=True)
+                    End If
+            End Select
+
+            Return Create(target)
         End Function
 
         Friend Function CreateBoundControlVariableOperation(boundForStatement As BoundForStatement) As IOperation

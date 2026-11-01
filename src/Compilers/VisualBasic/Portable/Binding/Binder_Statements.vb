@@ -5635,11 +5635,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             AddDeclaredLocals(slots, declared)
             Dim statements = ArrayBuilder(Of BoundStatement).GetInstance()
             Dim temps = ArrayBuilder(Of LocalSymbol).GetInstance()
-            Dim hasErrors = DeconstructIntoSlots(list, item.MakeRValue(), slots, temps, statements, diagnostics)
-            Dim deconstruction = New BoundBlock(list, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors).MakeCompilerGenerated()
+            Dim value = item.MakeRValue()
+            Dim hasErrors = DeconstructIntoSlots(list, value, slots, temps, statements, diagnostics)
+            Dim block = New BoundBlock(list, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors).MakeCompilerGenerated()
+            Dim target = If(block.HasErrors, Nothing, DeconstructionSlotsTuple(list, list, value, slots))
+            Dim declaresAll = SlotsDeclareAll(slots)
+            If declaresAll Then
+                target?.SetWasCompilerGenerated()
+            End If
+
+            Dim deconstruction = MakeDeconstructionStatement(list, target, value, declaresAll, block).MakeCompilerGenerated()
             Return loopBody.Update(loopBody.StatementListSyntax,
                                    loopBody.Locals.AddRange(declared.ToImmutableAndFree()),
                                    loopBody.Statements.Insert(0, deconstruction))
+        End Function
+
+        ''' <summary>
+        ''' Whether every name of the slots, at every level, declares a local; an empty slot declares nothing.
+        ''' </summary>
+        Private Shared Function SlotsDeclareAll(slots As ImmutableArray(Of DeconstructionSlotTarget)) As Boolean
+            For Each slot In slots
+                If Not slot.Nested.IsDefault Then
+                    If Not SlotsDeclareAll(slot.Nested) Then
+                        Return False
+                    End If
+                ElseIf slot.Target IsNot Nothing Then
+                    Return False
+                End If
+            Next
+
+            Return True
         End Function
 
         Private Function ForEachDeconstructionSlots(list As DeconstructionListSyntax, diagnostics As BindingDiagnosticBag) As ImmutableArray(Of DeconstructionSlotTarget)
@@ -5804,8 +5829,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 followUps.Free()
             End If
 
+            Dim block = New BoundBlock(syntax, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors).MakeCompilerGenerated()
+            Dim deconstructionTarget As BoundExpression = Nothing
+            Dim declaresAll = True
+            If Not block.HasErrors Then
+                Dim tupleElements = ArrayBuilder(Of BoundExpression).GetInstance(count)
+                For i = 0 To count - 1
+                    If targets(i) Is Nothing Then
+                        Dim elementType = If(method IsNot Nothing, method.Parameters(i).Type, elements(i).Type)
+                        tupleElements.Add(New BoundDeconstructionDiscard(variables(i), elementType).MakeCompilerGenerated())
+                    Else
+                        declaresAll = declaresAll AndAlso targets(i).Kind = BoundKind.Local AndAlso declared.Contains(DirectCast(targets(i), BoundLocal).LocalSymbol)
+                        tupleElements.Add(targets(i))
+                    End If
+                Next
+
+                deconstructionTarget = DeconstructionTargetTuple(syntax, tupleElements.ToImmutableAndFree())
+                If declaresAll Then
+                    deconstructionTarget?.SetWasCompilerGenerated()
+                End If
+            End If
+
             targets.Free()
-            Return New BoundBlock(syntax, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors).MakeCompilerGenerated()
+            Return MakeDeconstructionStatement(syntax, deconstructionTarget, value, declaresAll, block).MakeCompilerGenerated()
         End Function
 
         ''' <summary>
