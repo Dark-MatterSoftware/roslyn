@@ -208,7 +208,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim syntax = node.Syntax
             Dim construction = TryBindInterpolatedStringHandler(node, handlerType, handlerArguments, diagnostics)
-            If construction Is Nothing Then
+            If construction Is Nothing AndAlso Not HasErrorsInInterpolations(node) Then
                 ReportDiagnostic(diagnostics, syntax, ErrorFactory.ErrorInfo(ERRID.ERR_InterpolatedStringFactoryError, handlerType.Name, "AppendFormatted"))
             End If
 
@@ -223,7 +223,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ) As BoundExpression
 
             Dim syntax = node.Syntax
-            If node.HasErrors OrElse node.Contents.OfType(Of BoundInterpolation)().Any(Function(interpolation) interpolation.HasErrors) Then
+            If HasErrorsInInterpolations(node) Then
                 Return Nothing
             End If
 
@@ -465,12 +465,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return text.Replace("{{", "{").Replace("}}", "}")
         End Function
 
+        ''' <summary>
+        ''' On vbnext, whether an interpolation's value has an error type, such as a local declared from an undeclared name.
+        ''' That error is already reported, so the call that cannot bind because of it reports nothing more.
+        ''' </summary>
+        Private Function HasInterpolationOfErrorType(node As BoundInterpolatedStringExpression) As Boolean
+            Return Compilation.LanguageVersion >= LanguageVersion.VbNext AndAlso
+                   node.Contents.OfType(Of BoundInterpolation)().Any(Function(interpolation) interpolation.Expression.Type IsNot Nothing AndAlso interpolation.Expression.Type.IsErrorType())
+        End Function
+
+        ''' <summary>
+        ''' Whether the string or an interpolation already has an error, so a handler is neither bound nor reported.
+        ''' </summary>
+        Private Function HasErrorsInInterpolations(node As BoundInterpolatedStringExpression) As Boolean
+            Return node.HasErrors OrElse
+                   node.Contents.OfType(Of BoundInterpolation)().Any(Function(interpolation) interpolation.HasErrors) OrElse
+                   HasInterpolationOfErrorType(node)
+        End Function
+
         Private Function TryInvokeInterpolatedStringFactory(node As BoundInterpolatedStringExpression, factoryType As TypeSymbol, factoryMethodName As String, targetType As TypeSymbol, diagnostics As BindingDiagnosticBag) As BoundExpression
 
             Dim hasErrors As Boolean = False
 
             If factoryType.IsErrorType() OrElse
                node.HasErrors OrElse
+               HasInterpolationOfErrorType(node) OrElse
                node.Contents.OfType(Of BoundInterpolation)().Any(
                     Function(interpolation) interpolation.Expression.HasErrors OrElse
                                             (interpolation.AlignmentOpt IsNot Nothing AndAlso

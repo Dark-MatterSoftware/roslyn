@@ -58,6 +58,72 @@ Public Structure TraceHandler
 End Structure
 "
 
+        Private Const UndeclaredInInterpolations As String = "
+Module Program
+    Sub Main()
+        Dim x = Undefined
+        System.Console.WriteLine($""plain {x}"")
+        Dim f As System.FormattableString = $""formattable {x}""
+    End Sub
+End Module
+"
+
+        Private Shared Function ErrorIds(compilation As VisualBasicCompilation) As String()
+            Return compilation.GetDiagnostics().Where(Function(d) d.Severity = DiagnosticSeverity.Error).Select(Function(d) d.Id).ToArray()
+        End Function
+
+        <Fact>
+        Public Sub ErrorTypedInterpolation_ReportsOnlyItsError()
+            Dim compilation = CreateCompilation(UndeclaredInInterpolations, parseOptions:=VbNext)
+            AssertEx.Equal({"BC30451"}, ErrorIds(compilation))
+        End Sub
+
+        <Fact>
+        Public Sub ErrorTypedInterpolation_CascadesOn17_13()
+            Dim compilation = CreateCompilation(UndeclaredInInterpolations, parseOptions:=Vb17_13)
+            AssertEx.Equal({"BC30451", "BC37251", "BC37251"}, ErrorIds(compilation))
+        End Sub
+
+        <Fact>
+        Public Sub ErrorTypedInterpolation_HandlerReportsOnlyItsError()
+            Dim compilation = CreateCompilation(TraceHandler & "
+Module Program
+    Sub Log(message As TraceHandler)
+    End Sub
+
+    Sub Main()
+        Dim x = Undefined
+        Log($""value {x}"")
+    End Sub
+End Module
+", parseOptions:=VbNext)
+            AssertEx.Equal({"BC30451"}, ErrorIds(compilation))
+        End Sub
+
+        <Fact>
+        Public Sub HandlerWithoutAppendFormatted_StillReportsFactoryError()
+            Dim compilation = CreateCompilation(HandlerAttribute & "
+<System.Runtime.CompilerServices.InterpolatedStringHandler>
+Public Structure LiteralOnlyHandler
+    Public Sub New(literalLength As Integer, formattedCount As Integer)
+    End Sub
+
+    Public Sub AppendLiteral(value As String)
+    End Sub
+End Structure
+
+Module Program
+    Sub Log(message As LiteralOnlyHandler)
+    End Sub
+
+    Sub Main()
+        Log($""value {1}"")
+    End Sub
+End Module
+", parseOptions:=VbNext)
+            AssertEx.Equal({"BC37251"}, ErrorIds(compilation))
+        End Sub
+
         <Fact>
         Public Sub Handler_ConstructsAndAppendsInOrder()
             Dim compilation = CreateCompilation(TraceHandler & "
