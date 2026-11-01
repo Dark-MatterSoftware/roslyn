@@ -31,6 +31,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case BoundKind.PositionalPattern
                         ' On vbnext, a positional pattern keeps its shape beside the condition that tests it.
 
+                    Case BoundKind.BadExpression
+                        ' On vbnext, a positional pattern on a value that has no elements and no Deconstruct is an error.
+
                     Case Else
                         ExceptionUtilities.UnexpectedValue(conditionOpt.Kind) ' This is going to assert
                 End Select

@@ -379,6 +379,24 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub SelectCase_PositionalPatternRequiresElementsOrDeconstruct()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Function Shape(value As Object) As String
+        Select Case value
+            Case Is (1, 2)
+                Return ""pair""
+        End Select
+        Return """"
+    End Function
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DeconstructionRequiresTuple, "Is (1, 2)").WithArguments("2").WithLocation(5, 18))
+        End Sub
+
+        <Fact>
         Public Sub SelectCase_ListPatternRejectedOn17_13()
             Dim compilation = CreateCompilation("
 Class Program
