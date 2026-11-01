@@ -229,6 +229,22 @@
     </Node>
 
     <!--
+    vbnext: Case Is (1, "a"), Case Is ((1, 2), "a"), or Case Is TypeOf Point(0, 1) whose values VB compares as
+    constants. Condition tests the value. The pattern's shape is kept for operations: the type it matches, the
+    Deconstruct method if there is one, the local that Into declares, and for each element either its value or a nested
+    BoundPositionalPattern, which has no Condition. Visitors skip the subpatterns, because Condition reads what they read.
+    -->
+    <Node Name="BoundPositionalPattern" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+      <Field Name="InputType" Type="TypeSymbol"/>
+      <Field Name="MatchedType" Type="TypeSymbol"/>
+      <Field Name="DeconstructMethodOpt" Type="MethodSymbol" Null="allow"/>
+      <Field Name="DeclaredLocalOpt" Type="LocalSymbol" Null="allow"/>
+      <Field Name="Subpatterns" Type="ImmutableArray(Of BoundExpression)" SkipInVisitor="true"/>
+      <Field Name="ConditionOpt" Type="BoundExpression" Null="allow"/>
+    </Node>
+
+    <!--
     vbnext: an empty slot among the targets of a BoundDeconstructionStatement, with the type of its element.
     -->
     <Node Name="BoundDeconstructionDiscard" Base="BoundExpression">

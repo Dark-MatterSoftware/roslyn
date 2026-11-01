@@ -7,5 +7,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
             Return Visit(node.Body)
         End Function
+
+        Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
+            Return Visit(node.ConditionOpt)
+        End Function
     End Class
 End Namespace

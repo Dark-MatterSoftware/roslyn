@@ -28,6 +28,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case BoundKind.Sequence
                         ' On vbnext, comparing tuples binds as a sequence that compares their elements.
 
+                    Case BoundKind.PositionalPattern
+                        ' On vbnext, a positional pattern keeps its shape beside the condition that tests it.
+
                     Case Else
                         ExceptionUtilities.UnexpectedValue(conditionOpt.Kind) ' This is going to assert
                 End Select

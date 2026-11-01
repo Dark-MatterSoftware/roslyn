@@ -2619,6 +2619,11 @@ EnteredRegion:
             Return Nothing
         End Function
 
+        Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
+            ' The condition keeps its own conditional state, so a local that Into declares stays assigned where it matches.
+            Return Visit(node.ConditionOpt)
+        End Function
+
         Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
             Visit(node.Body)
             Return Nothing

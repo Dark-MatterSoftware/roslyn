@@ -86,6 +86,8 @@ Namespace Microsoft.CodeAnalysis.Operations
                     Return Create(DirectCast(boundNode, BoundIndexOffset).Argument)
                 Case BoundKind.DeconstructionStatement
                     Return CreateBoundDeconstructionStatementOperation(DirectCast(boundNode, BoundDeconstructionStatement))
+                Case BoundKind.PositionalPattern
+                    Return Create(DirectCast(boundNode, BoundPositionalPattern).ConditionOpt)
                 Case BoundKind.DeconstructionDiscard
                     Dim discard = DirectCast(boundNode, BoundDeconstructionDiscard)
                     Return New DiscardOperation(New DiscardSymbol(discard.Type), _semanticModel, discard.Syntax, discard.Type, isImplicit:=True)
@@ -1417,12 +1419,41 @@ Namespace Microsoft.CodeAnalysis.Operations
             Return New RangeCaseClauseOperation(minimumValue, maximumValue, label:=Nothing, _semanticModel, syntax, isImplicit)
         End Function
 
-        Private Function CreateBoundRelationalCaseClauseOperation(boundRelationalCaseClause As BoundRelationalCaseClause) As IRelationalCaseClauseOperation
+        Private Function CreateBoundRelationalCaseClauseOperation(boundRelationalCaseClause As BoundRelationalCaseClause) As ICaseClauseOperation
+            Dim positional = TryCast(boundRelationalCaseClause.ConditionOpt, BoundPositionalPattern)
+            If positional IsNot Nothing Then
+                Return New PatternCaseClauseOperation(label:=Nothing, CreatePositionalPatternOperation(positional, isImplicit:=True), guard:=Nothing,
+                                                      _semanticModel, boundRelationalCaseClause.Syntax, boundRelationalCaseClause.WasCompilerGenerated)
+            End If
+
             Dim valueExpression As IOperation = Create(GetSingleValueCaseClauseValue(boundRelationalCaseClause))
             Dim relation As BinaryOperatorKind = If(valueExpression IsNot Nothing, Helper.DeriveBinaryOperatorKind(boundRelationalCaseClause.OperatorKind, leftOpt:=Nothing), BinaryOperatorKind.None)
             Dim syntax As SyntaxNode = boundRelationalCaseClause.Syntax
             Dim isImplicit As Boolean = boundRelationalCaseClause.WasCompilerGenerated
             Return New RelationalCaseClauseOperation(valueExpression, relation, label:=Nothing, _semanticModel, syntax, isImplicit)
+        End Function
+
+        ''' <summary>
+        ''' Case Is (1, "a") or Case Is TypeOf Point(0, 1) as C# reports (1, "a") and Point(0, 1): a recursive pattern with a
+        ''' constant pattern for each value, nested for a tuple of values.
+        ''' </summary>
+        Private Function CreatePositionalPatternOperation(pattern As BoundPositionalPattern, isImplicit As Boolean) As IRecursivePatternOperation
+            Dim elementTypes = If(pattern.DeconstructMethodOpt IsNot Nothing,
+                                  pattern.DeconstructMethodOpt.Parameters.SelectAsArray(Function(parameter) parameter.Type),
+                                  pattern.MatchedType.TupleElementTypes)
+            Dim subpatterns = ArrayBuilder(Of IPatternOperation).GetInstance(pattern.Subpatterns.Length)
+            For i = 0 To pattern.Subpatterns.Length - 1
+                Dim subpattern = pattern.Subpatterns(i)
+                Dim nested = TryCast(subpattern, BoundPositionalPattern)
+                If nested IsNot Nothing Then
+                    subpatterns.Add(CreatePositionalPatternOperation(nested, isImplicit:=False))
+                Else
+                    subpatterns.Add(New ConstantPatternOperation(Create(subpattern), elementTypes(i), elementTypes(i), _semanticModel, subpattern.Syntax, isImplicit:=False))
+                End If
+            Next
+
+            Return New RecursivePatternOperation(pattern.MatchedType, pattern.DeconstructMethodOpt, subpatterns.ToImmutableAndFree(), ImmutableArray(Of IPropertySubpatternOperation).Empty,
+                                                 pattern.DeclaredLocalOpt, pattern.InputType, pattern.MatchedType, _semanticModel, pattern.Syntax, isImplicit)
         End Function
 
         Private Function CreateBoundDoLoopStatementOperation(boundDoLoopStatement As BoundDoLoopStatement) As IWhileLoopOperation

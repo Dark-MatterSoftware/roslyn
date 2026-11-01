@@ -613,6 +613,107 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub PositionalPatternsAreRecursivePatterns()
+            Dim source = "
+Enum Color
+    Red
+    Green
+End Enum
+
+Class Point
+    Public X As Integer
+    Public Y As Integer
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X : y = Me.Y
+    End Sub
+End Class
+
+Module Program
+    Function Describe(p As (Integer, String), n As ((Integer, Integer), String), wide As (Long, Color), value As Object, k As Integer) As String
+        Select Case p
+            Case Is (1, ""a"")
+                Return ""flat""
+            Case Is (k, ""b"")
+                Return ""variable""
+            Case Is (2, Nothing)
+                Return ""nothing""
+        End Select
+        Select Case n
+            Case Is ((1, 2), ""c"")
+                Return ""nested""
+        End Select
+        Select Case wide
+            Case Is (3, Color.Green)
+                Return ""widened""
+        End Select
+        Select Case value
+            Case Is TypeOf Point(0, 1)
+                Return ""origin""
+            Case Is TypeOf Point(2, 3) Into pt
+                Return pt.X.ToString()
+            Case Is TypeOf Point(4, 5) AndAlso .X Is > 0
+                Return ""filtered""
+        End Select
+        Return """"
+    End Function
+End Module
+"
+            AssertEx.Equal({
+                "(System.Int32, System.String)(const 1, const ""a"")",
+                "relational Is (k, ""b"")",
+                "relational Is (2, Nothing)",
+                "((System.Int32, System.Int32), System.String)((System.Int32, System.Int32)(const 1, const 2), const ""c"")",
+                "(System.Int64, Color)(const 3, const Color.Green)",
+                "Point Deconstruct(const 0, const 1)",
+                "Point Deconstruct Into pt(const 2, const 3)",
+                "relational Is TypeOf Point(4, 5) AndAlso .X Is > 0"}, DescribeCaseClauses(source, TestOptions.ReleaseDll))
+
+            ' Under Option Compare Text, VB compares strings without regard to case, which a constant pattern does not.
+            Dim textCompare = DescribeCaseClauses(source, TestOptions.ReleaseDll.WithOptionCompareText(True))
+            Assert.Equal("relational Is (1, ""a"")", textCompare(0))
+            Assert.Equal("relational Is ((1, 2), ""c"")", textCompare(3))
+            Assert.Equal("(System.Int64, Color)(const 3, const Color.Green)", textCompare(4))
+        End Sub
+
+        Private Shared Function DescribeCaseClauses(source As String, options As VisualBasicCompilationOptions) As String()
+            Dim compilation = CreateCompilation(source, options:=options, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim describe As Func(Of IPatternOperation, String) = Nothing
+            describe = Function(pattern)
+                           If TypeOf pattern Is IConstantPatternOperation Then
+                               Return "const " & pattern.Syntax.ToString()
+                           End If
+
+                           Dim recursive = DirectCast(pattern, IRecursivePatternOperation)
+                           Assert.Empty(recursive.PropertySubpatterns)
+                           Assert.Equal(recursive.MatchedType, recursive.NarrowedType)
+                           Return recursive.MatchedType.ToTestDisplayString() &
+                                  If(recursive.DeconstructSymbol IsNot Nothing, " " & recursive.DeconstructSymbol.Name, "") &
+                                  If(recursive.DeclaredSymbol IsNot Nothing, " Into " & recursive.DeclaredSymbol.Name, "") &
+                                  "(" & String.Join(", ", recursive.DeconstructionSubpatterns.Select(describe)) & ")"
+                       End Function
+
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockSyntax)().Single(Function(m) m.SubOrFunctionStatement.Identifier.ValueText = "Describe")
+            Dim body = model.GetOperation(block)
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+            Return body.Descendants().OfType(Of ICaseClauseOperation)().Select(
+                Function(clause)
+                    Dim patternClause = TryCast(clause, IPatternCaseClauseOperation)
+                    If patternClause Is Nothing Then
+                        Return "relational " & clause.Syntax.ToString()
+                    End If
+
+                    Assert.Same(clause, model.GetOperation(clause.Syntax))
+                    Assert.True(patternClause.Pattern.IsImplicit)
+                    Assert.Null(patternClause.Guard)
+                    Return describe(patternClause.Pattern)
+                End Function).ToArray()
+        End Function
+
+        <Fact>
         Public Sub UnboundTargetTypedNewIsInvalid()
             Dim source = "
 Class C

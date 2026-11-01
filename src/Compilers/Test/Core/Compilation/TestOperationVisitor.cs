@@ -1510,7 +1510,13 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             }
 
             var designation = (operation.Syntax as CSharp.Syntax.RecursivePatternSyntax)?.Designation;
-            if (designation.IsKind(CSharp.SyntaxKind.SingleVariableDesignation))
+            if (operation.Language == LanguageNames.VisualBasic)
+            {
+                // Case Is TypeOf Point(0, 1) Into p declares p.
+                var typeCase = operation.Syntax as VisualBasic.Syntax.TypeCaseClauseSyntax;
+                Assert.Equal(typeCase?.IntoKeyword.IsKind(VisualBasic.SyntaxKind.IntoKeyword) == true, operation.DeclaredSymbol != null);
+            }
+            else if (designation.IsKind(CSharp.SyntaxKind.SingleVariableDesignation))
             {
                 Assert.NotNull(operation.DeclaredSymbol);
             }

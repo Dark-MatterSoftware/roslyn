@@ -37,6 +37,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         IndexOffset
         PatternSlice
         DeconstructionStatement
+        PositionalPattern
         DeconstructionDiscard
         ArrayLength
         [GetType]
@@ -1149,6 +1150,83 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(target As BoundExpression, value As BoundExpression, isDeclaration As Boolean, body As BoundBlock) As BoundDeconstructionStatement
             If target IsNot Me.Target OrElse value IsNot Me.Value OrElse isDeclaration <> Me.IsDeclaration OrElse body IsNot Me.Body Then
                 Dim result = New BoundDeconstructionStatement(Me.Syntax, target, value, isDeclaration, body, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundPositionalPattern
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, inputType As TypeSymbol, matchedType As TypeSymbol, deconstructMethodOpt As MethodSymbol, declaredLocalOpt As LocalSymbol, subpatterns As ImmutableArray(Of BoundExpression), conditionOpt As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.PositionalPattern, syntax, type, hasErrors OrElse subpatterns.NonNullAndHasErrors() OrElse conditionOpt.NonNullAndHasErrors())
+
+            Debug.Assert(inputType IsNot Nothing, "Field 'inputType' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(matchedType IsNot Nothing, "Field 'matchedType' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(Not (subpatterns.IsDefault), "Field 'subpatterns' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._InputType = inputType
+            Me._MatchedType = matchedType
+            Me._DeconstructMethodOpt = deconstructMethodOpt
+            Me._DeclaredLocalOpt = declaredLocalOpt
+            Me._Subpatterns = subpatterns
+            Me._ConditionOpt = conditionOpt
+        End Sub
+
+
+        Private ReadOnly _InputType As TypeSymbol
+        Public ReadOnly Property InputType As TypeSymbol
+            Get
+                Return _InputType
+            End Get
+        End Property
+
+        Private ReadOnly _MatchedType As TypeSymbol
+        Public ReadOnly Property MatchedType As TypeSymbol
+            Get
+                Return _MatchedType
+            End Get
+        End Property
+
+        Private ReadOnly _DeconstructMethodOpt As MethodSymbol
+        Public ReadOnly Property DeconstructMethodOpt As MethodSymbol
+            Get
+                Return _DeconstructMethodOpt
+            End Get
+        End Property
+
+        Private ReadOnly _DeclaredLocalOpt As LocalSymbol
+        Public ReadOnly Property DeclaredLocalOpt As LocalSymbol
+            Get
+                Return _DeclaredLocalOpt
+            End Get
+        End Property
+
+        Private ReadOnly _Subpatterns As ImmutableArray(Of BoundExpression)
+        Public ReadOnly Property Subpatterns As ImmutableArray(Of BoundExpression)
+            Get
+                Return _Subpatterns
+            End Get
+        End Property
+
+        Private ReadOnly _ConditionOpt As BoundExpression
+        Public ReadOnly Property ConditionOpt As BoundExpression
+            Get
+                Return _ConditionOpt
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitPositionalPattern(Me)
+        End Function
+
+        Public Function Update(inputType As TypeSymbol, matchedType As TypeSymbol, deconstructMethodOpt As MethodSymbol, declaredLocalOpt As LocalSymbol, subpatterns As ImmutableArray(Of BoundExpression), conditionOpt As BoundExpression, type As TypeSymbol) As BoundPositionalPattern
+            If inputType IsNot Me.InputType OrElse matchedType IsNot Me.MatchedType OrElse deconstructMethodOpt IsNot Me.DeconstructMethodOpt OrElse declaredLocalOpt IsNot Me.DeclaredLocalOpt OrElse subpatterns <> Me.Subpatterns OrElse conditionOpt IsNot Me.ConditionOpt OrElse type IsNot Me.Type Then
+                Dim result = New BoundPositionalPattern(Me.Syntax, inputType, matchedType, deconstructMethodOpt, declaredLocalOpt, subpatterns, conditionOpt, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9870,6 +9948,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitPatternSlice(CType(node, BoundPatternSlice), arg)
                 Case BoundKind.DeconstructionStatement
                     Return VisitDeconstructionStatement(CType(node, BoundDeconstructionStatement), arg)
+                Case BoundKind.PositionalPattern
+                    Return VisitPositionalPattern(CType(node, BoundPositionalPattern), arg)
                 Case BoundKind.DeconstructionDiscard
                     Return VisitDeconstructionDiscard(CType(node, BoundDeconstructionDiscard), arg)
                 Case BoundKind.ArrayLength
@@ -10284,6 +10364,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitDeconstructionStatement(node As BoundDeconstructionStatement, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitPositionalPattern(node As BoundPositionalPattern, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -11027,6 +11111,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11787,6 +11875,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
             Me.Visit(node.Body)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
+            Me.Visit(node.ConditionOpt)
             Return Nothing
         End Function
 
@@ -12810,6 +12903,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim value As BoundExpression = node.Value
             Dim body As BoundBlock = DirectCast(Me.Visit(node.Body), BoundBlock)
             Return node.Update(target, value, node.IsDeclaration, body)
+        End Function
+
+        Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
+            Dim subpatterns As ImmutableArray(Of BoundExpression) = node.Subpatterns
+            Dim conditionOpt As BoundExpression = DirectCast(Me.Visit(node.ConditionOpt), BoundExpression)
+            Dim inputType as TypeSymbol = Me.VisitType(node.InputType)
+            Dim matchedType as TypeSymbol = Me.VisitType(node.MatchedType)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(inputType, matchedType, node.DeconstructMethodOpt, node.DeclaredLocalOpt, subpatterns, conditionOpt, type)
         End Function
 
         Public Overrides Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard) As BoundNode
@@ -14001,6 +14103,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 New TreeDumperNode("value", Nothing, new TreeDumperNode() {Visit(node.Value, Nothing)}),
                 New TreeDumperNode("isDeclaration", node.IsDeclaration, Nothing),
                 New TreeDumperNode("body", Nothing, new TreeDumperNode() {Visit(node.Body, Nothing)})
+            })
+        End Function
+
+        Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("positionalPattern", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("inputType", node.InputType, Nothing),
+                New TreeDumperNode("matchedType", node.MatchedType, Nothing),
+                New TreeDumperNode("deconstructMethodOpt", node.DeconstructMethodOpt, Nothing),
+                New TreeDumperNode("declaredLocalOpt", node.DeclaredLocalOpt, Nothing),
+                New TreeDumperNode("subpatterns", Nothing, From x In node.Subpatterns Select Visit(x, Nothing)),
+                New TreeDumperNode("conditionOpt", Nothing, new TreeDumperNode() {Visit(node.ConditionOpt, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function
 
