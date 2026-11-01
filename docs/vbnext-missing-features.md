@@ -416,7 +416,7 @@ Checked against this tree after wave 30, by compiling against .NET 11 with `Lang
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
-| VB-167 | `As` clauses in `Dim` deconstruction | Open. `Dim (x As Long, y As String) = Pair()` and `Dim ((a As Long, b), label As String) = value` report BC30198, "')' expected", because slice 5a and `docs/vbnext-vb166-syntax.md` let `Dim` deconstruction only infer its types, so under `Option Infer Off` it reports BC37388. `For Each (a As Long, b) In items` already takes `As` clauses, and C# 7 writes `(long x, string y) = Pair();`. No new syntax: the `For Each` spelling of phase 39. |
+| VB-167 | `As` clauses in `Dim` deconstruction | Done in phase 151: on `vbnext`, `Dim (x As Long, y As String) = Pair()` and `Dim ((a As Long, b), label As String) = value` declare each name with its `As` clause's type, converting its element, and a name without one infers its type, so under `Option Infer Off` a list whose names all have `As` clauses compiles. Before that, they report BC30198, "')' expected", because slice 5a and `docs/vbnext-vb166-syntax.md` let `Dim` deconstruction only infer its types, so under `Option Infer Off` it reports BC37388. `For Each (a As Long, b) In items` already takes `As` clauses, and C# 7 writes `(long x, string y) = Pair();`. No new syntax: the `For Each` spelling of phase 39. |
 
 ## Parked
 

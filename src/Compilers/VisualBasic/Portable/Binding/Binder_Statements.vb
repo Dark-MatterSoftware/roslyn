@@ -1263,7 +1263,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' On vbnext, Dim ((x, y), label) = value declares the names of nested lists, as docs/vbnext-vb166-syntax.md locks.
         ''' </summary>
         Private Function BindDeconstructionDeclaration(node As DeconstructionDeclarationStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
-            If Not OptionInfer Then
+            ' A name with an As clause declares its type, so only a name without one needs Option Infer.
+            If Not OptionInfer AndAlso HasNameWithoutAsClause(node.List) Then
                 ReportDiagnostic(diagnostics, node.List, ERRID.ERR_DeconstructionRequiresOptionInfer)
             End If
 
@@ -1274,6 +1275,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim value = BindValue(node.Initializer.Value, diagnostics).MakeRValue()
             Dim hasErrors = DeconstructIntoSlots(node.Initializer, value, slots, temps, statements, diagnostics)
             Return New BoundBlock(node, Nothing, temps.ToImmutableAndFree(), statements.ToImmutableAndFree(), hasErrors:=hasErrors)
+        End Function
+
+        Private Shared Function HasNameWithoutAsClause(list As DeconstructionListSyntax) As Boolean
+            For Each slot In list.Slots
+                If slot.List IsNot Nothing Then
+                    If HasNameWithoutAsClause(slot.List) Then
+                        Return True
+                    End If
+                ElseIf slot.Name IsNot Nothing AndAlso Not slot.Name.Identifier.IsMissing AndAlso slot.AsClause Is Nothing Then
+                    Return True
+                End If
+            Next
+
+            Return False
         End Function
 
         Private Shared Sub AddDeclaredLocals(slots As ImmutableArray(Of DeconstructionSlotTarget), locals As ArrayBuilder(Of LocalSymbol))

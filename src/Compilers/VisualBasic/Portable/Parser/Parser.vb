@@ -2426,7 +2426,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
         ) As StatementSyntax
 
-            Dim list = ParseDeconstructionList(allowAsClause:=False)
+            Dim list = ParseDeconstructionList(allowAsClause:=True)
 
             Dim equalsToken As PunctuationSyntax = Nothing
             Dim value As ExpressionSyntax
@@ -2446,15 +2446,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         End Function
 
         ''' <summary>
-        ''' Whether the deconstruction list that starts at the current opening parenthesis nests another list in a slot.
+        ''' Whether the Dim deconstruction list that starts at the current opening parenthesis nests another list in a slot
+        ''' or gives a name an As clause, so that it is a deconstruction declaration rather than the flat list of slice 5a.
         ''' </summary>
-        Private Function IsNestedDeconstructionList() As Boolean
+        Private Function IsNestedOrTypedDeconstructionList() As Boolean
             Debug.Assert(CurrentToken.Kind = SyntaxKind.OpenParenToken)
 
             Dim i = 1
             Do
                 Select Case PeekToken(i).Kind
-                    Case SyntaxKind.OpenParenToken
+                    Case SyntaxKind.OpenParenToken, SyntaxKind.AsKeyword
                         Return True
                     Case SyntaxKind.CloseParenToken, SyntaxKind.StatementTerminatorToken, SyntaxKind.EndOfFileToken, SyntaxKind.ColonToken
                         Return False
@@ -2512,7 +2513,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             modifiers As CoreInternalSyntax.SyntaxList(Of KeywordSyntax)
         ) As StatementSyntax
 
-            If modifiers.Any AndAlso IsNestedDeconstructionList() Then
+            If modifiers.Any AndAlso IsNestedOrTypedDeconstructionList() Then
                 Return ParseDeconstructionDeclarationStatement(attributes, modifiers)
             End If
 

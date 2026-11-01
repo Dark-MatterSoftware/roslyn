@@ -529,6 +529,104 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub TypedDeconstruction_AsClauses()
+            Dim compilation = CreateCompilation(NestedSource & "
+Class Program
+    Shared Function Pair() As (Integer, String)
+        Return (7, ""seven"")
+    End Function
+
+    Shared Function Nested() As ((Integer, Integer), String)
+        Return ((2, 3), ""pair"")
+    End Function
+
+    Shared Sub Main()
+        Dim (count As Long, word As String) = Pair()
+        Dim ((a As Long, b), label As Object) = Nested()
+        Dim (px As Long, py) = New Point(4, 5)
+        Dim wide As Long = count * 1000000000L
+        Console.Write(wide & word & a & b & label.ToString() & px & py)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="7000000000seven23pair45").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub TypedDeconstruction_OptionInferOff()
+            Dim compilation = CreateCompilation("
+Option Infer Off
+
+Class Program
+    Shared Function Pair() As (Integer, String)
+        Return (7, ""seven"")
+    End Function
+
+    Shared Sub Main()
+        Dim (count As Integer, word As String) = Pair()
+        Dim (other As Integer, untyped) = Pair()
+        System.Console.Write(count & word)
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_DeconstructionRequiresOptionInfer, "(other As Integer, untyped)").WithLocation(11, 13))
+        End Sub
+
+        <Fact>
+        Public Sub TypedDeconstruction_NarrowingUnderOptionStrict()
+            Dim compilation = CreateCompilation("
+Option Strict On
+
+Class Program
+    Shared Sub Main()
+        Dim (small As Short, word As String) = (100000, ""a"")
+    End Sub
+End Class
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NarrowingConversionDisallowed2, "small As Short").WithArguments("Integer", "Short").WithLocation(6, 14))
+        End Sub
+
+        <Fact>
+        Public Sub TypedDeconstruction_SemanticModel()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim ((a As Long, b), label As Object) = ((1, 2), ""x"")
+    End Sub
+End Class
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim names = tree.GetRoot().DescendantNodes().OfType(Of Syntax.DeconstructionSlotSyntax)().Where(Function(s) s.Name IsNot Nothing).Select(Function(s) s.Name).ToArray()
+            Assert.Equal({"a As System.Int64", "b As System.Int32", "label As System.Object"},
+                         names.Select(Function(n) model.GetDeclaredSymbol(n).ToTestDisplayString()).ToArray())
+        End Sub
+
+        <Fact>
+        Public Sub TypedDeconstruction_RejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Class Program
+    Shared Sub Main()
+        Dim (count As Long, word As String) = (1, ""a"")
+    End Sub
+End Class
+", parseOptions:=Vb17_13)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_ExpectedIdentifier, "").WithLocation(4, 13),
+                Diagnostic(ERRID.ERR_NameNotDeclared1, "count").WithArguments("count").WithLocation(4, 14),
+                Diagnostic(ERRID.ERR_ExpectedRparen, "").WithLocation(4, 20),
+                Diagnostic(ERRID.WRN_UnusedLocal, "word").WithArguments("word").WithLocation(4, 29))
+        End Sub
+
+        <Fact>
         Public Sub NestedDeconstruction_RejectedOn17_13()
             Dim compilation = CreateCompilation("
 Class Program

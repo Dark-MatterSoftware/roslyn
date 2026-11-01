@@ -50,7 +50,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If slot.List IsNot Nothing Then
                     AddDeconstructionListLocals(slot.List, locals)
                 ElseIf slot.Name IsNot Nothing AndAlso Not slot.Name.Identifier.IsMissing Then
-                    locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, slot.Name.Identifier, slot.Name, Nothing, Nothing, LocalDeclarationKind.Variable))
+                    locals.Add(LocalSymbol.Create(Me.ContainingMember, Me, slot.Name.Identifier, slot.Name, slot.AsClause, Nothing, LocalDeclarationKind.Variable))
                 End If
             Next
         End Sub
