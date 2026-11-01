@@ -6,6 +6,8 @@ The project name is tentative. This document is a planning note only. It does no
 
 ## Direction
 
+The canonical mission and design principles, which include this direction, are in [vbnext-mission.md](vbnext-mission.md).
+
 Vb.Next targets three stacks:
 
 - Modern VB.NET on desktop and server

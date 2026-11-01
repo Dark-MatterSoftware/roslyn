@@ -2,7 +2,7 @@
 
 **Vb.Next** is an independent community effort. It is not affiliated with, endorsed by, or supported by Microsoft. This list is a project plan for investigation. It does not approve syntax, and it does not implement a language feature.
 
-The baseline is `main` commit `8bd473fe`, where `LanguageVersion.Latest` is `VisualBasic17_13`. Compiler layout and compatibility risks are in [vbnext-roadmap.md](vbnext-roadmap.md). Phases and per-feature slices are in [vbnext-phases.md](vbnext-phases.md).
+The baseline is `main` commit `8bd473fe`, where `LanguageVersion.Latest` is `VisualBasic17_13`. Compiler layout and compatibility risks are in [vbnext-roadmap.md](vbnext-roadmap.md). Phases and per-feature slices are in [vbnext-phases.md](vbnext-phases.md). The mission and design principles that every item is judged by, including how a proposal is classified, are in [vbnext-mission.md](vbnext-mission.md).
 
 Demand notes cite open issues on [dotnet/vblang](https://github.com/dotnet/vblang) by comment count as of 2026-09-30. Comment count measures discussion, not votes. "C# N" means the C# version that shipped the analogous feature, used only as a landmark.
 
@@ -55,7 +55,7 @@ Also add, from the same era, and not on that list: `Using` without a block (VB-0
 | 5 | Modern .NET consumption. Library shapes from .NET 6 onward that VB cannot use, or uses with the wrong behavior. | A design note for any new syntax, then compiler tests against the real library types. |
 | Parked | Explicitly not in this plan. | Revisit only if the list is revised. |
 
-Status for every item below is **proposed**. Row order inside a wave is a catalog. The build sequence is [Implementation order](#implementation-order).
+The rows of waves 0 to 4 are a catalog without a status; their progress is in [vbnext-phases.md](vbnext-phases.md). From wave 5 on, a row starts with its status, such as Open or "Done in phase N"; "Done in phase N" means compiler implementation complete, as the completion statuses in [vbnext-mission.md](vbnext-mission.md#completion-status) define it. Rows written from wave 33 on also give the proposal's classification, as [vbnext-mission.md](vbnext-mission.md#classifying-a-proposal) lists them. Row order inside a wave is a catalog. The build sequence is [Implementation order](#implementation-order).
 
 ## Wave 0
 

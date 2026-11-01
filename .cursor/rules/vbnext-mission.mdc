@@ -1,0 +1,23 @@
+---
+description: Vb.Next mission and design guardrails for language enhancement work
+alwaysApply: true
+---
+
+# Vb.Next mission
+
+The canonical mission and design principles are in `docs/vbnext-mission.md`. Read it before proposing, planning, or implementing a language enhancement. Do not restate or reword the mission in other files; link to it.
+
+When exploring or planning an enhancement:
+
+- Check `docs/vbnext-mission.md`, `docs/vbnext-roadmap.md`, `docs/vbnext-missing-features.md`, `docs/vbnext-phases.md`, and the `docs/vbnext-vbNNN-syntax.md` notes for an earlier proposal or decision first.
+- Classify the proposal: Native VB syntax, Interop/runtime support, Native syntax + interop, Deferred, or Rejected. "C# has it" is not a reason for native syntax, and "it came from C#" is not a reason to reject it.
+- A probe of C# or .NET shapes finds candidates; it does not justify them.
+- A native-syntax proposal needs a "Why this is VB" section, and its spelling is locked in a syntax note that the project chooses. Do not invent spellings.
+- Exploration is not approval. Present the recommendation and tradeoffs, and wait for a decision before changing the language surface.
+- Stop and explain when a proposal conflicts with a principle or an earlier decision. Do not resolve it silently.
+
+When implementing:
+
+- Stay within the approved syntax and semantics, and flag any expansion of scope.
+- Gate new behavior on `LanguageVersion.VbNext`. `default` and `latest` stay on Visual Basic 17.13, and 17.13 behavior does not change.
+- Use the completion statuses in `docs/vbnext-mission.md`. A done slice is not a finished feature, and nothing is released.
