@@ -57,3 +57,13 @@ Case Is {}
 Braces are the list pattern. Parentheses stay the positional pattern from 5g, and square brackets stay escaped identifiers. `Case Is {1, 2}` matches a one-dimensional array whose length is 2 and whose elements equal those values. `Case Is {}` matches an empty array. The array is evaluated once.
 
 The same pattern matches a collection with an `Integer` `Count` and an indexer, such as `List(Of T)`. The count must equal the number of values, and each indexer result must equal the value in that position. The collection is evaluated once. A value that is neither a one-dimensional array nor such a collection is an error.
+
+## VB-171. Relational and range elements
+
+```vb
+Case Is (> 0, "open")
+Case Is (1 To 9, "draft")
+Case Is TypeOf Point(> 0, 1 To 3)
+```
+
+An element of a positional pattern, at any level and after a type test, may be a relational operator and a value, or a range with `To`. It is compared as a `Case Is` or `Case a To b` clause compares a value, with VB's conversions and `Option Compare`. An element without an operator keeps the `=` comparison of 5g. `docs/vbnext-vb171-proposal.md` records the decision.

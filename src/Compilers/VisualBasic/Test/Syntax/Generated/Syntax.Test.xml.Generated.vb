@@ -720,6 +720,14 @@ Partial Public Class GeneratedTests
             return InternalSyntax.SyntaxFactory.PositionalCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenParenToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseParenToken, String.Empty, Nothing, Nothing))
         End Function
 
+        Private Shared Function GenerateGreenRelationalPatternExpression() As InternalSyntax.RelationalPatternExpressionSyntax
+            return InternalSyntax.SyntaxFactory.RelationalPatternExpression(new InternalSyntax.PunctuationSyntax(SyntaxKind.EqualsToken, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateGreenRangePatternExpression() As InternalSyntax.RangePatternExpressionSyntax
+            return InternalSyntax.SyntaxFactory.RangePatternExpression(GenerateGreenKeywordEventContainer(), new InternalSyntax.KeywordSyntax(SyntaxKind.ToKeyword, String.Empty, Nothing, Nothing), GenerateGreenKeywordEventContainer())
+        End Function
+
         Private Shared Function GenerateGreenListCaseClause() As InternalSyntax.ListCaseClauseSyntax
             return InternalSyntax.SyntaxFactory.ListCaseClause(new InternalSyntax.KeywordSyntax(SyntaxKind.IsKeyword, String.Empty, Nothing, Nothing), new InternalSyntax.PunctuationSyntax(SyntaxKind.OpenBraceToken, String.Empty, Nothing, Nothing), New Global.Microsoft.CodeAnalysis.Syntax.InternalSyntax.SeparatedSyntaxList(of GreenNode)(), new InternalSyntax.PunctuationSyntax(SyntaxKind.CloseBraceToken, String.Empty, Nothing, Nothing))
         End Function
@@ -2716,6 +2724,18 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenPositionalCaseClause()
             dim objectUnderTest = GenerateGreenPositionalCaseClause()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRelationalPatternExpression()
+            dim objectUnderTest = GenerateGreenRelationalPatternExpression()
+            AttachAndCheckDiagnostics(objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRangePatternExpression()
+            dim objectUnderTest = GenerateGreenRangePatternExpression()
             AttachAndCheckDiagnostics(objectUnderTest)
         End Sub
 
@@ -5535,6 +5555,22 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenPositionalCaseClauseRewriter()
             dim oldNode = GenerateGreenPositionalCaseClause()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRelationalPatternExpressionRewriter()
+            dim oldNode = GenerateGreenRelationalPatternExpression()
+            Dim rewriter = New GreenIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRangePatternExpressionRewriter()
+            dim oldNode = GenerateGreenRangePatternExpression()
             Dim rewriter = New GreenIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)
@@ -8507,6 +8543,20 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestGreenPositionalCaseClauseVisitor()
             Dim oldNode = GenerateGreenPositionalCaseClause()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRelationalPatternExpressionVisitor()
+            Dim oldNode = GenerateGreenRelationalPatternExpression()
+            Dim visitor = New GreenNodeVisitor()
+            visitor.Visit(oldNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestGreenRangePatternExpressionVisitor()
+            Dim oldNode = GenerateGreenRangePatternExpression()
             Dim visitor = New GreenNodeVisitor()
             visitor.Visit(oldNode)
         End Sub
@@ -13932,6 +13982,64 @@ Partial Public Class GeneratedTests
             exceptionTest = false
 
             return SyntaxFactory.PositionalCaseClause(SyntaxFactory.Token(SyntaxKind.IsKeyword), SyntaxFactory.Token(SyntaxKind.OpenParenToken), New SeparatedSyntaxList(Of ExpressionSyntax)(), SyntaxFactory.Token(SyntaxKind.CloseParenToken))
+        End Function
+
+        Private Shared Function GenerateRedRelationalPatternExpression() As RelationalPatternExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.RelationalPatternExpression(SyntaxFactory.Token(SyntaxKind.EqualsToken), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.RelationalPatternExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.RelationalPatternExpression(SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.RelationalPatternExpression(SyntaxFactory.Token(SyntaxKind.EqualsToken), GenerateRedKeywordEventContainer())
+        End Function
+
+        Private Shared Function GenerateRedRangePatternExpression() As RangePatternExpressionSyntax
+            Dim exceptionTest as boolean = false
+            Try
+            SyntaxFactory.RangePatternExpression(Nothing, SyntaxFactory.Token(SyntaxKind.ToKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.RangePatternExpression(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ToKeyword), Nothing)
+            catch e as ArgumentNullException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            Try
+            SyntaxFactory.RangePatternExpression(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ExternalSourceKeyword), GenerateRedKeywordEventContainer())
+            catch e as ArgumentException
+            exceptionTest = true
+            End Try
+            Debug.Assert(exceptionTest)
+            exceptionTest = false
+
+            return SyntaxFactory.RangePatternExpression(GenerateRedKeywordEventContainer(), SyntaxFactory.Token(SyntaxKind.ToKeyword), GenerateRedKeywordEventContainer())
         End Function
 
         Private Shared Function GenerateRedListCaseClause() As ListCaseClauseSyntax
@@ -21452,6 +21560,25 @@ Partial Public Class GeneratedTests
         End Sub
 
         <Fact>
+        Public Sub TestRedRelationalPatternExpression()
+            dim objectUnderTest = GenerateRedRelationalPatternExpression()
+            Assert.NotNull(objectUnderTest.operatorToken)
+            Assert.NotNull(objectUnderTest.value)
+            Dim withObj = objectUnderTest.WithOperatorToken(objectUnderTest.OperatorToken).WithValue(objectUnderTest.Value)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedRangePatternExpression()
+            dim objectUnderTest = GenerateRedRangePatternExpression()
+            Assert.NotNull(objectUnderTest.lowerBound)
+            Assert.NotNull(objectUnderTest.toKeyword)
+            Assert.NotNull(objectUnderTest.upperBound)
+            Dim withObj = objectUnderTest.WithLowerBound(objectUnderTest.LowerBound).WithToKeyword(objectUnderTest.ToKeyword).WithUpperBound(objectUnderTest.UpperBound)
+            Assert.Equal(withobj, objectUnderTest)
+        End Sub
+
+        <Fact>
         Public Sub TestRedListCaseClause()
             dim objectUnderTest = GenerateRedListCaseClause()
             Assert.NotNull(objectUnderTest.isKeyword)
@@ -25011,6 +25138,22 @@ Partial Public Class GeneratedTests
         <Fact>
         Public Sub TestRedPositionalCaseClauseRewriter()
             dim oldNode = GenerateRedPositionalCaseClause()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedRelationalPatternExpressionRewriter()
+            dim oldNode = GenerateRedRelationalPatternExpression()
+            Dim rewriter = New RedIdentityRewriter()
+            Dim newNode = rewriter.Visit(oldNode)
+            Assert.Equal(oldNode, newNode)
+        End Sub
+
+        <Fact>
+        Public Sub TestRedRangePatternExpressionRewriter()
+            dim oldNode = GenerateRedRangePatternExpression()
             Dim rewriter = New RedIdentityRewriter()
             Dim newNode = rewriter.Visit(oldNode)
             Assert.Equal(oldNode, newNode)

@@ -38,6 +38,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         PatternSlice
         DeconstructionStatement
         PositionalPattern
+        RelationalSubpattern
         DeconstructionDiscard
         ArrayLength
         [GetType]
@@ -1227,6 +1228,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function Update(inputType As TypeSymbol, matchedType As TypeSymbol, deconstructMethodOpt As MethodSymbol, declaredLocalOpt As LocalSymbol, subpatterns As ImmutableArray(Of BoundExpression), conditionOpt As BoundExpression, type As TypeSymbol) As BoundPositionalPattern
             If inputType IsNot Me.InputType OrElse matchedType IsNot Me.MatchedType OrElse deconstructMethodOpt IsNot Me.DeconstructMethodOpt OrElse declaredLocalOpt IsNot Me.DeclaredLocalOpt OrElse subpatterns <> Me.Subpatterns OrElse conditionOpt IsNot Me.ConditionOpt OrElse type IsNot Me.Type Then
                 Dim result = New BoundPositionalPattern(Me.Syntax, inputType, matchedType, deconstructMethodOpt, declaredLocalOpt, subpatterns, conditionOpt, type, Me.HasErrors)
+                result.CopyAttributes(Me)
+                Return result
+            End If
+            Return Me
+        End Function
+    End Class
+
+    Partial Friend NotInheritable Class BoundRelationalSubpattern
+        Inherits BoundExpression
+
+        Public Sub New(syntax As SyntaxNode, operatorKind As BinaryOperatorKind, value As BoundExpression, upperOpt As BoundExpression, type As TypeSymbol, Optional hasErrors As Boolean = False)
+            MyBase.New(BoundKind.RelationalSubpattern, syntax, type, hasErrors OrElse value.NonNullAndHasErrors() OrElse upperOpt.NonNullAndHasErrors())
+
+            Debug.Assert(value IsNot Nothing, "Field 'value' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+            Debug.Assert(type IsNot Nothing, "Field 'type' cannot be null (use Null=""allow"" in BoundNodes.xml to remove this check)")
+
+            Me._OperatorKind = operatorKind
+            Me._Value = value
+            Me._UpperOpt = upperOpt
+        End Sub
+
+
+        Private ReadOnly _OperatorKind As BinaryOperatorKind
+        Public ReadOnly Property OperatorKind As BinaryOperatorKind
+            Get
+                Return _OperatorKind
+            End Get
+        End Property
+
+        Private ReadOnly _Value As BoundExpression
+        Public ReadOnly Property Value As BoundExpression
+            Get
+                Return _Value
+            End Get
+        End Property
+
+        Private ReadOnly _UpperOpt As BoundExpression
+        Public ReadOnly Property UpperOpt As BoundExpression
+            Get
+                Return _UpperOpt
+            End Get
+        End Property
+
+        <DebuggerStepThrough>
+        Public Overrides Function Accept(visitor as BoundTreeVisitor) As BoundNode
+            Return visitor.VisitRelationalSubpattern(Me)
+        End Function
+
+        Public Function Update(operatorKind As BinaryOperatorKind, value As BoundExpression, upperOpt As BoundExpression, type As TypeSymbol) As BoundRelationalSubpattern
+            If operatorKind <> Me.OperatorKind OrElse value IsNot Me.Value OrElse upperOpt IsNot Me.UpperOpt OrElse type IsNot Me.Type Then
+                Dim result = New BoundRelationalSubpattern(Me.Syntax, operatorKind, value, upperOpt, type, Me.HasErrors)
                 result.CopyAttributes(Me)
                 Return result
             End If
@@ -9950,6 +10002,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitDeconstructionStatement(CType(node, BoundDeconstructionStatement), arg)
                 Case BoundKind.PositionalPattern
                     Return VisitPositionalPattern(CType(node, BoundPositionalPattern), arg)
+                Case BoundKind.RelationalSubpattern
+                    Return VisitRelationalSubpattern(CType(node, BoundRelationalSubpattern), arg)
                 Case BoundKind.DeconstructionDiscard
                     Return VisitDeconstructionDiscard(CType(node, BoundDeconstructionDiscard), arg)
                 Case BoundKind.ArrayLength
@@ -10368,6 +10422,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitPositionalPattern(node As BoundPositionalPattern, arg As A) As R
+            Return Me.DefaultVisit(node, arg)
+        End Function
+
+        Public Overridable Function VisitRelationalSubpattern(node As BoundRelationalSubpattern, arg As A) As R
             Return Me.DefaultVisit(node, arg)
         End Function
 
@@ -11115,6 +11173,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overridable Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
+            Return Me.DefaultVisit(node)
+        End Function
+
+        Public Overridable Function VisitRelationalSubpattern(node As BoundRelationalSubpattern) As BoundNode
             Return Me.DefaultVisit(node)
         End Function
 
@@ -11880,6 +11942,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
             Me.Visit(node.ConditionOpt)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitRelationalSubpattern(node As BoundRelationalSubpattern) As BoundNode
+            Me.Visit(node.Value)
+            Me.Visit(node.UpperOpt)
             Return Nothing
         End Function
 
@@ -12912,6 +12980,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim matchedType as TypeSymbol = Me.VisitType(node.MatchedType)
             Dim type as TypeSymbol = Me.VisitType(node.Type)
             Return node.Update(inputType, matchedType, node.DeconstructMethodOpt, node.DeclaredLocalOpt, subpatterns, conditionOpt, type)
+        End Function
+
+        Public Overrides Function VisitRelationalSubpattern(node As BoundRelationalSubpattern) As BoundNode
+            Dim value As BoundExpression = DirectCast(Me.Visit(node.Value), BoundExpression)
+            Dim upperOpt As BoundExpression = DirectCast(Me.Visit(node.UpperOpt), BoundExpression)
+            Dim type as TypeSymbol = Me.VisitType(node.Type)
+            Return node.Update(node.OperatorKind, value, upperOpt, type)
         End Function
 
         Public Overrides Function VisitDeconstructionDiscard(node As BoundDeconstructionDiscard) As BoundNode
@@ -14114,6 +14189,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 New TreeDumperNode("declaredLocalOpt", node.DeclaredLocalOpt, Nothing),
                 New TreeDumperNode("subpatterns", Nothing, From x In node.Subpatterns Select Visit(x, Nothing)),
                 New TreeDumperNode("conditionOpt", Nothing, new TreeDumperNode() {Visit(node.ConditionOpt, Nothing)}),
+                New TreeDumperNode("type", node.Type, Nothing)
+            })
+        End Function
+
+        Public Overrides Function VisitRelationalSubpattern(node As BoundRelationalSubpattern, arg As Object) As TreeDumperNode
+            Return New TreeDumperNode("relationalSubpattern", Nothing, New TreeDumperNode() {
+                New TreeDumperNode("operatorKind", node.OperatorKind, Nothing),
+                New TreeDumperNode("value", Nothing, new TreeDumperNode() {Visit(node.Value, Nothing)}),
+                New TreeDumperNode("upperOpt", Nothing, new TreeDumperNode() {Visit(node.UpperOpt, Nothing)}),
                 New TreeDumperNode("type", node.Type, Nothing)
             })
         End Function

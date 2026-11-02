@@ -19373,6 +19373,255 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     End Class
 
     ''' <summary>
+    ''' A relational test of one element of a positional pattern, such as &gt; 0 in Is
+    ''' (&gt; 0, "open").
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.RelationalPatternExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class RelationalPatternExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _value as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RelationalPatternExpressionSyntax(kind, errors, annotations, operatorToken, DirectCast(value.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The relational operator: "=", "&lt;&gt;", "&lt;", "&lt;=", "&gt;", or "&gt;=".
+        ''' </summary>
+        Public ReadOnly Property OperatorToken As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RelationalPatternExpressionSyntax)._operatorToken, Me.Position, 0)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the OperatorToken property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithOperatorToken(operatorToken as SyntaxToken) As RelationalPatternExpressionSyntax
+            return Update(operatorToken, Me.Value)
+        End Function
+
+        ''' <summary>
+        ''' The value the element is compared to.
+        ''' </summary>
+        Public ReadOnly Property Value As ExpressionSyntax
+            Get
+                Return GetRed(_value, 1)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the Value property changed to the specified value.
+        ''' Returns this instance if the specified value is the same as the current value.
+        ''' </summary>
+        Public Shadows Function WithValue(value as ExpressionSyntax) As RelationalPatternExpressionSyntax
+            return Update(Me.OperatorToken, value)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me._value
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 1
+                    Return Me.Value
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitRelationalPatternExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitRelationalPatternExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="operatorToken">
+        ''' The value for the OperatorToken property.
+        ''' </param>
+        ''' <param name="value">
+        ''' The value for the Value property.
+        ''' </param>
+        Public Function Update(operatorToken As SyntaxToken, value As ExpressionSyntax) As RelationalPatternExpressionSyntax
+            If operatorToken <> Me.OperatorToken OrElse value IsNot Me.Value Then
+                Dim newNode = SyntaxFactory.RelationalPatternExpression(operatorToken, value)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' A range test of one element of a positional pattern, such as 1 To 9 in Is (1 To
+    ''' 9, "draft").
+    ''' </summary>
+    ''' <remarks>
+    ''' <para>This node is associated with the following syntax kinds:</para>
+    ''' <list type="bullet">
+    ''' <item><description><see cref="SyntaxKind.RangePatternExpression"/></description></item>
+    ''' </list>
+    ''' </remarks>
+    Public NotInheritable Class RangePatternExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend _lowerBound as ExpressionSyntax
+        Friend _upperBound as ExpressionSyntax
+
+        Friend Sub New(ByVal green As GreenNode, ByVal parent as SyntaxNode, ByVal startLocation As Integer)
+            MyBase.New(green, parent, startLocation)
+            Debug.Assert(green IsNot Nothing)
+            Debug.Assert(startLocation >= 0)
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), lowerBound As ExpressionSyntax, toKeyword As InternalSyntax.KeywordSyntax, upperBound As ExpressionSyntax)
+            Me.New(New Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RangePatternExpressionSyntax(kind, errors, annotations, DirectCast(lowerBound.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax), toKeyword, DirectCast(upperBound.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.ExpressionSyntax)), Nothing, 0)
+        End Sub
+
+        ''' <summary>
+        ''' The lower bound of the range.
+        ''' </summary>
+        Public ReadOnly Property LowerBound As ExpressionSyntax
+            Get
+                Return GetRedAtZero(_lowerBound)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the LowerBound property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithLowerBound(lowerBound as ExpressionSyntax) As RangePatternExpressionSyntax
+            return Update(lowerBound, Me.ToKeyword, Me.UpperBound)
+        End Function
+
+        ''' <summary>
+        ''' The To keyword.
+        ''' </summary>
+        Public ReadOnly Property ToKeyword As SyntaxToken
+            Get
+                return new SyntaxToken(Me, DirectCast(Me.Green, Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax.RangePatternExpressionSyntax)._toKeyword, Me.GetChildPosition(1), Me.GetChildIndex(1))
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the ToKeyword property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithToKeyword(toKeyword as SyntaxToken) As RangePatternExpressionSyntax
+            return Update(Me.LowerBound, toKeyword, Me.UpperBound)
+        End Function
+
+        ''' <summary>
+        ''' The upper bound of the range.
+        ''' </summary>
+        Public ReadOnly Property UpperBound As ExpressionSyntax
+            Get
+                Return GetRed(_upperBound, 2)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns a copy of this with the UpperBound property changed to the specified
+        ''' value. Returns this instance if the specified value is the same as the current
+        ''' value.
+        ''' </summary>
+        Public Shadows Function WithUpperBound(upperBound as ExpressionSyntax) As RangePatternExpressionSyntax
+            return Update(Me.LowerBound, Me.ToKeyword, upperBound)
+        End Function
+
+        Friend Overrides Function GetCachedSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me._lowerBound
+                Case 2
+                    Return Me._upperBound
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Friend Overrides Function GetNodeSlot(i as Integer) as SyntaxNode
+            Select case i
+                Case 0
+                    Return Me.LowerBound
+                Case 2
+                    Return Me.UpperBound
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Public Overrides Function Accept(Of TResult)(ByVal visitor As VisualBasicSyntaxVisitor(Of TResult)) As TResult
+            Return visitor.VisitRangePatternExpression(Me)
+        End Function
+
+        Public Overrides Sub Accept(ByVal visitor As VisualBasicSyntaxVisitor)
+            visitor.VisitRangePatternExpression(Me)
+        End Sub
+
+
+        ''' <summary>
+        ''' Returns a copy of this with the specified changes. Returns this instance if
+        ''' there are no actual changes.
+        ''' </summary>
+        ''' <param name="lowerBound">
+        ''' The value for the LowerBound property.
+        ''' </param>
+        ''' <param name="toKeyword">
+        ''' The value for the ToKeyword property.
+        ''' </param>
+        ''' <param name="upperBound">
+        ''' The value for the UpperBound property.
+        ''' </param>
+        Public Function Update(lowerBound As ExpressionSyntax, toKeyword As SyntaxToken, upperBound As ExpressionSyntax) As RangePatternExpressionSyntax
+            If lowerBound IsNot Me.LowerBound OrElse toKeyword <> Me.ToKeyword OrElse upperBound IsNot Me.UpperBound Then
+                Dim newNode = SyntaxFactory.RangePatternExpression(lowerBound, toKeyword, upperBound)
+                Dim annotations = Me.GetAnnotations()
+                If annotations IsNot Nothing AndAlso annotations.Length > 0
+                    return newNode.WithAnnotations(annotations)
+                End If
+                Return newNode
+            End If
+            Return Me
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' A list pattern, such as Is {1, 2}.
     ''' </summary>
     ''' <remarks>

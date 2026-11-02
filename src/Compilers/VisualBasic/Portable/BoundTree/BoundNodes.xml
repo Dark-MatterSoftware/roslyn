@@ -245,6 +245,17 @@
     </Node>
 
     <!--
+    vbnext: a relational or range element among the subpatterns of a BoundPositionalPattern, kept for operations: Value
+    compared with OperatorKind, as in > 0, or for a range, Value To UpperOpt. Type is the element's type.
+    -->
+    <Node Name="BoundRelationalSubpattern" Base="BoundExpression">
+      <Field Name="Type" Type="TypeSymbol" Override="true" Null="disallow"/>
+      <Field Name="OperatorKind" Type="BinaryOperatorKind"/>
+      <Field Name="Value" Type="BoundExpression"/>
+      <Field Name="UpperOpt" Type="BoundExpression" Null="allow"/>
+    </Node>
+
+    <!--
     vbnext: an empty slot among the targets of a BoundDeconstructionStatement, with the type of its element.
     -->
     <Node Name="BoundDeconstructionDiscard" Base="BoundExpression">

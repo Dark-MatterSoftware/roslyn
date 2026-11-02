@@ -14043,6 +14043,210 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
     End Class
 
     ''' <summary>
+    ''' A relational test of one element of a positional pattern, such as &gt; 0 in Is
+    ''' (&gt; 0, "open").
+    ''' </summary>
+    Friend NotInheritable Class RelationalPatternExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _operatorToken as PunctuationSyntax
+        Friend ReadOnly _value as ExpressionSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 2
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), operatorToken As InternalSyntax.PunctuationSyntax, value As ExpressionSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 2
+
+            AdjustFlagsAndWidth(operatorToken)
+            Me._operatorToken = operatorToken
+            AdjustFlagsAndWidth(value)
+            Me._value = value
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.RelationalPatternExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The relational operator: "=", "&lt;&gt;", "&lt;", "&lt;=", "&gt;", or "&gt;=".
+        ''' </summary>
+        Friend ReadOnly Property OperatorToken As InternalSyntax.PunctuationSyntax
+            Get
+                Return Me._operatorToken
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The value the element is compared to.
+        ''' </summary>
+        Friend ReadOnly Property Value As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._value
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._operatorToken
+                Case 1
+                    Return Me._value
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new RelationalPatternExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _operatorToken, _value)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new RelationalPatternExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _operatorToken, _value)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitRelationalPatternExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' A range test of one element of a positional pattern, such as 1 To 9 in Is (1 To
+    ''' 9, "draft").
+    ''' </summary>
+    Friend NotInheritable Class RangePatternExpressionSyntax
+        Inherits ExpressionSyntax
+
+        Friend ReadOnly _lowerBound as ExpressionSyntax
+        Friend ReadOnly _toKeyword as KeywordSyntax
+        Friend ReadOnly _upperBound as ExpressionSyntax
+
+        Friend Sub New(ByVal kind As SyntaxKind, lowerBound As ExpressionSyntax, toKeyword As InternalSyntax.KeywordSyntax, upperBound As ExpressionSyntax)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(lowerBound)
+            Me._lowerBound = lowerBound
+            AdjustFlagsAndWidth(toKeyword)
+            Me._toKeyword = toKeyword
+            AdjustFlagsAndWidth(upperBound)
+            Me._upperBound = upperBound
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, lowerBound As ExpressionSyntax, toKeyword As InternalSyntax.KeywordSyntax, upperBound As ExpressionSyntax, context As ISyntaxFactoryContext)
+            MyBase.New(kind)
+            Me.SlotCount = 3
+            Me.SetFactoryContext(context)
+
+            AdjustFlagsAndWidth(lowerBound)
+            Me._lowerBound = lowerBound
+            AdjustFlagsAndWidth(toKeyword)
+            Me._toKeyword = toKeyword
+            AdjustFlagsAndWidth(upperBound)
+            Me._upperBound = upperBound
+
+        End Sub
+
+        Friend Sub New(ByVal kind As SyntaxKind, ByVal errors as DiagnosticInfo(), ByVal annotations as SyntaxAnnotation(), lowerBound As ExpressionSyntax, toKeyword As InternalSyntax.KeywordSyntax, upperBound As ExpressionSyntax)
+            MyBase.New(kind, errors, annotations)
+            Me.SlotCount = 3
+
+            AdjustFlagsAndWidth(lowerBound)
+            Me._lowerBound = lowerBound
+            AdjustFlagsAndWidth(toKeyword)
+            Me._toKeyword = toKeyword
+            AdjustFlagsAndWidth(upperBound)
+            Me._upperBound = upperBound
+
+        End Sub
+
+        Friend Overrides Function CreateRed(ByVal parent As SyntaxNode, ByVal startLocation As Integer) As SyntaxNode
+            Return new Microsoft.CodeAnalysis.VisualBasic.Syntax.RangePatternExpressionSyntax(Me, parent, startLocation)
+        End Function
+
+        ''' <summary>
+        ''' The lower bound of the range.
+        ''' </summary>
+        Friend ReadOnly Property LowerBound As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._lowerBound
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The To keyword.
+        ''' </summary>
+        Friend ReadOnly Property ToKeyword As InternalSyntax.KeywordSyntax
+            Get
+                Return Me._toKeyword
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' The upper bound of the range.
+        ''' </summary>
+        Friend ReadOnly Property UpperBound As InternalSyntax.ExpressionSyntax
+            Get
+                Return Me._upperBound
+            End Get
+        End Property
+
+        Friend Overrides Function GetSlot(i as Integer) as GreenNode
+            Select case i
+                Case 0
+                    Return Me._lowerBound
+                Case 1
+                    Return Me._toKeyword
+                Case 2
+                    Return Me._upperBound
+                Case Else
+                    Debug.Assert(false, "child index out of range")
+                    Return Nothing
+            End Select
+        End Function
+
+
+        Friend Overrides Function SetDiagnostics(ByVal newErrors As DiagnosticInfo()) As GreenNode
+            Return new RangePatternExpressionSyntax(Me.Kind, newErrors, GetAnnotations, _lowerBound, _toKeyword, _upperBound)
+        End Function
+
+        Friend Overrides Function SetAnnotations(ByVal annotations As SyntaxAnnotation()) As GreenNode
+            Return new RangePatternExpressionSyntax(Me.Kind, GetDiagnostics, annotations, _lowerBound, _toKeyword, _upperBound)
+        End Function
+
+        Public Overrides Function Accept(ByVal visitor As VisualBasicSyntaxVisitor) As VisualBasicSyntaxNode
+            Return visitor.VisitRangePatternExpression(Me)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' A list pattern, such as Is {1, 2}.
     ''' </summary>
     Friend NotInheritable Class ListCaseClauseSyntax
@@ -32416,6 +32620,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
         End Function
+        Public Overridable Function VisitRelationalPatternExpression(ByVal node As RelationalPatternExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
+        Public Overridable Function VisitRangePatternExpression(ByVal node As RangePatternExpressionSyntax) As VisualBasicSyntaxNode
+            Debug.Assert(node IsNot Nothing)
+            Return VisitExpression(node)
+        End Function
         Public Overridable Function VisitListCaseClause(ByVal node As ListCaseClauseSyntax) As VisualBasicSyntaxNode
             Debug.Assert(node IsNot Nothing)
             Return VisitCaseClause(node)
@@ -35113,6 +35325,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             If anyChanges Then
                 Return New PositionalCaseClauseSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newIsKeyword, newOpenParenToken, newArguments.Node, newCloseParenToken)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitRelationalPatternExpression(ByVal node As RelationalPatternExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newOperatorToken = DirectCast(Visit(node.OperatorToken), PunctuationSyntax)
+            If node._operatorToken IsNot newOperatorToken Then anyChanges = True
+            Dim newValue = DirectCast(Visit(node._value), ExpressionSyntax)
+            If node._value IsNot newValue Then anyChanges = True
+
+            If anyChanges Then
+                Return New RelationalPatternExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newOperatorToken, newValue)
+            Else
+                Return node
+            End If
+        End Function
+
+        Public Overrides Function VisitRangePatternExpression(ByVal node As RangePatternExpressionSyntax) As VisualBasicSyntaxNode
+            Dim anyChanges As Boolean = False
+
+            Dim newLowerBound = DirectCast(Visit(node._lowerBound), ExpressionSyntax)
+            If node._lowerBound IsNot newLowerBound Then anyChanges = True
+            Dim newToKeyword = DirectCast(Visit(node.ToKeyword), KeywordSyntax)
+            If node._toKeyword IsNot newToKeyword Then anyChanges = True
+            Dim newUpperBound = DirectCast(Visit(node._upperBound), ExpressionSyntax)
+            If node._upperBound IsNot newUpperBound Then anyChanges = True
+
+            If anyChanges Then
+                Return New RangePatternExpressionSyntax(node.Kind, node.GetDiagnostics, node.GetAnnotations, newLowerBound, newToKeyword, newUpperBound)
             Else
                 Return node
             End If
@@ -43640,6 +43884,68 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken)
+        End Function
+
+
+        ''' <summary>
+        ''' A relational test of one element of a positional pattern, such as &gt; 0 in Is
+        ''' (&gt; 0, "open").
+        ''' </summary>
+        ''' <param name="operatorToken">
+        ''' The relational operator: "=", "&lt;&gt;", "&lt;", "&lt;=", "&gt;", or "&gt;=".
+        ''' </param>
+        ''' <param name="value">
+        ''' The value the element is compared to.
+        ''' </param>
+        Friend Shared Function RelationalPatternExpression(operatorToken As PunctuationSyntax, value As ExpressionSyntax) As RelationalPatternExpressionSyntax
+            Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsRelationalPatternExpressionOperatorToken(operatorToken.Kind))
+            Debug.Assert(value IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.RelationalPatternExpression, operatorToken, value, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, RelationalPatternExpressionSyntax)
+            End If
+
+            Dim result = New RelationalPatternExpressionSyntax(SyntaxKind.RelationalPatternExpression, operatorToken, value)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' A range test of one element of a positional pattern, such as 1 To 9 in Is (1 To
+        ''' 9, "draft").
+        ''' </summary>
+        ''' <param name="lowerBound">
+        ''' The lower bound of the range.
+        ''' </param>
+        ''' <param name="toKeyword">
+        ''' The To keyword.
+        ''' </param>
+        ''' <param name="upperBound">
+        ''' The upper bound of the range.
+        ''' </param>
+        Friend Shared Function RangePatternExpression(lowerBound As ExpressionSyntax, toKeyword As KeywordSyntax, upperBound As ExpressionSyntax) As RangePatternExpressionSyntax
+            Debug.Assert(lowerBound IsNot Nothing)
+            Debug.Assert(toKeyword IsNot Nothing AndAlso toKeyword.Kind = SyntaxKind.ToKeyword)
+            Debug.Assert(upperBound IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = SyntaxNodeCache.TryGetNode(SyntaxKind.RangePatternExpression, lowerBound, toKeyword, upperBound, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, RangePatternExpressionSyntax)
+            End If
+
+            Dim result = New RangePatternExpressionSyntax(SyntaxKind.RangePatternExpression, lowerBound, toKeyword, upperBound)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 
@@ -56602,6 +56908,68 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Debug.Assert(openParenToken IsNot Nothing AndAlso openParenToken.Kind = SyntaxKind.OpenParenToken)
             Debug.Assert(closeParenToken IsNot Nothing AndAlso closeParenToken.Kind = SyntaxKind.CloseParenToken)
             Return New PositionalCaseClauseSyntax(SyntaxKind.PositionalCaseClause, isKeyword, openParenToken, arguments.Node, closeParenToken, _factoryContext)
+        End Function
+
+
+        ''' <summary>
+        ''' A relational test of one element of a positional pattern, such as &gt; 0 in Is
+        ''' (&gt; 0, "open").
+        ''' </summary>
+        ''' <param name="operatorToken">
+        ''' The relational operator: "=", "&lt;&gt;", "&lt;", "&lt;=", "&gt;", or "&gt;=".
+        ''' </param>
+        ''' <param name="value">
+        ''' The value the element is compared to.
+        ''' </param>
+        Friend Function RelationalPatternExpression(operatorToken As PunctuationSyntax, value As ExpressionSyntax) As RelationalPatternExpressionSyntax
+            Debug.Assert(operatorToken IsNot Nothing AndAlso SyntaxFacts.IsRelationalPatternExpressionOperatorToken(operatorToken.Kind))
+            Debug.Assert(value IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.RelationalPatternExpression, operatorToken, value, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, RelationalPatternExpressionSyntax)
+            End If
+
+            Dim result = New RelationalPatternExpressionSyntax(SyntaxKind.RelationalPatternExpression, operatorToken, value, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
+        End Function
+
+
+        ''' <summary>
+        ''' A range test of one element of a positional pattern, such as 1 To 9 in Is (1 To
+        ''' 9, "draft").
+        ''' </summary>
+        ''' <param name="lowerBound">
+        ''' The lower bound of the range.
+        ''' </param>
+        ''' <param name="toKeyword">
+        ''' The To keyword.
+        ''' </param>
+        ''' <param name="upperBound">
+        ''' The upper bound of the range.
+        ''' </param>
+        Friend Function RangePatternExpression(lowerBound As ExpressionSyntax, toKeyword As KeywordSyntax, upperBound As ExpressionSyntax) As RangePatternExpressionSyntax
+            Debug.Assert(lowerBound IsNot Nothing)
+            Debug.Assert(toKeyword IsNot Nothing AndAlso toKeyword.Kind = SyntaxKind.ToKeyword)
+            Debug.Assert(upperBound IsNot Nothing)
+
+            Dim hash As Integer
+            Dim cached = VisualBasicSyntaxNodeCache.TryGetNode(SyntaxKind.RangePatternExpression, lowerBound, toKeyword, upperBound, _factoryContext, hash)
+            If cached IsNot Nothing Then
+                Return DirectCast(cached, RangePatternExpressionSyntax)
+            End If
+
+            Dim result = New RangePatternExpressionSyntax(SyntaxKind.RangePatternExpression, lowerBound, toKeyword, upperBound, _factoryContext)
+            If hash >= 0 Then
+                SyntaxNodeCache.AddNode(result, hash)
+            End If
+
+            Return result
         End Function
 
 

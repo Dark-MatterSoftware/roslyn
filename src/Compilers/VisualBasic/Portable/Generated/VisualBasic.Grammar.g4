@@ -1262,6 +1262,8 @@ expression
   | predefined_cast_expression
   | query_expression
   | range_expression
+  | range_pattern_expression
+  | relational_pattern_expression
   | select_case_expression
   | ternary_conditional_expression
   | tuple_expression
@@ -1707,6 +1709,19 @@ where_clause
 
 range_expression
   : expression? '..' expression?
+  ;
+
+range_pattern_expression
+  : expression 'To' expression
+  ;
+
+relational_pattern_expression
+  : '<' expression
+  | '<=' expression
+  | '<>' expression
+  | '=' expression
+  | '>' expression
+  | '>=' expression
   ;
 
 select_case_expression

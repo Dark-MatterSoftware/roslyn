@@ -4308,6 +4308,44 @@ Unify Enum declarations with other block type declarations.
     </node-structure>
 
     <!--****************
+      -  RelationalPatternExpression
+      ******************-->
+    <node-structure name="RelationalPatternExpressionSyntax" parent="ExpressionSyntax">
+      <description>A relational test of one element of a positional pattern, such as &gt; 0 in Is (&gt; 0, "open").</description>
+
+      <node-kind name="RelationalPatternExpression" />
+
+      <child name="OperatorToken" kind="EqualsToken|LessThanGreaterThanToken|LessThanToken|LessThanEqualsToken|GreaterThanToken|GreaterThanEqualsToken">
+        <description>The relational operator: "=", "&lt;&gt;", "&lt;", "&lt;=", "&gt;", or "&gt;=".</description>
+      </child>
+
+      <child name="Value" kind="@ExpressionSyntax">
+        <description>The value the element is compared to.</description>
+      </child>
+    </node-structure>
+
+    <!--****************
+      -  RangePatternExpression
+      ******************-->
+    <node-structure name="RangePatternExpressionSyntax" parent="ExpressionSyntax">
+      <description>A range test of one element of a positional pattern, such as 1 To 9 in Is (1 To 9, "draft").</description>
+
+      <node-kind name="RangePatternExpression" />
+
+      <child name="LowerBound" kind="@ExpressionSyntax">
+        <description>The lower bound of the range.</description>
+      </child>
+
+      <child name="ToKeyword" kind="ToKeyword">
+        <description>The To keyword.</description>
+      </child>
+
+      <child name="UpperBound" kind="@ExpressionSyntax">
+        <description>The upper bound of the range.</description>
+      </child>
+    </node-structure>
+
+    <!--****************
       -  ListCaseClause
       ******************-->
     <node-structure name="ListCaseClauseSyntax" parent="CaseClauseSyntax">

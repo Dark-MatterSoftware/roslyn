@@ -1445,8 +1445,11 @@ Namespace Microsoft.CodeAnalysis.Operations
             For i = 0 To pattern.Subpatterns.Length - 1
                 Dim subpattern = pattern.Subpatterns(i)
                 Dim nested = TryCast(subpattern, BoundPositionalPattern)
+                Dim relational = TryCast(subpattern, BoundRelationalSubpattern)
                 If nested IsNot Nothing Then
                     subpatterns.Add(CreatePositionalPatternOperation(nested, isImplicit:=False))
+                ElseIf relational IsNot Nothing Then
+                    subpatterns.Add(CreateRelationalSubpatternOperation(relational))
                 Else
                     subpatterns.Add(New ConstantPatternOperation(Create(subpattern), elementTypes(i), elementTypes(i), _semanticModel, subpattern.Syntax, isImplicit:=False))
                 End If
@@ -1454,6 +1457,24 @@ Namespace Microsoft.CodeAnalysis.Operations
 
             Return New RecursivePatternOperation(pattern.MatchedType, pattern.DeconstructMethodOpt, subpatterns.ToImmutableAndFree(), ImmutableArray(Of IPropertySubpatternOperation).Empty,
                                                  pattern.DeclaredLocalOpt, pattern.InputType, pattern.MatchedType, _semanticModel, pattern.Syntax, isImplicit)
+        End Function
+
+        ''' <summary>
+        ''' Is (&gt; 0, "open") as C# reports (&gt; 0, "open"): a relational pattern; and Is (1 To 9, "draft") as C# reports
+        ''' (&gt;= 1 and &lt;= 9, "draft"): two relational patterns joined by And.
+        ''' </summary>
+        Private Function CreateRelationalSubpatternOperation(subpattern As BoundRelationalSubpattern) As IPatternOperation
+            Dim elementType = subpattern.Type
+            If subpattern.UpperOpt Is Nothing Then
+                Return New RelationalPatternOperation(Helper.DeriveBinaryOperatorKind(subpattern.OperatorKind, leftOpt:=Nothing), Create(subpattern.Value),
+                                                      elementType, elementType, _semanticModel, subpattern.Syntax, isImplicit:=False)
+            End If
+
+            Dim atLeast = New RelationalPatternOperation(BinaryOperatorKind.GreaterThanOrEqual, Create(subpattern.Value), elementType, elementType,
+                                                         _semanticModel, subpattern.Value.Syntax, isImplicit:=True)
+            Dim atMost = New RelationalPatternOperation(BinaryOperatorKind.LessThanOrEqual, Create(subpattern.UpperOpt), elementType, elementType,
+                                                        _semanticModel, subpattern.UpperOpt.Syntax, isImplicit:=True)
+            Return New BinaryPatternOperation(BinaryOperatorKind.And, atLeast, atMost, elementType, elementType, _semanticModel, subpattern.Syntax, isImplicit:=False)
         End Function
 
         Private Function CreateBoundDoLoopStatementOperation(boundDoLoopStatement As BoundDoLoopStatement) As IWhileLoopOperation

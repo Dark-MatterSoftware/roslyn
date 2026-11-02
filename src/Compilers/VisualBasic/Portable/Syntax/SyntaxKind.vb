@@ -3363,5 +3363,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         DeconstructionSlot = 826                     ' DeconstructionSlotSyntax : VisualBasicSyntaxNode
 
+        ''' <summary>
+        ''' Represents a relational test of one element of a positional pattern, such as <c>&gt; 0</c> in <c>Is (&gt; 0, "open")</c>.
+        ''' </summary>
+        RelationalPatternExpression = 827            ' RelationalPatternExpressionSyntax : ExpressionSyntax
+
+        ''' <summary>
+        ''' Represents a range test of one element of a positional pattern, such as <c>1 To 9</c> in <c>Is (1 To 9, "draft")</c>.
+        ''' </summary>
+        RangePatternExpression = 828                 ' RangePatternExpressionSyntax : ExpressionSyntax
+
     End Enum
 End Namespace

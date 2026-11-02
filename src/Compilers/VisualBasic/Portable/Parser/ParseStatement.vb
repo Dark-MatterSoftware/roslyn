@@ -377,7 +377,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             If TryGetToken(SyntaxKind.OpenParenToken, openParen) Then
                 If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
                     Do
-                        arguments.Add(ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+                        arguments.Add(ParsePositionalPatternElement(Nothing))
                         Dim comma As PunctuationSyntax = Nothing
                         If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
                             Exit Do
@@ -505,7 +505,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim arguments = _pool.AllocateSeparated(Of ExpressionSyntax)()
             If CurrentToken.Kind <> SyntaxKind.CloseParenToken Then
                 Do
-                    arguments.Add(ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+                    arguments.Add(ParsePositionalPatternElement(Nothing))
                     Dim comma As PunctuationSyntax = Nothing
                     If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
                         Exit Do
@@ -522,6 +522,78 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             Dim result = SyntaxFactory.PositionalCaseClause(isKeyword, openParen, arguments.ToList(), closeParen)
             _pool.Free(arguments)
             Return result
+        End Function
+
+        ''' <summary>
+        ''' An element of a positional pattern: a relational operator and a value, as in Is (&gt; 0, "open"); a range, as in
+        ''' Is (1 To 9, "draft"); a nested list that holds such an element; or a value. <paramref name="isPattern"/> is set
+        ''' when the element is one of the first three, as docs/vbnext-vb171-proposal.md approves them.
+        ''' </summary>
+        Private Function ParsePositionalPatternElement(ByRef isPattern As Boolean) As ExpressionSyntax
+            isPattern = False
+            If SyntaxFacts.IsRelationalOperator(CurrentToken.Kind) Then
+                Dim relationalOperator = DirectCast(CurrentToken, PunctuationSyntax)
+                GetNextToken()
+                TryEatNewLine()
+                isPattern = True
+                Return SyntaxFactory.RelationalPatternExpression(relationalOperator, ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+            End If
+
+            If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
+                Dim nested = TryParseNestedPositionalPattern()
+                If nested IsNot Nothing Then
+                    isPattern = True
+                    Return nested
+                End If
+            End If
+
+            Dim value = ParseExpressionCore(OperatorPrecedence.PrecedenceNone)
+            If CurrentToken.Kind = SyntaxKind.ToKeyword Then
+                Dim toKeyword = DirectCast(CurrentToken, KeywordSyntax)
+                GetNextToken()
+                isPattern = True
+                Return SyntaxFactory.RangePatternExpression(value, toKeyword, ParseExpressionCore(OperatorPrecedence.PrecedenceNone))
+            End If
+
+            Return value
+        End Function
+
+        ''' <summary>
+        ''' A parenthesized list in a positional pattern that holds a relational or range element at some level, as in
+        ''' Is ((&gt; 0, 0), "a"), as a tuple expression of its elements; or Nothing, with the scanner restored, so that a list
+        ''' of values stays the tuple that it is today.
+        ''' </summary>
+        Private Function TryParseNestedPositionalPattern() As ExpressionSyntax
+            Dim restorePoint = _scanner.CreateRestorePoint()
+            Dim openParen = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Dim arguments = _pool.AllocateSeparated(Of SimpleArgumentSyntax)()
+            Dim hasPattern = False
+            Do
+                Dim isPattern As Boolean
+                arguments.Add(SyntaxFactory.SimpleArgument(Nothing, ParsePositionalPatternElement(isPattern)))
+                hasPattern = hasPattern OrElse isPattern
+                Dim comma As PunctuationSyntax = Nothing
+                If Not TryGetTokenAndEatNewLine(SyntaxKind.CommaToken, comma) Then
+                    Exit Do
+                End If
+
+                arguments.AddSeparator(comma)
+            Loop
+
+            Dim closeParen As PunctuationSyntax = Nothing
+            If hasPattern AndAlso arguments.Count >= 2 AndAlso TryGetToken(SyntaxKind.CloseParenToken, closeParen) AndAlso
+               (CurrentToken.Kind = SyntaxKind.CommaToken OrElse CurrentToken.Kind = SyntaxKind.CloseParenToken) Then
+                Dim tuple = SyntaxFactory.TupleExpression(openParen, arguments.ToList(), closeParen)
+                _pool.Free(arguments)
+                Return tuple
+            End If
+
+            _pool.Free(arguments)
+            restorePoint.Restore()
+            ResetCurrentToken(If(_allowLeadingMultilineTrivia, ScannerState.VBAllowLeadingMultilineTrivia, ScannerState.VB))
+            Return Nothing
         End Function
 
         Private Function ParseListCaseClause() As ListCaseClauseSyntax

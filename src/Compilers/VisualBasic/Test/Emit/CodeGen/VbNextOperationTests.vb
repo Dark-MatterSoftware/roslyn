@@ -675,6 +675,47 @@ End Module
             Assert.Equal("(System.Int64, Color)(const 3, const Color.Green)", textCompare(4))
         End Sub
 
+        <Fact>
+        Public Sub RelationalAndRangeElementsAreRelationalPatterns()
+            Dim source = "
+Class Point
+    Public X As Integer
+    Public Y As Integer
+    Public Sub Deconstruct(ByRef x As Integer, ByRef y As Integer)
+        x = Me.X : y = Me.Y
+    End Sub
+End Class
+
+Module Program
+    Function Describe(p As (Integer, String), n As ((Integer, Integer), String), value As Object, k As Integer) As String
+        Select Case p
+            Case Is (> 0, ""a"")
+                Return ""a""
+            Case Is (1 To 9, ""b"")
+                Return ""b""
+            Case Is (<> k, ""c"")
+                Return ""c""
+        End Select
+        Select Case n
+            Case Is ((> 0, <= 0), ""q"")
+                Return ""q""
+        End Select
+        Select Case value
+            Case Is TypeOf Point(> 0, 1 To 3)
+                Return ""point""
+        End Select
+        Return """"
+    End Function
+End Module
+"
+            AssertEx.Equal({
+                "(System.Int32, System.String)(GreaterThan 0, const ""a"")",
+                "(System.Int32, System.String)(And(GreaterThanOrEqual 1, LessThanOrEqual 9), const ""b"")",
+                "relational Is (<> k, ""c"")",
+                "((System.Int32, System.Int32), System.String)((System.Int32, System.Int32)(GreaterThan 0, LessThanOrEqual 0), const ""q"")",
+                "Point Deconstruct(GreaterThan 0, And(GreaterThanOrEqual 1, LessThanOrEqual 3))"}, DescribeCaseClauses(source, TestOptions.ReleaseDll))
+        End Sub
+
         Private Shared Function DescribeCaseClauses(source As String, options As VisualBasicCompilationOptions) As String()
             Dim compilation = CreateCompilation(source, options:=options, parseOptions:=VbNext)
             compilation.VerifyDiagnostics()
@@ -685,6 +726,16 @@ End Module
             describe = Function(pattern)
                            If TypeOf pattern Is IConstantPatternOperation Then
                                Return "const " & pattern.Syntax.ToString()
+                           End If
+
+                           Dim relational = TryCast(pattern, IRelationalPatternOperation)
+                           If relational IsNot Nothing Then
+                               Return relational.OperatorKind.ToString() & " " & relational.Value.Syntax.ToString()
+                           End If
+
+                           Dim binary = TryCast(pattern, IBinaryPatternOperation)
+                           If binary IsNot Nothing Then
+                               Return binary.OperatorKind.ToString() & "(" & describe(binary.LeftPattern) & ", " & describe(binary.RightPattern) & ")"
                            End If
 
                            Dim recursive = DirectCast(pattern, IRecursivePatternOperation)

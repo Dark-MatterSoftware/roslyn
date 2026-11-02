@@ -639,7 +639,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim positionalValues = ArrayBuilder(Of BoundExpression).GetInstance(node.Arguments.Count)
             If node.Arguments.Count > 0 Then
-                Dim positional = BindPositionalComparisons(node, typedReceiver, node.Arguments, diagnostics, positionalValues)
+                Dim positional = BindPositionalComparisons(node, typedReceiver, node.Arguments.ToImmutableArray(), diagnostics, positionalValues)
                 condition = BindBinaryOperator(
                     node:=node,
                     left:=condition,
@@ -673,7 +673,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             If node.Arguments.Count > 0 AndAlso node.Filters.Count = 0 AndAlso Not hasErrors Then
-                condition = MakePositionalPattern(node, selectExpressionOpt.Type, targetType, typedReceiver, node.Arguments, positionalValues.ToImmutable(), condition, patternLocal)
+                condition = MakePositionalPattern(node, selectExpressionOpt.Type, targetType, typedReceiver, node.Arguments.ToImmutableArray(), positionalValues.ToImmutable(), condition, patternLocal)
             End If
 
             positionalValues.Free()
@@ -921,8 +921,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim values = ArrayBuilder(Of BoundExpression).GetInstance(node.Arguments.Count)
-            Dim condition = BindPositionalComparisons(node, selectExpressionOpt, node.Arguments, diagnostics, values)
-            condition = MakePositionalPattern(node, selectExpressionOpt.Type, selectExpressionOpt.Type, selectExpressionOpt, node.Arguments, values.ToImmutableAndFree(), condition, Nothing)
+            Dim arguments = node.Arguments.ToImmutableArray()
+            Dim condition = BindPositionalComparisons(node, selectExpressionOpt, arguments, diagnostics, values)
+            condition = MakePositionalPattern(node, selectExpressionOpt.Type, selectExpressionOpt.Type, selectExpressionOpt, arguments, values.ToImmutableAndFree(), condition, Nothing)
             Return New BoundRelationalCaseClause(node, BinaryOperatorKind.Equals, valueOpt:=Nothing, conditionOpt:=condition.MakeTreeCompilerGenerated(), hasErrors:=condition.HasErrors)
         End Function
 
@@ -933,19 +934,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' against a tuple element is a nested pattern.
         ''' </summary>
         Private Function MakePositionalPattern(syntax As SyntaxNode, inputType As TypeSymbol, matchedType As TypeSymbol, receiver As BoundExpression,
-                                               arguments As SeparatedSyntaxList(Of ExpressionSyntax), values As ImmutableArray(Of BoundExpression),
+                                               arguments As ImmutableArray(Of ExpressionSyntax), values As ImmutableArray(Of BoundExpression),
                                                condition As BoundExpression, declaredLocalOpt As LocalSymbol) As BoundExpression
-            If condition.HasErrors OrElse inputType Is Nothing OrElse matchedType Is Nothing OrElse receiver Is Nothing OrElse values.Length <> arguments.Count Then
+            If condition.HasErrors OrElse inputType Is Nothing OrElse matchedType Is Nothing OrElse receiver Is Nothing OrElse values.Length <> arguments.Length Then
                 Return condition
             End If
 
             Dim method As MethodSymbol = Nothing
             Dim elementTypes As ImmutableArray(Of TypeSymbol)
-            Dim elements = GetDeconstructionElements(receiver, arguments.Count)
+            Dim elements = GetDeconstructionElements(receiver, arguments.Length)
             If Not elements.IsDefault Then
                 elementTypes = elements.SelectAsArray(Function(element) element.Type)
             Else
-                method = FindDeconstructMethod(receiver, arguments.Count, BindingDiagnosticBag.Discarded, syntax)
+                method = FindDeconstructMethod(receiver, arguments.Length, BindingDiagnosticBag.Discarded, syntax)
                 If method Is Nothing Then
                     Return condition
                 End If
@@ -953,7 +954,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 elementTypes = method.Parameters.SelectAsArray(Function(parameter) parameter.Type)
             End If
 
-            Dim subpatterns = PositionalSubpatterns(arguments.Select(Function(argument) argument).ToImmutableArray(), values, elementTypes)
+            Dim subpatterns = PositionalSubpatterns(arguments, values, elementTypes)
             If subpatterns.IsDefault Then
                 Return condition
             End If
@@ -977,6 +978,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function PositionalSubpattern(argument As ExpressionSyntax, value As BoundExpression, elementType As TypeSymbol) As BoundExpression
+            If value Is Nothing Then
+                Return Nothing
+            End If
+
+            If value.Kind = BoundKind.PositionalPattern Then
+                Return value
+            End If
+
+            Dim relational = TryCast(value, BoundRelationalSubpattern)
+            If relational IsNot Nothing Then
+                Return If(IsConstantPatternValue(relational.Value, elementType) AndAlso
+                          (relational.UpperOpt Is Nothing OrElse IsConstantPatternValue(relational.UpperOpt, elementType)),
+                          relational, Nothing)
+            End If
+
             Dim tuple = TryCast(value, BoundTupleLiteral)
             If tuple IsNot Nothing AndAlso argument.Kind = SyntaxKind.TupleExpression AndAlso elementType.IsTupleType AndAlso
                elementType.TupleElementTypes.Length = tuple.Arguments.Length Then
@@ -989,37 +1005,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New BoundPositionalPattern(argument, elementType, elementType, Nothing, Nothing, nested, Nothing, Compilation.GetSpecialType(SpecialType.System_Boolean))
             End If
 
-            Dim valueType = value.Type
-            If value.IsConstant AndAlso Not value.ConstantValueOpt.IsNothing AndAlso valueType IsNot Nothing AndAlso
-               (elementType.IsIntrinsicType() OrElse elementType.IsEnumType()) AndAlso
-               (TypeSymbol.Equals(valueType, elementType, TypeCompareKind.ConsiderEverything) OrElse (valueType.IsNumericType() AndAlso elementType.IsNumericType())) AndAlso
-               Not (OptionCompareText AndAlso elementType.IsStringType()) Then
-                Return value
-            End If
-
-            Return Nothing
+            Return If(IsConstantPatternValue(value, elementType), value, Nothing)
         End Function
 
-        Private Function BindPositionalComparisons(syntax As SyntaxNode, receiver As BoundExpression, arguments As SeparatedSyntaxList(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag,
+        Private Function IsConstantPatternValue(value As BoundExpression, elementType As TypeSymbol) As Boolean
+            Dim valueType = value.Type
+            Return value.IsConstant AndAlso Not value.ConstantValueOpt.IsNothing AndAlso valueType IsNot Nothing AndAlso
+                   (elementType.IsIntrinsicType() OrElse elementType.IsEnumType()) AndAlso
+                   (TypeSymbol.Equals(valueType, elementType, TypeCompareKind.ConsiderEverything) OrElse (valueType.IsNumericType() AndAlso elementType.IsNumericType())) AndAlso
+                   Not (OptionCompareText AndAlso elementType.IsStringType())
+        End Function
+
+        Private Function BindPositionalComparisons(syntax As SyntaxNode, receiver As BoundExpression, arguments As ImmutableArray(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag,
                                                    Optional values As ArrayBuilder(Of BoundExpression) = Nothing) As BoundExpression
             Dim booleanType = GetSpecialType(SpecialType.System_Boolean, syntax, diagnostics)
-            Dim elements = GetDeconstructionElements(receiver, arguments.Count)
+            Dim elements = GetDeconstructionElements(receiver, arguments.Length)
             If Not elements.IsDefault Then
                 Return ComparePositionalValues(syntax, arguments, diagnostics, booleanType, Function(index) New BoundFieldAccess(syntax, receiver, elements(index), isLValue:=False, type:=elements(index).Type), values)
             End If
 
-            Dim method = FindDeconstructMethod(receiver, arguments.Count, diagnostics, syntax)
+            Dim method = FindDeconstructMethod(receiver, arguments.Length, diagnostics, syntax)
             If method Is Nothing Then
                 If Not receiver.HasErrors Then
-                    ReportDiagnostic(diagnostics, syntax, ERRID.ERR_DeconstructionRequiresTuple, arguments.Count)
+                    ReportDiagnostic(diagnostics, syntax, ERRID.ERR_DeconstructionRequiresTuple, arguments.Length)
                 End If
 
                 Return BadExpression(syntax, booleanType).MakeCompilerGenerated()
             End If
 
             Dim locals = ArrayBuilder(Of LocalSymbol).GetInstance()
-            Dim argumentsBuilder = ArrayBuilder(Of BoundExpression).GetInstance(arguments.Count)
-            For i = 0 To arguments.Count - 1
+            Dim argumentsBuilder = ArrayBuilder(Of BoundExpression).GetInstance(arguments.Length)
+            For i = 0 To arguments.Length - 1
                 Dim parameterType = method.Parameters(i).Type
                 Dim slot = New SynthesizedLocal(ContainingMember, parameterType, SynthesizedLocalKind.LoweringTemp)
                 locals.Add(slot)
@@ -1039,22 +1055,49 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New BoundSequence(syntax, locals.ToImmutableAndFree(), sideEffects, comparisons, booleanType)
         End Function
 
-        Private Function ComparePositionalValues(syntax As SyntaxNode, arguments As SeparatedSyntaxList(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag, booleanType As TypeSymbol, readElement As Func(Of Integer, BoundExpression),
+        Private Function ComparePositionalValues(syntax As SyntaxNode, arguments As ImmutableArray(Of ExpressionSyntax), diagnostics As BindingDiagnosticBag, booleanType As TypeSymbol, readElement As Func(Of Integer, BoundExpression),
                                                  values As ArrayBuilder(Of BoundExpression)) As BoundExpression
             Dim condition As BoundExpression = Nothing
-            For i = 0 To arguments.Count - 1
-                Dim expected = BindValue(arguments(i), diagnostics)
-                values?.Add(expected)
+            For i = 0 To arguments.Length - 1
+                Dim argument = arguments(i)
                 Dim actual = readElement(i)
-                Dim compare = BindBinaryOperator(
-                    node:=arguments(i),
-                    left:=actual,
-                    right:=expected,
-                    operatorTokenKind:=SyntaxKind.EqualsToken,
-                    preliminaryOperatorKind:=BinaryOperatorKind.Equals,
-                    isOperandOfConditionalBranch:=False,
-                    diagnostics:=diagnostics,
-                    isSelectCase:=True)
+                Dim compare As BoundExpression
+                Select Case argument.Kind
+                    Case SyntaxKind.RelationalPatternExpression
+                        ' Is (> 0, "open") compares the element as Case Is > 0 compares a value.
+                        Dim relational = DirectCast(argument, RelationalPatternExpressionSyntax)
+                        Dim value = BindValue(relational.Value, diagnostics)
+                        Dim operatorKind = RelationalOperatorKind(relational.OperatorToken.Kind)
+                        compare = CompareElement(argument, actual, value, relational.OperatorToken.Kind, operatorKind, diagnostics)
+                        values?.Add(New BoundRelationalSubpattern(argument, operatorKind, value, Nothing, actual.Type))
+
+                    Case SyntaxKind.RangePatternExpression
+                        ' Is (1 To 9, "draft") compares the element as Case 1 To 9 compares a value.
+                        Dim range = DirectCast(argument, RangePatternExpressionSyntax)
+                        Dim lower = BindValue(range.LowerBound, diagnostics)
+                        Dim upper = BindValue(range.UpperBound, diagnostics)
+                        Dim atLeast = CompareElement(range.LowerBound, actual, lower, SyntaxKind.GreaterThanEqualsToken, BinaryOperatorKind.GreaterThanOrEqual, diagnostics)
+                        Dim atMost = CompareElement(range.UpperBound, readElement(i), upper, SyntaxKind.LessThanEqualsToken, BinaryOperatorKind.LessThanOrEqual, diagnostics)
+                        compare = BindBinaryOperator(argument, atLeast, atMost, SyntaxKind.AndAlsoKeyword, BinaryOperatorKind.AndAlso,
+                                                     isOperandOfConditionalBranch:=False, diagnostics:=diagnostics, isSelectCase:=True).MakeCompilerGenerated()
+                        values?.Add(New BoundRelationalSubpattern(argument, BinaryOperatorKind.GreaterThanOrEqual, lower, upper, actual.Type))
+
+                    Case Else
+                        If IsNestedPositionalPattern(argument) Then
+                            ' Is ((> 0, 0), "a") takes the element apart in turn.
+                            Dim nestedArguments = NestedPatternArguments(argument)
+                            Dim nestedValues = If(values Is Nothing, Nothing, ArrayBuilder(Of BoundExpression).GetInstance(nestedArguments.Length))
+                            compare = BindPositionalComparisons(argument, actual, nestedArguments, diagnostics, nestedValues)
+                            If values IsNot Nothing Then
+                                values.Add(NestedPositionalSubpattern(argument, actual, nestedArguments, nestedValues.ToImmutableAndFree(), compare))
+                            End If
+                        Else
+                            Dim expected = BindValue(argument, diagnostics)
+                            values?.Add(expected)
+                            compare = CompareElement(argument, actual, expected, SyntaxKind.EqualsToken, BinaryOperatorKind.Equals, diagnostics)
+                        End If
+                End Select
+
                 If condition Is Nothing Then
                     condition = compare
                 Else
@@ -1075,6 +1118,61 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return condition
+        End Function
+
+        Private Function CompareElement(syntax As SyntaxNode, actual As BoundExpression, value As BoundExpression, operatorTokenKind As SyntaxKind,
+                                        operatorKind As BinaryOperatorKind, diagnostics As BindingDiagnosticBag) As BoundExpression
+            Return BindBinaryOperator(node:=syntax, left:=actual, right:=value, operatorTokenKind:=operatorTokenKind, preliminaryOperatorKind:=operatorKind,
+                                      isOperandOfConditionalBranch:=False, diagnostics:=diagnostics, isSelectCase:=True)
+        End Function
+
+        Private Shared Function RelationalOperatorKind(tokenKind As SyntaxKind) As BinaryOperatorKind
+            Select Case tokenKind
+                Case SyntaxKind.EqualsToken
+                    Return BinaryOperatorKind.Equals
+                Case SyntaxKind.LessThanGreaterThanToken
+                    Return BinaryOperatorKind.NotEquals
+                Case SyntaxKind.LessThanToken
+                    Return BinaryOperatorKind.LessThan
+                Case SyntaxKind.LessThanEqualsToken
+                    Return BinaryOperatorKind.LessThanOrEqual
+                Case SyntaxKind.GreaterThanToken
+                    Return BinaryOperatorKind.GreaterThan
+                Case SyntaxKind.GreaterThanEqualsToken
+                    Return BinaryOperatorKind.GreaterThanOrEqual
+                Case Else
+                    Throw ExceptionUtilities.UnexpectedValue(tokenKind)
+            End Select
+        End Function
+
+        ''' <summary>
+        ''' Whether a parenthesized element of a positional pattern holds a relational or range element at some level, so that
+        ''' it takes its element apart instead of comparing it with a tuple.
+        ''' </summary>
+        Private Shared Function IsNestedPositionalPattern(argument As ExpressionSyntax) As Boolean
+            If argument.Kind <> SyntaxKind.TupleExpression Then
+                Return False
+            End If
+
+            For Each element In DirectCast(argument, TupleExpressionSyntax).Arguments
+                Dim expression = element.Expression
+                If expression.Kind = SyntaxKind.RelationalPatternExpression OrElse expression.Kind = SyntaxKind.RangePatternExpression OrElse
+                   IsNestedPositionalPattern(expression) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        Private Shared Function NestedPatternArguments(argument As ExpressionSyntax) As ImmutableArray(Of ExpressionSyntax)
+            Return DirectCast(argument, TupleExpressionSyntax).Arguments.Select(Function(element) element.Expression).ToImmutableArray()
+        End Function
+
+        Private Function NestedPositionalSubpattern(syntax As SyntaxNode, actual As BoundExpression, arguments As ImmutableArray(Of ExpressionSyntax),
+                                                    values As ImmutableArray(Of BoundExpression), condition As BoundExpression) As BoundExpression
+            Dim nested = TryCast(MakePositionalPattern(syntax, actual.Type, actual.Type, actual, arguments, values, condition, Nothing), BoundPositionalPattern)
+            Return nested?.Update(nested.InputType, nested.MatchedType, nested.DeconstructMethodOpt, nested.DeclaredLocalOpt, nested.Subpatterns, Nothing, nested.Type)
         End Function
 
         Private Function ComputeRelationalCaseClauseCondition(boundClause As BoundRelationalCaseClause, <Out()> ByRef conditionOpt As BoundExpression, selectExpression As BoundRValuePlaceholder, diagnostics As BindingDiagnosticBag) As BoundCaseClause

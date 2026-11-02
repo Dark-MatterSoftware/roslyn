@@ -36,7 +36,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Semantics
                 SyntaxKind.ByRefExpression,
                 SyntaxKind.DeconstructionDeclarationStatement,
                 SyntaxKind.DeconstructionList,
-                SyntaxKind.DeconstructionSlot
+                SyntaxKind.DeconstructionSlot,
+                SyntaxKind.RelationalPatternExpression,
+                SyntaxKind.RangePatternExpression
             })
             analyzer.VerifyOnCodeBlockCalledForAllSymbolAndMethodKinds()
         End Sub
