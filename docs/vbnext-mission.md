@@ -49,6 +49,24 @@ Every proposed language enhancement is evaluated against these principles, toget
 
 A feature is not accepted for native VB syntax only because C# has it, and it is not rejected only because it came from C#. It is judged on its value, semantics, readability, compatibility, complexity, and fit with VB.
 
+## Language and framework API boundary
+
+**Vb.Next modernizes the Visual Basic language, compiler, diagnostics, and tooling. It does not hardcode or duplicate the evolving .NET API surface into the language.**
+
+Framework types, properties, and methods are available to VB code through the project's target framework and referenced assemblies, just as they are to C# code. Their availability does not depend on Vb.Next adding special language support for each API.
+
+A proposal distinguishes:
+
+1. A genuine VB language, compiler, diagnostics, or tooling gap.
+2. An API already available through the target framework or referenced libraries.
+3. A framework API unavailable to a particular target, such as .NET Framework 4.7.
+
+Only the first is a Vb.Next feature. The second needs no language change, and the third is decided by the target, not by the language.
+
+Vb.Next preserves the ability to target older frameworks. It does not require newer framework APIs, or make their names part of the language, merely to provide modern functionality.
+
+**Compatibility rule:** target-framework and referenced-assembly availability determine which APIs can be used. Vb.Next language features stay independent of specific framework API versions unless a proposal explicitly justifies otherwise.
+
 ## Classifying a proposal
 
 Before a feature is recommended or implemented, it is classified as one of:
@@ -68,7 +86,7 @@ Every proposed enhancement answers:
 
 1. What concrete problem does this solve for VB developers?
 2. Why are existing VB language features insufficient?
-3. Is this a runtime or .NET capability, an interop need, or a native VB authoring need?
+3. Is this a runtime or .NET capability, an interop need, or a native VB authoring need? Is it a language, compiler, diagnostics, or tooling gap, or an API that the target framework or a library already provides, or lacks, as [Language and framework API boundary](#language-and-framework-api-boundary) distinguishes them? If the feature depends on a specific framework type or version, what justifies that, and what happens on a target that lacks it?
 4. Why is the proposed syntax natural and readable in VB?
 5. Who benefits: beginners, everyday application developers, library authors, advanced systems developers, or several of these?
 6. What are the compatibility and language-version implications?
