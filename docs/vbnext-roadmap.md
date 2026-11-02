@@ -107,6 +107,8 @@ A compiler-only change can still leave the product unusable. These trees mirror 
 
 ## First candidates to investigate
 
+Historical: this section describes the project before wave 0 and is kept as written. Every item in it now has an implementation; the current plan is in [vbnext-phases.md](vbnext-phases.md), and the mission is in [vbnext-mission.md](vbnext-mission.md).
+
 The sequenced project plan is [vbnext-missing-features.md](vbnext-missing-features.md). The short list below is the compiler-facing rationale for the first items on that plan. None of them is approved syntax. The first investigation should produce a short design note and tests of the existing gate, not a new construct.
 
 1. **Language-version plumbing.** Confirm how `LanguageVersion`, `Feature`, `/langversion`, MSBuild `LangVersion`, and `PublicAPI.*.txt` move together. Upstream `Latest` is `17.13`. Any experimental version has to be opt-in so that `default` and existing projects keep today's behavior. This is the gate every later feature will use.
@@ -155,5 +157,7 @@ New features should lower to IL and metadata the existing runtime already unders
 The compiler has deterministic-build requirements (`VisualBasicDeterministicKeyBuilder`, `docs/compilers/Deterministic Inputs.md`). A feature that reads ambient state, or that emits members in an unstable order, will fail those checks. New behavior needs tests in the layer that implements it: syntax tests for the grammar, semantic tests for binding, emit tests for IL, and command-line tests for `/langversion`.
 
 ## Suggested next step
+
+Historical: this section describes the project before wave 0 and is kept as written. The opt-in language version it calls for is `vbnext`, recorded in [vbnext-language-version.md](vbnext-language-version.md); the current plan is in [vbnext-phases.md](vbnext-phases.md).
 
 The missing-feature inventory and wave order are in [vbnext-missing-features.md](vbnext-missing-features.md). After that list is accepted, trace one existing feature, `Feature.UnmanagedConstraint` or `Feature.InitOnlySettersUsage`, from `ParserFeature.vb` through parse options, binding, diagnostics, and tests. Use that trace to decide how an opt-in experimental language version would be spelled. Do not add syntax or a new `LanguageVersion` value until that note exists.
