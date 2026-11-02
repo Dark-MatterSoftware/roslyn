@@ -532,6 +532,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
 
                 Case SyntaxKind.CaseStatement,
                      SyntaxKind.CaseElseStatement
+                    ' The Case of a Select Case expression is part of the expression, not a statement of the body.
+                    If nodeOpt?.Parent IsNot Nothing AndAlso nodeOpt.Parent.IsKind(SyntaxKind.SelectCaseArm) Then
+                        Return Label.Ignored
+                    End If
+
                     Return Label.CaseStatement
 
                 Case SyntaxKind.ElseCaseClause,
@@ -543,6 +548,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
                      SyntaxKind.CaseLessThanOrEqualClause,
                      SyntaxKind.CaseGreaterThanOrEqualClause,
                      SyntaxKind.CaseGreaterThanClause
+                    If nodeOpt?.Parent?.Parent IsNot Nothing AndAlso nodeOpt.Parent.Parent.IsKind(SyntaxKind.SelectCaseArm) Then
+                        Return Label.Ignored
+                    End If
+
                     Return Label.CaseClause
 
                 Case SyntaxKind.EndSelectStatement
