@@ -1558,7 +1558,7 @@ Wave 34 row 1.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 161a | VB-176 | Open. The project decides which language version the expression evaluator parses with, and on `vbnext`, or under that decision, the Watch and Immediate windows evaluate `a(^1)`, `a(1..2)`, `s With {.X = 5}`, a `Select Case` expression, and the other Vb.Next expression forms, and `With` after an expression is no longer read as a format specifier. Format specifiers such as `, h` keep working. |
+| 161a | VB-176 | Open. As the project decided, the expression evaluator parses with the language version of the module it stops in: the `language-version` that the compiler records in the compilation options of every portable PDB, and Visual Basic 17.13 when the PDB is a Windows PDB or records none. So, in a module built with `vbnext`, the Watch and Immediate windows evaluate `a(^1)`, `a(1..2)`, `s With {.X = 5}`, a `Select Case` expression, and the other Vb.Next expression forms, and `With` after an expression is no longer read as a format specifier; in a module built with Visual Basic 17.13, they report what they report today. Format specifiers such as `, h` keep working. |
 
 ### Phase 162 — Edit and Continue beside a `Select Case` expression
 
@@ -1574,7 +1574,7 @@ Wave 34 row 3.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 163a | VB-178 | Open. Formatting writes `items(^ 1)` as `items(^1)` and `items(1 .. 2)` as `items(1..2)`, including open ranges such as `..2` and `(3..)`, and leaves the spacing of a spread as the project decides. |
+| 163a | VB-178 | Open. Formatting writes `items(^ 1)` as `items(^1)` and `items(1 .. 2)` as `items(1..2)`, including open ranges such as `..2` and `(3..)`, and leaves the spacing of a spread, `{..items, 3}` or `{.. items, 3}`, as written, as the project decided, because neither is a settled style. |
 
 ### Phase 164 — Code fixes and refactorings on Vb.Next forms
 
