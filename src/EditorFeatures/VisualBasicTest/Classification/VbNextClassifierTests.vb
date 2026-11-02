@@ -609,6 +609,41 @@ End Module",
         End Function
 
         <Theory, CombinatorialData>
+        Public Async Function TestWaveThirtyThreeForms(testHost As TestHost) As Task
+            Await TestAsync("Module M
+    Async Function NextId(order As (Integer, String), low As Integer, high As Integer) As System.Threading.Tasks.Task(Of Integer)
+        Static count As Integer
+        Select Case order
+            Case Is (> low, ""a""), Is (low To high, ""b"")
+                count += 1
+        End Select
+        Await System.Threading.Tasks.Task.Yield()
+        Return count
+    End Function
+End Module",
+                testHost,
+                s_vbNext,
+                [Namespace]("System"),
+                [Namespace]("Threading"),
+                [Namespace]("Tasks"),
+                [Class]("Task"),
+                Parameter("order"),
+                Parameter("low"),
+                Parameter("low"),
+                Parameter("high"),
+                Local("count"),
+                [Static]("count"),
+                [Namespace]("System"),
+                [Namespace]("Threading"),
+                [Namespace]("Tasks"),
+                [Class]("Task"),
+                Method("Yield"),
+                [Static]("Yield"),
+                Local("count"),
+                [Static]("count"))
+        End Function
+
+        <Theory, CombinatorialData>
         Public Async Function TestWaveThirtyOneForms(testHost As TestHost) As Task
             Await TestAsync("Class Box
 End Class

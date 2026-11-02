@@ -386,6 +386,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
                targetToken.IsChildSeparatorToken(Of CaseStatementSyntax, CaseClauseSyntax)(Function(caseStatement) caseStatement.Cases) OrElse
                targetToken.IsChildToken(Of RangeCaseClauseSyntax)(Function(rangeCaseClause) rangeCaseClause.ToKeyword) OrElse
                targetToken.IsChildToken(Of RelationalCaseClauseSyntax)(Function(relationalCaseClause) relationalCaseClause.OperatorToken) OrElse
+               targetToken.IsChildToken(Of PositionalCaseClauseSyntax)(Function(positionalCaseClause) positionalCaseClause.OpenParenToken) OrElse
+               targetToken.IsChildSeparatorToken(Of PositionalCaseClauseSyntax, ExpressionSyntax)(Function(positionalCaseClause) positionalCaseClause.Arguments) OrElse
+               targetToken.IsChildToken(Of TypeCaseClauseSyntax)(Function(typeCaseClause) typeCaseClause.OpenParenToken) OrElse
+               targetToken.IsChildSeparatorToken(Of TypeCaseClauseSyntax, ExpressionSyntax)(Function(typeCaseClause) typeCaseClause.Arguments) OrElse
+               targetToken.IsChildToken(Of RelationalPatternExpressionSyntax)(Function(relationalPattern) relationalPattern.OperatorToken) OrElse
+               targetToken.IsChildToken(Of RangePatternExpressionSyntax)(Function(rangePattern) rangePattern.ToKeyword) OrElse
                targetToken.IsChildToken(Of CastExpressionSyntax)(Function(castExpression) castExpression.OpenParenToken) OrElse
                targetToken.IsChildToken(Of CollectionInitializerSyntax)(Function(collectionInitializer) collectionInitializer.OpenBraceToken) OrElse
                targetToken.IsChildToken(Of CollectionRangeVariableSyntax)(Function(collectionRange) collectionRange.InKeyword) OrElse

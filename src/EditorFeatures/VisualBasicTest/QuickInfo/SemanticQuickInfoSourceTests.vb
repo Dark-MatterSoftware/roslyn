@@ -779,6 +779,35 @@ End Module"), MainDescription($"({FeaturesResources.local_variable}) y As Intege
         End Function
 
         <Fact>
+        Public Async Function TestStaticLocalInAsyncFunction() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Imports System.Threading.Tasks
+
+Module M
+    Async Function NextId() As Task(Of Integer)
+        Static cou$$nt As Integer
+        Await Task.Yield()
+        count += 1
+        Return count
+    End Function
+End Module"), MainDescription($"({FeaturesResources.local_variable}) count As Integer"))
+        End Function
+
+        <Fact>
+        Public Async Function TestRelationalPatternElementValue() As Task
+            Await TestFromXmlAsync(WaveTwentySeven("
+Module M
+    Function F(order As (Integer, String), limit As Integer) As String
+        Select Case order
+            Case Is (> lim$$it, ""open"")
+                Return ""big""
+        End Select
+        Return """"
+    End Function
+End Module"), MainDescription($"({FeaturesResources.parameter}) limit As Integer"))
+        End Function
+
+        <Fact>
         Public Async Function TestTypedDeconstructionName() As Task
             Await TestFromXmlAsync(WaveTwentySeven("
 Module M

@@ -336,6 +336,62 @@ End Module"), "Length")
         End Function
 
         <Fact>
+        Public Async Function IntegerMembersAfterStaticLocalInAsyncFunction() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Imports System.Threading.Tasks
+
+Module M
+    Async Function NextId() As Task(Of Integer)
+        Static count As Integer
+        Await Task.Yield()
+        Return count.$$
+    End Function
+End Module"), "CompareTo")
+        End Function
+
+        <Fact>
+        Public Async Function ParametersInRelationalPatternElement() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Function F(order As (Integer, String), limit As Integer) As String
+        Select Case order
+            Case Is (> $$, ""open"")
+                Return ""big""
+        End Select
+        Return """"
+    End Function
+End Module"), "limit")
+        End Function
+
+        <Fact>
+        Public Async Function ParametersInRangePatternElement() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Function F(order As (Integer, String), low As Integer, high As Integer) As String
+        Select Case order
+            Case Is (low To $$, ""draft"")
+                Return ""small""
+        End Select
+        Return """"
+    End Function
+End Module"), "high")
+        End Function
+
+        <Fact>
+        Public Async Function ParametersInPositionalPatternElement() As Task
+            Await VerifyItemExistsAsync(WaveTwentySeven("
+Module M
+    Function F(order As (Integer, String), limit As Integer) As String
+        Select Case order
+            Case Is (1, $$)
+                Return ""one""
+        End Select
+        Return """"
+    End Function
+End Module"), "limit")
+        End Function
+
+        <Fact>
         Public Async Function StringMembersAfterTypedDeconstructionLocal() As Task
             Await VerifyItemExistsAsync(WaveTwentySeven("
 Module M
