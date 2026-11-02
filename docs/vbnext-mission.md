@@ -99,7 +99,7 @@ Some spellings adopted before this document are symbolic and follow C#:
 - `?=` for nothing-coalescing assignment (VB-010)
 - `..` for a spread in collection and array literals (VB-035)
 
-They stay adopted and implemented, and code that uses them keeps compiling on `vbnext`. They are flagged for a design review against the keyword preference in [Direction](#direction). That review has not happened, and it does not change their status until the project decides.
+They stay adopted and implemented, and code that uses them keeps compiling on `vbnext`. They are flagged for a design review against the keyword preference in [Direction](#direction). That review is planned as VB-174 in wave 33, and it does not change their status until the project decides.
 
 ## Completion status
 
