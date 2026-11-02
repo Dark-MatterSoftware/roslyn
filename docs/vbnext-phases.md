@@ -1548,6 +1548,50 @@ Wave 33 row 4. No code change.
 | --- | --- | --- |
 | 160a | Editor | Done. For the wave 33 forms, on `vbnext`: quick info shows `count As Integer` for a `Static` local of an `Async Function` and `limit As Integer` for the value of `Case Is (> limit, "open")`; completion offers `CompareTo` after such a `Static` local, and parameters after `>` in a relational element, after `To` in a range element, and at an element of a positional pattern, as in `Case Is (1, $$)`; and classification marks the `Static` local as a local and static, and the values of relational and range elements as parameters. The editor change is that the open parenthesis and commas of `Case Is (...)` and of `Case Is TypeOf T(...)`, the operator of a relational element, and the `To` of a range element are now expression contexts; before it, completion offered nothing there, including in the positional patterns of slice 5g. |
 
+## Wave 34
+
+A hardening wave, planned from a probe of the debugger, Edit and Continue, and formatting on the Vb.Next forms. No new syntax, and no editor slice of its own, because the wave is about the tools.
+
+### Phase 161 — Vb.Next forms in the debugger
+
+Wave 34 row 1.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 161a | VB-176 | Open. The project decides which language version the expression evaluator parses with, and on `vbnext`, or under that decision, the Watch and Immediate windows evaluate `a(^1)`, `a(1..2)`, `s With {.X = 5}`, a `Select Case` expression, and the other Vb.Next expression forms, and `With` after an expression is no longer read as a format specifier. Format specifiers such as `, h` keep working. |
+
+### Phase 162 — Edit and Continue beside a `Select Case` expression
+
+Wave 34 row 2.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 162a | VB-177 | Open. Editing a method that has a `Select Case` expression, inside or beside the edit, is analyzed without `MemberBodyInternalError`, and an edit inside the expression reports what an edit of a `Select Case` statement reports. |
+
+### Phase 163 — Formatting of `^n` and `a..b`
+
+Wave 34 row 3.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 163a | VB-178 | Open. Formatting writes `items(^ 1)` as `items(^1)` and `items(1 .. 2)` as `items(1..2)`, including open ranges such as `..2` and `(3..)`, and leaves the spacing of a spread as the project decides. |
+
+### Phase 164 — Code fixes and refactorings on Vb.Next forms
+
+Wave 34 row 4.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 164a | VB-179 | Open. The common Visual Basic code fixes and refactorings, such as introduce variable, inline temporary variable, extract method, rename, and remove unnecessary parentheses, are run against the Vb.Next forms, and each one that throws or produces code that does not compile is listed and fixed or recorded. |
+
+### Phase 165 — Review of the pattern surface
+
+Wave 34 row 5. No code change.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 165a | VB-180 | Open. `docs/vbnext-vb180-review.md` lists every pattern form of VB-004, VB-066, and VB-171, the lookahead and backtracking the parser uses for them, and what they cost, and records the project's decision on whether anything should be simplified. |
+
 ## What starts now
 
 The direction in `docs/vbnext-roadmap.md` adopts VB-050, VB-053, and VB-060, rejects VB-058, and defers VB-051. Slices 16b, 18b, and 21b are done. Every adopted wave 4 proposal now has an implementation on `vbnext`. Phase 23 brings the editor along, and slices 23a through 23e are done. Phase 24 is done: a real project compiles with the Vb.Next compiler, with analyzers on, and the editor runs in Visual Studio 2026 Insiders.
@@ -1610,4 +1654,4 @@ Wave 32 is planned as phases 153 to 155, from a probe of the deconstruction shap
 
 Wave 33 is planned as phases 156 to 160, from a probe of the shapes that VB application code meets in current libraries, judged by `docs/vbnext-mission.md`: date literals as `DateOnly` and `TimeOnly`, `Static` locals in `Async` and `Iterator` methods, a proposal for relational tests in positional patterns, and a review of the adopted symbolic spellings; VB-175, positional patterns through `ITuple`, is deferred. Slice 156a is done: the conversions of date literals to `DateOnly` and `TimeOnly` are locked. Phase 156 is withdrawn: under the language and framework API boundary that `docs/vbnext-mission.md` then adopted, VB-172 is rejected, and slice 156b will not be implemented. Phase 157 is done: slice 157a declares `Static` locals in `Async` and `Iterator` methods. Phase 158 is done: slice 158a approves VB-171 with the spelling `Case Is (> 0, "open")` and `Case Is (1 To 9, "draft")`, and slice 158b implements it. Phase 159 is done: slice 159a keeps the four adopted symbolic spellings, two of them flagged for a possible keyword alternative. Phase 160 is done: slice 160a brings the editor along for the wave 33 forms. Wave 33 is done.
 
-After wave 33, `docs/vbnext-drift-review-wave33.md` reviews the project against `docs/vbnext-mission.md` and records the project's decisions: wave 34 is a hardening wave, for the debugger expression evaluator, formatting, Edit and Continue, and code fixes on the Vb.Next forms, and it reviews the pattern surface; the VB Razor, VBHTML, and MAUI stacks of the Direction stay open for a later decision.
+After wave 33, `docs/vbnext-drift-review-wave33.md` reviews the project against `docs/vbnext-mission.md` and records the project's decisions: wave 34 is a hardening wave, for the debugger expression evaluator, formatting, Edit and Continue, and code fixes on the Vb.Next forms, and it reviews the pattern surface; the VB Razor, VBHTML, and MAUI stacks of the Direction stay open for a later decision. Wave 34 is planned as phases 161 to 165, from a probe of the debugger, Edit and Continue, and formatting on the Vb.Next forms: the debugger's expression evaluator, Edit and Continue beside a `Select Case` expression, formatting of `^n` and `a..b`, code fixes and refactorings, and a review of the pattern surface.

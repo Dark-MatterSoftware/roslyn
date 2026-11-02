@@ -440,6 +440,18 @@ Checked against this tree after wave 32, by compiling and running against .NET 1
 | VB-174 | Review of adopted symbolic spellings | Done in phase 159: all four stay, as `docs/vbnext-vb174-review.md` records; `a..b` and `?=` are settled, and `^n` and `..items` stay flagged as candidates for a keyword alternative in a later proposal. Classification: design review; no code change. `^1` and `a..b` (VB-006), `?=` (VB-010), and `..` in collection and array literals (VB-035) are symbolic spellings that follow C#, adopted before [vbnext-mission.md](vbnext-mission.md#adopted-spellings-under-review) preferred keyword forms. The review records for each whether it stays, gains a keyword alternative, or changes, and why; a change would be its own proposal. |
 | VB-175 | Positional patterns through `ITuple` | Deferred. Classification: Interop/runtime support. `Case Is (1, 2)` on an `Object` that holds a tuple reports BC37363, where C# matches `obj is (1, 2)` through `ITuple`. Deferred because VB code rarely holds a tuple as `Object`, and a tuple held with its own type already matches. |
 
+## Wave 34
+
+A hardening wave, as [vbnext-drift-review-wave33.md](vbnext-drift-review-wave33.md) decided, planned from a probe of the debugger's expression evaluator, Edit and Continue, and formatting on the Vb.Next forms. Edit and Continue analyzes edits beside nested and typed deconstruction, relational elements in positional patterns, `For Each` deconstruction, index and range, `?=`, and `With` on anonymous types without a rude edit. Editing a method that has a `Static` local reports the rude edit `UpdateStaticLocal`, as Visual Basic always has, and is not listed. Formatting indents and spaces the forms of waves 30 to 33.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-176 | Vb.Next forms in the debugger | Open. Classification: Tooling/diagnostics. The expression evaluator parses every expression as Visual Basic 17.13, so in the Watch and Immediate windows `a(^1)` reports BC30201, `a(1..2)` reports BC30203, a `Select Case` expression reports BC30201, and `s With {.X = 5}` reports BC37237, because `With` is read as a format specifier. The C# expression evaluator parses with the preview language version. |
+| VB-177 | Edit and Continue beside a `Select Case` expression | Open. Classification: Tooling/diagnostics. Editing a method that has a `Select Case` expression reports `MemberBodyInternalError`, because matching the method's statements fails an assertion. |
+| VB-178 | Formatting of `^n` and `a..b` | Open. Classification: Tooling/diagnostics. Formatting leaves `items(^ 1)` and `items(1 .. 2)` as written, where it removes the space after a unary operator and around other operators that bind tightly. |
+| VB-179 | Code fixes and refactorings on Vb.Next forms | Open. Classification: Tooling/diagnostics. No code fix or refactoring has been run against the Vb.Next forms. The slice probes the common ones first and fixes what fails. |
+| VB-180 | Review of the pattern surface | Open. Classification: design review; no code change. The patterns of VB-004, with VB-066 and VB-171, have grown into the largest syntax surface in this project, and the parser reads them with lookahead and backtracking. The review records what the surface is, what it costs, and whether anything should be simplified, as the drift review decided. |
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
@@ -801,3 +813,13 @@ The record that cannot compile comes first, then the convenience that needs a de
 | 2 | VB-173 | `Static` locals in `Async` and `Iterator` methods | M | Lifts a VB-only restriction that blocks moving code to `Async`. |
 | 3 | VB-171 | Relational tests inside positional patterns | S | A proposal first, approved in slice 158a; slice 158b implements it. |
 | 4 | VB-174 | Review of adopted symbolic spellings | S | A design review the mission asked for; no code change. |
+
+### Wave 34 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-176 | Vb.Next forms in the debugger | M | The largest gap the drift review found in developer-facing completeness. |
+| 2 | VB-177 | Edit and Continue beside a `Select Case` expression | S | An internal error on a common edit. |
+| 3 | VB-178 | Formatting of `^n` and `a..b` | S | Two spacing rules. |
+| 4 | VB-179 | Code fixes and refactorings on Vb.Next forms | M | A probe first; its size depends on what fails. |
+| 5 | VB-180 | Review of the pattern surface | S | A design review the drift review asked for; no code change. |
