@@ -49,7 +49,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             locals As ImmutableArray(Of LocalSymbol),
             inScopeHoistedLocalSlots As ImmutableSortedSet(Of Integer),
             methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol),
-            withSyntax As Boolean)
+            withSyntax As Boolean,
+            Optional parseOptions As VisualBasicParseOptions = Nothing)
 
             _currentFrame = currentFrame
 
@@ -58,7 +59,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
 
             Dim originalCompilation = compilation
 
-            If withSyntax AndAlso
+            If withSyntax AndAlso parseOptions IsNot Nothing AndAlso parseOptions.LanguageVersion > LanguageVersionFacts.CurrentVersion AndAlso
+                compilation.SyntaxTrees.IsEmpty Then
+                ' The compilation's language version comes from its trees, so an empty tree with the module's newer
+                ' version, such as vbnext, lets the binder accept what that version accepts.
+                compilation = compilation.AddSyntaxTrees(VisualBasicSyntaxTree.ParseText("", parseOptions))
+            ElseIf withSyntax AndAlso
                 compilation.Options.SuppressEmbeddedDeclarations AndAlso
                 compilation.SyntaxTrees.IsEmpty Then
                 ' We need to add an empty tree to the compilation as 

@@ -41,6 +41,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         Private ReadOnly _locals As ImmutableArray(Of LocalSymbol)
         Private ReadOnly _inScopeHoistedLocalSlots As ImmutableSortedSet(Of Integer)
         Private ReadOnly _methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol)
+        Private ReadOnly _parseOptions As VisualBasicParseOptions
 
         Private Sub New(
             methodContextReuseConstraints As MethodContextReuseConstraints?,
@@ -49,7 +50,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             currentSourceMethod As MethodSymbol,
             locals As ImmutableArray(Of LocalSymbol),
             inScopeHoistedLocalSlots As ImmutableSortedSet(Of Integer),
-            methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol))
+            methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol),
+            Optional parseOptions As VisualBasicParseOptions = Nothing)
 
             Me.MethodContextReuseConstraints = methodContextReuseConstraints
             Me.Compilation = compilation
@@ -58,6 +60,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             _locals = locals
             _inScopeHoistedLocalSlots = inScopeHoistedLocalSlots
             _methodDebugInfo = methodDebugInfo
+            _parseOptions = If(parseOptions, SyntaxHelpers.ParseOptions)
         End Sub
 
         ''' <summary>
@@ -188,6 +191,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             GetStaticLocals(localsBuilder, currentFrame, methodHandle, metadataDecoder)
             localsBuilder.AddRange(debugInfo.LocalConstants)
 
+            ' The module's portable PDB records the language version it was compiled with, so a module built with vbnext
+            ' evaluates vbnext expressions.
+            Dim parseOptions = SyntaxHelpers.GetParseOptions(PdbCompilationOptions.TryGetLanguageVersion(symReader, methodVersion))
+
             Return New EvaluationContext(
                 New MethodContextReuseConstraints(moduleId, methodToken, methodVersion, reuseSpan),
                 compilation,
@@ -195,7 +202,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 currentSourceMethod,
                 localsBuilder.ToImmutableAndFree(),
                 inScopeHoistedLocalSlots,
-                debugInfo)
+                debugInfo,
+                parseOptions)
         End Function
 
         Private Shared Function GetInScopeHoistedLocalSlots(allLocalNames As ImmutableArray(Of String)) As ImmutableSortedSet(Of Integer)
@@ -339,7 +347,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 _locals,
                 _inScopeHoistedLocalSlots,
                 _methodDebugInfo,
-                withSyntax)
+                withSyntax,
+                _parseOptions)
         End Function
 
         Friend Overrides Function CompileExpression(
@@ -353,8 +362,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             resultProperties = Nothing
             Dim formatSpecifiers As ReadOnlyCollection(Of String) = Nothing
             Dim syntax = If((compilationFlags And DkmEvaluationFlags.TreatAsExpression) <> 0,
-                    expr.ParseExpression(diagnostics, allowFormatSpecifiers:=True, formatSpecifiers:=formatSpecifiers),
-                    expr.ParseStatement(diagnostics))
+                    expr.ParseExpression(diagnostics, allowFormatSpecifiers:=True, formatSpecifiers:=formatSpecifiers, parseOptions:=_parseOptions),
+                    expr.ParseStatement(diagnostics, _parseOptions))
             If syntax Is Nothing Then
                 Return Nothing
             End If
@@ -408,7 +417,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             <Out> ByRef resultProperties As ResultProperties,
             testData As Microsoft.CodeAnalysis.CodeGen.CompilationTestData) As CompileResult
 
-            Dim assignment = target.ParseAssignment(expr, diagnostics)
+            Dim assignment = target.ParseAssignment(expr, diagnostics, _parseOptions)
             If assignment Is Nothing Then
                 Return Nothing
             End If
