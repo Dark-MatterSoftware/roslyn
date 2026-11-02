@@ -119,7 +119,7 @@ Some spellings adopted before this document are symbolic and follow C#:
 - `?=` for nothing-coalescing assignment (VB-010)
 - `..` for a spread in collection and array literals (VB-035)
 
-They stay adopted and implemented, and code that uses them keeps compiling on `vbnext`. They are flagged for a design review against the keyword preference in [Direction](#direction). That review is planned as VB-174 in wave 33, and it does not change their status until the project decides.
+They stay adopted and implemented, and code that uses them keeps compiling on `vbnext`. VB-174 reviewed them against the keyword preference in [Direction](#direction), and [vbnext-vb174-review.md](vbnext-vb174-review.md) records the decision: all four stay. `a..b` and `x ?= y` are settled; `^n` and `..items` stay flagged as candidates for a keyword alternative, which would be its own proposal.
 
 ## Completion status
 
