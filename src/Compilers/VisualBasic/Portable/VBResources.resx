@@ -6031,6 +6031,9 @@
   <data name="ERR_ImplementWithReadOnlyByRef2" xml:space="preserve">
     <value>'{0}' cannot implement '{1}' because they differ by a 'ByRef' parameter that is marked as 'ReadOnly' in only one of them.</value>
   </data>
+  <data name="ERR_AwaitInStaticLocalInitializer" xml:space="preserve">
+    <value>'Await' cannot be used in the initializer of a 'Static' local.</value>
+  </data>
   <data name="ERR_RefFieldHolderAssigned" xml:space="preserve">
     <value>'{0}' holds a ref field, so it cannot be assigned to a 'ByRef' parameter or to a field of a structure reached through a 'ByRef' parameter or 'Me'.</value>
   </data>

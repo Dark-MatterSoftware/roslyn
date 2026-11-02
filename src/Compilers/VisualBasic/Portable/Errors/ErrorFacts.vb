@@ -1631,6 +1631,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.ERR_ReadOnlyParameterRequiresByRef,
                      ERRID.ERR_OverrideWithReadOnlyByRef2,
                      ERRID.ERR_ImplementWithReadOnlyByRef2,
+                     ERRID.ERR_AwaitInStaticLocalInitializer,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_UnreadRecordParameter,

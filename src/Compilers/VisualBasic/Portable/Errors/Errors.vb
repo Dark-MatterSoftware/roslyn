@@ -1878,8 +1878,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ReadOnlyParameterRequiresByRef = 37419
         ERR_OverrideWithReadOnlyByRef2 = 37420
         ERR_ImplementWithReadOnlyByRef2 = 37421
+        ERR_AwaitInStaticLocalInitializer = 37422
 
-        ERR_NextAvailable = 37422
+        ERR_NextAvailable = 37423
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000

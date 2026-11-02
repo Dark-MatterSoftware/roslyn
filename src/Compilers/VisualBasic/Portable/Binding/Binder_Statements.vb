@@ -1086,6 +1086,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         End Sub
 
+        Private Shared Sub ReportAwaitInStaticLocalInitializer(initializerOpt As SyntaxNode, diagnostics As BindingDiagnosticBag)
+            If initializerOpt Is Nothing Then
+                Return
+            End If
+
+            For Each await In initializerOpt.DescendantNodes(Function(node) Not TypeOf node Is LambdaExpressionSyntax).OfType(Of AwaitExpressionSyntax)()
+                ReportDiagnostic(diagnostics, await, ERRID.ERR_AwaitInStaticLocalInitializer)
+            Next
+        End Sub
+
         Private Function BindTupleDeconstruction(node As TupleDeconstructionStatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
             If Not OptionInfer Then
                 ReportDiagnostic(diagnostics,
@@ -2264,7 +2274,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         ReportDiagnostic(diagnostics, errSyntax, ERRID.ERR_RestrictedType1, type)
                     End If
                 ElseIf IsInAsyncContext() OrElse IsInIteratorContext() Then
-                    ReportDiagnostic(diagnostics, name, ERRID.ERR_BadStaticInitializerInResumable)
+                    If Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                        ReportDiagnostic(diagnostics, name, ERRID.ERR_BadStaticInitializerInResumable)
+                    Else
+                        ' On vbnext, an Async or Iterator method declares Static locals; the initializer runs inside a lock, so
+                        ' it cannot await.
+                        ReportAwaitInStaticLocalInitializer(initializerSyntaxOpt, diagnostics)
+                        ReportAwaitInStaticLocalInitializer(asClauseOpt, diagnostics)
+                    End If
                 End If
             ElseIf (IsInAsyncContext() OrElse IsInIteratorContext()) AndAlso Compilation.LanguageVersion < LanguageVersion.VbNext Then
                 ' On vbnext, an Async or Iterator method declares such a local, and the state machine reports one that is live

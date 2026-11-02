@@ -37,6 +37,11 @@
         <target state="new">'Await Each' requires a collection that implements 'System.Collections.Generic.IAsyncEnumerable(Of T)', but '{0}' does not.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AwaitInStaticLocalInitializer">
+        <source>'Await' cannot be used in the initializer of a 'Static' local.</source>
+        <target state="new">'Await' cannot be used in the initializer of a 'Static' local.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_BadAbstractStaticMemberAccess">
         <source>A shared abstract or virtual interface member cannot be accessed.</source>
         <target state="translated">Нет доступа к общему абстрактному или виртуальному элементу интерфейса.</target>
