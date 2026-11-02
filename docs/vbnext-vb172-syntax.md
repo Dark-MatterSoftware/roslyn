@@ -1,5 +1,7 @@
 # VB-172 Date literals as `DateOnly` and `TimeOnly`
 
+**Withdrawn.** After this note was locked, the project adopted the [language and framework API boundary](vbnext-mission.md#language-and-framework-api-boundary), and VB-172 was rejected under it: the conversions would make `DateOnly` and `TimeOnly` part of the language, and the API is already available through the target framework. Nothing was implemented. The note is kept as a record of the decision.
+
 This note records the semantics for VB-172. It is a design note for this independent fork. It is not a Microsoft language proposal, and this project is not affiliated with, endorsed by, or supported by Microsoft.
 
 Classification: Interop/runtime support, through VB's own date literal. There is no new syntax.

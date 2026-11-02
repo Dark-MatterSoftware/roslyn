@@ -67,6 +67,8 @@ Vb.Next preserves the ability to target older frameworks. It does not require ne
 
 **Compatibility rule:** target-framework and referenced-assembly availability determine which APIs can be used. Vb.Next language features stay independent of specific framework API versions unless a proposal explicitly justifies otherwise.
 
+**Compiler contracts.** Some framework types and attributes exist so that compilers recognize them, and .NET defines what a compiler does with each: `IAsyncEnumerable(Of T)` and `IAsyncDisposable`, `System.Index` and `System.Range`, `System.Threading.Lock`, `ValueTask` and `AsyncMethodBuilderAttribute`, `InlineArrayAttribute`, `CollectionBuilderAttribute`, `ParamCollectionAttribute`, interpolated string handlers, `IsExternalInit`, and the attributes of required members. C# follows the same contracts. A feature that implements such a contract is justified by it, standing: it switches on only where the target framework or a referenced assembly declares the type, code that needs the type reports an error on a target without it, and other code builds for that target as before. A feature that maps VB syntax onto an ordinary API is not a contract; VB-172, which would have made date literals convert to `DateOnly` and `TimeOnly`, was withdrawn for that reason.
+
 ## Classifying a proposal
 
 Before a feature is recommended or implemented, it is classified as one of:
