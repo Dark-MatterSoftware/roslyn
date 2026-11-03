@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -2393,10 +2393,52 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             If currentMods <> modifiers Then
                 Dim newTokens = GetModifierList(acc, modifiers And GetAllowedModifiers(declaration.Kind), declaration, GetDeclarationKind(declaration), isDefault)
-                Return WithModifierTokens(declaration, Merge(tokens, newTokens))
+                Return WithModifierTokens(declaration, MergeModifiers(tokens, newTokens))
             Else
                 Return declaration
             End If
+        End Function
+
+        ''' <summary>
+        ''' The new modifiers, with the modifiers that declaration modifiers cannot represent kept in the order they were
+        ''' written, such as Overloads, Iterator, Widening, and on vbnext Record and ByRef. ByRef ReadOnly stays in order.
+        ''' </summary>
+        Private Shared Function MergeModifiers(original As SyntaxTokenList, newTokens As SyntaxTokenList) As SyntaxTokenList
+            Dim merged = Merge(original, newTokens)
+            For i = original.Count - 1 To 0 Step -1
+                Dim token = original(i)
+                Select Case token.Kind
+                    Case SyntaxKind.OverloadsKeyword, SyntaxKind.IteratorKeyword, SyntaxKind.WideningKeyword, SyntaxKind.NarrowingKeyword,
+                         SyntaxKind.CustomKeyword, SyntaxKind.RequiredKeyword, SyntaxKind.InitOnlyKeyword, SyntaxKind.RecordKeyword, SyntaxKind.ByRefKeyword
+                        If merged.Any(Function(t) t.Kind = token.Kind) Then
+                            Continue For
+                        End If
+
+                        ' Before the next written modifier that is kept, or else last.
+                        Dim index = merged.Count
+                        For j = i + 1 To original.Count - 1
+                            Dim found = IndexOfKind(merged, original(j).Kind)
+                            If found >= 0 Then
+                                index = found
+                                Exit For
+                            End If
+                        Next
+
+                        merged = merged.Insert(index, token)
+                End Select
+            Next
+
+            Return merged
+        End Function
+
+        Private Shared Function IndexOfKind(tokens As SyntaxTokenList, kind As SyntaxKind) As Integer
+            For i = 0 To tokens.Count - 1
+                If tokens(i).Kind = kind Then
+                    Return i
+                End If
+            Next
+
+            Return -1
         End Function
 
         Private Shared Function WithModifierTokens(declaration As SyntaxNode, tokens As SyntaxTokenList) As SyntaxNode
@@ -2506,7 +2548,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 newTokens = newTokens.Add(SyntaxFactory.Token(SyntaxKind.DimKeyword))
             End If
 
-            Return WithModifierTokens(declaration, Merge(tokens, newTokens))
+            Return WithModifierTokens(declaration, MergeModifiers(tokens, newTokens))
         End Function
 
         Friend Shared Function GetModifierList(accessibility As Accessibility, modifiers As DeclarationModifiers, declaration As SyntaxNode, kind As DeclarationKind, Optional isDefault As Boolean = False) As SyntaxTokenList

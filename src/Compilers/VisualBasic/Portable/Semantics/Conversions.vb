@@ -1062,8 +1062,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If ConversionExists(conv) OrElse
                Not (userDefinedConversionsMightStillBeApplicable OrElse
-                    (source.Type IsNot Nothing AndAlso OverloadResolution.ConstraintInterfacesDeclareConversion(source.Type, useSiteInfo)) OrElse
-                    OverloadResolution.ConstraintInterfacesDeclareConversion(destination, useSiteInfo)) Then
+                    (source.Type IsNot Nothing AndAlso Not source.Type.IsErrorType() AndAlso
+                     (OverloadResolution.ConstraintInterfacesDeclareConversion(source.Type, useSiteInfo) OrElse
+                      OverloadResolution.ConstraintInterfacesDeclareConversion(destination, useSiteInfo)))) Then
                 Return New KeyValuePair(Of ConversionKind, MethodSymbol)(conv, Nothing)
             End If
 

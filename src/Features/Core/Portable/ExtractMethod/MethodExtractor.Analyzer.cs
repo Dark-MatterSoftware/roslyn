@@ -47,6 +47,12 @@ internal abstract partial class AbstractExtractMethodService<
 
             protected abstract bool IsInPrimaryConstructorBaseType();
 
+            /// <summary>
+            /// Whether the declaration of a variable that is used only in the selection can move into the new method.
+            /// </summary>
+            protected virtual bool CanMoveDeclarationIntoMethod(ISymbol symbol)
+                => true;
+
             protected virtual bool IsReadOutside(ISymbol symbol, HashSet<ISymbol> readOutsideMap)
                 => readOutsideMap.Contains(symbol);
 
@@ -619,7 +625,7 @@ internal abstract partial class AbstractExtractMethodService<
                 }
 
                 // for captured variable, never try to move the decl into extracted method
-                if (captured && variableStyle == VariableStyle.MoveIn)
+                if ((captured || !CanMoveDeclarationIntoMethod(symbol)) && variableStyle == VariableStyle.MoveIn)
                 {
                     variableStyle = VariableStyle.Out;
                     return true;

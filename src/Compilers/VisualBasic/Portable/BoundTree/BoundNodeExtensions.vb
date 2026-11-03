@@ -57,11 +57,59 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return this
         End Function
 
+        ''' <summary>
+        ''' Marks the nodes of a synthesized tree as compiler generated, except the nodes of the source trees that it
+        ''' shares, which stay as the user wrote them.
+        ''' </summary>
+        <Extension()>
+        Public Function MakeTreeCompilerGenerated(Of T As BoundNode)(this As T, ParamArray sourceTrees As BoundNode()) As T
+            If this IsNot Nothing Then
+                Dim sourceNodes = New HashSet(Of BoundNode)()
+                Dim collector As New NodeCollector(sourceNodes)
+                For Each tree In sourceTrees
+                    collector.Visit(tree)
+                Next
+
+                Dim marker As New CompilerGeneratedMarker(sourceNodes)
+                marker.Visit(this)
+            End If
+
+            Return this
+        End Function
+
         Private NotInheritable Class CompilerGeneratedMarker
             Inherits BoundTreeWalkerWithStackGuard
 
+            Private ReadOnly _sourceNodes As HashSet(Of BoundNode)
+
+            Public Sub New(Optional sourceNodes As HashSet(Of BoundNode) = Nothing)
+                _sourceNodes = sourceNodes
+            End Sub
+
             Public Overrides Function Visit(node As BoundNode) As BoundNode
-                node?.SetWasCompilerGenerated()
+                If node Is Nothing OrElse (_sourceNodes IsNot Nothing AndAlso _sourceNodes.Contains(node)) Then
+                    Return Nothing
+                End If
+
+                node.SetWasCompilerGenerated()
+                Return MyBase.Visit(node)
+            End Function
+        End Class
+
+        Private NotInheritable Class NodeCollector
+            Inherits BoundTreeWalkerWithStackGuard
+
+            Private ReadOnly _nodes As HashSet(Of BoundNode)
+
+            Public Sub New(nodes As HashSet(Of BoundNode))
+                _nodes = nodes
+            End Sub
+
+            Public Overrides Function Visit(node As BoundNode) As BoundNode
+                If node Is Nothing OrElse Not _nodes.Add(node) Then
+                    Return Nothing
+                End If
+
                 Return MyBase.Visit(node)
             End Function
         End Class

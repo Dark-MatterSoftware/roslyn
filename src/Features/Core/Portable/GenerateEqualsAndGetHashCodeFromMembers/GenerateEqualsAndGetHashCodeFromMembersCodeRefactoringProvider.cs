@@ -276,7 +276,7 @@ internal sealed partial class GenerateEqualsAndGetHashCodeFromMembersCodeRefacto
                 value));
         }
 
-        if (!HasOperators(containingType))
+        if (!containingType.IsRefLikeType && !HasOperators(containingType))
         {
             var value = globalOptions.GetGenerateEqualsAndGetHashCodeFromMembersGenerateOperators(document.Project.Language);
 
@@ -303,7 +303,9 @@ internal sealed partial class GenerateEqualsAndGetHashCodeFromMembersCodeRefacto
             // well as operators (as long as the struct does not already have them).
             var semanticModel = await document.GetRequiredSemanticModelAsync(cancellationToken).ConfigureAwait(false);
             implementIEquatable = CanImplementIEquatable(semanticModel, containingType, out _);
-            generateOperators = !HasOperators(containingType);
+
+            // The operators call Equals(object), which a ref struct cannot be passed to.
+            generateOperators = !containingType.IsRefLikeType && !HasOperators(containingType);
         }
 
         return new GenerateEqualsAndGetHashCodeAction(

@@ -855,7 +855,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return SymbolInfo.None
             End If
 
+            Dim member = GetAnonymousTypeWithCopyMember(node)
+            If member IsNot Nothing Then
+                Return New SymbolInfo(member)
+            End If
+
             Return GetSymbolInfoForNode(options, GetBoundNodeSummary(node), binderOpt:=Nothing)
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, a name in the With copy of an anonymous type names a property of the anonymous type, which the copy
+        ''' sets without binding the name.
+        ''' </summary>
+        Private Function GetAnonymousTypeWithCopyMember(node As ExpressionSyntax) As Symbol
+            Dim name = TryCast(node, IdentifierNameSyntax)
+            Dim initializer = TryCast(name?.Parent, NamedFieldInitializerSyntax)
+            If initializer Is Nothing OrElse initializer.Name IsNot name Then
+                Return Nothing
+            End If
+
+            Dim withExpression = TryCast(initializer.Parent?.Parent, WithExpressionSyntax)
+            If withExpression Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim anonymousType = TryCast(GetTypeInfoForNode(GetBoundNodeSummary(withExpression.Expression)).Type, AnonymousTypeManager.AnonymousTypePublicSymbol)
+            Return anonymousType?.Properties.FirstOrDefault(Function(p) CaseInsensitiveComparison.Equals(p.Name, name.Identifier.ValueText))
         End Function
 
         Friend Overrides Function GetOperationWorker(node As VisualBasicSyntaxNode, cancellationToken As CancellationToken) As IOperation
@@ -2144,6 +2169,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Private ReadOnly _thisSyntaxNodeOnly As SyntaxNode ' If not Nothing, record nodes for this syntax node only.
             Private _placeholderReplacementMap As Dictionary(Of BoundValuePlaceholderBase, BoundExpression)
             Private ReadOnly _nodeCache As OrderPreservingMultiDictionary(Of SyntaxNode, BoundNode)
+            Private _recordingConsumedNodes As Boolean
 
             Private Sub New(semanticModel As MemberSemanticModel, thisSyntaxNodeOnly As SyntaxNode, nodeCache As OrderPreservingMultiDictionary(Of SyntaxNode, BoundNode))
                 _semanticModel = semanticModel
@@ -2243,7 +2269,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return Nothing
                 End If
 
-                If RecordNode(node) Then
+                If RecordNode(node, allowCompilerGenerated:=_recordingConsumedNodes OrElse StandsForCollectionLiteral(node)) AndAlso
+                   (Not _recordingConsumedNodes OrElse Not _nodeCache.Contains(node.Syntax, node)) Then
                     _nodeCache.Add(node.Syntax, node)
                 End If
 
@@ -2255,45 +2282,62 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Function
 
             Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
-                RecordConsumedIndexOrRange(node.Argument)
-                Return MyBase.VisitIndexOffset(node)
+                MyBase.VisitIndexOffset(node)
+                RecordConsumedNodes(node.ReceiverOpt)
+                RecordConsumedNodes(node.Argument)
+                Return Nothing
             End Function
 
             Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
-                RecordConsumedIndexOrRange(node.Argument)
-                Return MyBase.VisitPatternSlice(node)
+                MyBase.VisitPatternSlice(node)
+                RecordConsumedNodes(node.Receiver)
+                RecordConsumedNodes(node.Argument)
+                Return Nothing
             End Function
 
             ''' <summary>
-            ''' The ^n or a..b that an index or a slice consumed is kept outside the value it binds to, which reads its
-            ''' operands, so it is recorded without visiting them again. An Index or Range variable is in the value.
+            ''' A collection literal that converts to a collection type, and a spread in it, binds to a compiler generated
+            ''' creation or call that stands for it. The outermost one is recorded for its syntax, unless the syntax has
+            ''' a node already.
             ''' </summary>
-            Private Sub RecordConsumedIndexOrRange(argument As BoundExpression)
-                Dim current = argument
-                While current IsNot Nothing
-                    Select Case current.Kind
-                        Case BoundKind.Parenthesized
-                            RecordConsumedNode(current)
-                            current = DirectCast(current, BoundParenthesized).Expression
-                        Case BoundKind.FromEndIndexExpression
-                            RecordConsumedNode(current)
-                            Return
-                        Case BoundKind.RangeExpression
-                            RecordConsumedNode(current)
-                            Dim range = DirectCast(current, BoundRangeExpression)
-                            RecordConsumedIndexOrRange(range.LeftOperandOpt)
-                            RecordConsumedIndexOrRange(range.RightOperandOpt)
-                            Return
-                        Case Else
-                            Return
-                    End Select
-                End While
-            End Sub
-
-            Private Sub RecordConsumedNode(node As BoundNode)
-                If RecordNode(node) Then
-                    _nodeCache.Add(node.Syntax, node)
+            Private Function StandsForCollectionLiteral(node As BoundNode) As Boolean
+                If Not node.WasCompilerGenerated OrElse TypeOf node IsNot BoundExpression OrElse Not _nodeCache(node.Syntax).IsEmpty Then
+                    Return False
                 End If
+
+                Dim syntax = node.Syntax
+                Dim parent = syntax.Parent
+                Select Case syntax.Kind
+                    Case SyntaxKind.CollectionInitializer
+                        Return parent IsNot Nothing AndAlso parent.Kind <> SyntaxKind.ObjectCollectionInitializer AndAlso parent.Kind <> SyntaxKind.CollectionInitializer
+                    Case SyntaxKind.CollectionExpression
+                        Return True
+                    Case SyntaxKind.RangeExpression
+                        If DirectCast(syntax, RangeExpressionSyntax).Left IsNot Nothing OrElse parent Is Nothing Then
+                            Return False
+                        End If
+
+                        Return parent.Kind = SyntaxKind.CollectionInitializer OrElse parent.Kind = SyntaxKind.CollectionExpression OrElse
+                               (parent.Kind = SyntaxKind.SimpleArgument AndAlso parent.Parent IsNot Nothing AndAlso parent.Parent.Kind = SyntaxKind.TupleExpression)
+                    Case Else
+                        Return False
+                End Select
+            End Function
+
+            ''' <summary>
+            ''' The receiver and the ^n or a..b that an index or a slice consumed are kept outside the value it binds to.
+            ''' The value shares their nodes in a tree that is marked compiler generated, so they are recorded here,
+            ''' each once.
+            ''' </summary>
+            Private Sub RecordConsumedNodes(node As BoundExpression)
+                If node Is Nothing Then
+                    Return
+                End If
+
+                Dim saved = _recordingConsumedNodes
+                _recordingConsumedNodes = True
+                Visit(node)
+                _recordingConsumedNodes = saved
             End Sub
 
             Public Overrides Function VisitBinaryOperator(node As BoundBinaryOperator) As BoundNode

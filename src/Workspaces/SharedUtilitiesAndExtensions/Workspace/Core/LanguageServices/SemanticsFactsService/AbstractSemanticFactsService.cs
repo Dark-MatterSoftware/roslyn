@@ -33,7 +33,8 @@ internal abstract partial class AbstractSemanticFactsService : ISemanticFacts
                   SymbolKind.Parameter or
                   SymbolKind.RangeVariable or
                   SymbolKind.Field or
-                  SymbolKind.Property ||
+                  SymbolKind.Property or
+                  SymbolKind.TypeParameter ||
         s is { Kind: SymbolKind.NamedType, IsStatic: true };
 
     public SyntaxToken GenerateUniqueName(

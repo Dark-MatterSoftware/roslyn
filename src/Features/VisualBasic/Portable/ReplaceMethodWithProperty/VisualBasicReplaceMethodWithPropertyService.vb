@@ -212,8 +212,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.ReplaceMethodWithP
                 End Function)
         End Sub
 
-        Private Function IReplaceMethodWithPropertyService_GetMethodDeclarationAsync(context As CodeRefactoringContext) As Task(Of SyntaxNode) Implements IReplaceMethodWithPropertyService.GetMethodDeclarationAsync
-            Return GetMethodDeclarationAsync(context)
+        Private Async Function IReplaceMethodWithPropertyService_GetMethodDeclarationAsync(context As CodeRefactoringContext) As Task(Of SyntaxNode) Implements IReplaceMethodWithPropertyService.GetMethodDeclarationAsync
+            Dim declaration As SyntaxNode = Await GetMethodDeclarationAsync(context).ConfigureAwait(False)
+
+            ' On vbnext, a ByRef Function returns a reference and a ReadOnly Function does not change its structure, which a
+            ' ReadOnly Property does not say.
+            Dim statement = TryCast(declaration, MethodStatementSyntax)
+            If statement IsNot Nothing AndAlso statement.Modifiers.Any(Function(m) m.IsKind(SyntaxKind.ByRefKeyword) OrElse m.IsKind(SyntaxKind.ReadOnlyKeyword)) Then
+                Return Nothing
+            End If
+
+            Return declaration
         End Function
     End Class
 End Namespace

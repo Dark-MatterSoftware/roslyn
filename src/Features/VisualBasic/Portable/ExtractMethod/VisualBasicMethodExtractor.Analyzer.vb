@@ -33,6 +33,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                     Return If(info.ConvertedType.IsObjectType(), info.ConvertedType, info.Type)
                 End Function
 
+                Protected Overrides Function CanMoveDeclarationIntoMethod(symbol As ISymbol) As Boolean
+                    ' A local that a vbnext deconstruction declares has no Dim statement to move.
+                    Dim declaration = symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(Me.CancellationToken)
+                    Return declaration Is Nothing OrElse declaration.GetAncestor(Of LocalDeclarationStatementSyntax)() IsNot Nothing
+                End Function
+
                 Protected Overrides Function ReadOnlyFieldAllowed() As Boolean
                     Dim methodBlock = Me.SelectionResult.GetContainingScopeOf(Of MethodBlockBaseSyntax)()
                     If methodBlock Is Nothing Then

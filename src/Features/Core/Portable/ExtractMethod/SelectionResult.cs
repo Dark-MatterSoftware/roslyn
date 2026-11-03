@@ -158,8 +158,14 @@ internal abstract partial class AbstractExtractMethodService<
         public bool ContainsAwaitExpression()
         {
             return _containsAwaitExpression ??= CheckNodesInSelection(
-                static (syntaxFacts, node) => syntaxFacts.IsAwaitExpression(node));
+                (syntaxFacts, node) => syntaxFacts.IsAwaitExpression(node) || IsStatementThatAwaits(node));
         }
+
+        /// <summary>
+        /// Whether a statement awaits without an await expression of its own, such as a loop over an async enumerable.
+        /// </summary>
+        protected virtual bool IsStatementThatAwaits(SyntaxNode node)
+            => false;
 
         public bool ContainsConfigureAwaitFalse()
         {
@@ -269,8 +275,14 @@ internal abstract partial class AbstractExtractMethodService<
                 return ValidateLanguageSpecificRules(cancellationToken);
             }
 
-            return OperationStatus.SucceededStatus;
+            return ValidateLanguageSpecificExpressionRules(cancellationToken);
         }
+
+        /// <summary>
+        /// The rules of a language for extracting an expression.
+        /// </summary>
+        protected virtual OperationStatus ValidateLanguageSpecificExpressionRules(CancellationToken cancellationToken)
+            => OperationStatus.SucceededStatus;
 
         protected bool IsFinalSpanSemanticallyValidSpan(CancellationToken cancellationToken)
         {

@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -335,7 +335,102 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                 End If
             End Function
 
+            Protected Overrides Function IsStatementThatAwaits(node As SyntaxNode) As Boolean
+                ' Await Each and Async Using await the enumerator and DisposeAsync.
+                Dim forEachStatement = TryCast(node, ForEachStatementSyntax)
+                Dim usingStatement = TryCast(node, UsingStatementSyntax)
+                Return (forEachStatement IsNot Nothing AndAlso forEachStatement.ForKeyword.Kind = SyntaxKind.AwaitKeyword) OrElse
+                       (usingStatement IsNot Nothing AndAlso usingStatement.AsyncKeyword.Kind = SyntaxKind.AsyncKeyword)
+            End Function
+
+            ''' <summary>
+            ''' The vbnext forms that a new method cannot take: Field, which only a property's accessors can read; a ByRef
+            ''' local, or a Return of a ByRef Function, whose reference a value does not carry; a ByRef Structure value, which
+            ''' cannot leave the method it refers into; and the target of a null-conditional assignment.
+            ''' </summary>
+            Private Function ValidateVbNextRules(cancellationToken As CancellationToken) As Boolean
+                Dim model = Me.SemanticDocument.SemanticModel
+                Dim first = Me.GetFirstTokenInSelection()
+                Dim last = Me.GetLastTokenInSelection()
+                Dim span = TextSpan.FromBounds(first.SpanStart, last.Span.End)
+                Dim root = first.GetCommonRoot(last)
+
+                For Each name In root.DescendantNodesAndSelf(span).OfType(Of IdentifierNameSyntax)()
+                    If CaseInsensitiveComparison.Equals(name.Identifier.ValueText, "Field") AndAlso
+                       TryCast(model.GetSymbolInfo(name, cancellationToken).Symbol, IFieldSymbol)?.AssociatedSymbol IsNot Nothing Then
+                        Return False
+                    End If
+                Next
+
+                ' = ByRef makes a ref field of a ByRef Structure refer to a variable, only in a Sub New of the structure.
+                Dim hasByRef = root.DescendantNodesAndSelf(span).OfType(Of ByRefExpressionSyntax)().Any()
+                If Not hasByRef AndAlso IsExtractMethodOnExpression Then
+                    Dim statement = root.FirstAncestorOrSelf(Of StatementSyntax)()
+                    hasByRef = statement IsNot Nothing AndAlso statement.DescendantNodes().OfType(Of ByRefExpressionSyntax)().Any()
+                End If
+
+                If hasByRef Then
+                    Return False
+                End If
+
+                Dim method = TryCast(model.GetEnclosingSymbol(first.SpanStart, cancellationToken), IMethodSymbol)
+                If method IsNot Nothing AndAlso (method.ReturnsByRef OrElse method.ReturnsByRefReadonly) AndAlso
+                   root.DescendantNodesAndSelf(span).OfType(Of ReturnStatementSyntax)().Any() Then
+                    Return False
+                End If
+
+                If IsExtractMethodOnExpression Then
+                    Dim expression = TryCast(GetContainingScope(), ExpressionSyntax)
+                    If expression IsNot Nothing Then
+                        Dim info = model.GetTypeInfo(expression, cancellationToken)
+                        If If(info.Type?.IsRefLikeType, False) OrElse If(info.ConvertedType?.IsRefLikeType, False) Then
+                            Return False
+                        End If
+
+                        Dim assignment = expression.GetAncestor(Of AssignmentStatementSyntax)()
+                        If assignment IsNot Nothing AndAlso assignment.Left.Span.Contains(expression.Span) AndAlso
+                           assignment.Left.DescendantNodesAndSelf().OfType(Of ConditionalAccessExpressionSyntax)().Any(Function(c) c.Expression Is Nothing OrElse c.Expression.Span.Contains(expression.Span) OrElse expression.Span.Contains(c.Span)) Then
+                            Return False
+                        End If
+
+                        Dim declarator = expression.WalkUpParentheses().Parent?.Parent
+                        If TypeOf declarator Is VariableDeclaratorSyntax AndAlso
+                           DirectCast(declarator, VariableDeclaratorSyntax).Names.Any(Function(n) If(TryCast(model.GetDeclaredSymbol(n, cancellationToken), ILocalSymbol)?.IsRef, False)) Then
+                            Return False
+                        End If
+                    End If
+                End If
+
+                Dim dataFlow = Me.GetDataFlowAnalysis()
+                If dataFlow.DataFlowsOut.Any(Function(s) If(TryCast(s, ILocalSymbol)?.Type.IsRefLikeType, False)) Then
+                    Return False
+                End If
+
+                ' A local that TypeOf ... Into or a deconstruction declares has no Dim statement to move out to the call.
+                Dim usedOutside = dataFlow.ReadOutside.Concat(dataFlow.WrittenOutside).ToImmutableHashSet()
+                For Each declared In dataFlow.VariablesDeclared
+                    Dim declaration = declared.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken)
+                    If declaration IsNot Nothing AndAlso declaration.GetAncestor(Of LocalDeclarationStatementSyntax)() Is Nothing AndAlso
+                       declaration.GetAncestor(Of ForOrForEachStatementSyntax)() Is Nothing AndAlso usedOutside.Contains(declared) Then
+                        Return False
+                    End If
+                Next
+
+                Return Not dataFlow.ReadInside.Concat(dataFlow.WrittenInside).Concat(dataFlow.VariablesDeclared).
+                    Any(Function(s) If(TryCast(s, ILocalSymbol)?.IsRef, False))
+            End Function
+
+            Protected Overrides Function ValidateLanguageSpecificExpressionRules(cancellationToken As CancellationToken) As OperationStatus
+                Return If(ValidateVbNextRules(cancellationToken),
+                          OperationStatus.SucceededStatus,
+                          New OperationStatus(succeeded:=False, VBFeaturesResources.contains_invalid_selection))
+            End Function
+
             Protected Overrides Function ValidateLanguageSpecificRules(cancellationToken As CancellationToken) As OperationStatus
+                If Not ValidateVbNextRules(cancellationToken) Then
+                    Return New OperationStatus(succeeded:=False, VBFeaturesResources.contains_invalid_selection)
+                End If
+
                 ' static local can't exist in field initializer
                 If Me.GetFirstTokenInSelection().GetAncestor(Of FieldDeclarationSyntax)() Is Nothing AndAlso
                    Me.GetFirstTokenInSelection().GetAncestor(Of PropertyStatementSyntax)() Is Nothing Then

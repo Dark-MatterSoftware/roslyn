@@ -57,6 +57,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return MyBase.VisitTypeOfDeclaration(node)
         End Function
 
+        Public Overrides Function VisitDeconstructionStatement(node As BoundDeconstructionStatement) As BoundNode
+            If IsInside Then
+                Dim collector As New DeconstructionLocalsCollector(node.Syntax.Span, _variablesDeclared)
+                collector.Visit(node.Target)
+                collector.Visit(node.Body)
+            End If
+
+            Return MyBase.VisitDeconstructionStatement(node)
+        End Function
+
+        ''' <summary>
+        ''' The locals that a deconstruction declares: the names written in it, not the names of variables outside it.
+        ''' </summary>
+        Private NotInheritable Class DeconstructionLocalsCollector
+            Inherits BoundTreeWalkerWithStackGuardWithoutRecursionOnTheLeftOfBinaryOperator
+
+            Private ReadOnly _declaration As TextSpan
+            Private ReadOnly _locals As HashSet(Of Symbol)
+
+            Public Sub New(declaration As TextSpan, locals As HashSet(Of Symbol))
+                _declaration = declaration
+                _locals = locals
+            End Sub
+
+            Public Overrides Function VisitLocal(node As BoundLocal) As BoundNode
+                Dim local = node.LocalSymbol
+                If Not local.IsImplicitlyDeclared AndAlso local.Locations.Length > 0 AndAlso _declaration.Contains(local.Locations(0).SourceSpan) Then
+                    _locals.Add(local)
+                End If
+
+                Return Nothing
+            End Function
+        End Class
+
         Public Overrides Function VisitLambda(node As BoundLambda) As BoundNode
             If IsInside Then
                 For Each parameter In node.LambdaSymbol.Parameters

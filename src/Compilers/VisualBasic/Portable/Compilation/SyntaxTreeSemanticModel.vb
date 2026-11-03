@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -978,8 +978,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case SyntaxKind.ClassBlock, SyntaxKind.EnumBlock, SyntaxKind.StructureBlock, SyntaxKind.InterfaceBlock, SyntaxKind.ModuleBlock
                         parentTypeBlock = TryCast(statementSyntax, TypeBlockSyntax)
 
+                    Case SyntaxKind.ExtensionBlock
+                        parentTypeBlock = ContainingTypeBlock(statementSyntax)
+
                     Case SyntaxKind.SubBlock, SyntaxKind.FunctionBlock, SyntaxKind.ConstructorBlock, SyntaxKind.OperatorBlock, SyntaxKind.PropertyBlock, SyntaxKind.EventBlock
-                        parentTypeBlock = TryCast(statementSyntax.Parent, TypeBlockSyntax)
+                        parentTypeBlock = ContainingTypeBlock(statementSyntax.Parent)
 
                         ' EDMAURER maybe this is a top-level decl in which case the parent is a CompilationUnitSyntax
                         If parentTypeBlock Is Nothing AndAlso statementSyntax.Parent IsNot Nothing Then
@@ -1002,7 +1005,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case SyntaxKind.GetAccessorBlock, SyntaxKind.SetAccessorBlock, SyntaxKind.AddHandlerAccessorBlock, SyntaxKind.RemoveHandlerAccessorBlock, SyntaxKind.RaiseEventAccessorBlock
                         '  redirect to upper property or event symbol
                         If statementSyntax.Parent IsNot Nothing Then
-                            parentTypeBlock = TryCast(statementSyntax.Parent.Parent, TypeBlockSyntax)
+                            parentTypeBlock = ContainingTypeBlock(statementSyntax.Parent.Parent)
                         End If
 
                     Case SyntaxKind.AddHandlerAccessorBlock, SyntaxKind.RemoveHandlerAccessorBlock
@@ -1041,6 +1044,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' The type block that declares the members of a block. On vbnext, the members of an extension block are members
+        ''' of the module that contains it.
+        ''' </summary>
+        Private Shared Function ContainingTypeBlock(block As SyntaxNode) As TypeBlockSyntax
+            If block IsNot Nothing AndAlso block.Kind = SyntaxKind.ExtensionBlock Then
+                block = block.Parent
+            End If
+
+            Return TryCast(block, TypeBlockSyntax)
         End Function
 
         ''' <summary>

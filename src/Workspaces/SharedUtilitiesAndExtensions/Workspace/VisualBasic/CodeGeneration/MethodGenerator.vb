@@ -86,7 +86,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             Dim hasNoBody = Not options.Context.GenerateMethodBodies OrElse
                             method.IsAbstract OrElse
-                            destination = CodeGenerationDestination.InterfaceType
+                            (destination = CodeGenerationDestination.InterfaceType AndAlso Not HasBodyInInterface(method))
 
             If hasNoBody Then
                 Return begin
@@ -134,6 +134,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Return If(array.Length = 0, Nothing, SyntaxFactory.HandlesClause(array))
         End Function
 
+        ''' <summary>
+        ''' On vbnext, a private or shared method of an interface has a body, such as a method that extract method adds
+        ''' for code in an interface member.
+        ''' </summary>
+        Private Shared Function HasBodyInInterface(method As IMethodSymbol) As Boolean
+            Return Not method.IsAbstract AndAlso (method.DeclaredAccessibility = Accessibility.Private OrElse method.IsStatic)
+        End Function
+
         Private Overloads Shared Function GenerateTypeParameterList(method As IMethodSymbol) As TypeParameterListSyntax
             Return TypeParameterGenerator.GenerateTypeParameterList(method.TypeParameters)
         End Function
@@ -143,7 +151,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                                                   options As CodeGenerationContextInfo) As SyntaxTokenList
             Dim result As ArrayBuilder(Of SyntaxToken) = Nothing
             Using x = ArrayBuilder(Of SyntaxToken).GetInstance(result)
-                If destination <> CodeGenerationDestination.InterfaceType Then
+                If destination = CodeGenerationDestination.InterfaceType AndAlso HasBodyInInterface(method) Then
+                    AddAccessibilityModifiers(method.DeclaredAccessibility, result, destination, options, Accessibility.Public)
+
+                    If method.IsStatic Then
+                        result.Add(SyntaxFactory.Token(SyntaxKind.SharedKeyword))
+                    End If
+
+                    If CodeGenerationMethodInfo.GetIsAsyncMethod(method) Then
+                        result.Add(SyntaxFactory.Token(SyntaxKind.AsyncKeyword))
+                    End If
+                ElseIf destination <> CodeGenerationDestination.InterfaceType Then
                     AddAccessibilityModifiers(method.DeclaredAccessibility, result, destination, options, Accessibility.Public)
 
                     If method.IsAbstract Then

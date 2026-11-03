@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -23,7 +23,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.InvertIf
         End Function
 
         Protected Overrides Function CanInvert(ifNode As SingleLineIfStatementSyntax) As Boolean
+            ' On vbnext, the name that TypeOf ... Into declares is assigned only where the test is true.
             Return TypeOf ifNode.Parent IsNot SingleLineLambdaExpressionSyntax AndAlso
+                Not ifNode.Condition.DescendantNodesAndSelf().OfType(Of TypeOfIntoExpressionSyntax)().Any() AndAlso
                 Not ifNode.Statements.Any(Function(n) n.IsKind(SyntaxKind.LocalDeclarationStatement)) AndAlso
                 Not If(ifNode.ElseClause?.Statements.Any(Function(n) n.IsKind(SyntaxKind.LocalDeclarationStatement)), False)
         End Function

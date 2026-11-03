@@ -50,6 +50,9 @@ internal sealed class ReplacePropertyWithMethodsCodeRefactoringProvider() :
         var propertySymbol = semanticModel.GetDeclaredSymbol(propertyDeclaration) as IPropertySymbol;
 
         Contract.ThrowIfNull(propertySymbol);
+        if (IsStaticInterfacePropertyOrImplementation(propertySymbol) || IsRecordPositionalProperty(propertySymbol))
+            return;
+
         var propertyName = propertySymbol.Name;
 
         var accessorCount =
@@ -67,6 +70,31 @@ internal sealed class ReplacePropertyWithMethodsCodeRefactoringProvider() :
                 propertyName),
             propertyDeclaration.Span);
     }
+
+    /// <summary>
+    /// A static abstract or virtual interface property, and a property that implements one, are reached through type
+    /// parameters, which methods of the same names would not implement.
+    /// </summary>
+    private static bool IsStaticInterfacePropertyOrImplementation(IPropertySymbol property)
+    {
+        if (!property.IsStatic)
+            return false;
+
+        if (property.ContainingType.TypeKind == TypeKind.Interface)
+            return property.IsAbstract || property.IsVirtual;
+
+        return property.ContainingType.AllInterfaces
+            .SelectMany(i => i.GetMembers().OfType<IPropertySymbol>())
+            .Where(p => p.IsStatic && (p.IsAbstract || p.IsVirtual))
+            .Any(p => SymbolEqualityComparer.Default.Equals(property, property.ContainingType.FindImplementationForInterfaceMember(p)));
+    }
+
+    /// <summary>
+    /// A property of a record that a positional parameter names would come back as the record's own property.
+    /// </summary>
+    private static bool IsRecordPositionalProperty(IPropertySymbol property)
+        => property.ContainingType.IsRecord &&
+           property.ContainingType.InstanceConstructors.Any(c => c.Parameters.Any(p => string.Equals(p.Name, property.Name, StringComparison.OrdinalIgnoreCase)));
 
     private async Task<Solution> ReplacePropertyWithMethodsAsync(
        Document document,

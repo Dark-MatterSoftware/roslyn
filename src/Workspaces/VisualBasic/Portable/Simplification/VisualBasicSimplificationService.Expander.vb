@@ -503,6 +503,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Simplification
                             Return rewrittenSimpleName
                         End If
 
+                        ' On vbnext, an alias can name an array or a tuple type, which has no qualified name to expand to.
+                        If TypeOf aliasTarget Is ITypeSymbol AndAlso
+                           (aliasTarget.Kind <> SymbolKind.NamedType OrElse DirectCast(aliasTarget, INamedTypeSymbol).IsTupleType) Then
+                            Return rewrittenSimpleName
+                        End If
+
                         ' if the enclosing expression is a typeof expression that already contains open type we cannot
                         ' we need to insert an open type as well.
                         Dim typeOfExpression = originalSimpleName.GetAncestor(Of TypeOfExpressionSyntax)()

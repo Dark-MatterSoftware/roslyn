@@ -51,7 +51,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.IntroduceVariable
                 Return False
             End If
 
+            If NamesAParameter(expression, attributeBlock) Then
+                Return False
+            End If
+
             Return True
+        End Function
+
+        ''' <summary>
+        ''' On vbnext, NameOf in the attribute of a member or of a parameter can name a parameter of the member, which a
+        ''' constant of the type cannot see.
+        ''' </summary>
+        Private Shared Function NamesAParameter(expression As ExpressionSyntax, attributeBlock As AttributeListSyntax) As Boolean
+            Dim parameterList = If(TryCast(attributeBlock.Parent, MethodBaseSyntax)?.ParameterList, attributeBlock.Parent?.GetAncestor(Of ParameterListSyntax)())
+            If parameterList Is Nothing Then
+                Return False
+            End If
+
+            Dim names = parameterList.Parameters.Select(Function(p) p.Identifier.Identifier.ValueText).ToArray()
+            Return expression.DescendantNodesAndSelf().OfType(Of NameOfExpressionSyntax)().Any(
+                Function(n)
+                    Dim name = TryCast(n.Argument, IdentifierNameSyntax)
+                    Return name IsNot Nothing AndAlso names.Contains(name.Identifier.ValueText, CaseInsensitiveComparison.Comparer)
+                End Function)
         End Function
 
         Protected Overrides Function IsInConstructorInitializer(expression As ExpressionSyntax) As Boolean

@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -51,7 +51,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UseNamedArguments
             End Function
 
             Protected Overrides Function IsImplicitIndexOrRangeIndexer(parameters As ImmutableArray(Of IParameterSymbol), argument As ArgumentSyntax, semanticModel As SemanticModel) As Boolean
-                Return False
+                ' On vbnext, list(^1) and s(1..3) index by the pattern, which a named argument turns off. As in C#, an
+                ' Index or Range that does not convert implicitly to the parameter is taken as such an index.
+                Dim simpleArgument = TryCast(argument, SimpleArgumentSyntax)
+                If simpleArgument Is Nothing OrElse parameters.IsEmpty Then
+                    Return False
+                End If
+
+                Dim argumentType = semanticModel.GetTypeInfo(simpleArgument.Expression).Type
+                If argumentType?.ContainingNamespace Is Nothing OrElse argumentType.ContainingNamespace.Name <> NameOf(System) OrElse
+                   Not argumentType.ContainingNamespace.ContainingNamespace.IsGlobalNamespace OrElse
+                   (argumentType.Name <> "Range" AndAlso argumentType.Name <> "Index") Then
+                    Return False
+                End If
+
+                Dim conversion = semanticModel.Compilation.ClassifyConversion(argumentType, parameters(0).Type)
+                Return Not conversion.Exists OrElse Not conversion.IsWidening
             End Function
         End Class
 

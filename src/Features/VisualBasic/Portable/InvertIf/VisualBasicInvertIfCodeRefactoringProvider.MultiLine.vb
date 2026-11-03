@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -23,7 +23,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.InvertIf
         End Function
 
         Protected Overrides Function CanInvert(ifNode As MultiLineIfBlockSyntax) As Boolean
-            Return ifNode.ElseIfBlocks.IsEmpty
+            ' On vbnext, the name that TypeOf ... Into declares is assigned only where the test is true.
+            Return ifNode.ElseIfBlocks.IsEmpty AndAlso
+                Not ifNode.IfStatement.Condition.DescendantNodesAndSelf().OfType(Of TypeOfIntoExpressionSyntax)().Any()
         End Function
 
         Protected Overrides Function GetCondition(ifNode As MultiLineIfBlockSyntax) As SyntaxNode

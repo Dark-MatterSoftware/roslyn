@@ -42,6 +42,70 @@ End Module
             End Using
         End Function
 
+        Private Shared Async Function RenameInAsync(source As String, findSymbol As Func(Of SemanticModel, SyntaxNode, ISymbol), newName As String, Optional expectConflicts As Boolean = False) As Task(Of String)
+            Using workspace = New AdhocWorkspace()
+                Dim project = workspace.CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.VisualBasic).
+                    WithParseOptions(VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext)).
+                    WithCompilationOptions(New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optionInfer:=True)).
+                    AddMetadataReference(MetadataReference.CreateFromFile(GetType(Object).Assembly.Location))
+                Dim document = project.AddDocument("Document.vb", SourceText.From(source))
+                Dim root = Await document.GetSyntaxRootAsync()
+                Dim model = Await document.GetSemanticModelAsync()
+                Dim symbol = findSymbol(model, root)
+                Assert.NotNull(symbol)
+                Dim resolution = Await Renamer.RenameSymbolAsync(document.Project.Solution, symbol, newName, New SymbolRenameOptions(), CancellationToken.None)
+                Assert.True(resolution.IsSuccessful)
+                Dim newText = (Await resolution.NewSolution.Projects.Single().Documents.Single().GetTextAsync()).ToString()
+                Assert.Equal(expectConflicts, HasUnresolvedConflict(resolution))
+                Return newText
+            End Using
+        End Function
+
+        ''' <summary>
+        ''' Find references does not find the uses of an alias of a tuple or an array yet, so rename reports them as
+        ''' conflicts. It does not throw.
+        ''' </summary>
+        <Theory>
+        <InlineData("Span2 = (Start As Integer, Length As Integer)")>
+        <InlineData("Span2 = Integer()")>
+        Public Async Function RenameAnAliasOfATupleOrArrayReportsItsUsesAsConflicts(importsClause As String) As Task
+            Dim source = "
+Imports " & importsClause & "
+
+Module M
+    Function Shift(s As Span2) As Span2
+        Return s
+    End Function
+End Module
+"
+            Dim text = Await RenameInAsync(
+                source,
+                Function(model, root) model.GetDeclaredSymbol(root.DescendantNodes().OfType(Of TypeAliasImportsClauseSyntax)().Single()),
+                "Window",
+                expectConflicts:=True)
+
+            Assert.Contains("Imports Window = ", text)
+        End Function
+
+        <Fact>
+        Public Async Function RenameAPropertyThatAnAnonymousTypeCopySets() As Task
+            Dim source = "
+Module M
+    Function F() As Integer
+        Dim label = New With {.Name = ""a"", .Size = 1}
+        Dim bigger = label With {.Size = 3}
+        Return bigger.Size
+    End Function
+End Module
+"
+            Dim text = Await RenameInAsync(
+                source,
+                Function(model, root) model.GetSymbolInfo(root.DescendantNodes().OfType(Of IdentifierNameSyntax)().Last(Function(n) n.Identifier.ValueText = "Size")).Symbol,
+                "Width")
+
+            Assert.Equal(source.Replace("Size", "Width"), text)
+        End Function
+
         Private Shared Function HasUnresolvedConflict(resolution As ConflictResolution) As Boolean
             Return resolution.RelatedLocations.Any(Function(location) (location.Type And RelatedLocationType.UnresolvedConflict) <> 0)
         End Function

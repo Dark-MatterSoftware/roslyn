@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -83,7 +83,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             Dim hasNoBody =
                 Not options.Context.GenerateMethodBodies OrElse
-                destination = CodeGenerationDestination.InterfaceType OrElse
+                (destination = CodeGenerationDestination.InterfaceType AndAlso Not HasBodyInInterface([property])) OrElse
                 [property].IsAbstract OrElse
                 Not hasStatements
 
@@ -170,6 +170,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             End Using
         End Function
 
+        ''' <summary>
+        ''' On vbnext, a private or shared property of an interface has a body, such as the property that encapsulates a
+        ''' shared field of an interface.
+        ''' </summary>
+        Private Function HasBodyInInterface([property] As IPropertySymbol) As Boolean
+            Return Not [property].IsAbstract AndAlso ([property].DeclaredAccessibility = Accessibility.Private OrElse [property].IsStatic)
+        End Function
+
         Private Function GenerateModifiers(
                 [property] As IPropertySymbol,
                 destination As CodeGenerationDestination,
@@ -185,7 +193,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     End If
                 End If
 
-                If destination <> CodeGenerationDestination.InterfaceType Then
+                If destination = CodeGenerationDestination.InterfaceType AndAlso HasBodyInInterface([property]) Then
+                    AddAccessibilityModifiers([property].DeclaredAccessibility, tokens, destination, options, Accessibility.Public)
+
+                    If [property].IsStatic Then
+                        tokens.Add(SyntaxFactory.Token(SyntaxKind.SharedKeyword))
+                    End If
+                ElseIf destination <> CodeGenerationDestination.InterfaceType Then
                     AddAccessibilityModifiers([property].DeclaredAccessibility, tokens, destination, options, Accessibility.Public)
 
                     If [property].IsStatic AndAlso destination <> CodeGenerationDestination.ModuleType Then

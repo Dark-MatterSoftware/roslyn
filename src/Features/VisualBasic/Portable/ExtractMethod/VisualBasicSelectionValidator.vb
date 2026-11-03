@@ -50,6 +50,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                     Return InitialSelectionInfo.Failure(FeaturesResources.Selection_not_contained_inside_a_type)
                 End If
 
+                ' On vbnext, the names that a deconstruction declares are not an expression to extract.
+                If commonRoot.AncestorsAndSelf().Any(Function(n) TypeOf n Is DeconstructionListSyntax OrElse TypeOf n Is DeconstructionSlotSyntax OrElse TypeOf n Is ForEachDeconstructionSyntax) Then
+                    Return InitialSelectionInfo.Failure(FeaturesResources.No_valid_selection_to_perform_extraction)
+                End If
+
                 Dim selectionInExpression = TypeOf commonRoot Is ExpressionSyntax AndAlso
                                             commonRoot.GetFirstToken(includeZeroWidth:=True) = firstTokenInSelection AndAlso
                                             commonRoot.GetLastToken(includeZeroWidth:=True) = lastTokenInSelection

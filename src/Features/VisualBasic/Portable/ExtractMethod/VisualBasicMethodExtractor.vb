@@ -43,7 +43,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                 enclosingTopLevelNode = If(enclosingTopLevelNode, basePosition.GetAncestor(Of PropertyStatementSyntax))
 
                 Contract.ThrowIfNull(enclosingTopLevelNode)
-                Return enclosingTopLevelNode
+
+                ' On vbnext, a member of an extension block gets its new method after the block, in the module.
+                Dim extensionBlock = enclosingTopLevelNode.GetAncestor(Of ExtensionBlockSyntax)()
+                Return If(extensionBlock, enclosingTopLevelNode)
             End Function
 
             Protected Overrides Async Function PreserveTriviaAsync(root As SyntaxNode, cancellationToken As CancellationToken) As Task(Of TriviaResult)

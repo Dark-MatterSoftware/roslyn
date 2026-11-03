@@ -26,6 +26,12 @@ internal abstract class AbstractSimplifyInterpolationDiagnosticAnalyzer<
     protected abstract IVirtualCharService VirtualCharService { get; }
     protected abstract AbstractSimplifyInterpolationHelpers<TInterpolationSyntax, TExpressionSyntax> Helpers { get; }
 
+    /// <summary>
+    /// Whether an interpolated string formats its values through an interpolated string handler, which can take a
+    /// span of characters, when the compilation has one.
+    /// </summary>
+    protected virtual bool FormatsThroughHandlers => true;
+
     public override DiagnosticAnalyzerCategory GetAnalyzerCategory()
         => DiagnosticAnalyzerCategory.SemanticSpanAnalysis;
 
@@ -37,7 +43,7 @@ internal abstract class AbstractSimplifyInterpolationDiagnosticAnalyzer<
                 var knownToStringFormats = Helpers.BuildKnownToStringFormatsLookupTable(compilation);
 
                 var readOnlySpanOfCharType = compilation.ReadOnlySpanOfTType()?.Construct(compilation.GetSpecialType(SpecialType.System_Char));
-                var handlersAvailable = compilation.InterpolatedStringHandlerAttributeType() != null;
+                var handlersAvailable = FormatsThroughHandlers && compilation.InterpolatedStringHandlerAttributeType() != null;
 
                 context.RegisterOperationAction(context => AnalyzeInterpolation(context, compilation.FormattableStringType(), compilation.IFormattableType(), readOnlySpanOfCharType, knownToStringFormats, handlersAvailable), OperationKind.Interpolation);
             });

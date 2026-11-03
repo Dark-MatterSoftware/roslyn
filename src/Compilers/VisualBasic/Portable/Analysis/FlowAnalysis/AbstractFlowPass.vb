@@ -2615,8 +2615,28 @@ EnteredRegion:
         End Function
 
         Public Overrides Function VisitIndexOffset(node As BoundIndexOffset) As BoundNode
-            VisitRvalue(node.Value)
+            If RegionStartsInConsumedNodes(node.ReceiverOpt, node.Argument) Then
+                If node.ReceiverOpt IsNot Nothing Then
+                    VisitRvalue(node.ReceiverOpt)
+                End If
+                VisitRvalue(node.Argument)
+            Else
+                VisitRvalue(node.Value)
+            End If
             Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Whether a region starts in the receiver or the ^n or a..b that an index or a slice consumed. Its value reads what
+        ''' they read, but does not contain all of their nodes, so the region is analyzed in them instead.
+        ''' </summary>
+        Private Function RegionStartsInConsumedNodes(receiverOpt As BoundExpression, argument As BoundExpression) As Boolean
+            If Me._firstInRegion Is Nothing OrElse Me._regionPlace <> RegionPlace.Before Then
+                Return False
+            End If
+
+            Return (receiverOpt IsNot Nothing AndAlso BoundNodeFinder.ContainsNode(receiverOpt, Me._firstInRegion, _recursionDepth, ConvertInsufficientExecutionStackExceptionToCancelledByStackGuardException())) OrElse
+                   BoundNodeFinder.ContainsNode(argument, Me._firstInRegion, _recursionDepth, ConvertInsufficientExecutionStackExceptionToCancelledByStackGuardException())
         End Function
 
         Public Overrides Function VisitPositionalPattern(node As BoundPositionalPattern) As BoundNode
@@ -2630,7 +2650,12 @@ EnteredRegion:
         End Function
 
         Public Overrides Function VisitPatternSlice(node As BoundPatternSlice) As BoundNode
-            VisitRvalue(node.Value)
+            If RegionStartsInConsumedNodes(node.Receiver, node.Argument) Then
+                VisitRvalue(node.Receiver)
+                VisitRvalue(node.Argument)
+            Else
+                VisitRvalue(node.Value)
+            End If
             Return Nothing
         End Function
 

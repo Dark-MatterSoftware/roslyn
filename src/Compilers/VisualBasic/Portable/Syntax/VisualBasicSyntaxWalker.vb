@@ -33,8 +33,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim list = node.ChildNodesAndTokens()
             Dim childCnt = list.Count
 
+            ' An empty slot of a vbnext deconstruction list has no children.
             Dim i As Integer = 0
-            Do
+            Do While i < childCnt
                 Dim child = list(i)
                 i = i + 1
 
@@ -48,7 +49,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Me.VisitToken(child.AsToken())
                     End If
                 End If
-            Loop While i < childCnt
+            Loop
 
         End Sub
 

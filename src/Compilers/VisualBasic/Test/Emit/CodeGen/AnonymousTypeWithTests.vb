@@ -93,5 +93,26 @@ BC30205: End of statement expected.
                   ~~~~
 </expected>)
         End Sub
+        <Fact>
+        Public Sub CopiedNamesAreTheProperties()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim label = New With {.Name = ""a"", .Size = 1}
+        Dim bigger = label With {.Size = 3}
+        System.Console.WriteLine(bigger.Size)
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim sizes = tree.GetRoot().DescendantNodes().OfType(Of Microsoft.CodeAnalysis.VisualBasic.Syntax.IdentifierNameSyntax)().Where(Function(n) n.Identifier.ValueText = "Size").ToArray()
+            Assert.Equal(3, sizes.Length)
+            Dim copied = model.GetSymbolInfo(sizes(1)).Symbol
+            Assert.Equal(SymbolKind.Property, copied.Kind)
+            Assert.Equal(copied, model.GetSymbolInfo(sizes(2)).Symbol)
+        End Sub
     End Class
 End Namespace

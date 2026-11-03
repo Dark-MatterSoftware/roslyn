@@ -1597,7 +1597,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If Not slot.Nested.IsDefault Then
                     DeclareWithErrorType(slot.Nested, diagnostics)
                 ElseIf slot.DeclaredLocal IsNot Nothing Then
-                    VerifyLocalSymbolNameAndSetType(slot.DeclaredLocal, ErrorTypeSymbol.UnknownResultType, slot.Name, slot.Name.Identifier, diagnostics)
+                    ' A name with an As clause keeps its type.
+                    Dim slotSyntax = TryCast(slot.Syntax, DeconstructionSlotSyntax)
+                    Dim localType = If(slotSyntax IsNot Nothing AndAlso slotSyntax.AsClause IsNot Nothing, slot.DeclaredLocal.Type, ErrorTypeSymbol.UnknownResultType)
+                    VerifyLocalSymbolNameAndSetType(slot.DeclaredLocal, localType, slot.Name, slot.Name.Identifier, diagnostics)
                 End If
             Next
         End Sub

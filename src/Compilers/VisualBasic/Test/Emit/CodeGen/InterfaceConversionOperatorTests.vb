@@ -118,6 +118,25 @@ BC30512: Option Strict On disallows implicit conversions from 'T' to 'Integer'.
         End Sub
 
         <Fact>
+        Public Sub InterfaceConversionFromAnUndeclaredName()
+            Dim compilation = CreateCompilation({InterfaceSource, "
+Module Program
+    Function Make(Of T As IFromInteger(Of T))() As T
+        Dim result As T = missing
+        Return result
+    End Function
+End Module
+"}, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(
+<expected>
+BC30451: 'missing' is not declared. It may be inaccessible due to its protection level.
+        Dim result As T = missing
+                          ~~~~~~~
+</expected>)
+        End Sub
+
+        <Fact>
         Public Sub InterfaceConversionsInExpressionTrees()
             Dim compilation = CreateCompilation({InterfaceSource, "
 Imports System

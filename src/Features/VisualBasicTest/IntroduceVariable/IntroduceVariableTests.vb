@@ -671,8 +671,8 @@ Imports System.Collections.Generic
 Imports System.Linq
 Module Program
     Sub Main(Of T)(x As Integer)
-        Dim {|Rename:t|} As T = CType(2.ToString(), T)
-        Goo(t)
+        Dim {|Rename:t1|} As T = CType(2.ToString(), T)
+        Goo(t1)
     End Sub
 End Module")
         End Function

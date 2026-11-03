@@ -149,7 +149,7 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
         // Need to special case for expressions that are contained within a parameter or attribute argument
         // because it is technically "contained" within a method, but does not make
         // sense to introduce.
-        var invalidNode = expression.FirstAncestorOrSelf<SyntaxNode>(node => syntaxFacts.IsAttributeArgument(node) || syntaxFacts.IsParameter(node));
+        var invalidNode = expression.FirstAncestorOrSelf<SyntaxNode>(node => syntaxFacts.IsAttributeArgument(node) || syntaxFacts.IsAttribute(node) || syntaxFacts.IsParameter(node));
         return invalidNode is null;
     }
 

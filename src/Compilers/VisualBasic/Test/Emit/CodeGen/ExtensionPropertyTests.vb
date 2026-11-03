@@ -132,6 +132,29 @@ End Module
                 Diagnostic(ERRID.ERR_UnrecognizedEnd, "End").WithLocation(9, 5))
         End Sub
 
+        <Fact>
+        Public Sub ExtensionProperty_DeclaredSymbols()
+            Dim compilation = CreateCompilation("
+Module StringExtensions
+    Extension(s As String)
+        Public ReadOnly Property WordCount As Integer
+            Get
+                Return s.Length
+            End Get
+        End Property
+    End Extension
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            compilation.AssertNoDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim propertyBlock = tree.GetRoot().DescendantNodes().OfType(Of Microsoft.CodeAnalysis.VisualBasic.Syntax.PropertyBlockSyntax)().Single()
+            Dim wordCount = model.GetDeclaredSymbol(propertyBlock.PropertyStatement)
+            Assert.Equal("ReadOnly Property StringExtensions.WordCount(s As System.String) As System.Int32", wordCount.ToTestDisplayString())
+            Dim getter = model.GetDeclaredSymbol(propertyBlock.Accessors.Single().AccessorStatement)
+            Assert.Same(DirectCast(wordCount, IPropertySymbol).GetMethod, getter)
+        End Sub
     End Class
 
 End Namespace

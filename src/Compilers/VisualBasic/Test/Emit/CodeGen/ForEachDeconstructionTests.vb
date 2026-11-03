@@ -131,6 +131,29 @@ BC30616: Variable 'f' hides a variable in an enclosing block.
         End Sub
 
         <Fact>
+        Public Sub ForEachDeconstruction_NestedErrorKeepsAsClauseTypes()
+            Dim compilation = CreateCompilation("
+Module Program
+    Sub Main()
+        For Each ((name, count As Long), ) In {(1, 2)}
+            System.Console.WriteLine(count)
+        Next
+    End Sub
+End Module
+", options:=TestOptions.ReleaseDll.WithOptionInfer(True), parseOptions:=VbNext)
+
+            compilation.AssertTheseDiagnostics(<expected><![CDATA[
+BC37363: Deconstruction requires a tuple with 2 elements.
+        For Each ((name, count As Long), ) In {(1, 2)}
+                  ~~~~~~~~~~~~~~~~~~~~~
+]]></expected>)
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim count = tree.GetRoot().DescendantNodes().OfType(Of Syntax.IdentifierNameSyntax)().Single(Function(n) n.Identifier.ValueText = "count")
+            Assert.Equal("Long", model.GetTypeInfo(count).Type.ToDisplayString())
+        End Sub
+
+        <Fact>
         Public Sub ForEachDeconstruction_OptionInferOff()
             Dim compilation = CreateCompilation("
 Module Program

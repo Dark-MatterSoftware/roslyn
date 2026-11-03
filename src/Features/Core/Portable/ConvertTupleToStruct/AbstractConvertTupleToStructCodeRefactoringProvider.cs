@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -58,13 +58,19 @@ internal abstract partial class AbstractConvertTupleToStructCodeRefactoringProvi
 {
     protected abstract TArgumentSyntax GetArgumentWithChangedName(TArgumentSyntax argument, string name);
 
+    /// <summary>
+    /// Whether a tuple expression or type can become the new type. A language can keep tuples that must stay tuples.
+    /// </summary>
+    protected virtual bool CanConvert(SyntaxNode tupleExpressionOrType)
+        => true;
+
     public override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
     {
         var (document, textSpan, cancellationToken) = context;
         var (tupleExprOrTypeNode, tupleType) = await TryGetTupleInfoAsync(
             document, textSpan, cancellationToken).ConfigureAwait(false);
 
-        if (tupleExprOrTypeNode == null || tupleType == null)
+        if (tupleExprOrTypeNode == null || tupleType == null || !CanConvert(tupleExprOrTypeNode))
         {
             return;
         }
@@ -652,7 +658,7 @@ internal abstract partial class AbstractConvertTupleToStructCodeRefactoringProvi
                 continue;
             }
 
-            if (AreEquivalent(comparer, tupleType, childType))
+            if (AreEquivalent(comparer, tupleType, childType) && CanConvert(childCreation))
             {
                 changed = true;
                 ReplaceWithObjectCreation(
@@ -744,7 +750,7 @@ internal abstract partial class AbstractConvertTupleToStructCodeRefactoringProvi
         return (TArgumentSyntax)generator.Argument(expr).WithTriviaFrom(argument);
     }
 
-    private static async Task<bool> ReplaceMatchingTupleTypesAsync(
+    private async Task<bool> ReplaceMatchingTupleTypesAsync(
         Document document, SyntaxEditor editor, SyntaxNode startingNode,
         INamedTypeSymbol tupleType, TNameSyntax qualifiedTypeName,
         string typeName, ImmutableArray<ITypeParameterSymbol> typeParameters,
@@ -765,7 +771,7 @@ internal abstract partial class AbstractConvertTupleToStructCodeRefactoringProvi
                 continue;
             }
 
-            if (AreEquivalent(comparer, tupleType, childType))
+            if (AreEquivalent(comparer, tupleType, childType) && CanConvert(childTupleType))
             {
                 changed = true;
                 ReplaceWithTypeNode(
