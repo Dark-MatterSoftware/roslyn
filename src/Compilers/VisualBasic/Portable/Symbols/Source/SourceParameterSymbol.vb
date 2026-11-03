@@ -114,6 +114,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         Return False
                     End If
 
+                    ' The parameter list of a primary constructor is written in the type statement.
+                    If TypeOf Me.ContainingSymbol Is PrimaryConstructorSymbol Then
+                        Return False
+                    End If
+
                     Return True
                 End If
 

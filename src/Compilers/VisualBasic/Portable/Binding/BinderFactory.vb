@@ -245,6 +245,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Return containingBinder
                     End If
 
+                Case NodeUsage.PrimaryConstructorBaseArguments
+                    ' The arguments bind as the primary constructor binds them, with its parameters in scope.
+                    Dim containingType = TryCast(TryCast(containingBinder, NamedTypeBinder)?.ContainingType, SourceMemberContainerTypeSymbol)
+                    If containingType IsNot Nothing Then
+                        For Each constructor In containingType.InstanceConstructors
+                            If TypeOf constructor Is PrimaryConstructorSymbol Then
+                                Return New DeclarationInitializerBinder(constructor, ImmutableArray(Of Symbol).Empty, New PrimaryConstructorParameterBinder(containingBinder, constructor.Parameters), node)
+                            End If
+                        Next
+                    End If
+
+                    Return Nothing
+
                 Case NodeUsage.ImplementsStatement
                     Dim containingNamedTypeBinder = TryCast(containingBinder, NamedTypeBinder)
 

@@ -164,6 +164,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 importsClause.Alias.Identifier.ValueText.AppendToAliasNameSet(builder)
             Next
 
+            For Each statement In root.Imports
+                For Each typeAlias In statement.ImportsClauses.OfType(Of TypeAliasImportsClauseSyntax)()
+                    typeAlias.Alias.Identifier.ValueText.AppendToAliasNameSet(builder)
+                Next
+            Next
+
             Return builder.ToImmutable()
         End Function
 

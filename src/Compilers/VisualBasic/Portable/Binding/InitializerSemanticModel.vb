@@ -78,6 +78,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case SyntaxKind.EqualsValue, SyntaxKind.AsNewClause
                     boundInitializer = BindInitializer(binder, node, diagnostics)
+
+                Case SyntaxKind.ArgumentList
+                    If TypeOf Me.MemberSymbol Is PrimaryConstructorSymbol AndAlso node Is Me.Root Then
+                        Dim baseType = Me.MemberSymbol.ContainingType.BaseTypeNoUseSiteDiagnostics
+                        boundInitializer = binder.BindPrimaryBaseConstructorCall(node, DirectCast(node, ArgumentListSyntax), baseType, diagnostics)
+                    End If
             End Select
 
             If boundInitializer IsNot Nothing Then

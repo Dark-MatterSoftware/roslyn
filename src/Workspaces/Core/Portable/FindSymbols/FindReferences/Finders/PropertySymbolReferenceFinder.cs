@@ -73,24 +73,16 @@ internal sealed class PropertySymbolReferenceFinder : AbstractMethodOrPropertyOr
                 } containingType,
             })
         {
-            // OK, we have a property in a record.  See if we can find a primary constructor that has a parameter that synthesized this
-            var containingTypeSyntaxes = containingType.DeclaringSyntaxReferences.SelectAsArray(r => r.GetSyntax(cancellationToken));
+            // OK, we have a property in a record.  See if we can find a primary constructor that has a parameter that
+            // synthesized this.  GetAssociatedSynthesizedRecordProperty only maps a parameter of the primary constructor.
             foreach (var constructor in containingType.Constructors)
             {
-                if (constructor.DeclaringSyntaxReferences.Length > 0)
+                foreach (var parameter in constructor.Parameters)
                 {
-                    var constructorSyntax = constructor.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken);
-                    if (containingTypeSyntaxes.Contains(constructorSyntax))
+                    if (property.Name.Equals(parameter.Name) &&
+                        property.Equals(parameter.GetAssociatedSynthesizedRecordProperty(cancellationToken)))
                     {
-                        // OK found the primary construct.  Try to find a parameter that corresponds to this property.
-                        foreach (var parameter in constructor.Parameters)
-                        {
-                            if (property.Name.Equals(parameter.Name) &&
-                                property.Equals(parameter.GetAssociatedSynthesizedRecordProperty(cancellationToken)))
-                            {
-                                result.Add(parameter);
-                            }
-                        }
+                        result.Add(parameter);
                     }
                 }
             }

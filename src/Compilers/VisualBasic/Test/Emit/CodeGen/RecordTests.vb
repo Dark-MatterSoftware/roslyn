@@ -269,7 +269,7 @@ End Class
 ", parseOptions:=VbNext)
 
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.WRN_MustOverloadBase4, "Name As Integer").WithArguments("property", "Name", "class", "Animal").WithLocation(10, 18))
+                Diagnostic(ERRID.WRN_MustOverloadBase4, "Name").WithArguments("property", "Name", "class", "Animal").WithLocation(10, 18))
             Dim dog = compilation.GetTypeByMetadataName("Dog")
             Assert.Equal("Integer", dog.GetMembers("Name").OfType(Of IPropertySymbol)().Single().Type.ToDisplayString())
         End Sub
@@ -906,6 +906,38 @@ End Module
 
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_ExpectedEOS, "With").WithLocation(9, 19))
+        End Sub
+
+        <Fact>
+        Public Sub PositionalRecord_SemanticModelLinksTheParameterAndTheProperty()
+            Dim compilation = CreateCompilation(ExternalInit & "
+Class Shape
+    Public Sub New(origin As Integer)
+    End Sub
+End Class
+
+Record Class Point(X As Integer, Y As Integer)
+    Inherits Shape(X)
+End Class
+", parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim root = tree.GetRoot()
+            Dim parameterSyntax = root.DescendantNodes().OfType(Of Syntax.ParameterSyntax)().Single(Function(p) p.Identifier.Identifier.ValueText = "X")
+
+            Dim parameter = model.GetDeclaredSymbol(parameterSyntax)
+            Assert.Equal(MethodKind.Constructor, DirectCast(parameter.ContainingSymbol, IMethodSymbol).MethodKind)
+            Assert.False(parameter.IsImplicitlyDeclared)
+            Assert.Same(parameterSyntax, parameter.DeclaringSyntaxReferences.Single().GetSyntax())
+
+            Dim [property] = parameter.ContainingType.GetMembers("X").OfType(Of IPropertySymbol)().Single()
+            Assert.Same(parameterSyntax, [property].DeclaringSyntaxReferences.Single().GetSyntax())
+            Assert.Equal(parameterSyntax.Identifier.Identifier.GetLocation(), [property].Locations.Single())
+
+            Dim argument = root.DescendantNodes().OfType(Of Syntax.InheritsStatementSyntax)().Single(Function(s) s.ArgumentList IsNot Nothing).ArgumentList.Arguments.Single().GetExpression()
+            Assert.Equal(parameter, model.GetSymbolInfo(argument).Symbol)
         End Sub
     End Class
 

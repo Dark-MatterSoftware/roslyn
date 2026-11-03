@@ -163,6 +163,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Function
 
             Public Overrides Function VisitInheritsStatement(inheritsSyntax As InheritsStatementSyntax) As Binder
+                Dim argumentList = inheritsSyntax.ArgumentList
+                If argumentList IsNot Nothing AndAlso SyntaxFacts.InSpanOrEffectiveTrailingOfNode(argumentList, _position) Then
+                    Dim binder = GetBinderForNodeAndUsage(argumentList, NodeUsage.PrimaryConstructorBaseArguments, inheritsSyntax.Parent, _position)
+                    If binder IsNot Nothing Then
+                        Return binder
+                    End If
+                End If
+
                 Return GetBinderForNodeAndUsage(inheritsSyntax, NodeUsage.InheritsStatement, inheritsSyntax.Parent, _position)
             End Function
 

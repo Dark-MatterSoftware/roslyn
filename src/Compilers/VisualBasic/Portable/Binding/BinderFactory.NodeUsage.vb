@@ -46,6 +46,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' For an inherits statement in a type
             InheritsStatement
 
+            ' For the arguments of an inherits statement, passed to the base constructor by a primary constructor
+            PrimaryConstructorBaseArguments
+
             ' For an implements statement in a type
             ImplementsStatement
 

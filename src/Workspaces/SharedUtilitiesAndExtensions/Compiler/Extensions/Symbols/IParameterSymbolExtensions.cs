@@ -31,24 +31,20 @@ internal static partial class IParameterSymbolExtensions
                 ContainingSymbol: IMethodSymbol
                 {
                     MethodKind: MethodKind.Constructor,
-                    DeclaringSyntaxReferences.Length: > 0,
                     ContainingType: { IsRecord: true } containingType,
-                } constructor,
+                },
             })
         {
-            // ok, we have a record constructor.  This might be the primary constructor or not.
+            // ok, we have a record constructor.  Only a parameter of the primary constructor declares a synthesized
+            // property, so a property declared by the same syntax is the one this parameter synthesized.  The primary
+            // constructor of a Visual Basic record is synthesized and has no declaring syntax of its own.
             var parameterSyntax = parameter.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken);
-            var constructorSyntax = constructor.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken);
-            if (containingType.DeclaringSyntaxReferences.Any(static (r, arg) => r.GetSyntax(arg.cancellationToken) == arg.constructorSyntax, (constructorSyntax, cancellationToken)))
+            foreach (var member in containingType.GetMembers(parameter.Name))
             {
-                // this was a primary constructor. see if we can map this parameter to a corresponding synthesized property 
-                foreach (var member in containingType.GetMembers(parameter.Name))
+                if (member is IPropertySymbol { DeclaringSyntaxReferences.Length: > 0 } property &&
+                    property.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken) == parameterSyntax)
                 {
-                    if (member is IPropertySymbol { DeclaringSyntaxReferences.Length: > 0 } property &&
-                        property.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken) == parameterSyntax)
-                    {
-                        return property;
-                    }
+                    return property;
                 }
             }
         }

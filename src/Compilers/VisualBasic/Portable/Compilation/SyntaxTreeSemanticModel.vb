@@ -1107,6 +1107,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         End If
                     End If
                 End If
+
+                ' On vbnext, a parameter of a primary constructor, as in Record Class Point(X As Integer).
+                Dim typeStatement = TryCast(paramList.Parent, TypeStatementSyntax)
+                If typeStatement IsNot Nothing Then
+                    Dim typeSymbol = TryCast(GetDeclaredSymbol(typeStatement, cancellationToken), NamedTypeSymbol)
+                    If typeSymbol IsNot Nothing Then
+                        For Each constructor In typeSymbol.InstanceConstructors
+                            If TypeOf constructor Is PrimaryConstructorSymbol Then
+                                Return GetParameterSymbol(constructor.Parameters, parameter)
+                            End If
+                        Next
+                    End If
+                End If
             End If
 
             Return Nothing

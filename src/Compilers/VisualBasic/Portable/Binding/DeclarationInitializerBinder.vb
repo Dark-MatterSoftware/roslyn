@@ -10,7 +10,8 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Namespace Microsoft.CodeAnalysis.VisualBasic
 
     ''' <summary>
-    ''' Binder used for field, auto property initializations and parameter default values.
+    ''' Binder used for field, auto property initializations and parameter default values, and on vbnext for the
+    ''' arguments that a primary constructor passes to the base constructor.
     ''' </summary>
     Friend NotInheritable Class DeclarationInitializerBinder
         Inherits Binder
@@ -37,7 +38,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <param name="root">Root syntax node</param>
         Public Sub New(symbol As Symbol, additionalSymbols As ImmutableArray(Of Symbol), [next] As Binder, root As VisualBasicSyntaxNode)
             MyBase.New([next])
-            Debug.Assert((symbol.Kind = SymbolKind.Field) OrElse (symbol.Kind = SymbolKind.Property) OrElse (symbol.Kind = SymbolKind.Parameter))
+            Debug.Assert((symbol.Kind = SymbolKind.Field) OrElse (symbol.Kind = SymbolKind.Property) OrElse (symbol.Kind = SymbolKind.Parameter) OrElse
+                         TypeOf symbol Is PrimaryConstructorSymbol)
             Debug.Assert(additionalSymbols.All(Function(s) s.Kind = symbol.Kind AndAlso (s.Kind = SymbolKind.Field OrElse s.Kind = SymbolKind.Property)))
             Debug.Assert(symbol.Kind <> SymbolKind.Parameter OrElse additionalSymbols.IsEmpty)
             Me._symbol = symbol

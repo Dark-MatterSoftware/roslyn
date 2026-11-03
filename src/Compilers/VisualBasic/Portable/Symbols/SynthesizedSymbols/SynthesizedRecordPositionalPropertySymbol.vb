@@ -13,12 +13,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _container As NamedTypeSymbol
         Private ReadOnly _name As String
         Private ReadOnly _type As TypeSymbol
-        Private ReadOnly _syntax As VisualBasicSyntaxNode
+        Private ReadOnly _syntax As ParameterSyntax
         Private _backingField As FieldSymbol
         Private _getMethod As MethodSymbol
         Private _setMethod As MethodSymbol
 
-        Public Sub New(syntax As VisualBasicSyntaxNode, container As NamedTypeSymbol, name As String, type As TypeSymbol)
+        Public Sub New(syntax As ParameterSyntax, container As NamedTypeSymbol, name As String, type As TypeSymbol)
             _syntax = syntax
             _container = container
             _name = name
@@ -72,13 +72,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property Locations As ImmutableArray(Of Location)
             Get
-                Return ImmutableArray.Create(_syntax.GetLocation())
+                Return ImmutableArray.Create(_syntax.Identifier.Identifier.GetLocation())
             End Get
         End Property
 
+        ''' <summary>
+        ''' The parameter declares the property.
+        ''' </summary>
         Public Overrides ReadOnly Property DeclaringSyntaxReferences As ImmutableArray(Of SyntaxReference)
             Get
-                Return ImmutableArray(Of SyntaxReference).Empty
+                Return ImmutableArray.Create(_syntax.GetReference())
             End Get
         End Property
 
