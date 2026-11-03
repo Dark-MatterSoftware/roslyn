@@ -95,5 +95,6 @@ Module Program
         WaveThirtyTwo.Run()
         WaveThirtyThree.Run()
         WaveThirtyFour.Run()
+        WaveThirtyFive.Run()
     End Sub
 End Module

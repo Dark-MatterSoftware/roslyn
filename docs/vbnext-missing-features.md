@@ -463,6 +463,15 @@ Planned from the findings of VB-179, a probe of assignment through an index from
 | VB-183 | Extract method and introduce variable on the remaining Vb.Next forms | Done in phase 168: neither is offered on those forms, and the semantic model binds the name of a guard `If` in the statements after it, which it did not, so `GetSymbolInfo` and data flow analysis saw no use of the name. Classification: Tooling/diagnostics. From VB-179: both broke the `For Each ... Yield ... Next` expression in an XML literal, because the new method is not an `Iterator` and the new local has no type; extract method of `If TypeOf x IsNot T Into name Then Return` loses `name`, which the code after the `If` uses; and extract method of a `Return` of a ByRef Structure returns a value that refers to a parameter, BC37418. |
 | VB-184 | Deploy the debugger's expression evaluator with the other extensions | Done in phase 169: the evaluator builds and deploys from the repo path, space included, with the other three extensions in `docs/vbnext-toolset.md`, because the result providers list their `.vsdconfigxml` files relative to the project. Classification: Tooling/diagnostics. From the wave 34 Visual Studio session: without this repo's evaluator, the Watch and Immediate windows report an internal error in the Basic compiler for expressions in a method that has a Vb.Next form, and the deploy in `docs/vbnext-toolset.md` leaves the evaluator out, because its build fails in `VSDConfigTool` from a path with a space. Deployed from a drive letter mapped with `subst`, it evaluates the Vb.Next forms. |
 
+### Found in the wave 35 validation, not yet planned
+
+The rerun of the VB-179 probe in [vbnext-wave35-validation.md](vbnext-wave35-validation.md) found these Vb.Next follow-ups. Each was compared with the same edit on a Visual Basic 17.13 form. They wait for the choice of the next wave.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-185 | The type of a call whose result is indexed from the end | Open. Classification: Tooling/diagnostics (a fix to VB-006). On `Make()(^1)`, in a read such as `Dim f = Make()(^3)` or a target such as `Make()(^2) += 5`, extract method, introduce variable, and introduce parameter take the name `Make` for a value of the module's type and write `Dim make As WaveThirtyFive`. On `Make()(2)` extract method writes code that compiles, and the other two are not offered. |
+| VB-186 | Introduce parameter on a type test that names its result | Open. Classification: Tooling/diagnostics. Introduce parameter on `TypeOf value IsNot String Into text`, the condition of a guard `If`, replaces the test with a parameter and leaves `text` undeclared, so it binds to the namespace `System.Text`. On `TypeOf value IsNot String` the same refactoring writes code that compiles. |
+
 ### Upstream Visual Basic defects, not part of wave 35
 
 VB-179 found these in upstream Visual Basic; Vb.Next only gives them more code to meet. They are recorded here, apart from the Vb.Next rows, so that a decision to fix any of them is its own.
@@ -474,7 +483,9 @@ VB-179 found these in upstream Visual Basic; Vb.Next only gives them more code t
 - Convert tuple to struct qualifies the new type with `Global.` without the project's root namespace.
 - Convert property to methods breaks a `Default` property, and rename of a member that implements an interface from metadata breaks the implementation.
 - Extract method is offered on a `Yield` statement of an `Iterator` method. Found in phase 168, where the same offer on the `Yield` of an XML embedded block wrote a new method that is not an `Iterator`; phase 168 stops it only for the embedded block.
-- Extract interface is offered on a `Module`, which cannot implement an interface. Found in the wave 34 Visual Studio session; `AbstractExtractInterfaceService` leaves out only extension types.
+- Extract interface is offered on a `Module`, which cannot implement an interface.
+- Introduce parameter on a `For Each` control variable read in the loop moves the name to the call sites, where it is not declared, for `For Each order In orders` as for the names of `For Each (size, state) In orders`. Found in the wave 35 validation.
+- Introduce parameter that updates the call sites writes the expression unqualified there, so a call in another module can bind to a member of the same name in a third module. Found in the wave 35 validation. Found in the wave 34 Visual Studio session; `AbstractExtractInterfaceService` leaves out only extension types.
 
 ### Upstream tooling and Visual Studio defects, not part of wave 35
 
