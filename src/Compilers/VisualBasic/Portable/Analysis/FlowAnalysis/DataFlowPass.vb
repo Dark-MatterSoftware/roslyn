@@ -333,6 +333,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Case BoundKind.LocalDeclaration
                         Return DirectCast(node, BoundLocalDeclaration).LocalSymbol
 
+                    Case BoundKind.TypeOfDeclaration
+                        Return DirectCast(node, BoundTypeOfDeclaration).Local
+
                     Case BoundKind.ForToStatement,
                         BoundKind.ForEachStatement
                         Return DirectCast(node, BoundForStatement).DeclaredOrInferredLocalOpt

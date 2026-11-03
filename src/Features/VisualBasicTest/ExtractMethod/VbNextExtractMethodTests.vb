@@ -175,5 +175,73 @@ Class C
     End Function
 End Class")
         End Function
+
+        Private Const XmlItems As String = "Imports System.Xml.Linq
+
+Class C
+    Function Items(names As String()) As XElement
+        Return <ul>
+                   <%= {0} %>
+               </ul>
+    End Function
+End Class"
+
+        <Fact>
+        Public Async Function TestNotOnTheForEachOfAnXmlEmbeddedBlock() As Task
+            Await TestMissingAsync(InVbNext(String.Format(XmlItems,
+"[|For Each name As String In names
+                           Yield <li><%= name %></li>
+                       Next|]")))
+        End Function
+
+        <Fact>
+        Public Async Function TestNotOnAYieldInAnXmlEmbeddedBlock() As Task
+            Await TestMissingAsync(InVbNext(String.Format(XmlItems,
+"For Each name As String In names
+                           [|Yield <li><%= name %></li>|]
+                       Next")))
+        End Function
+
+        <Fact>
+        Public Async Function TestNotOnAnIfWhoseTypeOfIntoNameIsUsedAfter() As Task
+            Await TestMissingAsync(InVbNext(
+"Class C
+    Function Label(value As Object) As String
+        [|If TypeOf value IsNot String Into text Then Return ""not text""|]
+
+        Return $""text of length {text.Length}""
+    End Function
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNotOnATypeOfIntoWhoseNameIsUsedAfter() As Task
+            Await TestMissingAsync(InVbNext(
+"Class C
+    Function Label(value As Object) As String
+        If [|TypeOf value IsNot String Into text|] Then Return ""not text""
+
+        Return $""text of length {text.Length}""
+    End Function
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestNotOnAReturnOfAByRefStructure() As Task
+            Await TestMissingAsync(InVbNext(
+"ByRef Structure Tally
+    Private ByRef _total As Integer
+
+    Sub New(ByRef total As Integer)
+        _total = ByRef total
+    End Sub
+End Structure
+
+Class C
+    Function Track(ByRef total As Integer) As Tally
+        [|Return New Tally(total)|]
+    End Function
+End Class"))
+        End Function
     End Class
 End Namespace

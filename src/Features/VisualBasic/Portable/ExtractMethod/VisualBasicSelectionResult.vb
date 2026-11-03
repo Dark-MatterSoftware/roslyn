@@ -379,6 +379,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                     Return False
                 End If
 
+                ' A Return of a ByRef Structure would return it from the new method, which its parameters can refer into.
+                If root.DescendantNodesAndSelf(span).OfType(Of ReturnStatementSyntax)().Any(
+                    Function(r) r.Expression IsNot Nothing AndAlso If(model.GetTypeInfo(r.Expression, cancellationToken).Type?.IsRefLikeType, False)) Then
+                    Return False
+                End If
+
+                ' The statements of an XML embedded block are the body of an implicit Iterator function when they Yield.
+                If root.DescendantNodesAndSelf(span).OfType(Of YieldStatementSyntax)().Any(
+                    Function(y) If(TryCast(y.FirstAncestorOrSelf(Of LambdaExpressionSyntax)(), MultiLineLambdaExpressionSyntax)?.IsXmlEmbeddedStatementBlock(), False)) Then
+                    Return False
+                End If
+
                 If IsExtractMethodOnExpression Then
                     Dim expression = TryCast(GetContainingScope(), ExpressionSyntax)
                     If expression IsNot Nothing Then
@@ -420,17 +432,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                     Any(Function(s) If(TryCast(s, ILocalSymbol)?.IsRef, False))
             End Function
 
-            Protected Overrides Function ValidateLanguageSpecificExpressionRules(cancellationToken As CancellationToken) As OperationStatus
+            Protected Overrides Function ValidateLanguageSpecificFormRules(cancellationToken As CancellationToken) As OperationStatus
                 Return If(ValidateVbNextRules(cancellationToken),
                           OperationStatus.SucceededStatus,
                           New OperationStatus(succeeded:=False, VBFeaturesResources.contains_invalid_selection))
             End Function
 
             Protected Overrides Function ValidateLanguageSpecificRules(cancellationToken As CancellationToken) As OperationStatus
-                If Not ValidateVbNextRules(cancellationToken) Then
-                    Return New OperationStatus(succeeded:=False, VBFeaturesResources.contains_invalid_selection)
-                End If
-
                 ' static local can't exist in field initializer
                 If Me.GetFirstTokenInSelection().GetAncestor(Of FieldDeclarationSyntax)() Is Nothing AndAlso
                    Me.GetFirstTokenInSelection().GetAncestor(Of PropertyStatementSyntax)() Is Nothing Then

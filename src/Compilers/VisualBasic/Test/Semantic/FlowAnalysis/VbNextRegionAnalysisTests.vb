@@ -101,5 +101,34 @@ End Module
             Dim analysis = Analyze(Collections, region, occurrence)
             Assert.Equal(readInside, Names(analysis.ReadInside))
         End Sub
+
+        Private Const Guard As String = "
+Module M
+    Function Label(value As Object) As String
+        If TypeOf value IsNot String Into text Then Return ""not text""
+
+        Return $""text of length {text.Length}""
+    End Function
+End Module
+"
+
+        <Fact>
+        Public Sub TheNameOfAGuardIfIsReadAfterIt()
+            Dim compilation = CreateCompilation(Guard, targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=s_vbNext)
+            compilation.VerifyDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim guardIf = tree.GetRoot().DescendantNodes().OfType(Of SingleLineIfStatementSyntax)().Single()
+
+            Dim analysis = model.AnalyzeDataFlow(guardIf, guardIf)
+            Assert.True(analysis.Succeeded)
+            Assert.Equal("text", Names(analysis.VariablesDeclared))
+            Assert.Equal("text", Names(analysis.ReadOutside))
+            Assert.Equal("text", Names(analysis.DataFlowsOut))
+            Assert.Equal("text", Names(analysis.WrittenInside))
+
+            Dim use = tree.GetRoot().DescendantNodes().OfType(Of IdentifierNameSyntax)().Last(Function(n) n.Identifier.ValueText = "text")
+            Assert.Equal(analysis.VariablesDeclared.Single(), model.GetSymbolInfo(use).Symbol)
+        End Sub
     End Class
 End Namespace

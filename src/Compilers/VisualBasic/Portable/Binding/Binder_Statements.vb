@@ -3467,7 +3467,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Function BindBlock(syntax As SyntaxNode, stmtList As SyntaxList(Of StatementSyntax), diagnostics As BindingDiagnosticBag, stmtListBinder As Binder) As BoundBlock
             Dim boundStatements(stmtList.Count - 1) As BoundStatement
             Dim locals As ArrayBuilder(Of LocalSymbol) = Nothing
-            Dim guardBinders = TryCast(stmtListBinder, StatementListBinder)?.GuardBinders
             Dim currentBinder = stmtListBinder
 
             For i = 0 To boundStatements.Length - 1
@@ -3475,8 +3474,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 boundStatements(i) = boundStatement
 
                 ' The statements after a guard If see the name it declares.
-                Dim guardBinder As PatternVariableBinder = Nothing
-                If guardBinders IsNot Nothing AndAlso guardBinders.TryGetValue(stmtList(i), guardBinder) Then
+                Dim guardBinder = stmtListBinder.GetGuardBinder(stmtList(i))
+                If guardBinder IsNot Nothing Then
                     currentBinder = guardBinder
                 End If
 

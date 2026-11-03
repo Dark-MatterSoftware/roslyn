@@ -32,6 +32,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _statementList = statementList
         End Sub
 
+        Friend Overrides Function GetGuardBinder(statement As StatementSyntax) As Binder
+            Dim guardBinder As PatternVariableBinder = Nothing
+            Return If(GuardBinders.TryGetValue(statement, guardBinder), guardBinder, Nothing)
+        End Function
+
         Friend Overrides ReadOnly Property Locals As ImmutableArray(Of LocalSymbol)
             Get
                 If _locals.IsDefault Then

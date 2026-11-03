@@ -267,6 +267,10 @@ internal abstract partial class AbstractExtractMethodService<
 
         public OperationStatus ValidateSelectionResult(CancellationToken cancellationToken)
         {
+            var formStatus = ValidateLanguageSpecificFormRules(cancellationToken);
+            if (!formStatus.Succeeded)
+                return formStatus;
+
             if (!this.IsExtractMethodOnExpression)
             {
                 if (!IsFinalSpanSemanticallyValidSpan(cancellationToken))
@@ -277,6 +281,13 @@ internal abstract partial class AbstractExtractMethodService<
 
             return ValidateLanguageSpecificExpressionRules(cancellationToken);
         }
+
+        /// <summary>
+        /// The rules of a language for forms that a new method cannot take, checked before the selection's code paths, so
+        /// that they hold for a selection whose code paths do not all return.
+        /// </summary>
+        protected virtual OperationStatus ValidateLanguageSpecificFormRules(CancellationToken cancellationToken)
+            => OperationStatus.SucceededStatus;
 
         /// <summary>
         /// The rules of a language for extracting an expression.

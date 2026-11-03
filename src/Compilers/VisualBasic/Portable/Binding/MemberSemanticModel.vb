@@ -2120,6 +2120,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Nothing
             End Function
 
+            Friend Overrides Function GetGuardBinder(statement As StatementSyntax) As Binder
+                Dim binder As Binder = Me.ContainingBinder.GetGuardBinder(statement)
+                Return If(binder Is Nothing, Nothing, New IncrementalBinder(_binding, binder))
+            End Function
+
             Public Overrides Function BindStatement(node As StatementSyntax, diagnostics As BindingDiagnosticBag) As BoundStatement
                 ' Check the bound node cache to see if the statement was already bound.
                 Dim boundNodes As ImmutableArray(Of BoundNode) = _binding.GuardedGetBoundNodesFromMap(node)

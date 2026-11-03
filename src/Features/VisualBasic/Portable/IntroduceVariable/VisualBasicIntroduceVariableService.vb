@@ -114,7 +114,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.IntroduceVariable
                 Return False
             End If
 
+            ' On vbnext, the statements of an XML embedded block have no text as an expression outside the literal.
+            If IsXmlEmbeddedStatementBlock(expression) Then
+                Return False
+            End If
+
             Return True
+        End Function
+
+        ''' <summary>
+        ''' The invocation, parentheses, or lambda that stands for the statements of an XML embedded block. Their
+        ''' tokens are missing, so each has the span of the statements.
+        ''' </summary>
+        Private Shared Function IsXmlEmbeddedStatementBlock(expression As ExpressionSyntax) As Boolean
+            Dim invocation = TryCast(expression, InvocationExpressionSyntax)
+            If invocation IsNot Nothing Then
+                Return invocation.IsXmlEmbeddedStatementBlock()
+            End If
+
+            Dim parenthesized = TryCast(expression, ParenthesizedExpressionSyntax)
+            Return TryCast(If(parenthesized?.Expression, expression), MultiLineLambdaExpressionSyntax).IsXmlEmbeddedStatementBlock()
         End Function
 
         Protected Overrides Function IsInFieldInitializer(expression As ExpressionSyntax) As Boolean

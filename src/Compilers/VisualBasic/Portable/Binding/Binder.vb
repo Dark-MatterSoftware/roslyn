@@ -395,6 +395,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
+        ''' On vbnext, the binder for the statements after a guard If, If TypeOf value IsNot T Into name Then Return,
+        ''' in the statement list that this binder binds, or Nothing.
+        ''' </summary>
+        Friend Overridable Function GetGuardBinder(statement As StatementSyntax) As Binder
+            Return Nothing
+        End Function
+
+        ''' <summary>
         ''' The member containing the binding context
         ''' </summary>
         Public Overridable ReadOnly Property ContainingMember As Symbol

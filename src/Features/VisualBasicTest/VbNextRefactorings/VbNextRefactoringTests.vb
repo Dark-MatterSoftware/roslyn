@@ -111,4 +111,28 @@ End Class"))
 End Structure"))
         End Function
     End Class
+
+    Public NotInheritable Class VbNextIntroduceVariableTests
+        Inherits VbNextRefactoringTest
+
+        Protected Overrides Function CreateCodeRefactoringProvider(workspace As TestWorkspace, parameters As TestParameters) As CodeRefactoringProvider
+            Return New Microsoft.CodeAnalysis.IntroduceVariable.IntroduceVariableCodeRefactoringProvider()
+        End Function
+
+        <Fact>
+        Public Async Function TestNotOnTheForEachOfAnXmlEmbeddedBlock() As Task
+            Await TestMissingAsync(InVbNext(
+"Imports System.Xml.Linq
+
+Class C
+    Function Items(names As String()) As XElement
+        Return <ul>
+                   <%= [|For Each name As String In names
+                           Yield <li><%= name %></li>
+                       Next|] %>
+               </ul>
+    End Function
+End Class"))
+        End Function
+    End Class
 End Namespace
