@@ -454,13 +454,14 @@ A hardening wave, as [vbnext-drift-review-wave33.md](vbnext-drift-review-wave33.
 
 ## Wave 35
 
-Planned from the findings of VB-179 and a probe of assignment through an index from the end, after the wave 34 audit in [vbnext-wave34-validation.md](vbnext-wave34-validation.md). The rows are Vb.Next follow-ups only. The upstream Visual Basic defects that VB-179 found are listed after them, apart, and are not part of the wave.
+Planned from the findings of VB-179, a probe of assignment through an index from the end, and the Visual Studio session of the wave 34 validation in [vbnext-wave34-validation.md](vbnext-wave34-validation.md). The rows are Vb.Next follow-ups only. The upstream defects that VB-179 and the session found are listed after them, apart, and are not part of the wave.
 
 | Id | Feature | Gap in this tree |
 | --- | --- | --- |
 | VB-181 | Assignment through an index from the end of a call or a property | Open. Classification: Native VB syntax (a fix to VB-006). `Make()(^1) = 20`, `Make()(^2) += 5`, and `Items(^3) = 30` on a `List(Of Integer)` that a function or a property returns report BC30068, "Expression is a value and therefore cannot be the target of an assignment", because the binder stores the receiver in a sequence, which cannot be assigned. `local(^1) = 10`, `Make()(1) = 20`, and `MakeArray()(^1) = 40` on an array compile. Found by VB-179, where extract method extracts `queue` from `queue(^2) &= "!"`. |
 | VB-182 | Find references and rename on Vb.Next declarations | Open. Classification: Tooling/diagnostics. From VB-179: find references does not find the uses of an alias of a tuple or an array, `Imports Span2 = (Start As Integer, Length As Integer)`, so rename of the alias reports them as conflicts; and rename of a record's positional property, as in `Record Class Point(X As Integer, Y As Integer)`, does not rename its parameter, so the property keeps its name. |
 | VB-183 | Extract method and introduce variable on the remaining Vb.Next forms | Open. Classification: Tooling/diagnostics. From VB-179: both break the `For Each ... Yield ... Next` expression in an XML literal, because the new method is not an `Iterator` and the new local has no type; extract method of `If TypeOf x IsNot T Into name Then Return` loses `name`, which the code after the `If` uses; and extract method of a `Return` of a ByRef Structure returns a value that refers to a parameter, BC37418. |
+| VB-184 | Deploy the debugger's expression evaluator with the other extensions | Open. Classification: Tooling/diagnostics. From the wave 34 Visual Studio session: without this repo's evaluator, the Watch and Immediate windows report an internal error in the Basic compiler for expressions in a method that has a Vb.Next form, and the deploy in `docs/vbnext-toolset.md` leaves the evaluator out, because its build fails in `VSDConfigTool` from a path with a space. Deployed from a drive letter mapped with `subst`, it evaluates the Vb.Next forms. |
 
 ### Upstream Visual Basic defects, not part of wave 35
 
@@ -472,6 +473,14 @@ VB-179 found these in upstream Visual Basic; Vb.Next only gives them more code t
 - Introduce variable and introduce parameter for all occurrences replace a `New` expression in an `As New` clause, and the control variable of `For Each x In`.
 - Convert tuple to struct qualifies the new type with `Global.` without the project's root namespace.
 - Convert property to methods breaks a `Default` property, and rename of a member that implements an interface from metadata breaks the implementation.
+- Extract interface is offered on a `Module`, which cannot implement an interface. Found in the wave 34 Visual Studio session; `AbstractExtractInterfaceService` leaves out only extension types.
+
+### Upstream tooling and Visual Studio defects, not part of wave 35
+
+The wave 34 Visual Studio session found these outside Visual Basic. They are recorded so that the session's results can be read, not as work for Vb.Next.
+
+- The `VSDConfigTool` target of the Visual Studio debugger SDK passes its `.vsdconfigxml` files without quotes, so a project that lists them with an absolute path fails to build from a path with a space. The result providers of the expression evaluator list them that way.
+- The Hot Reload loader of upstream Roslyn, from "Switch to Microsoft.VisualStudio.HotReload.Components services (#85672)", needs a type that `Microsoft.VisualStudio.HotReload.Components` 18.12.29 in Visual Studio 2026 Insiders does not have, so that Visual Studio loads no Hot Reload language service from this repo, and Edit and Continue is disabled in the experimental instance.
 
 ## Parked
 
@@ -852,3 +861,4 @@ The record that cannot compile comes first, then the convenience that needs a de
 | 1 | VB-181 | Assignment through an index from the end of a call or a property | M | A Vb.Next form that does not compile where C# and Make()(1) do. |
 | 2 | VB-182 | Find references and rename on Vb.Next declarations | M | Rename that misses uses is worse than rename that is not offered. |
 | 3 | VB-183 | Extract method and introduce variable on the remaining Vb.Next forms | S | Three forms, each either fixed or not offered. |
+| 4 | VB-184 | Deploy the debugger's expression evaluator with the other extensions | S | The debugger fails on Vb.Next forms without it, and the documented deploy leaves it out. |

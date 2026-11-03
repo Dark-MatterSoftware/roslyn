@@ -79,4 +79,19 @@ The script starts the newest Visual Studio, preview builds included, in the `Ros
 
 The three extensions are the compiler for builds, the out-of-process analysis host, and the language service. Redeploy after pulling editor or compiler changes.
 
-The repo path on this machine has a space in it, and two build steps do not quote paths. `/p:SkipRuntimesInstall=true` skips installing the .NET 10 test runtime, which the extensions do not need. The debugger's expression evaluator (`src\Deployment\RoslynDeployment.csproj` deploys it with the rest) fails in `VSDConfigTool`, so it is left out; the Watch and Immediate windows keep the installed evaluator.
+The repo path on this machine has a space in it, and two build steps do not quote paths. `/p:SkipRuntimesInstall=true` skips installing the .NET 10 test runtime, which the extensions do not need.
+
+The debugger's expression evaluator is a fourth extension. Without it, the Watch and Immediate windows use the evaluator installed with Visual Studio, which reports an internal error in the Basic compiler for expressions in a method that has a Vb.Next form. From a path with a space, its build fails in `VSDConfigTool` with `Unknown argument`, because the SDK target passes the `.vsdconfigxml` files unquoted and the result providers list them with absolute paths. Deploy it from a drive letter mapped to the folder above the repo, then restore once from the real path so that the build outputs name it again:
+
+```powershell
+subst V: "C:\VB.Net Programs"
+Push-Location V:\VB.Next
+.\eng\build.ps1 -restore -build -configuration Release -deployExtensions -skipDocumentation -solution src\ExpressionEvaluator\Package\ExpressionEvaluatorPackage.csproj /p:SkipRuntimesInstall=true
+Pop-Location
+.\eng\build.ps1 -restore -configuration Release -solution src\ExpressionEvaluator\Package\ExpressionEvaluatorPackage.csproj /p:SkipRuntimesInstall=true
+subst V: /d
+```
+
+This build deploys the language service and the analysis host again as well.
+
+Edit and Continue needs a Visual Studio whose `Microsoft.VisualStudio.HotReload.Components` has the `IHotReloadComponentLoader` type that the repo's package of it has. Visual Studio 2026 Insiders with that assembly at 18.12.29 does not, so the deployed language service offers no Hot Reload, and the Hot Reload output reports that "there are no language services that support it". `docs/vbnext-wave34-validation.md` records it.
