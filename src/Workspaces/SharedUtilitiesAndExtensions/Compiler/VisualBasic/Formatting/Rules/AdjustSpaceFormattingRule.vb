@@ -339,6 +339,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine)
             End If
 
+            ' ^1, an index from the end
+            If previousToken.Kind = SyntaxKind.CaretToken AndAlso previousToken.Parent.IsKind(SyntaxKind.FromEndIndexExpression) Then
+                Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine)
+            End If
+
+            ' 1..2, ..2, or 3.., a range; a spread such as {..items, 3} keeps its spacing as written
+            If (previousToken.Kind = SyntaxKind.DotDotToken AndAlso IsRangeOperator(previousToken)) OrElse
+               (currentToken.Kind = SyntaxKind.DotDotToken AndAlso IsRangeOperator(currentToken)) Then
+                Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine)
+            End If
+
+            If previousToken.Kind = SyntaxKind.DotDotToken AndAlso TypeOf previousToken.Parent Is RangeExpressionSyntax Then
+                Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.PreserveSpaces)
+            End If
+
             ' <AttributeTarget : case
             If FormattingHelpers.IsColonAfterAttributeTarget(previousToken, currentToken) Then
                 Return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine)
@@ -364,6 +379,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             End If
 
             Return nextFunc.Invoke(previousToken, currentToken)
+        End Function
+
+        ''' <summary>
+        ''' Whether the token is the operator of a range rather than of a spread: a spread is a range with no start that is an
+        ''' element of an array literal or of a parenthesized collection.
+        ''' </summary>
+        Private Shared Function IsRangeOperator(token As SyntaxToken) As Boolean
+            Dim range = TryCast(token.Parent, RangeExpressionSyntax)
+            If range Is Nothing Then
+                Return False
+            End If
+
+            If range.Left Is Nothing AndAlso
+               (TypeOf range.Parent Is CollectionInitializerSyntax OrElse
+                (TypeOf range.Parent Is SimpleArgumentSyntax AndAlso TypeOf range.Parent.Parent Is TupleExpressionSyntax)) Then
+                Return False
+            End If
+
+            Return True
         End Function
 
         Private Shared Function PrecedingTriviaContainsLineBreak(previousToken As SyntaxToken) As Boolean

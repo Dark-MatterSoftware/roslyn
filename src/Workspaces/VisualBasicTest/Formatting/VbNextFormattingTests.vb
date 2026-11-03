@@ -19,6 +19,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Formatting
         End Function
 
         <Fact>
+        Public Async Function IndexesFromTheEndAndRangesHaveNoSpaces() As Task
+            Await AssertVbNextFormatAsync("
+Class C
+Sub F(items As Integer(), n As Integer)
+Dim last = items( ^ 1)
+Dim fromEnd = items(^ n)
+Dim mid = items(1 .. 2)
+Dim head = items( .. 2)
+Dim tail = items(3 .. )
+Dim inner = items(1 .. ^ 1)
+Dim value As System.Range = (1 .. n)
+Dim power = n ^ 2
+Dim all As Integer() = {.. items, 3}
+Dim tight As Integer() = {..items, 3}
+Dim spread As Integer() = (1, .. items)
+End Sub
+End Class
+", "
+Class C
+    Sub F(items As Integer(), n As Integer)
+        Dim last = items(^1)
+        Dim fromEnd = items(^n)
+        Dim mid = items(1..2)
+        Dim head = items(..2)
+        Dim tail = items(3..)
+        Dim inner = items(1..^1)
+        Dim value As System.Range = (1..n)
+        Dim power = n ^ 2
+        Dim all As Integer() = {.. items, 3}
+        Dim tight As Integer() = {..items, 3}
+        Dim spread As Integer() = (1, .. items)
+    End Sub
+End Class
+")
+        End Function
+
+        <Fact>
         Public Async Function AsynchronousStreamsAndPatternVariablesIndentTheirBodies() As Task
             Await AssertVbNextFormatAsync("
 Class C
