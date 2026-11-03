@@ -1898,6 +1898,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return BindAssignmentTarget(node, expression, diagnostics)
         End Function
 
+        ''' <summary>
+        ''' As <see cref="BindAssignmentTarget(ExpressionSyntax, BindingDiagnosticBag)"/>, except that on vbnext list(^1) of a
+        ''' receiver that had to be stored, such as Make()(^1), is the default property access to assign. The sequence that
+        ''' stores the receiver is returned in storedReceiver, and the assignment is to run after its side effects.
+        ''' </summary>
+        Friend Function BindAssignmentTarget(
+            node As ExpressionSyntax,
+            <Out> ByRef storedReceiver As BoundSequence,
+            diagnostics As BindingDiagnosticBag
+        ) As BoundExpression
+            storedReceiver = Nothing
+            Dim expression = BindExpression(node, diagnostics)
+
+            Dim sequence = TryCast(expression, BoundSequence)
+            If sequence IsNot Nothing AndAlso Not sequence.HasErrors Then
+                Dim access = TryReopenStoredIndexFromEnd(sequence)
+                If access IsNot Nothing Then
+                    storedReceiver = sequence
+                    expression = access
+                End If
+            End If
+
+            Return BindAssignmentTarget(node, expression, diagnostics)
+        End Function
+
+        Private Shared Function TryReopenStoredIndexFromEnd(sequence As BoundSequence) As BoundPropertyAccess
+            Dim access = TryCast(sequence.ValueOpt, BoundPropertyAccess)
+            If access Is Nothing OrElse access.Arguments.Length <> 1 OrElse access.Arguments(0).Kind <> BoundKind.IndexOffset OrElse
+               DirectCast(access.Arguments(0), BoundIndexOffset).LengthOrCountOpt Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim [property] = access.PropertySymbol
+            Return access.Update([property],
+                                 access.PropertyGroupOpt,
+                                 PropertyAccessKind.Unknown,
+                                 access.IsWriteable,
+                                 isLValue:=[property].ReturnsByRef AndAlso Not [property].ReturnsByRefReadOnly,
+                                 access.ReceiverOpt,
+                                 access.Arguments,
+                                 access.DefaultArguments,
+                                 access.Type)
+        End Function
+
         Private Function BindAssignmentTarget(
             node As SyntaxNode,
             expression As BoundExpression,

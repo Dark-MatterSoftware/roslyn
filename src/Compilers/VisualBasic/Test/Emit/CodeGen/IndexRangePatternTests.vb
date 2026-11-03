@@ -69,6 +69,118 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub AssignsThroughIndexFromEndOfCallOrProperty()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Private ReadOnly Shared_ As New List(Of Integer) From {1, 2, 3, 4}
+    Private ReadOnly Words As New List(Of String) From {""a"", ""b""}
+    Private Calls As Integer
+    Private Gets As Integer
+
+    Function Make() As List(Of Integer)
+        Calls += 1
+        Return Shared_
+    End Function
+
+    ReadOnly Property Items As List(Of Integer)
+        Get
+            Gets += 1
+            Return Shared_
+        End Get
+    End Property
+
+    Function MakeWords() As List(Of String)
+        Return Words
+    End Function
+
+    Sub Main()
+        Make()(^1) = 20
+        Make()(^2) += 5
+        Items(^3) = 30
+        Items(^4) -= 1
+        MakeWords()(^1) &= ""!""
+        System.Console.Write(String.Join("","", Shared_) & "" "" & Calls & "" "" & Gets & "" "" & String.Join("","", Words))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="0,30,8,20 2 2 a,b!").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub AssignmentThroughIndexFromEndEvaluatesInTheOrderOfAnIndex()
+            Dim compilation = CreateCompilation("
+Imports System.Collections.Generic
+
+Module Program
+    Private ReadOnly Items As New List(Of Integer) From {1, 2, 3}
+
+    Function Make() As List(Of Integer)
+        System.Console.Write(""make "")
+        Return Items
+    End Function
+
+    Function Offset(value As Integer) As Integer
+        System.Console.Write(""offset "")
+        Return value
+    End Function
+
+    Function Value() As Integer
+        System.Console.Write(""value "")
+        Return 9
+    End Function
+
+    Sub Main()
+        Make()(Offset(2)) = Value()
+        System.Console.Write(""| "")
+        Make()(^Offset(1)) = Value()
+        System.Console.Write(""| "")
+        Make()(^Offset(1)) += Value()
+        System.Console.Write(""| "" & String.Join("","", Items))
+    End Sub
+End Module
+", options:=TestOptions.ReleaseExe, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, expectedOutput:="make offset value | make offset value | make offset value | 1,2,18").VerifyDiagnostics()
+        End Sub
+
+        <Fact>
+        Public Sub AssignmentThroughIndexFromEndOfReadOnlyDefaultPropertyReportsAsAnIndex()
+            Dim compilation = CreateCompilation("
+Class Window
+    Public ReadOnly Property Length As Integer
+        Get
+            Return 3
+        End Get
+    End Property
+
+    Default Public ReadOnly Property Item(index As Integer) As Integer
+        Get
+            Return index
+        End Get
+    End Property
+End Class
+
+Module Program
+    Function Make() As Window
+        Return New Window()
+    End Function
+
+    Sub Main()
+        Make()(1) = 2
+        Make()(^1) = 2
+    End Sub
+End Module
+", parseOptions:=VbNext)
+
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NoSetProperty1, "Make()(1) = 2").WithArguments("Item").WithLocation(22, 9),
+                Diagnostic(ERRID.ERR_NoSetProperty1, "Make()(^1) = 2").WithArguments("Item").WithLocation(23, 9))
+        End Sub
+
+        <Fact>
         Public Sub SlicesTypesWithoutDefaultProperty()
             Dim compilation = CreateCompilation("
 Class Chunk

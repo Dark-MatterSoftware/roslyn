@@ -363,6 +363,14 @@ Namespace Microsoft.CodeAnalysis.Operations
                         Return Create(sequence.ValueOpt)
                     End If
 
+                    ' Make()(^1) = 20 stores the receiver, then assigns the implicit indexer reference.
+                    If sequence.ValueOpt Is Nothing AndAlso Not sequence.SideEffects.IsEmpty Then
+                        Dim assignment = TryCast(sequence.SideEffects.Last(), BoundAssignmentOperator)
+                        If assignment IsNot Nothing AndAlso IsImplicitIndexerAccess(assignment.Left) Then
+                            Return Create(assignment)
+                        End If
+                    End If
+
                     Return New NoneOperation(GetIOperationChildren(sequence), _semanticModel, sequence.Syntax, sequence.Type, sequence.ConstantValueOpt, sequence.WasCompilerGenerated)
 
                 Case Else

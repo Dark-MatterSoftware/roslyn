@@ -3747,7 +3747,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return New BoundExpressionStatement(node, compoundOperatorCall.MakeCompilerGenerated())
             End If
 
-            Dim op1 As BoundExpression = Me.BindAssignmentTarget(node.Left, diagnostics)
+            Dim storedReceiver As BoundSequence = Nothing
+            Dim op1 As BoundExpression = Me.BindAssignmentTarget(node.Left, storedReceiver, diagnostics)
             Dim op2 As BoundExpression = Me.BindValue(node.Right, diagnostics)
             Debug.Assert(op1 IsNot Nothing)
             Debug.Assert(op2 IsNot Nothing)
@@ -3773,6 +3774,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Else
                 Dim compound = GetCompoundAssignmentOperator(node.Kind)
                 expr = BindCompoundAssignment(node, op1, op2, compound.TokenKind, compound.OperatorKind, diagnostics)
+            End If
+
+            If storedReceiver IsNot Nothing Then
+                Dim voidType = GetSpecialType(SpecialType.System_Void, node, diagnostics)
+                Return New BoundExpressionStatement(node,
+                    New BoundSequence(node, storedReceiver.Locals, storedReceiver.SideEffects.Add(expr.MakeCompilerGenerated()), Nothing, voidType).MakeCompilerGenerated())
             End If
 
             Return New BoundExpressionStatement(node, expr.MakeCompilerGenerated())

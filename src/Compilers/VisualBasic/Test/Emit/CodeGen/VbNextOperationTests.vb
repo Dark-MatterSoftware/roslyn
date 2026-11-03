@@ -432,6 +432,43 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub AssignmentsThroughIndexFromEndOfACallAreAssignmentsToImplicitIndexerReferences()
+            Dim source = "
+Imports System.Collections.Generic
+
+Module Program
+    Function Make() As List(Of Integer)
+        Return New List(Of Integer) From {1, 2}
+    End Function
+
+    Sub Uses()
+        Make()(^1) = 20
+        Make()(^2) += 5
+    End Sub
+End Module
+"
+            Dim compilation = CreateCompilation(source, targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim statements = tree.GetRoot().DescendantNodes().OfType(Of AssignmentStatementSyntax)().
+                Select(Function(statement)
+                           Dim operation = Assert.IsAssignableFrom(Of IExpressionStatementOperation)(model.GetOperation(statement)).Operation
+                           Dim assignment = Assert.IsAssignableFrom(Of IAssignmentOperation)(operation)
+                           Dim indexer = Assert.IsAssignableFrom(Of IImplicitIndexerReferenceOperation)(assignment.Target)
+                           Return statement.ToString() & ":" & assignment.Kind.ToString() & "|" & indexer.Instance.Syntax.ToString() & "|" & indexer.LengthSymbol.Name & "|" & indexer.IndexerSymbol.Name
+                       End Function)
+
+            Assert.Equal({
+                "Make()(^1) = 20:SimpleAssignment|Make()|Count|Item",
+                "Make()(^2) += 5:CompoundAssignment|Make()|Count|Item"}, statements.ToArray())
+
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)().Last()
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+        End Sub
+
+        <Fact>
         Public Sub DeconstructionsAreDeconstructionAssignments()
             Dim source = "
 Class Box
