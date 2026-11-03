@@ -170,7 +170,7 @@ A new proposal uses these sections:
 - **Why this is VB.** Why the capability, and any syntax, fit VB.
 - **Alternatives.** Existing VB idioms and interop-only support.
 - **Compatibility and semantic impact.** Existing code, language version, overload resolution, inference, evaluation, runtime behavior, and edge cases.
-- **Complexity and risks.** Language, compiler, IDE, learning, maintenance, and ecosystem costs, including how the proposal grows the syntax and pattern surface and what lookahead or backtracking it adds to the parser, since parser simplicity is a ranked goal.
+- **Complexity and risks.** Language, compiler, IDE, learning, maintenance, and ecosystem costs, including how the proposal grows the syntax and pattern surface and what lookahead or backtracking it adds to the parser, since parser simplicity is a ranked goal. A new pattern form weighs `docs/vbnext-vb180-review.md`, which freezes the pattern surface at its current forms.
 - **Implementation and documentation impact.** Affected compiler and IDE areas, tests, specification, roadmap, and phases.
 - **Recommendation.** Proceed, revise, defer, reject, or request design approval.
 
