@@ -18,7 +18,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)VisualBasicResultProvider.vb" />
   </ItemGroup>
   <ItemGroup>
-    <VsdConfigXmlFiles Include="$(MSBuildThisFileDirectory)VisualBasicResultProvider.vsdconfigxml">
+    <!-- VSDConfigTool gets these paths unquoted, so they are relative to the project, where they have no space in them. -->
+    <VsdConfigXmlFiles Include="$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)', '$(MSBuildThisFileDirectory)VisualBasicResultProvider.vsdconfigxml'))">
       <SubType>Designer</SubType>
     </VsdConfigXmlFiles>
   </ItemGroup>

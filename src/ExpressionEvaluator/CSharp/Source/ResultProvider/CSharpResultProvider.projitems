@@ -27,7 +27,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <VsdConfigXmlFiles Include="$(MSBuildThisFileDirectory)CSharpResultProvider.vsdconfigxml" />
+    <!-- VSDConfigTool gets these paths unquoted, so they are relative to the project, where they have no space in them. -->
+    <VsdConfigXmlFiles Include="$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)', '$(MSBuildThisFileDirectory)CSharpResultProvider.vsdconfigxml'))" />
     <None Include="$(MSBuildThisFileDirectory)CSharpResultProvider.vsdconfigxml" />
   </ItemGroup>
 </Project>

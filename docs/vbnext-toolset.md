@@ -64,7 +64,8 @@ Deploy this repo's Roslyn into the `RoslynDev` hive. It is a separate Visual Stu
 $env:DOTNET_INSTALL_DIR = "$env:LOCALAPPDATA\dotnet-vbnext"
 foreach ($project in "src\Compilers\Extension\Roslyn.Compilers.Extension.csproj",
                      "src\VisualStudio\Setup.ServiceHub\x64\Roslyn.VisualStudio.ServiceHub.Setup.x64.csproj",
-                     "src\VisualStudio\Setup\Roslyn.VisualStudio.Setup.csproj") {
+                     "src\VisualStudio\Setup\Roslyn.VisualStudio.Setup.csproj",
+                     "src\ExpressionEvaluator\Package\ExpressionEvaluatorPackage.csproj") {
     .\eng\build.ps1 -restore -build -configuration Release -deployExtensions -skipDocumentation -solution $project /p:SkipRuntimesInstall=true
 }
 ```
@@ -77,21 +78,10 @@ Then start the instance with the sample:
 
 The script starts the newest Visual Studio, preview builds included, in the `RoslynDev` hive. It points that instance at the SDK in `%LOCALAPPDATA%\dotnet-vbnext`, because the repo's `global.json` pins a .NET 11 preview SDK that is not installed in Program Files. Pass `-Project` to open another project.
 
-The three extensions are the compiler for builds, the out-of-process analysis host, and the language service. Redeploy after pulling editor or compiler changes.
+The four extensions are the compiler for builds, the out-of-process analysis host, the language service, and the debugger's expression evaluator. Without this repo's evaluator, the Watch and Immediate windows use the one installed with Visual Studio, which reports an internal error in the Basic compiler for expressions in a method that has a Vb.Next form. Redeploy after pulling editor or compiler changes.
 
-The repo path on this machine has a space in it, and two build steps do not quote paths. `/p:SkipRuntimesInstall=true` skips installing the .NET 10 test runtime, which the extensions do not need.
+The repo path on this machine has a space in it, and two build steps do not quote paths. `/p:SkipRuntimesInstall=true` skips installing the .NET 10 test runtime, which the extensions do not need. The `VSDConfigTool` step of the evaluator passes its `.vsdconfigxml` files unquoted, so the result providers list them relative to the project.
 
-The debugger's expression evaluator is a fourth extension. Without it, the Watch and Immediate windows use the evaluator installed with Visual Studio, which reports an internal error in the Basic compiler for expressions in a method that has a Vb.Next form. From a path with a space, its build fails in `VSDConfigTool` with `Unknown argument`, because the SDK target passes the `.vsdconfigxml` files unquoted and the result providers list them with absolute paths. Deploy it from a drive letter mapped to the folder above the repo, then restore once from the real path so that the build outputs name it again:
-
-```powershell
-subst V: "C:\VB.Net Programs"
-Push-Location V:\VB.Next
-.\eng\build.ps1 -restore -build -configuration Release -deployExtensions -skipDocumentation -solution src\ExpressionEvaluator\Package\ExpressionEvaluatorPackage.csproj /p:SkipRuntimesInstall=true
-Pop-Location
-.\eng\build.ps1 -restore -configuration Release -solution src\ExpressionEvaluator\Package\ExpressionEvaluatorPackage.csproj /p:SkipRuntimesInstall=true
-subst V: /d
-```
-
-This build deploys the language service and the analysis host again as well.
+A build from another path for the same tree, such as a drive letter mapped with `subst`, leaves that path in caches under `artifacts\obj`, and a later build from the real path then fails, for example with VSSDK1307 for `Commands.cto`. Delete the caches that name the other path, which are regenerated, or the `artifacts\obj` folders of the projects that fail.
 
 Edit and Continue needs a Visual Studio whose `Microsoft.VisualStudio.HotReload.Components` has the `IHotReloadComponentLoader` type that the repo's package of it has. Visual Studio 2026 Insiders with that assembly at 18.12.29 does not, so the deployed language service offers no Hot Reload, and the Hot Reload output reports that "there are no language services that support it". `docs/vbnext-wave34-validation.md` records it.

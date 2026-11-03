@@ -23,7 +23,7 @@ Checked on the commits from the wave 34 plan, `ff2c0d9a2c9`, to slice 165a, `a80
 | The expression evaluator suite | Passed, 397. |
 | The compiler suites on CoreCLR, `net10.0` | Passed. Syntax 4,194; Semantic 5,523; Symbol 3,384; Emit 5,016. |
 | The deploy of the three extensions to the RoslynDev instance | Built and deployed, Release. |
-| The deploy of the debugger's expression evaluator to the RoslynDev instance | Built and deployed, Release, from a drive letter mapped with `subst`, as `docs/vbnext-toolset.md` describes. From the repo path, which has a space in it, `VSDConfigTool` fails with `Unknown argument 'C:\VB.Net'`. |
+| The deploy of the debugger's expression evaluator to the RoslynDev instance | Built and deployed, Release, from a drive letter mapped with `subst`. From the repo path, which has a space in it, `VSDConfigTool` failed with `Unknown argument 'C:\VB.Net'`; VB-184 fixed that, and the evaluator now deploys from the repo path with the other extensions. |
 | The HelloVbNext sample | Builds and runs, with the wave 34 module: `closed 4:small draft,40:other 4`. |
 
 ## Visual Studio session
