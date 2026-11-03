@@ -58,8 +58,9 @@ Tests: `VbNextExtractMethodTests`, `VbNextAddAccessibilityModifiersTests`, `VbNe
 
 Vb.Next gaps, with follow-up rows:
 
-- **VB-181.** `Make()(^1) = x` and `Make()(^2) &= "!"` report BC30068, because the binder stores a call receiver of an index from the end in a sequence, which cannot be assigned. `list(^1) = x` and `Make()(1) = x` work. Extract method finds it when it extracts `queue` from `queue(^2) &= "!"`.
-- **VB-182.** Find references does not find the uses of an alias of a tuple or an array, so rename of such an alias reports them as conflicts; rename of a record's positional property does not rename its parameter; extract method and introduce variable break the `For Each ... Yield ... Next` expression in an XML literal, `TypeOf x IsNot T Into name` used after an `If`, and a `Return` of a ByRef Structure.
+- **VB-181.** `Make()(^1) = x`, `Make()(^2) &= "!"`, and `Items(^1) = x` through a property report BC30068, because the binder stores such a receiver of an index from the end in a sequence, which cannot be assigned. `list(^1) = x`, `Make()(1) = x`, and an array from a call work. Extract method finds it when it extracts `queue` from `queue(^2) &= "!"`.
+- **VB-182.** Find references does not find the uses of an alias of a tuple or an array, so rename of such an alias reports them as conflicts; rename of a record's positional property does not rename its parameter.
+- **VB-183.** Extract method and introduce variable break the `For Each ... Yield ... Next` expression in an XML literal, `TypeOf x IsNot T Into name` used after an `If`, and a `Return` of a ByRef Structure.
 
 Upstream Visual Basic bugs that the sample exposes, recorded and not fixed:
 

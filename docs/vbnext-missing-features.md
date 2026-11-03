@@ -451,8 +451,27 @@ A hardening wave, as [vbnext-drift-review-wave33.md](vbnext-drift-review-wave33.
 | VB-178 | Formatting of `^n` and `a..b` | Done in phase 163: formatting writes `items(^1)` and `items(1..2)`, and leaves the spacing of a spread as written. Classification: Tooling/diagnostics. Before that, formatting leaves `items(^ 1)` and `items(1 .. 2)` as written, where it removes the space after a unary operator and around other operators that bind tightly. |
 | VB-179 | Code fixes and refactorings on Vb.Next forms | Done in phase 164: a probe ran the refactorings, code fixes, and rename on the Vb.Next forms of the sample, and the slice fixes the compiler bugs, exceptions, and wrong edits it found on them, as `docs/vbnext-vb179-review.md` lists. Classification: Tooling/diagnostics. Exceptions fell from 94 to 11, all in upstream Visual Basic; the review records those and the other upstream bugs the sample exposes. |
 | VB-180 | Review of the pattern surface | Done in phase 165: `docs/vbnext-vb180-review.md` lists the forms, the parser's lookahead and its one rewind, and the costs, and records the decision to keep every form and freeze the surface. Classification: design review; no code change. The patterns of VB-004, with VB-066 and VB-171, have grown into the largest syntax surface in this project, and the parser reads them with lookahead and backtracking. The review records what the surface is, what it costs, and whether anything should be simplified, as the drift review decided. |
-| VB-181 | Assignment through an index from the end of a call | Open. Classification: Native VB syntax (a fix to VB-006). `Make()(^1) = x` and `Make()(^2) &= "!"` report BC30068, because the binder stores the call receiver in a sequence, which cannot be assigned; `list(^1) = x` and `Make()(1) = x` compile. Found by VB-179, where extract method extracts `queue` from `queue(^2) &= "!"`. |
-| VB-182 | Remaining IDE gaps on Vb.Next forms | Open. Classification: Tooling/diagnostics. From VB-179: find references does not find the uses of an alias of a tuple or an array, so rename reports them as conflicts; rename of a record's positional property does not rename its parameter; and extract method and introduce variable break the `For Each ... Yield ... Next` expression in an XML literal, a `TypeOf x IsNot T Into name` that is used after its `If`, and a `Return` of a ByRef Structure. |
+
+## Wave 35
+
+Planned from the findings of VB-179 and a probe of assignment through an index from the end, after the wave 34 audit in [vbnext-wave34-validation.md](vbnext-wave34-validation.md). The rows are Vb.Next follow-ups only. The upstream Visual Basic defects that VB-179 found are listed after them, apart, and are not part of the wave.
+
+| Id | Feature | Gap in this tree |
+| --- | --- | --- |
+| VB-181 | Assignment through an index from the end of a call or a property | Open. Classification: Native VB syntax (a fix to VB-006). `Make()(^1) = 20`, `Make()(^2) += 5`, and `Items(^3) = 30` on a `List(Of Integer)` that a function or a property returns report BC30068, "Expression is a value and therefore cannot be the target of an assignment", because the binder stores the receiver in a sequence, which cannot be assigned. `local(^1) = 10`, `Make()(1) = 20`, and `MakeArray()(^1) = 40` on an array compile. Found by VB-179, where extract method extracts `queue` from `queue(^2) &= "!"`. |
+| VB-182 | Find references and rename on Vb.Next declarations | Open. Classification: Tooling/diagnostics. From VB-179: find references does not find the uses of an alias of a tuple or an array, `Imports Span2 = (Start As Integer, Length As Integer)`, so rename of the alias reports them as conflicts; and rename of a record's positional property, as in `Record Class Point(X As Integer, Y As Integer)`, does not rename its parameter, so the property keeps its name. |
+| VB-183 | Extract method and introduce variable on the remaining Vb.Next forms | Open. Classification: Tooling/diagnostics. From VB-179: both break the `For Each ... Yield ... Next` expression in an XML literal, because the new method is not an `Iterator` and the new local has no type; extract method of `If TypeOf x IsNot T Into name Then Return` loses `name`, which the code after the `If` uses; and extract method of a `Return` of a ByRef Structure returns a value that refers to a parameter, BC37418. |
+
+### Upstream Visual Basic defects, not part of wave 35
+
+VB-179 found these in upstream Visual Basic; Vb.Next only gives them more code to meet. They are recorded here, apart from the Vb.Next rows, so that a decision to fix any of them is its own.
+
+- Introduce parameter adds `Shared` to a method of a `Module`, and leaves out the type parameters of a generic method.
+- Extract method, introduce variable, and replace conditional with statements type an anonymous delegate or an anonymous type as `Object`, which Option Strict On rejects.
+- Extract method of the receiver of an element or field assignment returns a copy of a structure; extract method of an expression in a single-line `If` throws.
+- Introduce variable and introduce parameter for all occurrences replace a `New` expression in an `As New` clause, and the control variable of `For Each x In`.
+- Convert tuple to struct qualifies the new type with `Global.` without the project's root namespace.
+- Convert property to methods breaks a `Default` property, and rename of a member that implements an interface from metadata breaks the implementation.
 
 ## Parked
 
@@ -825,3 +844,11 @@ The record that cannot compile comes first, then the convenience that needs a de
 | 3 | VB-178 | Formatting of `^n` and `a..b` | S | Two spacing rules. |
 | 4 | VB-179 | Code fixes and refactorings on Vb.Next forms | M | A probe first; its size depends on what fails. |
 | 5 | VB-180 | Review of the pattern surface | S | A design review the drift review asked for; no code change. |
+
+### Wave 35 order
+
+| # | Id | Feature | Rank | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | VB-181 | Assignment through an index from the end of a call or a property | M | A Vb.Next form that does not compile where C# and Make()(1) do. |
+| 2 | VB-182 | Find references and rename on Vb.Next declarations | M | Rename that misses uses is worse than rename that is not offered. |
+| 3 | VB-183 | Extract method and introduce variable on the remaining Vb.Next forms | S | Three forms, each either fixed or not offered. |

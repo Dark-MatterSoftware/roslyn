@@ -1582,7 +1582,7 @@ Wave 34 row 4.
 
 | Slice | Id | Done when |
 | --- | --- | --- |
-| 164a | VB-179 | Done. A probe ran the 55 Visual Basic refactorings, the 84 code fixes, and rename on the Vb.Next forms of the sample, and `docs/vbnext-vb179-review.md` lists what threw or added errors. As the project decided, the slice fixes the compiler bugs, the exceptions, and the wrong edits on Vb.Next forms: data flow analysis of a region in an index, a slice, or a collection literal, and the reads of a parameter through `list(^1)`; extract method in an interface member, in an extension block, and on deconstruction; rename of an alias of a tuple or an array, and of a property that an anonymous type's `With` copy sets; and the accessibility, named argument, invert `If`, generate `Equals`, encapsulate field, method and property, tuple to struct, introduce variable and parameter, and simplify interpolation fixes. Exceptions fell from 94 to 11, all upstream. The review records the upstream Visual Basic bugs, and VB-181 and VB-182 follow. |
+| 164a | VB-179 | Done. A probe ran the 55 Visual Basic refactorings, the 84 code fixes, and rename on the Vb.Next forms of the sample, and `docs/vbnext-vb179-review.md` lists what threw or added errors. As the project decided, the slice fixes the compiler bugs, the exceptions, and the wrong edits on Vb.Next forms: data flow analysis of a region in an index, a slice, or a collection literal, and the reads of a parameter through `list(^1)`; extract method in an interface member, in an extension block, and on deconstruction; rename of an alias of a tuple or an array, and of a property that an anonymous type's `With` copy sets; and the accessibility, named argument, invert `If`, generate `Equals`, encapsulate field, method and property, tuple to struct, introduce variable and parameter, and simplify interpolation fixes. Exceptions fell from 94 to 11, all upstream. The review records the upstream Visual Basic bugs, and VB-181 to VB-183 follow. |
 
 ### Phase 165 — Review of the pattern surface
 
@@ -1591,6 +1591,34 @@ Wave 34 row 5. No code change.
 | Slice | Id | Done when |
 | --- | --- | --- |
 | 165a | VB-180 | Done. `docs/vbnext-vb180-review.md` lists the eleven pattern forms of VB-004, VB-066, VB-072, VB-054, and VB-171, how the parser chooses each from one or two tokens, the one place it rewinds, a nested element of a positional pattern, and what the forms cost in syntax, binding, tooling, and tests. The project decided to keep every form and to freeze the surface: a new pattern form needs a proposal whose complexity section weighs the review, as `docs/vbnext-mission.md` now says. |
+
+## Wave 35
+
+Vb.Next follow-ups from VB-179 and a probe of assignment through an index from the end. The upstream Visual Basic defects that VB-179 found are listed apart in `docs/vbnext-missing-features.md` and are not part of the wave. No new syntax.
+
+### Phase 166 — Assignment through an index from the end of a call or a property
+
+Wave 35 row 1.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 166a | VB-181 | Open. On `vbnext`, `Make()(^1) = 20`, `Make()(^2) += 5`, and `Items(^3) = 30`, on a list that a function or a property returns, compile and assign the element that `Make()(Make().Count - 1)` would, with the receiver evaluated once, as an array from a call already does. |
+
+### Phase 167 — Find references and rename on Vb.Next declarations
+
+Wave 35 row 2.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 167a | VB-182 | Open. Find references finds the uses of an alias of a tuple or an array, and rename renames them without conflicts; rename of a record's positional property renames its parameter and its uses, and rename of the parameter renames the property. |
+
+### Phase 168 — Extract method and introduce variable on the remaining Vb.Next forms
+
+Wave 35 row 3.
+
+| Slice | Id | Done when |
+| --- | --- | --- |
+| 168a | VB-183 | Open. On the `For Each ... Yield ... Next` expression in an XML literal, on `If TypeOf x IsNot T Into name Then Return` with `name` used after it, and on a `Return` of a ByRef Structure, extract method and introduce variable produce code that compiles, or are not offered. |
 
 ## What starts now
 
@@ -1654,4 +1682,4 @@ Wave 32 is planned as phases 153 to 155, from a probe of the deconstruction shap
 
 Wave 33 is planned as phases 156 to 160, from a probe of the shapes that VB application code meets in current libraries, judged by `docs/vbnext-mission.md`: date literals as `DateOnly` and `TimeOnly`, `Static` locals in `Async` and `Iterator` methods, a proposal for relational tests in positional patterns, and a review of the adopted symbolic spellings; VB-175, positional patterns through `ITuple`, is deferred. Slice 156a is done: the conversions of date literals to `DateOnly` and `TimeOnly` are locked. Phase 156 is withdrawn: under the language and framework API boundary that `docs/vbnext-mission.md` then adopted, VB-172 is rejected, and slice 156b will not be implemented. Phase 157 is done: slice 157a declares `Static` locals in `Async` and `Iterator` methods. Phase 158 is done: slice 158a approves VB-171 with the spelling `Case Is (> 0, "open")` and `Case Is (1 To 9, "draft")`, and slice 158b implements it. Phase 159 is done: slice 159a keeps the four adopted symbolic spellings, two of them flagged for a possible keyword alternative. Phase 160 is done: slice 160a brings the editor along for the wave 33 forms. Wave 33 is done.
 
-After wave 33, `docs/vbnext-drift-review-wave33.md` reviews the project against `docs/vbnext-mission.md` and records the project's decisions: wave 34 is a hardening wave, for the debugger expression evaluator, formatting, Edit and Continue, and code fixes on the Vb.Next forms, and it reviews the pattern surface; the VB Razor, VBHTML, and MAUI stacks of the Direction stay open for a later decision. Wave 34 is planned as phases 161 to 165, from a probe of the debugger, Edit and Continue, and formatting on the Vb.Next forms: the debugger's expression evaluator, Edit and Continue beside a `Select Case` expression, formatting of `^n` and `a..b`, code fixes and refactorings, and a review of the pattern surface. Phase 161 is done: slice 161a evaluates Vb.Next forms in the debugger for a module built with `vbnext`. Phase 162 is done: slice 162a analyzes edits beside and inside a `Select Case` expression. Phase 163 is done: slice 163a formats `^1` and `1..2` without spaces. Phase 164 is done: slice 164a probes the code fixes and refactorings on the Vb.Next forms, fixes the compiler bugs, exceptions, and wrong edits it found on them, and records the rest in `docs/vbnext-vb179-review.md`, with VB-181 and VB-182 to follow. Phase 165 is done: slice 165a reviews the pattern surface in `docs/vbnext-vb180-review.md`, and the project keeps every form and freezes the surface, so a new pattern form needs a proposal that weighs the review. Wave 34 is done.
+After wave 33, `docs/vbnext-drift-review-wave33.md` reviews the project against `docs/vbnext-mission.md` and records the project's decisions: wave 34 is a hardening wave, for the debugger expression evaluator, formatting, Edit and Continue, and code fixes on the Vb.Next forms, and it reviews the pattern surface; the VB Razor, VBHTML, and MAUI stacks of the Direction stay open for a later decision. Wave 34 is planned as phases 161 to 165, from a probe of the debugger, Edit and Continue, and formatting on the Vb.Next forms: the debugger's expression evaluator, Edit and Continue beside a `Select Case` expression, formatting of `^n` and `a..b`, code fixes and refactorings, and a review of the pattern surface. Phase 161 is done: slice 161a evaluates Vb.Next forms in the debugger for a module built with `vbnext`. Phase 162 is done: slice 162a analyzes edits beside and inside a `Select Case` expression. Phase 163 is done: slice 163a formats `^1` and `1..2` without spaces. Phase 164 is done: slice 164a probes the code fixes and refactorings on the Vb.Next forms, fixes the compiler bugs, exceptions, and wrong edits it found on them, and records the rest in `docs/vbnext-vb179-review.md`, with VB-181 to VB-183 to follow. Phase 165 is done: slice 165a reviews the pattern surface in `docs/vbnext-vb180-review.md`, and the project keeps every form and freezes the surface, so a new pattern form needs a proposal that weighs the review. Wave 34 is done. `docs/vbnext-wave34-validation.md` records the audit at its end and the automated runs; its Visual Studio session is pending, so the debugger, Edit and Continue, and code fix work of wave 34 is not yet validated in Visual Studio. Wave 35 is planned as phases 166 to 168, for VB-181, VB-182, and VB-183, the Vb.Next follow-ups of VB-179; the upstream Visual Basic defects it found are kept apart.
