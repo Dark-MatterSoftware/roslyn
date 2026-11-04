@@ -1,0 +1,67 @@
+Point { X = 1, Y = 2 }
+True
+Point { X = 1, Y = 5 }
+12
+many
+3
+<ul>
+  <li>records</li>
+  <li>extensions</li>
+</ul>
+3
+2
+1
+connection db
+closed db
+number 42
+text HI
+journal: even 2, even 4, even 6, caught disk full, finally
+144
+text of length 5
+not text
+tea costs 2.5
+cake costs 4
+starts with w, 4 vowels
+inside the lock
+round 1: 10
+round 2: 20
+6 3 -4 (negative)
+1.50, 2.25
+to=2 be=2 or=1
+10 10,25,30
+3.75
+2
+24 3
+43
+9 14
+7
+List Dictionary
+unnamed named
+25
+3.5 m 6 m units
+List
+2.5 5 units
+quantity of 2.5
+Count params, collections
+3 3 4
+3 closed scope 
+hello world 1 subscribed unsubscribed 10 15 6 5+4
+6 True 52 a3 2 2 2
+3 9 9 True Nothing fruit 2 True
+3 a-b 2 3 Int32x2 Doublex2
+Hound { Name = Max, Breed = Lab } Rex/Lab True False 42
+Parcel { Contents = 8, Note =  } Parcel { Contents = 8, Note = done } 10 2
+greet 2 [Ann] Ticket { Price = 12.5, Holder = Ann }
+[Ann] 3 True True
+tick tick Tickx2
+count 21 5,8 r range finder
+13 5,8 avelengt 2 ^1 1..^1 account text 900
+^2 gamma 0..2 none False
+i eratio first,second!,last third 2
+bolts 40 2 55 nuts 16 5
+7000000 meters 7 corner
+perfect math, keep going, 190
+101 102 large open, small draft, open
+closed 4:small draft,40:other 4
+1,30,8,20 4 items ending in 20, not a list
+disposed sample

@@ -30,13 +30,17 @@ Import the props file and set the language version:
 </Project>
 ```
 
-Set `VbNextCompilerDir` before the import to use a `vbc.exe` from another folder. The build stops with an error if `vbc.exe` is missing.
+Set `VbNextCompilerDir` before the import to use a `vbc.exe` from another folder. Without it, the props uses a `compiler\net472` folder beside itself, as in the release ZIP, and then the compiler built in this repo. The build stops with an error if `vbc.exe` is missing.
 
 `vbnext/samples/HelloVbNext` is a working example. Its `Directory.Build.props` imports the toolset, so it builds on its own:
 
 ```powershell
 dotnet run --project vbnext\samples\HelloVbNext\HelloVbNext.vbproj
 ```
+
+The sample targets `net10.0`, so running it needs a .NET 10 runtime. The SDK that `global.json` pins in `%LOCALAPPDATA%\dotnet-vbnext` does not contain the .NET 10 runtime: it builds the sample but cannot run it. Run it with the installed stock .NET 10 SDK and runtime, for example `& 'C:\Program Files\dotnet\dotnet.exe' vbnext\samples\HelloVbNext\bin\Debug\net10.0\HelloVbNext.dll`.
+
+`vbnext/packaging/New-VbNextPreviewPackage.ps1` builds the preview ZIP in `artifacts\vbnext-release`, and `vbnext/packaging/validation/` checks an extracted ZIP; see `docs/vbnext-release-plan.md`.
 
 ## What the props file sets
 

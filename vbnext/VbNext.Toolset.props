@@ -6,9 +6,11 @@
     Build the compiler first:
       dotnet build src\Compilers\VisualBasic\vbc\AnyCpu\vbc.csproj -c Release -f net472
 
-    Set VbNextCompilerDir to use a vbc.exe from another folder.
+    Set VbNextCompilerDir to use a vbc.exe from another folder. Otherwise a compiler\net472 folder beside this file,
+    as in the release ZIP, is used, and then the compiler built in this repo.
   -->
   <PropertyGroup>
+    <VbNextCompilerDir Condition="'$(VbNextCompilerDir)' == '' and Exists('$(MSBuildThisFileDirectory)compiler\net472\vbc.exe')">$(MSBuildThisFileDirectory)compiler\net472\</VbNextCompilerDir>
     <VbNextCompilerDir Condition="'$(VbNextCompilerDir)' == ''">$(MSBuildThisFileDirectory)..\artifacts\bin\vbc\Release\net472\</VbNextCompilerDir>
     <VbcToolPath>$(VbNextCompilerDir)</VbcToolPath>
     <VbcToolExe>vbc.exe</VbcToolExe>
