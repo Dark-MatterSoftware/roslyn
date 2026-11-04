@@ -156,7 +156,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 Dim unaryParent = TryCast(expression.WalkUpParentheses().Parent, UnaryExpressionSyntax)
                 If unaryParent IsNot Nothing AndAlso
                    unaryParent.Kind() <> SyntaxKind.AddressOfExpression AndAlso
-                   methodSymbol?.MethodKind = MethodKind.Ordinary AndAlso
+                   methodSymbol IsNot Nothing AndAlso
+                   methodSymbol.MethodKind = MethodKind.Ordinary AndAlso
                    Not methodSymbol.ReturnsByRef AndAlso
                    methodSymbol.Parameters.All(Function(p) p.IsOptional OrElse p.IsParams) Then
                     returnType = methodSymbol.ReturnType

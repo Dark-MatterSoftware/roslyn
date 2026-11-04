@@ -2175,6 +2175,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Private _placeholderReplacementMap As Dictionary(Of BoundValuePlaceholderBase, BoundExpression)
             Private ReadOnly _nodeCache As OrderPreservingMultiDictionary(Of SyntaxNode, BoundNode)
             Private _recordingConsumedNodes As Boolean
+            Private _consumedRoot As BoundNode
 
             Private Sub New(semanticModel As MemberSemanticModel, thisSyntaxNodeOnly As SyntaxNode, nodeCache As OrderPreservingMultiDictionary(Of SyntaxNode, BoundNode))
                 _semanticModel = semanticModel
@@ -2274,7 +2275,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return Nothing
                 End If
 
-                If RecordNode(node, allowCompilerGenerated:=_recordingConsumedNodes OrElse StandsForCollectionLiteral(node)) AndAlso
+                If RecordNode(node, allowCompilerGenerated:=(_recordingConsumedNodes AndAlso node Is _consumedRoot) OrElse StandsForCollectionLiteral(node)) AndAlso
                    (Not _recordingConsumedNodes OrElse Not _nodeCache.Contains(node.Syntax, node)) Then
                     _nodeCache.Add(node.Syntax, node)
                 End If
@@ -2332,7 +2333,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ''' <summary>
             ''' The receiver and the ^n or a..b that an index or a slice consumed are kept outside the value it binds to.
             ''' The value shares their nodes in a tree that is marked compiler generated, so they are recorded here,
-            ''' each once.
+            ''' each once. Only the receiver or the argument itself is recorded when it is compiler generated; the
+            ''' nodes under it follow the rule of the rest of the tree, so that an implicit Me or module receiver of a
+            ''' name in it is not recorded for the name.
             ''' </summary>
             Private Sub RecordConsumedNodes(node As BoundExpression)
                 If node Is Nothing Then
@@ -2340,9 +2343,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Dim saved = _recordingConsumedNodes
+                Dim savedRoot = _consumedRoot
                 _recordingConsumedNodes = True
+                _consumedRoot = node
                 Visit(node)
                 _recordingConsumedNodes = saved
+                _consumedRoot = savedRoot
             End Sub
 
             Public Overrides Function VisitBinaryOperator(node As BoundBinaryOperator) As BoundNode

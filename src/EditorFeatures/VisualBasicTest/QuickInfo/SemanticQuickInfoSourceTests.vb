@@ -162,6 +162,44 @@ End Structure", code, position)
             End Using
         End Function
 
+        Private Const IndexedNames As String = "
+Imports System.Collections.Generic
+
+Module M
+    Function Make() As List(Of Integer)
+        Return New List(Of Integer)
+    End Function
+
+    Sub Run()
+        {0}
+    End Sub
+End Module
+
+Class C
+    Private items As New List(Of Integer)
+
+    ReadOnly Property Depth As Integer
+        Get
+            Return 1
+        End Get
+    End Property
+
+    Sub Run()
+        {1}
+    End Sub
+End Class"
+
+        <Theory>
+        <InlineData("Dim a = Ma$$ke()(^3)", "Dim e = items(^Depth)", "Function M.Make() As List(Of Integer)", False)>
+        <InlineData("Ma$$ke()(^2) += 5", "Dim e = items(^Depth)", "Function M.Make() As List(Of Integer)", False)>
+        <InlineData("Dim a = Make()(^3)", "Dim e = items(^De$$pth)", "ReadOnly Property C.Depth As Integer", False)>
+        <InlineData("Dim a = Make()(^3)", "Dim g = ite$$ms(1..Depth)", "C.items As List(Of Integer)", True)>
+        Public Async Function TestNameInAnIndexFromTheEndOrASlice(moduleStatement As String, classStatement As String, expected As String, isField As Boolean) As Task
+            Await TestFromXmlAsync("<Workspace><Project Language=""Visual Basic"" CommonReferencesNet6=""true"" LanguageVersion=""vbnext""><Document><![CDATA[" &
+                String.Format(IndexedNames, moduleStatement, classStatement) &
+                "]]></Document></Project></Workspace>", MainDescription(If(isField, $"({FeaturesResources.field}) {expected}", expected)))
+        End Function
+
         Private Shared Function WithCSharpLibrary(csharpSource As String, vbSource As String) As String
             Return "<Workspace>
     <Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""vbnext"">
