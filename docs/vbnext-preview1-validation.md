@@ -2,7 +2,7 @@
 
 Checks for 1.0.0-preview.1, under [vbnext-release-plan.md](vbnext-release-plan.md). It is a note for this independent fork, which is not affiliated with, endorsed by, or supported by Microsoft.
 
-Status: phase 1, the isolated-folder portability test, passed on November 3, 2026, and the first internal candidate ZIP passed its local checks. Phase 2, the clean-machine test in Windows Sandbox on a separate Windows Pro desktop, is not started.
+Status: phase 1, the isolated-folder portability test, passed on November 3, 2026. The release candidate, built from commit `e5afdaecd0e`, passed its local checks, and phase 2, the clean-machine test in Windows Sandbox, passed on November 4, 2026. Preview 1 is not yet published.
 
 ## Phase 1: isolated folder on the development machine
 
@@ -134,8 +134,33 @@ A second run with `-ExpectedVersion 9.9.9` reported one FAIL and exited with 1, 
 ### Open issues
 
 - The repo's pinned SDK in `%LOCALAPPDATA%\dotnet-vbnext` has only the .NET 11 RC1 runtime, not .NET 10, so it builds the `net10.0` sample but cannot run it (0x80008096). As decided, the sample stays on `net10.0` without `RollForward`, and it runs with the stock .NET 10 SDK and runtime; `docs/vbnext-toolset.md` says so.
-- `VERSION.txt` records the uncommitted changes; a release ZIP comes from a clean, committed release commit (D8).
+- `VERSION.txt` records the uncommitted changes; a release ZIP comes from a clean, committed release commit (D8). Resolved by the release candidate below.
+
+## Release candidate
+
+Commit `e5afdaecd0eadab48d93eeb23c9ce3d0bf7f4dd2` on `vbnext/main`, "Prepare Vb.Next Preview 1 packaging and validation", pushed to `origin/vbnext/main`. It commits the packaging, the validation kit, the props and sample changes, and these docs; since `c4ffca9d60c`, where the seven suites passed, it changes nothing under `src/`, `eng/`, or `global.json`.
+
+| Check | Result |
+| --- | --- |
+| Package | `VbNext-1.0.0-preview.1-win-net472.zip`, 9,830,783 bytes, built by `vbnext/packaging/New-VbNextPreviewPackage.ps1` from the committed source |
+| SHA-256 | `9d1e7297af844111f91d9c61e345adc38e2683a31510dfbaa54cd10bddf9ca84`; it matches `VbNext-1.0.0-preview.1-SHA256SUMS.txt` |
+| `VERSION.txt` | Commit `e5afdaecd0e...`, source state clean, built with the pinned SDK `11.0.100-rc.1.26425.128` |
+| Version metadata | Product version `1.0.0-preview.1+e5afdaecd0eadab48d93eeb23c9ce3d0bf7f4dd2`; assembly version `42.42.42.42` and token `31bf3856ad364e35`, unchanged |
+| Compiler build | 0 errors; 1 warning, BC42305, already in the source |
+| Validation kit, local, SDK 10.0.403, freshly extracted to a path with spaces | 12 of 12 PASS, exit code 0 |
 
 ## Phase 2: clean machine
 
-Not started. Planned: Windows Sandbox on the separate Windows Pro desktop, with only stock SDKs installed, the copied compiler folder, `VbNext.Toolset.props`, the samples, and the two scripts above, and the same checks against the 67-line baseline.
+Passed on November 4, 2026, run by the project owner on a separate Windows Pro desktop with `vbnext/packaging/validation/README.md`.
+
+| Item | Value |
+| --- | --- |
+| Environment | Windows Sandbox, Windows NT 10.0.26100.0, with only the stock .NET SDK 10.0.403 installed |
+| Package | The release candidate above: version 1.0.0-preview.1, source commit `e5afdaecd0eadab48d93eeb23c9ce3d0bf7f4dd2` |
+| Checksum in the sandbox | `9d1e7297af844111f91d9c61e345adc38e2683a31510dfbaa54cd10bddf9ca84`, confirmed independently by the owner; the same as the release candidate's |
+| Validation kit | 12 of 12 checks PASS; result PASS |
+| HelloVbNext | 67 of 67 output lines match the baseline |
+| C# | Compiled with the stock SDK compiler |
+| Removing the import | Restores the stock Visual Basic compiler |
+
+What this validates: on a clean Windows machine with only the stock .NET 10 SDK, the ZIP needs nothing from the development machine, compiles and runs `vbnext` code, leaves ordinary VB and C# with their usual compilers, and is removed by deleting its import. Not validated on a clean machine: the .NET 11 SDK, other .NET 10 SDK versions, target frameworks other than `net10.0`, project types other than console apps, and builds inside Visual Studio.

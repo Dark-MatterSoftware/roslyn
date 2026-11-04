@@ -142,6 +142,17 @@ The four extensions in [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn for
   - without the import, `vbnext` is rejected by the SDK's compiler.
 - P6: The known limitations are listed: Windows only, the SDK versions tested, editor squiggles in a normal Visual Studio, Edit and Continue unvalidated, and the upstream defects in [vbnext-missing-features.md](vbnext-missing-features.md).
 
+Status of the Preview 1 gates on November 4, 2026, for the candidate from `e5afdaecd0e`:
+
+| Gate | Status |
+| --- | --- |
+| P1 | Met by equivalence, accepted by the owner (D12): the suites passed at `c4ffca9d60c`, and nothing under `src/`, `eng/`, or `global.json` changed since |
+| P2 | Met: 87 files in the layout of section 3; `VERSION.txt` names the commit, source state clean |
+| P3 | Open until publication: the downloaded ZIP is checked against the published SHA-256 |
+| P4 | Met: README with install, use, and removal, the limitations, `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, `NOTICE.md` |
+| P5 | Met for .NET 10: 12 of 12 checks in Windows Sandbox with SDK 10.0.403 |
+| P6 | Met in the README for the package; the release notes add Edit and Continue and the upstream defects |
+
 ### Beta 1
 
 - B1: The NuGet package installs and uninstalls through `PackageReference` in a new project, and uninstalling restores the stock compiler.
@@ -165,13 +176,19 @@ The four extensions in [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn for
 
 ## 5. Release blockers
 
-Preview 1, from repository evidence:
+Preview 1, from repository evidence, as first recorded and as of November 4, 2026:
 
-1. **No release layout.** The props' default compiler path points into this repo's `artifacts` folder (`vbnext/VbNext.Toolset.props`), and nothing assembles a ZIP.
-2. **No clean-machine validation.** Every recorded run is on the development machine with the pinned .NET 11 preview SDK in `%LOCALAPPDATA%\dotnet-vbnext` (`global.json`, `vbnext/Start-VbNextVisualStudio.ps1`).
-3. **Identity, provisionally accepted.** The assemblies keep Microsoft's names and the version `5.13.0-dev`; the roadmap requires own ids and versions before anyone installs a Vb.Next build ([vbnext-roadmap.md](vbnext-roadmap.md#public-api-and-package-identity)). D4 accepts this for Preview 1, with the disclaimer, and it is revisited before Beta 1.
-4. **No Vb.Next notice.** `License.txt` and `THIRD-PARTY-NOTICES.txt` exist; a release notice and trademark wording do not.
-5. **No release process.** No Vb.Next version scheme (`eng/Versions.props` is upstream's), no checksums, and no release workflow; the pipelines are upstream's and need Microsoft's infrastructure (`azure-pipelines-official.yml`, `eng/Signing.props`).
+1. **No release layout.** Resolved: the props finds a `compiler\net472` folder beside itself, and `vbnext/packaging/New-VbNextPreviewPackage.ps1` assembles the ZIP.
+2. **No clean-machine validation.** Resolved for .NET 10: the release candidate passed in Windows Sandbox with only SDK 10.0.403 ([vbnext-preview1-validation.md](vbnext-preview1-validation.md)). The .NET 11 SDK is validated only on the development machine.
+3. **Identity, provisionally accepted.** The assemblies keep Microsoft's names, with the developer-build assembly version `42.42.42.42`; the product version is now `1.0.0-preview.1+<commit>`. The roadmap requires own ids and versions before anyone installs a Vb.Next build ([vbnext-roadmap.md](vbnext-roadmap.md#public-api-and-package-identity)). D4 accepts this for Preview 1, with the disclaimer, and it is revisited before Beta 1.
+4. **No Vb.Next notice.** Resolved: `NOTICE.md` is in the ZIP, beside `LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`.
+5. **No release process.** Resolved for Preview 1 as a manual process: the package script, `VERSION.txt`, `MANIFEST.sha256`, and the checksum file. A release workflow stays a Beta 1 item.
+
+Still open for publishing Preview 1, found in the release-readiness review:
+
+6. **No place to report problems.** Resolved: the owner turned on GitHub issues, and the release notes point to https://github.com/Dark-MatterSoftware/roslyn/issues. Discussions stay off.
+7. **The security policy is upstream's.** Resolved on November 4, 2026: the owner turned on GitHub private vulnerability reporting, and the release notes send Vb.Next reports to https://github.com/Dark-MatterSoftware/roslyn/security/advisories/new. `SECURITY.md`, the same on `main` and `vbnext/main` and unchanged since the fork point, is the upstream Roslyn policy: it sends reports to the Microsoft Security Response Center and asks for no public issues. GitHub shows the policy of the default branch, `main`, which stays a clean upstream sync, so the file is left as it is. Reports of problems that also occur with Microsoft's own compiler still belong to Microsoft, as that file says.
+8. **Gate P1 by equivalence.** Resolved: the owner accepts the suites at `c4ffca9d60c` for Preview 1, since the release commit `e5afdaecd0e` changes nothing under `src/`, `eng/`, or `global.json`.
 
 Not Preview 1 blockers, recorded as known limitations:
 
@@ -219,13 +236,24 @@ Recorded on November 3, 2026. "Provisional" means the decision holds until the v
 | --- | --- | --- |
 | D1 | Version `1.0.0-preview.1`, tag `vbnext-v1.0.0-preview.1`. | Decided. |
 | D2 | A portable ZIP whose props finds the compiler by a path relative to itself, `..\compiler\net472\`. | Decided. The one-line change to the release copy of the props is a later checklist item. |
-| D3 | .NET 10 LTS is the preferred supported baseline; the pinned .NET 11 configuration is validated too. | Provisional until the clean-machine validation passes on both. The sample targets `net11.0`, so the .NET 10 run builds it with `-p:TargetFramework=net10.0`. |
+| D3 | .NET 10 LTS is the supported baseline; the pinned .NET 11 configuration is validated too. | Decided for .NET 10: the clean-machine validation passed with SDK 10.0.403, and the sample targets `net10.0`. The .NET 11 RC1 SDK is validated only on the development machine, so Preview 1 lists it as tested, not supported. |
 | D4 | Preview 1 keeps the existing Roslyn assembly identities where compatibility needs them. The current VSIX files are not distributed. | Provisional for the identities, to be revisited before Beta 1. Decided for the VSIX files. |
 | D5 | The ZIP includes `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, the Vb.Next disclaimer in `NOTICE.md`, and the HelloVbNext sample. | Decided. The trademark wording is written with the release docs. |
 | D6 | The Beta 1 package id is `VbNext.Compiler.Toolset`. | Provisional, to be checked for availability on nuget.org. |
 | D7 | The Preview ZIP is unsigned, with SHA-256 checksums. | Decided for previews; signing for Stable 1.0 stays open. |
 | D8 | A new, validated release commit is made later; it is not `c4ffca9d60c`. | Decided. An upstream sync, if any, lands on `main` first under the [branch policy](vbnext-roadmap.md#branch-policy). |
 | D9 | VB-187 (slice 172a) is deferred and is not a Preview 1 blocker. | Decided. |
+
+Recorded on November 4, 2026, after the clean-machine validation:
+
+| # | Decision | Status |
+| --- | --- | --- |
+| D10 | GitHub issues are the public feedback channel; discussions stay off. | Decided. Issues are on. |
+| D11 | Security reports about Vb.Next go to a Vb.Next channel, not to Microsoft. | Decided. The channel is GitHub private vulnerability reporting, turned on. |
+| D12 | The suites at `c4ffca9d60c` stand for Preview 1; no rerun at `e5afdaecd0e`. | Decided. |
+| D13 | The ZIP is not rebuilt to add a feedback link to its README; the release notes carry it. | Decided. |
+| D14 | The default branch stays `main`. | Decided. |
+| D15 | The tag `vbnext-v1.0.0-preview.1` is on `e5afdaecd0eadab48d93eeb23c9ce3d0bf7f4dd2`, and the release ZIP is the one with SHA-256 `9d1e7297af844111f91d9c61e345adc38e2683a31510dfbaa54cd10bddf9ca84`. | Decided. |
 
 ### Tentative schedule
 
