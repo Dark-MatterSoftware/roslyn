@@ -45,6 +45,12 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
     protected abstract SyntaxNode? GetLocalDeclarationFromDeclarator(SyntaxNode variableDecl);
     protected abstract bool IsDestructor(IMethodSymbol methodSymbol);
 
+    /// <summary>
+    /// Whether the language lets the expression become a parameter, beyond the checks that every language shares.
+    /// </summary>
+    protected virtual bool IsValidLanguageSpecificExpression(TExpressionSyntax expression)
+        => true;
+
     public sealed override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
     {
         var (document, textSpan, cancellationToken) = context;
@@ -57,7 +63,7 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
 
         var generator = SyntaxGenerator.GetGenerator(document);
         var syntaxFacts = document.GetRequiredLanguageService<ISyntaxFactsService>();
-        if (!IsValidExpression(expression, syntaxFacts))
+        if (!IsValidExpression(expression, syntaxFacts) || !IsValidLanguageSpecificExpression(expression))
             return;
 
         var containingMethod = expression.FirstAncestorOrSelf<SyntaxNode>(node => generator.GetParameterListNode(node) is not null);
