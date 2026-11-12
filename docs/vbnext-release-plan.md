@@ -124,7 +124,9 @@ The four extensions in [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn for
 | Targets other than `net11.0` | Untested for the sample | `HelloVbNext.vbproj` |
 | C# projects in the same solution use the stock compiler | Assumed from how the props works | `VbNext.Toolset.props` |
 | Removing the import restores the stock compiler | Assumed | [vbnext-toolset.md](vbnext-toolset.md) |
-| Ordinary VB code compiles to the same output as with the stock compiler | Untested | — |
+| Ordinary VB code compiles to the same output as with the stock compiler | Verified only for the desktop samples: identical metadata and IL in four pairs | [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
+| Windows Forms and WPF on `net10.0-windows` and `net48` with `dotnet build`, SDK 10.0.400 | Verified from the command line for the DR-1 samples; `net48` WPF needs an explicit `mscorlib` reference | [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
+| Desktop applications in Visual Studio: designers, My Project pages, builds, and debugging | Untested: pending IDE validation | [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
 | Linux and macOS | Not supported: `vbc.exe` is .NET Framework | `vbc.csproj` |
 | Builds inside Visual Studio use Vb.Next | Assumed ("should") | [vbnext-toolset.md](vbnext-toolset.md) |
 
