@@ -107,7 +107,7 @@ The repo has `License.txt` (MIT) and `THIRD-PARTY-NOTICES.txt` from upstream. Ev
 
 ### Visual Studio VSIX track
 
-The four extensions in [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn for C# and Visual Basic in a Visual Studio instance. Their manifests keep upstream's ids and `Publisher="Microsoft"` (`src/VisualStudio/Setup/source.extension.vsixmanifest`, `src/Compilers/Extension/source.extension.vsixmanifest`, `src/ExpressionEvaluator/Package/source.extension.vsixmanifest`). They are validated only in the `RoslynDev` hive of Visual Studio 2026 Insiders 18.12, and Edit and Continue is Pending ([vbnext-wave34-validation.md](vbnext-wave34-validation.md)). A public VSIX needs its own identity and publisher, signing, a Visual Studio version range limited to tested builds, and a design for living beside the in-box Roslyn. Until then, Visual Studio support is documented as experimental, for contributors.
+The four extensions in [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn for C# and Visual Basic in a Visual Studio instance. Their manifests keep upstream's ids and `Publisher="Microsoft"` (`src/VisualStudio/Setup/source.extension.vsixmanifest`, `src/Compilers/Extension/source.extension.vsixmanifest`, `src/ExpressionEvaluator/Package/source.extension.vsixmanifest`). They are validated only in the `RoslynDev` hive of Visual Studio 2026 Insiders, 18.12 for the wave 34 checklist and 18.13 for the desktop designer runs ([vbnext-desktop-validation.md](vbnext-desktop-validation.md#visual-studio-designer-validation-dr-3)), and Edit and Continue is Pending ([vbnext-wave34-validation.md](vbnext-wave34-validation.md)). In that hive a build can use the extension's compiler instead of the Preview 1 compiler ([known limitations](vbnext-desktop-validation.md#known-limitations)). A public VSIX needs its own identity and publisher, signing, a Visual Studio version range limited to tested builds, and a design for living beside the in-box Roslyn. Until then, Visual Studio support is documented as experimental, for contributors.
 
 ## 4. Release quality gates
 
@@ -119,17 +119,26 @@ The four extensions in [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn for
 | The seven suites on `net472` at `c4ffca9d60c` | Verified: 31,737 passed, 305 skipped, none failed | Slice 171a, [vbnext-phases.md](vbnext-phases.md) |
 | The compiler suites on `net10.0` | Verified at wave 35, not rerun since | [vbnext-wave35-validation.md](vbnext-wave35-validation.md) |
 | `default` and `latest` stay 17.13 | Verified by design and tests | [vbnext-language-version.md](vbnext-language-version.md) |
-| A clean machine with only a stock SDK | Untested | — |
-| SDKs other than the pinned .NET 11 preview | Untested | `global.json` |
-| Targets other than `net11.0` | Untested for the sample | `HelloVbNext.vbproj` |
-| C# projects in the same solution use the stock compiler | Assumed from how the props works | `VbNext.Toolset.props` |
-| Removing the import restores the stock compiler | Assumed | [vbnext-toolset.md](vbnext-toolset.md) |
+| A clean machine with only a stock SDK | Verified for .NET 10: 12 of 12 checks in Windows Sandbox with SDK 10.0.403 (gate P5) | [vbnext-preview1-validation.md](vbnext-preview1-validation.md) |
+| SDKs other than the pinned .NET 11 preview | Verified with SDK 10.0.403 on a clean machine, and with SDK 10.0.400 for the desktop samples; other SDK bands untested | [vbnext-preview1-validation.md](vbnext-preview1-validation.md), [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
+| Targets other than `net11.0` | Verified for the sample on `net10.0`, and for the desktop samples on `net10.0-windows` and `net48`; `net472` and `net47` untested | [vbnext-preview1-validation.md](vbnext-preview1-validation.md), [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
+| C# projects in the same solution use the stock compiler | Verified for the tested solutions only: the mixed solution of phase 1 on the development machine, the P5 check on a clean machine with SDK 10.0.403, and the VS-1 solution built from the command line with Visual Studio 18.11's MSBuild. Not shown for other SDKs or for builds started inside the IDE | [vbnext-preview1-validation.md](vbnext-preview1-validation.md), [vbnext-vs1-validation.md](vbnext-vs1-validation.md) |
+| Removing the import restores the stock compiler | Verified from the command line on a clean machine with SDK 10.0.403 (phase 2). Phase 1 and VS-1's automated checks show only that projects without the import use the SDK's compiler; removing the import inside the IDE, VS-1 rows 15 and 16, is Pending | [vbnext-preview1-validation.md](vbnext-preview1-validation.md), [vbnext-vs1-validation.md](vbnext-vs1-validation.md) |
 | Ordinary VB code compiles to the same output as with the stock compiler | Verified only for the desktop samples: identical metadata and IL in four pairs | [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
 | Windows Forms and WPF on `net10.0-windows` and `net48` with `dotnet build`, SDK 10.0.400 | Verified from the command line for the DR-1 samples; `net48` WPF needs an explicit `mscorlib` reference | [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
-| Desktop applications in Visual Studio: designers, My Project pages, builds, and debugging | Untested: pending IDE validation | [vbnext-desktop-validation.md](vbnext-desktop-validation.md) |
+| Windows Forms and WPF designers in Visual Studio | Verified for the tested workflows only, in the `RoslynDev` experimental instance of Visual Studio 2026 Insiders 18.13 (DR-3B to DR-3D.4): the code editor, the Windows Forms designer with a property edit and save, and the WPF designer after a build, with a property edit and save. Partly backed by build logs and file comparisons, partly by the owner's observation; DR-3D.4 is user-reported only | [vbnext-desktop-validation.md](vbnext-desktop-validation.md#visual-studio-designer-validation-dr-3) |
+| Desktop applications in Visual Studio: debugging, Edit and Continue, Hot Reload, My Project pages, and publishing | Untested | [vbnext-desktop-validation.md](vbnext-desktop-validation.md#untested) |
 | Linux and macOS | Not supported: `vbc.exe` is .NET Framework | `vbc.csproj` |
-| Builds inside Visual Studio use Vb.Next | Assumed ("should") | [vbnext-toolset.md](vbnext-toolset.md) |
+| Builds inside Visual Studio use Vb.Next | Verified for stock Visual Studio 18.11 through its MSBuild from the command line (VS-1); in the `RoslynDev` experimental instance a build can use the extension's compiler instead (DR-3B.3, DR-3B.4) | [vbnext-vs1-validation.md](vbnext-vs1-validation.md), [vbnext-desktop-validation.md](vbnext-desktop-validation.md#known-limitations) |
 
+### Desktop validation status
+
+As of November 12, 2026:
+
+- Complete: the command-line matrix of Windows Forms and WPF on `net10.0-windows` and `net48`, with `vbnext` and as ordinary VB (DR-1), and the tested Windows Forms and WPF designer workflows in the `RoslynDev` experimental instance (DR-3), as [vbnext-desktop-validation.md](vbnext-desktop-validation.md) records with the evidence for each run.
+- Not complete: Visual Studio integration as a whole, and desktop readiness. Vb.Next is a preview and is not production-ready.
+- Remaining requirements: debugging of desktop applications in Visual Studio, Edit and Continue and Hot Reload, My Project and the generated application infrastructure, `net472` and `net47`, publishing and platform configurations, and the [known limitations](vbnext-desktop-validation.md#known-limitations), among them the compiler routing of the experimental instance, the compiler check that does not see which compiler MSBuild ran, the opt-in array-slice workaround, and VB-065 regression coverage.
+- Next: the [proposed next milestone](vbnext-desktop-validation.md#proposed-next-milestone) starts with basic debugging; it is a proposal and is not authorized. Desktop stays first; Razor and VBHTML, and MAUI, are not advanced.
 ### Preview 1
 
 - P1: The release commit is on `vbnext/main` and pushed; the seven suites pass on `net472` at that commit, with counts recorded.

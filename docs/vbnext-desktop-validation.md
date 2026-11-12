@@ -1,8 +1,12 @@
-# Vb.Next desktop validation: Windows Forms and WPF from the command line
+# Vb.Next desktop validation: Windows Forms and WPF, from the command line and in the Visual Studio designers
 
-Milestone DR-1 checks that Windows Forms and WPF applications build and run with the Vb.Next 1.0.0-preview.1 compiler, on `net10.0-windows` and `net48`, with and without `vbnext`, and compares ordinary VB with the stock compiler. It is a note for this independent fork, which is not affiliated with, endorsed by, or supported by Microsoft. The mission and the language and framework API boundary are in [vbnext-mission.md](vbnext-mission.md).
+Milestone DR-1 checks that Windows Forms and WPF applications build and run with the Vb.Next 1.0.0-preview.1 compiler, on `net10.0-windows` and `net48`, with and without `vbnext`, and compares ordinary VB with the stock compiler. It is a note for this independent fork, which is not affiliated with, endorsed by, or supported by Microsoft. The mission and the language and framework API boundary are in [vbnext-mission.md](vbnext-mission.md). Milestone DR-3 then checks the same samples in the Windows Forms and WPF designers of Visual Studio Insiders, as [Visual Studio designer validation](#visual-studio-designer-validation-dr-3) records.
 
-Status: completed from the command line on November 11, 2026. Runs DR-1A to DR-1I passed or ended as recorded below. No Visual Studio, designer, or debugger validation of desktop applications was done; that is pending, as [Untested](#untested) lists.
+Status:
+
+- Command line: completed on November 11, 2026. Runs DR-1A to DR-1I passed or ended as recorded below; all eight configurations in [Summary by configuration](#summary-by-configuration) passed.
+- Visual Studio designers: the tested Windows Forms and WPF designer workflows are complete, in runs DR-3B to DR-3D.4 on November 11 and 12, 2026, in the `RoslynDev` experimental instance of Visual Studio 2026 Insiders. Some of these results are backed by captured logs and file comparisons, and some only by what the owner observed; the [designer results](#designer-results) say which.
+- Not complete: Visual Studio integration as a whole, and desktop readiness. Debugging, Edit and Continue, Hot Reload, My Project, publishing, and broader IDE compatibility are unverified, as [Known limitations](#known-limitations) and [Untested](#untested) list. Vb.Next is a preview; it is not production-ready.
 
 ## Scope and method
 
@@ -40,6 +44,17 @@ All builds that succeeded reported 0 warnings and 0 errors.
 | DR-1I | `net48` | WPF, explicit `mscorlib` reference | Preview 1 | `vbnext` | Passed | 15 of 15, exit 0 | Passed |
 
 The runs reported .NET runtime 10.0.15 on `net10.0-windows` and 4.0.30319.42000, .NET Framework 4.8, on `net48`.
+
+### Summary by configuration
+
+| Framework | Application | With `vbnext`, Preview 1 | Ordinary VB, Preview 1 and stock |
+| --- | --- | --- | --- |
+| `net10.0-windows` | Windows Forms | Passed: DR-1A.1 | Passed: DR-1B, copies B and C |
+| `net48` | Windows Forms | Passed: DR-1D | Passed: DR-1C |
+| `net10.0-windows` | WPF | Passed: DR-1E | Passed: DR-1F |
+| `net48` | WPF | Passed: DR-1I, with the explicit `mscorlib` reference | Passed: DR-1H.1, with the explicit `mscorlib` reference |
+
+Each result is backed by the run's build log, its smoke log, and, for the ordinary VB pairs, the metadata and IL comparison. The `mscorlib` reference is the project-level workaround in [Known tooling workarounds](#known-tooling-workarounds). `net472` and `net47` were not covered.
 
 ## Validated
 
@@ -110,18 +125,78 @@ These follow from the target framework, not from the compiler, and were applied 
 - `Environment.ProcessId` became `Process.GetCurrentProcess().Id`.
 - In Windows Forms, the `Startup` event replaced `ApplyApplicationDefaults`, and the `Application.HighDpiMode` check was removed, which leaves 16 checks.
 
+## Visual Studio designer validation (DR-3)
+
+Runs DR-3A to DR-3D.4 check the DR-1 samples in Visual Studio, in the `RoslynDev` experimental instance of Visual Studio 2026 Insiders, where the four extensions of [vbnext-toolset.md](vbnext-toolset.md) replace Roslyn. The owner operated the IDE. Each run was otherwise limited to a read-only preflight, the launch, passive capture, and a comparison after Visual Studio closed.
+
+### Environment and method
+
+| Item | Value |
+| --- | --- |
+| Visual Studio | Visual Studio 2026 Insiders 18.13.12409.143, instance `e34b10de`, started with `/rootSuffix RoslynDev` by `vbnext\Start-VbNextVisualStudio.ps1 -SdkDir 'C:\Program Files\dotnet'` |
+| Projects | Isolated copies outside the repo, each with a baseline inventory of SHA-256 hashes: `C:\VbNext IDE Test\DR3B-WinFormsVbNext` and `C:\VbNext IDE Test\DR3C-WinFormsDesigner`, from the DR-1A Windows Forms sample, and `C:\VbNext IDE Test\DR3D-WpfDesigner`, from the DR-1E WPF sample; all `net10.0-windows` with `LangVersion` `vbnext` and the Preview 1 toolset import |
+| Hive | The `18.0_e34b10deRoslynDev` hive was backed up in full before each designer run. After each run, the backups, the deployed extensions, the expression evaluator (SHA-256 `DC964F96...`), and the repo were checked unchanged |
+| Not done | No F5, debugging, or Hot Reload; no manual source edits; no compiler, toolset, or extension change |
+
+Evidence types in [Designer results](#designer-results):
+
+- **Log**: captured build logs, a binary log and a diagnostic log.
+- **Files**: SHA-256 comparisons of sources, build outputs, and hive files before and after a run, and metadata and IL comparisons.
+- **User**: what the owner observed and reported in the IDE, with no captured artifact.
+
+### Designer results
+
+| Run | Check | Result | Evidence |
+| --- | --- | --- | --- |
+| DR-3B (DR-3B.1, DR-3B.2) | The Windows Forms sample in the code editor, with View Code only and no designer | Passed, as reported by the owner: the project loaded, `^1` and `^2` had no squiggles, and the Error List showed 0 errors, 0 warnings, and 0 messages. Quick Info was not verified. An unexpected build during the session used the RoslynDev compiler, investigated in DR-3B.3 | User for the editor; Files for the unchanged sources and the hive |
+| DR-3B.3, DR-3B.4 | Which compiler that build used, and why | Confirmed: the RoslynDev compiler is selected through per-hive MSBuild `ImportBefore` files, as [Known limitations](#known-limitations) describes. The metadata and IL equal DR-1A.1's | Log and Files: one isolated Insiders MSBuild build with `RoslynHive` set; 0 metadata and IL differences against DR-1A.1 |
+| DR-3C | The Windows Forms designer: `Form1` opens and shows its controls; `RunButton`'s caption changed from Run to Run2 in the Properties window and saved, then back to Run and saved | Passed, as reported by the owner. After Visual Studio closed, from file comparisons: `Form1.vb` byte-identical; `Form1.Designer.vb` changed only cosmetically, its designer comments (`'RunButton` became `' RunButton`) and its line endings, partly converted from LF to CRLF; the event handlers, `WithEvents` fields, and `^1` and `^2` unchanged; `Form1.resx` and `DR1AWinFormsVbNext.slnx` were new | User for the designer and the round trip; Files for the final state. Only the final save was captured, not the intermediate Run2 save |
+| DR-3D, stage 2 | The WPF designer on `MainWindow.xaml` | Blocked: "Build the Project to update Design view", and XDG0008 on `local:StageNames`. No property was changed and nothing was saved | User |
+| DR-3D.1 | Why the designer could not resolve `StageNames` | The isolated copy had never been built. The designer needs the project's own built assembly for a type that XAML names through a `clr-namespace` without `assembly=`. `StageNames` is public, not nested, and has a parameterless constructor | Files: read-only investigation |
+| DR-3D.2 | One controlled build of the isolated WPF copy with Insiders MSBuild, without `RoslynHive` | Passed: both `Vbc` tasks, the `*_wpftmp` project's and the main project's, ran the Preview 1 `vbc.exe` (SHA-256 `FAD3987F...`) with `/langversion:vbnext`; 0 warnings and 0 errors; 0 metadata and IL differences against DR-1E | Log: binary log and diagnostic log, kept in `%TEMP%\vbnext-dr3d2b-evidence` on the test machine; Files |
+| DR-3D.3 | The WPF designer after that build | Passed, as reported by the owner: `MainWindow` rendered, `StageNames` resolved, and the Error List was empty, so XDG0008 was not shown; a Run2 property edit was made and not saved. From file comparisons afterwards: all sources were byte-identical and `bin` was unchanged, so no build output was written; the designer's cache in the hive held a copy of the built `DR1EWpfVbNext.dll` (SHA-256 `B18ED76C...`) | User for the render, the Error List, and the edit; Files for the sources, outputs, designer cache, and hive. No save occurred, so none was captured |
+| DR-3D.4 | The WPF designer: property edit and XAML save round trip | Passed, as reported by the owner | User only: no save capture, log, or hash comparison exists for this run |
+
+### Side effects of opening a project
+
+- Observed in DR-3D.3, in the tested environment (Insiders 18.13, the `RoslynDev` instance): loading the WPF project ran a design-time build in Visual Studio's MSBuild node. It rewrote the restore files in `obj`, regenerated `MainWindow.g.vb` and `GeneratedInternalTypeHelper.g.vb`, and rewrote `DR1EWpfVbNext_MarkupCompile.cache` and `.lref`; after the load, the `obj\...\MainWindow.baml` that the DR-3D.2 build had written was no longer present. This is a recorded observation of design-time project-load behavior, not a confirmed Vb.Next defect; its cause was not investigated, and whether a later build restores the file was not checked. The assembly in `bin` and `obj`, and `DR1EWpfVbNext.g.resources`, which embeds the built BAML, were unchanged.
+- In DR-3D.3, the hive's `Designer\Cache` held a copy of the project's built output and shadow copies of the XAML files (Files).
+- After the DR-3C session, `Form1.resx` and `DR1AWinFormsVbNext.slnx` were new beside the project (Files).
+- Each session changed the hive's `privateregistry.bin`, settings, and window layouts. The extensions and the expression evaluator were unchanged after every run (Files).
+
+## Known limitations
+
+- **Compiler routing in the experimental instance.** The RoslynDev compiler extension installs per-hive MSBuild `ImportBefore` files under `%LOCALAPPDATA%\Microsoft\MSBuild\Current\`. When a build sets `RoslynHive` to that hive, as builds in the experimental instance do, and `UseSharedCompilation` is `false`, as `VbNext.Toolset.props` sets it, they point `VbcToolPath` at the extension's own compiler, assembly version `42.42.42.42` (`5.13.0-dev`), instead of the Preview 1 compiler (DR-3B.3, DR-3B.4). It is recorded as a known IDE integration issue, not fixed. The output matched Preview 1's for the DR-1A sample, which does not make the two compilers interchangeable. Use a command-line build without `RoslynHive` when the Preview 1 compiler must be the one used, as in DR-3D.2.
+- **The compiler check.** The props' `VbNextCheckCompiler` target checks only that the configured `vbc.exe` exists. It does not check which compiler MSBuild actually ran; only a build log, or the compiler version a PDB records, shows that.
+- **Array slices in the debugger.** The expression evaluator's array-slice workaround, `VBNEXT_EE_ARRAYSLICE_LOOP=1`, is experimental, opt-in, and off by default, and the underlying Visual Studio debugger behavior is not conclusively explained ([vbnext-vs1-validation.md](vbnext-vs1-validation.md#known-issue-array-slices-in-the-experimental-instance)). The investigation is closed and stays closed unless new regression evidence appears.
+- **WPF designer and local types.** The WPF designer may need a completed build before it renders XAML that uses a type of its own project (DR-3D.1 to DR-3D.3). In DR-3D.3, the `MainWindow.baml` in `obj` was also absent after the project load, an observed design-time behavior with no confirmed cause, as [Side effects of opening a project](#side-effects-of-opening-a-project) records.
+- **VB-065.** The overload change for interpolated string handlers needs more regression coverage on `net48` and on modern .NET, as [Interpolated strings (VB-065)](#interpolated-strings-vb-065) records.
+- **`net47` and `net472`.** Not yet tested for desktop applications.
+- **Unverified in Visual Studio.** Full debugging of desktop applications, Edit and Continue, Hot Reload, My Project pages and the files they generate, publishing, and broader IDE compatibility. DR-3 tested only the workflows in its table.
+
 ## Untested
 
 Remaining desktop validation, in priority order:
 
-1. `net472` and `net47`.
-2. The Windows Forms designer in Visual Studio.
-3. The WPF XAML editor and designer.
-4. My Project pages and the files they generate.
-5. Builds and debugging of desktop applications inside Visual Studio.
-6. Hot Reload and Edit and Continue.
-7. Deployment and platform configurations: x86, x64, and ARM64; publish; single-file; ClickOnce.
+1. Debugging of desktop applications inside Visual Studio: starting under the debugger, breakpoints, stepping, Locals, Watch, and Immediate.
+2. Edit and Continue and Hot Reload.
+3. My Project pages and the files they generate.
+4. `net472` and `net47`.
+5. Deployment and platform configurations: x86, x64, and ARM64; publish; single-file; ClickOnce.
+6. Designer workflows beyond those DR-3 tested, and a WPF save round trip with captured evidence.
 
 Also untested: the edges of the Windows Forms application framework, such as a single-instance application, a splash screen, `UnhandledException`, high-DPI settings other than the default, and saving `My.Settings`.
 
 Earlier IDE checks of console projects are in [vbnext-vs1-validation.md](vbnext-vs1-validation.md); they did not cover desktop applications.
+
+## Proposed next milestone
+
+A proposal, not yet authorized; each step needs the owner's approval before it starts:
+
+1. Basic Visual Studio debugging for Windows Forms and WPF.
+2. Breakpoints, stepping, Locals, Watch, and the Immediate window.
+3. Edit and Continue and Hot Reload.
+4. My Project and the generated application infrastructure.
+5. Additional compatibility and publishing checks.
+
+The array-slice investigation is not reopened by this milestone unless new regression evidence appears. Desktop stays first: this milestone does not advance Razor and VBHTML or MAUI work.
