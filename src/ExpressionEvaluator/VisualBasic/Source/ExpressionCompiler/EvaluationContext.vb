@@ -42,6 +42,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         Private ReadOnly _inScopeHoistedLocalSlots As ImmutableSortedSet(Of Integer)
         Private ReadOnly _methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol)
         Private ReadOnly _parseOptions As VisualBasicParseOptions
+        ' Experimental: whether this context's evaluations may copy a Vb.Next array slice with a loop instead of
+        ' Array.Copy. Read from the evaluator process's environment when the context is created (see ArraySliceLoopVariable).
+        Private ReadOnly _arraySliceLoopRequested As Boolean
 
         Private Sub New(
             methodContextReuseConstraints As MethodContextReuseConstraints?,
@@ -61,7 +64,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             _inScopeHoistedLocalSlots = inScopeHoistedLocalSlots
             _methodDebugInfo = methodDebugInfo
             _parseOptions = If(parseOptions, SyntaxHelpers.ParseOptions)
+            _arraySliceLoopRequested = IsArraySliceLoopRequested(GetArraySliceLoopVariable())
         End Sub
+
+        ' The experimental opt-in. Only the exact value "1" enables the loop; when the variable is absent or has any
+        ' other value, the loop is disabled.
+        Friend Const ArraySliceLoopVariable As String = "VBNEXT_EE_ARRAYSLICE_LOOP"
+
+        Friend Shared Function IsArraySliceLoopRequested(value As String) As Boolean
+            Return String.Equals(value, "1", StringComparison.Ordinal)
+        End Function
+
+        Private Shared Function GetArraySliceLoopVariable() As String
+            Try
+                Return Environment.GetEnvironmentVariable(ArraySliceLoopVariable)
+            Catch ex As Global.System.Security.SecurityException
+                Return Nothing
+            End Try
+        End Function
+
+        ' Experimental: whether CompileExpression copies a whole-expression array slice with a loop. Only when the
+        ' opt-in is set and the module's portable PDB records vbnext.
+        Friend ReadOnly Property IsArraySliceLoopEnabled As Boolean
+            Get
+                Return _arraySliceLoopRequested AndAlso _parseOptions.LanguageVersion = LanguageVersion.VbNext
+            End Get
+        End Property
 
         ''' <summary>
         ''' Create a context for evaluating expressions at a type scope.
@@ -340,6 +368,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         End Function
 
         Friend Function CreateCompilationContext(withSyntax As Boolean) As CompilationContext
+            Return CreateCompilationContext(withSyntax, useArraySliceLoop:=False)
+        End Function
+
+        ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
+        ' instead of Array.Copy. CompileExpression passes IsArraySliceLoopEnabled; tests may pass either value.
+        Friend Function CreateCompilationContext(withSyntax As Boolean, useArraySliceLoop As Boolean) As CompilationContext
             Return New CompilationContext(
                 Compilation,
                 _currentFrame,
@@ -348,7 +382,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 _inScopeHoistedLocalSlots,
                 _methodDebugInfo,
                 withSyntax,
-                _parseOptions)
+                _parseOptions,
+                useArraySliceLoop)
         End Function
 
         Friend Overrides Function CompileExpression(
@@ -358,6 +393,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             diagnostics As DiagnosticBag,
             <Out> ByRef resultProperties As ResultProperties,
             testData As Microsoft.CodeAnalysis.CodeGen.CompilationTestData) As CompileResult
+
+            Return CompileExpressionCore(expr, compilationFlags, aliases, diagnostics, resultProperties, testData, useArraySliceLoop:=IsArraySliceLoopEnabled)
+        End Function
+
+        ' CompileExpression, with the experimental array-slice loop option. Tests pass it directly, independent of the environment.
+        Friend Function CompileExpressionCore(
+            expr As String,
+            compilationFlags As DkmEvaluationFlags,
+            aliases As ImmutableArray(Of [Alias]),
+            diagnostics As DiagnosticBag,
+            <Out> ByRef resultProperties As ResultProperties,
+            testData As Microsoft.CodeAnalysis.CodeGen.CompilationTestData,
+            useArraySliceLoop As Boolean) As CompileResult
 
             resultProperties = Nothing
             Dim formatSpecifiers As ReadOnlyCollection(Of String) = Nothing
@@ -373,7 +421,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 Return Nothing
             End If
 
-            Dim context = Me.CreateCompilationContext(withSyntax:=True)
+            Dim context = Me.CreateCompilationContext(withSyntax:=True, useArraySliceLoop:=useArraySliceLoop)
             Dim synthesizedMethod As EEMethodSymbol = Nothing
             Dim moduleBuilder = context.Compile(DirectCast(syntax, ExecutableStatementSyntax), s_typeName, s_methodName, aliases, testData, diagnostics, synthesizedMethod)
             If moduleBuilder Is Nothing Then

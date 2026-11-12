@@ -35,6 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         Private ReadOnly _meParameter As ParameterSymbol
         Private ReadOnly _displayClassVariables As ImmutableDictionary(Of String, DisplayClassVariable)
         Private ReadOnly _voidType As NamedTypeSymbol
+        Private ReadOnly _useArraySliceLoop As Boolean
 
         ''' <summary>
         ''' Invoked at most once to generate the method body.
@@ -61,6 +62,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             voidType As NamedTypeSymbol,
             generateMethodBody As GenerateMethodBody)
 
+            Me.New(compilation, container, name, location, sourceMethod, sourceLocals, sourceLocalsForBinding, sourceDisplayClassVariables, voidType, generateMethodBody, useArraySliceLoop:=False)
+        End Sub
+
+        ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
+        ' instead of Array.Copy. True when the evaluator's opt-in is enabled (VBNEXT_EE_ARRAYSLICE_LOOP=1 and a vbnext
+        ' module, see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
+        Friend Sub New(
+            compilation As VisualBasicCompilation,
+            container As EENamedTypeSymbol,
+            name As String,
+            location As Location,
+            sourceMethod As MethodSymbol,
+            sourceLocals As ImmutableArray(Of LocalSymbol),
+            sourceLocalsForBinding As ImmutableArray(Of LocalSymbol),
+            sourceDisplayClassVariables As ImmutableDictionary(Of String, DisplayClassVariable),
+            voidType As NamedTypeSymbol,
+            generateMethodBody As GenerateMethodBody,
+            useArraySliceLoop As Boolean)
+
+            _useArraySliceLoop = useArraySliceLoop
             Debug.Assert(sourceMethod.IsDefinition)
             Debug.Assert(TypeSymbol.Equals(sourceMethod.ContainingType, container.SubstitutedSourceType.OriginalDefinition, TypeCompareKind.ConsiderEverything))
             Debug.Assert(sourceLocals.All(Function(l) l.ContainingSymbol = sourceMethod))
@@ -523,6 +544,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 newBody = DirectCast(PlaceholderLocalRewriter.Rewrite(_compilation, _container, newBody, diagnostics.DiagnosticBag), BoundBlock)
                 If diagnostics.HasAnyErrors() Then
                     Return newBody
+                End If
+
+                ' Experimental, off unless this evaluation asked for it: a Vb.Next array slice that is the whole
+                ' expression copies its elements with a loop instead of Array.Copy. The block's locals are unchanged.
+                If _useArraySliceLoop Then
+                    newBody = ArraySliceRewriter.Rewrite(_compilation, Me, newBody)
                 End If
 
                 ' Create a map from original local to target local.

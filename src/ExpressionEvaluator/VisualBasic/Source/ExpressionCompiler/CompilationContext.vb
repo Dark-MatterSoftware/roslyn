@@ -38,6 +38,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         Private ReadOnly _localsForBinding As ImmutableArray(Of LocalSymbol)
         Private ReadOnly _methodNotType As Boolean
         Private ReadOnly _voidType As NamedTypeSymbol
+        Private ReadOnly _useArraySliceLoop As Boolean
 
         ''' <summary>
         ''' Create a context to compile expressions within a method scope.
@@ -52,6 +53,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             withSyntax As Boolean,
             Optional parseOptions As VisualBasicParseOptions = Nothing)
 
+            Me.New(compilation, currentFrame, currentSourceMethod, locals, inScopeHoistedLocalSlots, methodDebugInfo, withSyntax, parseOptions, useArraySliceLoop:=False)
+        End Sub
+
+        ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
+        ' instead of Array.Copy, in the methods this context creates. True when the evaluator's opt-in is enabled
+        ' (VBNEXT_EE_ARRAYSLICE_LOOP=1 and a vbnext module, see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
+        Friend Sub New(
+            compilation As VisualBasicCompilation,
+            currentFrame As MethodSymbol,
+            currentSourceMethod As MethodSymbol,
+            locals As ImmutableArray(Of LocalSymbol),
+            inScopeHoistedLocalSlots As ImmutableSortedSet(Of Integer),
+            methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol),
+            withSyntax As Boolean,
+            parseOptions As VisualBasicParseOptions,
+            useArraySliceLoop As Boolean)
+
+            _useArraySliceLoop = useArraySliceLoop
             _currentFrame = currentFrame
 
             Debug.Assert(compilation.Options.RootNamespace = "") ' Default value.
@@ -434,7 +453,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 _localsForBinding,
                 _displayClassVariables,
                 _voidType,
-                generateMethodBody)
+                generateMethodBody,
+                _useArraySliceLoop)
         End Function
 
         Private Function GetLocalMethod(container As EENamedTypeSymbol, methodName As String, localName As String, localIndex As Integer) As EEMethodSymbol

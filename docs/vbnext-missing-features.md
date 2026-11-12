@@ -507,6 +507,21 @@ Each of these stays a decision of its own, recorded where it is.
 - The VB Razor, VBHTML, and MAUI stacks of the Direction, which `docs/vbnext-drift-review-wave33.md` left open.
 - New syntax.
 
+### Known issue: array slices in the debugger's expression evaluator
+
+Found in the Visual Studio sessions C3-D7 to C3-D15 and recorded with its evidence in [vbnext-vs1-validation.md](vbnext-vs1-validation.md#known-issue-array-slices-in-the-experimental-instance). The compiler's slicing is not affected. An experimental, evaluator-only opt-in works around it for a slice that is the whole expression (C3-D29D); it is off by default and is not a general production fix.
+
+- In Visual Studio 2026 Insiders 18.12.12328.396, in the `RoslynDev` experimental instance with this repo's expression evaluator, an array slice evaluated in the Immediate window has the right length but zero elements: `? numbers(1..^1)` shows `{Length=3} 0, 0, 0`. `numbers(1..4)`, `numbers(0..)`, `numbers(middle)` with a `Range` local, and a slice of an array literal do the same.
+- Compiled slicing is correct: the program's own `slice` shows 20, 30, 40 in `? slice` and in Locals. Other expressions in the same sessions were also correct, among them `? New Integer() {20, 30, 40}` and `Enumerable.ToArray(...)`. Only array slices were checked this way; the element values of a `List` slice were not checked.
+- The deployed Release evaluator emits the expected IL, `newarr` and then `System.Array.Copy`, the same as the Debug evaluator.
+- Workaround observed in C3-D15: `? numbers(1..^1), emulator` shows 20, 30, 40, where the same expression without the specifier shows zeros. The `emulator` format specifier is not a documented, supported Visual Basic debugger feature: its behavior may change between Visual Studio versions, and it may not work for an expression that needs real function evaluation. It is a diagnostic workaround, not a guaranteed solution.
+- Cause: not confirmed. The leading hypothesis is a problem at the boundary between the debugger's emulator and function evaluation, so that the copy does not reach the array the expression returns. It is not confirmed as a defect in the debugger's implementation (Concord). The opt-in avoids `Array.Copy` in the evaluator's method; that it helps is consistent with the hypothesis but does not confirm it.
+- Experimental opt-in: `VBNEXT_EE_ARRAYSLICE_LOOP=1`. Only the exact value `1` enables it, and only for a module whose portable PDB records `vbnext`; the evaluator then copies a whole-expression slice with a loop instead of `Array.Copy`. It is read each time an evaluation context is created, from the process the evaluator runs in, `devenv.exe`, so it must be in Visual Studio's environment at launch, and turning it on or off needs a restart.
+- Off by default: without the variable, or with any other value, the legacy `Array.Copy` lowering is unchanged, and VB 17.13 modules and Windows PDBs are unaffected either way. The compiler's `BindArrayRange` is not changed.
+- Confirmed live in C3-D29D on Insiders 18.13.12409.143 with evaluator `DC964F96...`: with the opt-in, `? numbers(1..^1)` and `? numbers(middle)` show 20, 30, 40; without it, 0, 0, 0. The other expressions checked were unchanged, the variable was confirmed in `devenv.exe`'s environment block, and the evaluator was loaded only in `devenv.exe`.
+- Tests: an inline range (`a(1..^1)`) and a stored `Range` (`a(r)`) pass with the loop. Offline, the loop off and on matched on .NET Framework 4.7.2 (C3-D23, 25 cases) and .NET 10.0.15 (C3-D27, 32 cases).
+- Limitation: only a whole-expression slice is rewritten (`SliceRewriter_NestedSlice_IsNotRewritten`). A slice nested in a larger expression, such as `numbers(1..^1)(0)` or `Sum(numbers(1..^1))`, still uses `Array.Copy` and may still show zeros; there `, emulator` remains the diagnostic workaround, with the caveats above.
+
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
