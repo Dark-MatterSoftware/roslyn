@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>VbNext.Compilers.Toolset</id>
+    <!-- New-VbNextNuGetPackage.ps1 supplies version and commit. -->
+    <version>$version$</version>
+    <title>Vb.Next compiler toolset (preview)</title>
+    <authors>Vb.Next contributors</authors>
+    <description>Builds the Visual Basic projects that reference it with the Vb.Next compiler, a community fork of the Roslyn Visual Basic compiler with the opt-in language version vbnext. Not affiliated with, endorsed by, or supported by Microsoft; see NOTICE.md. Preview: for trying the language, not for production code. Windows only: the compiler needs .NET Framework 4.7.2 or later on the build machine.</description>
+    <license type="file">LICENSE.txt</license>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/Dark-MatterSoftware/roslyn</projectUrl>
+    <repository type="git" url="https://github.com/Dark-MatterSoftware/roslyn" commit="$commit$" />
+    <tags>visualbasic vb compiler vbnext</tags>
+    <!-- A build tool: NuGet adds it with PrivateAssets="all", so it does not flow to projects that reference this one. -->
+    <developmentDependency>true</developmentDependency>
+  </metadata>
+  <files>
+    <!-- The same files as the ZIP: the shared toolset at the root, with the compiler beside it in compiler\net472. -->
+    <file src="VbNext.Toolset.props" target="" />
+    <file src="VbNext.Toolset.targets" target="" />
+    <file src="compiler\net472\**" target="compiler\net472" />
+    <!-- NuGet imports build\<id>.props and build\<id>.targets; they forward to the shared files. No lib, ref, or buildTransitive. -->
+    <file src="build\VbNext.Compilers.Toolset.props" target="build" />
+    <file src="build\VbNext.Compilers.Toolset.targets" target="build" />
+    <file src="README.md" target="" />
+    <file src="LICENSE.txt" target="" />
+    <file src="THIRD-PARTY-NOTICES.txt" target="" />
+    <file src="NOTICE.md" target="" />
+    <file src="VERSION.txt" target="" />
+  </files>
+</package>

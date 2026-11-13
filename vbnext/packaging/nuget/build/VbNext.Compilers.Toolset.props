@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    VbNext.Compilers.Toolset. NuGet imports this file from the project's nuget.g.props, which Microsoft.Common.props
+    reads after Directory.Build.props and before the project's own content. It forwards to the shared
+    VbNext.Toolset.props at the package root, which finds the compiler in compiler\net472 beside itself.
+    build\VbNext.Compilers.Toolset.targets selects the compiler late.
+  -->
+  <PropertyGroup>
+    <VbNextToolsetPackageImported>true</VbNextToolsetPackageImported>
+    <_VbNextPackageRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))</_VbNextPackageRoot>
+    <_VbNextPackageCompilerDir>$([MSBuild]::NormalizeDirectory('$(_VbNextPackageRoot)', 'compiler', 'net472'))</_VbNextPackageCompilerDir>
+  </PropertyGroup>
+
+  <!-- A toolset props imported before this file, such as the ZIP's from a Directory.Build.props, is already in effect. -->
+  <PropertyGroup Condition="'$(VbNextToolsetPropsImported)' == 'true'">
+    <VbNextPackageConflict>true</VbNextPackageConflict>
+    <_VbNextPackageConflictCompilerDir>$(VbNextCompilerDir)</_VbNextPackageConflictCompilerDir>
+  </PropertyGroup>
+
+  <!-- VbNextCompilerDir set before this file without a toolset props is a deliberate choice of compiler; the shared props keeps it. -->
+  <PropertyGroup Condition="'$(VbNextPackageConflict)' != 'true' and '$(VbNextCompilerDir)' != ''">
+    <_VbNextPackagePresetCompilerDir>$(VbNextCompilerDir)</_VbNextPackagePresetCompilerDir>
+  </PropertyGroup>
+
+  <Import Project="$(_VbNextPackageRoot)VbNext.Toolset.props" Condition="'$(VbNextPackageConflict)' != 'true'" />
+
+  <Target Name="VbNextCheckPackageConflict" BeforeTargets="VbNextCheckCompiler;CoreCompile" Condition="'$(Language)' == 'VB' and '$(VbNextPackageConflict)' == 'true'">
+    <Error Text="Two Vb.Next toolsets are imported: the VbNext.Compilers.Toolset package at '$(_VbNextPackageRoot)', and a VbNext.Toolset.props imported before it, which selects the compiler in '$(_VbNextPackageConflictCompilerDir)'. Use one: remove the PackageReference, or remove the VbNext.Toolset.props and VbNext.Toolset.targets imports, for example from Directory.Build.props and Directory.Build.targets." />
+  </Target>
+</Project>

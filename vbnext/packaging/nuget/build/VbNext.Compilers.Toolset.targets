@@ -1,0 +1,20 @@
+<Project>
+  <!--
+    VbNext.Compilers.Toolset. NuGet imports this file from the project's nuget.g.targets, which Microsoft.Common.targets
+    reads after the ImportBefore files of Microsoft.VisualBasic.targets and before Directory.Build.targets. It forwards to
+    the shared VbNext.Toolset.targets, which selects the compiler; VbNextCheckCompiler in the shared props checks the result.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)..\VbNext.Toolset.targets" Condition="'$(VbNextPackageConflict)' != 'true'" />
+
+  <!-- Catches VbNextCompilerDir changed after the package props, for example by another toolset props imported in the project file. -->
+  <Target Name="VbNextCheckPackageCompiler" BeforeTargets="CoreCompile" Condition="'$(Language)' == 'VB' and '$(VbNextPackageConflict)' != 'true'">
+    <PropertyGroup>
+      <_VbNextPackageActualCompilerDir></_VbNextPackageActualCompilerDir>
+      <_VbNextPackageActualCompilerDir Condition="'$(VbNextCompilerDir)' != ''">$([MSBuild]::NormalizeDirectory('$(VbNextCompilerDir)'))</_VbNextPackageActualCompilerDir>
+    </PropertyGroup>
+    <Error Condition="'$(_VbNextPackageActualCompilerDir)' != '$(_VbNextPackageCompilerDir)' and '$(_VbNextPackagePresetCompilerDir)' == ''"
+           Text="VbNextCompilerDir is '$(VbNextCompilerDir)', not the compiler of the VbNext.Compilers.Toolset package, '$(_VbNextPackageCompilerDir)'. Something imported after the package changed it, for example another VbNext.Toolset.props imported in the project file. Remove that import, or set VbNextCompilerDir in a Directory.Build.props to choose another compiler on purpose." />
+    <Message Importance="high" Condition="'$(_VbNextPackageActualCompilerDir)' != '$(_VbNextPackageCompilerDir)' and '$(_VbNextPackagePresetCompilerDir)' != ''"
+             Text="VbNext.Compilers.Toolset: compiling with the compiler in '$(VbNextCompilerDir)', which VbNextCompilerDir selects, instead of the package's compiler." />
+  </Target>
+</Project>
