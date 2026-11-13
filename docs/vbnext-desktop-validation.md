@@ -1,12 +1,13 @@
-# Vb.Next desktop validation: Windows Forms and WPF, from the command line and in the Visual Studio designers
+# Vb.Next desktop validation: Windows Forms and WPF, from the command line and in Visual Studio
 
-Milestone DR-1 checks that Windows Forms and WPF applications build and run with the Vb.Next 1.0.0-preview.1 compiler, on `net10.0-windows` and `net48`, with and without `vbnext`, and compares ordinary VB with the stock compiler. It is a note for this independent fork, which is not affiliated with, endorsed by, or supported by Microsoft. The mission and the language and framework API boundary are in [vbnext-mission.md](vbnext-mission.md). Milestone DR-3 then checks the same samples in the Windows Forms and WPF designers of Visual Studio Insiders, as [Visual Studio designer validation](#visual-studio-designer-validation-dr-3) records.
+Milestone DR-1 checks that Windows Forms and WPF applications build and run with the Vb.Next 1.0.0-preview.1 compiler, on `net10.0-windows` and `net48`, with and without `vbnext`, and compares ordinary VB with the stock compiler. It is a note for this independent fork, which is not affiliated with, endorsed by, or supported by Microsoft. The mission and the language and framework API boundary are in [vbnext-mission.md](vbnext-mission.md). Milestone DR-3 then checks the same samples in the Windows Forms and WPF designers of Visual Studio Insiders, as [Visual Studio designer validation](#visual-studio-designer-validation-dr-3) records. Milestone DR-4 checks basic debugging of the Preview 1-built samples in the `RoslynDev` instance, and milestone DR-5 checks Edit and Continue; DR-5 is not complete, and its run DR-5B applied one ordinary VB method-body edit only, as [Visual Studio debugging and Edit and Continue](#visual-studio-debugging-and-edit-and-continue-dr-4-dr-5) records.
 
 Status:
 
 - Command line: completed on November 11, 2026. Runs DR-1A to DR-1I passed or ended as recorded below; all eight configurations in [Summary by configuration](#summary-by-configuration) passed.
 - Visual Studio designers: the tested Windows Forms and WPF designer workflows are complete, in runs DR-3B to DR-3D.4 on November 11 and 12, 2026, in the `RoslynDev` experimental instance of Visual Studio 2026 Insiders. Some of these results are backed by captured logs and file comparisons, and some only by what the owner observed; the [designer results](#designer-results) say which.
-- Not complete: Visual Studio integration as a whole, and desktop readiness. Debugging, Edit and Continue, Hot Reload, My Project, publishing, and broader IDE compatibility are unverified, as [Known limitations](#known-limitations) and [Untested](#untested) list. Vb.Next is a preview; it is not production-ready.
+- Visual Studio debugging: basic debugging of the Preview 1-built Windows Forms and WPF samples passed for the tested workflows in the `RoslynDev` instance (DR-4B to DR-4D, November 12, 2026), and one ordinary VB method-body Edit and Continue change applied to a running Windows Forms application (DR-5B), as [Visual Studio debugging and Edit and Continue](#visual-studio-debugging-and-edit-and-continue-dr-4-dr-5) records. DR-5B's shutdown integrity check failed, as that section explains.
+- Not complete: Visual Studio integration as a whole, and desktop readiness. Edit and Continue of Vb.Next forms, Hot Reload in general, WPF and XAML Hot Reload, My Project, publishing, and broader IDE compatibility are unverified, as [Known limitations](#known-limitations) and [Untested](#untested) list. Vb.Next is a preview; it is not production-ready.
 
 ## Scope and method
 
@@ -164,6 +165,79 @@ Evidence types in [Designer results](#designer-results):
 - After the DR-3C session, `Form1.resx` and `DR1AWinFormsVbNext.slnx` were new beside the project (Files).
 - Each session changed the hive's `privateregistry.bin`, settings, and window layouts. The extensions and the expression evaluator were unchanged after every run (Files).
 
+## Visual Studio debugging and Edit and Continue (DR-4, DR-5)
+
+Runs DR-4B to DR-4D debug the DR-1 samples, built by the Preview 1 compiler, in the `RoslynDev` instance of Visual Studio 2026 Insiders 18.13.12409.143, and DR-5B applies one Edit and Continue change. The owner operated the IDE; each stage was separately authorized, and the rest was read-only preflight, passive capture, and comparison afterwards. The evidence types are those of [DR-3](#environment-and-method), plus **Capture**: a read-only scan of the memory-mapped files of `devenv` and the debuggee, which also lists IL-only assemblies that the process module list omits.
+
+These runs validate basic debugging for the tested Windows Forms and WPF workflows, and one ordinary VB method-body Edit and Continue edit. Edit and Continue of Vb.Next forms is untested, and Hot Reload in general, WPF and XAML Hot Reload, and broader desktop readiness are unvalidated.
+
+### DR-4 and DR-5 environment and method
+
+| Item | Value |
+| --- | --- |
+| Projects | Isolated source-only copies with SHA-256 baseline inventories: `C:\VbNext IDE Test\DR4B-WinFormsDebug` and `DR5-WinFormsEnc`, from DR-1A; `DR4D-WpfDebug`, from DR-1E; all `net10.0-windows`, `LangVersion` `vbnext`, the Preview 1 toolset import |
+| Builds | One command-line Debug build per copy with Insiders MSBuild, `-restore`, the empty package source, `-nr:false`, without `RoslynHive`; exactly one `Vbc` task (two for WPF) ran the Preview 1 `vbc.exe` (SHA-256 `FAD3987F...`) with `/langversion:vbnext /optimize- /debug:portable`; 0 warnings, 0 errors; the PDB records `1.0.0-preview.1+e5afdaecd...` and `vbnext` |
+| Debugging (DR-4) | `devenv /rootSuffix RoslynDev /debugexe <app>.exe --smoke <log>`, with the debugger type set once to Managed (.NET Core), saved in the `.slnx` that Visual Studio writes beside the executable |
+| Edit and Continue (DR-5B) | The executable started outside Visual Studio, with no arguments, with `DOTNET_MODIFIABLE_ASSEMBLIES=debug` in that process's environment only; the `.vbproj` opened in Visual Studio; Attach to Process with Managed (.NET Core); no Build, Rebuild, or F5 |
+| Expression evaluator | The deployed RoslynDev VB evaluator, `Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.ExpressionCompiler.dll` 42.42.42.42424, SHA-256 `DC964F96...`, MVID `0513f815-b1ea-4a5d-9601-7bb16667f626`; the in-box evaluator of Visual Studio is 5.1300.26.52805, SHA-256 `AF0E71BA...` |
+| Not changed | Compiler, evaluator, extensions, toolset files, and the repo. `VBNEXT_EE_ARRAYSLICE_LOOP` unset |
+
+### DR-4: debugging results
+
+| Run | Check | Result | Evidence |
+| --- | --- | --- | --- |
+| DR-4B | Windows Forms, Preview 1 Debug build | Passed: 0 metadata and IL differences against DR-1A.1 | Log, Files |
+| DR-4B, DR-4C | Windows Forms debugging: breakpoints in `RunButton_Click`, `Form1_Shown`, and the `check` lambda, stepping, Locals, Watch, Immediate | Passed, as reported by the owner. Breakpoints did not bind until the debugger type was changed from the native-only default to Managed (.NET Core). The smoke run in the session passed | User; Files for the smoke log |
+| DR-4C | Vb.Next index in the Immediate window | `? _stages(^1)` returned `"vbnext"`. `^2` was not evaluated in Windows Forms | User |
+| DR-4C | Which VB evaluator was loaded | Only the deployed RoslynDev VB evaluator (`DC964F96...`, MVID `0513f815...`) was mapped in `devenv`; no in-box VB evaluator | Capture |
+| DR-4D | WPF, Preview 1 Debug build | Passed: both `Vbc` tasks ran Preview 1; 0 metadata and IL differences against DR-1E | Log, Files |
+| DR-4D | WPF debugging: breakpoints, stepping, Locals, Watch, Immediate | Passed, as reported by the owner; the smoke run passed 15 of 15 | User; Files for the smoke log |
+| DR-4D | Vb.Next index | `stages(^1)` returned `"vbnext"`, `stages(^2)` returned `"framework"`, and `stages(stages.Count - 1)` matched `stages(^1)` | User |
+| DR-4D | Which evaluators were loaded | The deployed RoslynDev VB evaluator only; the deployed C# evaluator was also mapped; no in-box VB evaluator | Capture |
+
+Observed in DR-4D, not investigated: starting a WPF application under the debugger loaded the XAML diagnostics components (`VsDebugEng.Xaml`, `DesignTools.*`) in Visual Studio, injected `WpfTap` into the application, and loaded `Microsoft.VisualStudio.HotReload.Components.dll` 18.13.31.23281, all without a request.
+
+### DR-5B: Edit and Continue results
+
+| Stage | Check | Result | Evidence |
+| --- | --- | --- | --- |
+| 1 | Preview 1 Debug build of the DR5 copy | Passed: `vbc.exe` `FAD3987F...`, `/optimize-`, `/debug:portable`; 0 metadata and IL differences against DR-4B. The dll and PDB differ from DR-4B only through the embedded PDB path. The standalone smoke run was **not run** | Log, Files |
+| 2 | External launch | One process, PID 27332, no arguments, main window "DR-1A Vb.Next WinForms"; no build process during the launch | Files: launch record and process monitor |
+| 2 | Project load | The IDE restored the project against the user NuGet configuration, rewriting `project.assets.json`, the `dgspec`, and `project.nuget.cache` in `obj`; `bin` was unchanged until the build below | Files |
+| 2 | Attach | Managed (.NET Core) to PID 27332 | User |
+| 2 | One edit | With the app paused in `RunButton_Click`, line 13 `ResultLabel.Text = LastResult` was changed to `ResultLabel.Text = LastResult & " [enc]"`. At 17:55:06 CST the Hot Reload output showed "Applying code updates..." then "Code changes were successfully applied", with no prompt, rude edit, or restart request. After continuing, the label showed `vbnext [enc]`, and the Immediate window gave `? _stages(^1)` = `"vbnext"` and `? LastResult` = `"vbnext"`. The process was the same PID throughout, with no restart | User, from the owner's screenshots; Files for the unchanged process |
+| 2 | Shutdown integrity | **Failed.** `Form1.vb` was saved at 18:02:46 CST, and an IDE build using the RoslynDev compiler followed at 18:02:50, replacing the DR5 `bin` and `obj` dll and PDB (dll `EA28CEA4...`, PDB `9D897EEC...`); the new PDB records compiler version `5.13.0-dev`. The executable was unchanged. That the save caused the build is an inference, not an established fact | Files |
+| 3 | Preservation and restore | The modified source, the RoslynDev-built dll and PDB, the `.vs` session files, the restore files, the monitor logs, and the Visual Studio service logs were preserved on the test machine in `%TEMP%\vbnext-dr5b2-evidence-preserved-20261112-181011`, with a SHA-256 manifest; as a temporary folder, it may be removed by temporary-file cleanup. Line 13 of `Form1.vb` was restored byte for byte (SHA-256 `839C19E9...`); all 10 sources match the baseline inventory. The RoslynDev-built dll and PDB were deliberately left in place, so DR5 has its original sources but no Preview 1 build output | Files |
+
+#### DR-5B verified
+
+- One ordinary VB method-body change applied to a running, externally started, Preview 1-built `net10.0-windows` Windows Forms application, attached with Managed (.NET Core), and the next click ran the new code without a restart (User).
+- The edited method also contains `_stages(^1)`, and the file was handled as part of project `DR1AWinFormsVbNext` in the IDE workspace (Visual Studio log). So in the `RoslynDev` instance, an edit is not blocked just because the file contains a Vb.Next form. The Vb.Next form itself was not edited.
+- The missing `IHotReloadComponentLoader` condition that [vbnext-wave34-validation.md](vbnext-wave34-validation.md#why-edit-and-continue-did-not-run) recorded for Visual Studio 18.12.29 is no longer observed in Visual Studio 18.13, with `HotReload.Components` 18.13.31.23281: the composition errors of the hive no longer name it, the brokered Edit and Continue and Hot Reload services were requested in the session log, and the Edit and Continue client log records `GetCapabilitiesAsync`, `GetAvailabilityAsync`, and `PrepareModuleForUpdateAsync` at 17:54:18 CST. This does not mean that all Hot Reload issues are resolved.
+- After shutdown, outside DR5: the repo, the toolset files, DR-4B, DR-1A, DR-4D, the extensions, the 10 evaluator hashes, the hive backups, and the environment variables were unchanged.
+
+#### DR-5B inferred
+
+- The save at 18:02:46 CST caused the IDE build at 18:02:50. This is inferred from the timing; nothing in the evidence records what started the build.
+- The IDE build used the RoslynDev compiler through the per-hive `ImportBefore` files, as in [Known limitations](#known-limitations).
+- The delta was compiled by the RoslynDev Roslyn inside Visual Studio, not by the Preview 1 compiler. The two have no compiler or Edit and Continue source differences between `e5afdaecd0e` and `c46e7c2`, but the exact commit of the RoslynDev build is not recorded.
+
+#### DR-5B untested
+
+- Any edit of a Vb.Next form itself, for example `^1` to `^2`, ranges, `Select Case` expressions, `Await Each`, or `Async Using`. The VB Edit and Continue unit tests cover edit analysis next to those forms; no compiler test emits a delta for them.
+- Rude edits, edits that add or remove members, Hot Reload without the debugger, and Edit and Continue under F5 or `/debugexe`.
+- Hot Reload in general, WPF Edit and Continue and XAML Hot Reload, `net48`, and stock Visual Studio without the `RoslynDev` extensions.
+- Repeatability: DR-5B is one edit in one session.
+
+#### DR-5B deviations and evidence limits
+
+- `/debugexe` started the application twice in both DR-4C (PIDs 2804, then 12280) and DR-4D (20212, then 3856): a first run that went straight through to `RESULT PASS`, then the run that stopped at the breakpoints. The owner accepted both as recorded deviations; the cause was not investigated.
+- DR-5B's shutdown integrity check failed, as the results table records; DR5 keeps RoslynDev-built output.
+- Not captured in DR-5B: the label text before the edit; which evaluator `devenv` loaded, because the capture could not open `devenv`, which appeared to run elevated, unlike in DR-4D; the module's symbol path; and the delta contents, because the service logs record only call names.
+- The process monitor stopped on its 90-minute limit at 17:31 CST, before Visual Studio started at 17:49:28, so no process record covers the session, including any design-time compiler runs.
+- The stock hive `18.0_e34b10de` also changed during the session: settings and keybinding files from 17:45:43 to 17:46:13, `CurrentSettings.vssettings` at 17:49:37, and `privateregistry.bin` at 18:03:30, CST. A Visual Studio Installer update check ran at 17:45:44, and Windows Error Reporting logged Visual Studio telemetry uploads at 17:49:54 and 18:03:30. No process record shows a stock Visual Studio start, and no extension, compiler, evaluator, or debugger setting change was found; the activity is only partly explained.
+- The preserved evidence is in `%TEMP%\vbnext-dr5b2-evidence-preserved-20261112-181011` on the test machine, with a SHA-256 manifest, and may be removed by temporary-file cleanup.
+
 ## Known limitations
 
 - **Compiler routing in the experimental instance.** The RoslynDev compiler extension installs per-hive MSBuild `ImportBefore` files under `%LOCALAPPDATA%\Microsoft\MSBuild\Current\`. When a build sets `RoslynHive` to that hive, as builds in the experimental instance do, and `UseSharedCompilation` is `false`, as `VbNext.Toolset.props` sets it, they point `VbcToolPath` at the extension's own compiler, assembly version `42.42.42.42` (`5.13.0-dev`), instead of the Preview 1 compiler (DR-3B.3, DR-3B.4). It is recorded as a known IDE integration issue, not fixed. The output matched Preview 1's for the DR-1A sample, which does not make the two compilers interchangeable. Use a command-line build without `RoslynHive` when the Preview 1 compiler must be the one used, as in DR-3D.2.
@@ -171,19 +245,20 @@ Evidence types in [Designer results](#designer-results):
 - **Array slices in the debugger.** The expression evaluator's array-slice workaround, `VBNEXT_EE_ARRAYSLICE_LOOP=1`, is experimental, opt-in, and off by default, and the underlying Visual Studio debugger behavior is not conclusively explained ([vbnext-vs1-validation.md](vbnext-vs1-validation.md#known-issue-array-slices-in-the-experimental-instance)). The investigation is closed and stays closed unless new regression evidence appears.
 - **WPF designer and local types.** The WPF designer may need a completed build before it renders XAML that uses a type of its own project (DR-3D.1 to DR-3D.3). In DR-3D.3, the `MainWindow.baml` in `obj` was also absent after the project load, an observed design-time behavior with no confirmed cause, as [Side effects of opening a project](#side-effects-of-opening-a-project) records.
 - **VB-065.** The overload change for interpolated string handlers needs more regression coverage on `net48` and on modern .NET, as [Interpolated strings (VB-065)](#interpolated-strings-vb-065) records.
+- **An IDE build can follow a save during an Edit and Continue session.** In DR-5B, the edited `Form1.vb` was saved at 18:02:46 CST, and an IDE build using the RoslynDev compiler followed at 18:02:50, replacing the Preview 1 output. That the save caused the build is an inference, not an established fact. Before a test that must keep the Preview 1 output, discard the edit (Don't Save) or keep a copy of the output.
+- **`/debugexe` defaults to native debugging.** With `/debugexe` on an apphost, breakpoints in VB code bind only after the debugger type is set to Managed (.NET Core) (DR-4B). The repeated launch under `/debugexe` (DR-4C, DR-4D) is recorded and not explained.
 - **`net47` and `net472`.** Not yet tested for desktop applications.
-- **Unverified in Visual Studio.** Full debugging of desktop applications, Edit and Continue, Hot Reload, My Project pages and the files they generate, publishing, and broader IDE compatibility. DR-3 tested only the workflows in its table.
+- **Unverified in Visual Studio.** Edit and Continue and Hot Reload beyond the one ordinary method-body edit of DR-5B, any edit of a Vb.Next form, WPF and XAML Hot Reload, debugging on `net48` and under F5 from a project, My Project pages and the files they generate, publishing, and broader IDE compatibility. DR-3, DR-4, and DR-5B tested only the workflows in their tables.
 
 ## Untested
 
 Remaining desktop validation, in priority order:
 
-1. Debugging of desktop applications inside Visual Studio: starting under the debugger, breakpoints, stepping, Locals, Watch, and Immediate.
-2. Edit and Continue and Hot Reload.
-3. My Project pages and the files they generate.
-4. `net472` and `net47`.
-5. Deployment and platform configurations: x86, x64, and ARM64; publish; single-file; ClickOnce.
-6. Designer workflows beyond those DR-3 tested, and a WPF save round trip with captured evidence.
+1. Edit and Continue of Vb.Next forms, starting with an index from the end (DR-5B tested one ordinary edit only); rude edits; Hot Reload in general; WPF and XAML Hot Reload. Basic debugging is done for the tested `net10.0-windows` workflows under `/debugexe` and by attach (DR-4, DR-5B); `net48` and F5 from a project are not.
+2. My Project pages and the files they generate.
+3. `net472` and `net47`.
+4. Deployment and platform configurations: x86, x64, and ARM64; publish; single-file; ClickOnce.
+5. Designer workflows beyond those DR-3 tested, and a WPF save round trip with captured evidence.
 
 Also untested: the edges of the Windows Forms application framework, such as a single-instance application, a splash screen, `UnhandledException`, high-DPI settings other than the default, and saving `My.Settings`.
 
@@ -193,10 +268,9 @@ Earlier IDE checks of console projects are in [vbnext-vs1-validation.md](vbnext-
 
 A proposal, not yet authorized; each step needs the owner's approval before it starts:
 
-1. Basic Visual Studio debugging for Windows Forms and WPF.
-2. Breakpoints, stepping, Locals, Watch, and the Immediate window.
-3. Edit and Continue and Hot Reload.
-4. My Project and the generated application infrastructure.
-5. Additional compatibility and publishing checks.
+1. Done: basic Visual Studio debugging for Windows Forms and WPF, with breakpoints, stepping, Locals, Watch, and the Immediate window, for the tested workflows (DR-4).
+2. Partly done: Edit and Continue, one ordinary VB method-body edit (DR-5B). Proposed next, as DR-5D, and not authorized: one Edit and Continue change to a Vb.Next form, `_stages(^1)` to `_stages(^2)`, in a source-only Windows Forms copy with a fresh Preview 1 build, with the process monitor covering the whole session, a non-elevated Visual Studio, and the edit discarded at shutdown.
+3. My Project and the generated application infrastructure.
+4. Additional compatibility and publishing checks.
 
 The array-slice investigation is not reopened by this milestone unless new regression evidence appears. Desktop stays first: this milestone does not advance Razor and VBHTML or MAUI work.
