@@ -7,7 +7,8 @@ Status:
 - Command line: completed on November 11, 2026. Runs DR-1A to DR-1I passed or ended as recorded below; all eight configurations in [Summary by configuration](#summary-by-configuration) passed.
 - Visual Studio designers: the tested Windows Forms and WPF designer workflows are complete, in runs DR-3B to DR-3D.4 on November 11 and 12, 2026, in the `RoslynDev` experimental instance of Visual Studio 2026 Insiders. Some of these results are backed by captured logs and file comparisons, and some only by what the owner observed; the [designer results](#designer-results) say which.
 - Visual Studio debugging: basic debugging of the Preview 1-built Windows Forms and WPF samples passed for the tested workflows in the `RoslynDev` instance (DR-4B to DR-4D, November 12, 2026), and one ordinary VB method-body Edit and Continue change applied to a running Windows Forms application (DR-5B), as [Visual Studio debugging and Edit and Continue](#visual-studio-debugging-and-edit-and-continue-dr-4-dr-5) records. DR-5B's shutdown integrity check failed, as that section explains. In DR-5D, also on November 12, an Edit and Continue change of `_stages(^1)` to `_stages(^2)` applied to a running Windows Forms application without a save, rebuild, or restart, and its shutdown integrity check passed; after the update, the Immediate window failed on `_stages(^1)`, an open evaluator defect that the [DR-5D section](#dr-5d-edit-and-continue-of-a-vbnext-index) records.
-- Not complete: Visual Studio integration as a whole, and desktop readiness. Edit and Continue of Vb.Next forms other than the one index edit of DR-5D, the Immediate window after an Edit and Continue update, Hot Reload in general, WPF and XAML Hot Reload, My Project, publishing, and broader IDE compatibility are unverified, as [Known limitations](#known-limitations) and [Untested](#untested) list. Vb.Next is a preview; it is not production-ready.
+- My Project (DR-6): on November 12 and 13, 2026, P2-A and P2-B passed from the command line for the Windows Forms sample on `net10.0-windows` and `net48`, ordinary VB and `vbnext`, with hand-written designer files: the generated-style `My` infrastructure, `My.Resources`, and one user-scoped `My.Settings` value saved and reloaded across processes, as [My Project and the generated application infrastructure (DR-6)](#my-project-and-the-generated-application-infrastructure-dr-6) records. P2-C through P2-F, including the Visual Studio generators, are untested.
+- Not complete: Visual Studio integration as a whole, and desktop readiness. Edit and Continue of Vb.Next forms other than the one index edit of DR-5D, the Immediate window after an Edit and Continue update, Hot Reload in general, WPF and XAML Hot Reload, My Project beyond DR-6 P2-A and P2-B, publishing, and broader IDE compatibility are unverified, as [Known limitations](#known-limitations) and [Untested](#untested) list. Vb.Next is a preview; it is not production-ready.
 
 ## Scope and method
 
@@ -89,7 +90,7 @@ WPF (DR-1E, DR-1F, DR-1H.1, DR-1I): `Application.Current` is the project's `Appl
 What was not covered:
 
 - `My Project\Application.Designer.vb`, `Settings.Designer.vb`, and `Form1.Designer.vb` were written by hand in the style that Visual Studio generates. No generator, settings designer, or My Project page was run, so they validate only that such code compiles and runs.
-- `My.Settings` was read, not saved or reloaded.
+- `My.Settings` was read, not saved or reloaded, in DR-1; [DR-6](#my-project-and-the-generated-application-infrastructure-dr-6) later saved and reloaded one user-scoped setting.
 - `MyType` follows the target. The SDK sets `MyType` to `Empty` only when the target is not .NET Framework, so a WPF project on `net48` gets `My.MyApplication`, `My.MyComputer`, `My.MyProject`, and its helper types, and the same project on `net10.0-windows` has none.
 
 ### Vb.Next indexing
@@ -291,6 +292,106 @@ Hypothesis, not a confirmed cause: the VB expression evaluator reads the languag
 - `privateregistry.bin` of the `RoslynDev` hive changed, as each session changes it. That of the stock hive `18.0_e34b10de` also changed content, SHA-256 `BA953623...` to `350BE806...`, between the snapshots before and after the session, while its last-write time stayed at 18:03:30 CST; no stock Visual Studio process was recorded. The change is unexplained.
 - Two empty files, `Local\ApplicationPrivateSettings.lock` and `Local\Extensions\extensions.configurationchanged`, are missing from the DR-3B, DR-3C, DR-3D, and DR-4B hive backups in `%TEMP%`; the D29C backup and the live hive still have both. The snapshot before the launch, at 18:53 CST on November 12, counted 1,339 files in each of the DR-3B and DR-3C backups, and the snapshot after shutdown, at 21:46 CST, 1,337; the snapshots did not count the DR-3D and DR-4B backups. The backup folders that held the files all have a last-write time of 20:54:08 CST on November 12; a folder's last-write time does not record what changed it, and the exact time of the removal is not recorded. The monitor did not watch `%TEMP%`. The cause is unknown; the backups were not restored.
 
+## My Project and the generated application infrastructure (DR-6)
+
+DR-6 checks the `My` infrastructure of a Windows Forms project, as ordinary VB and with `vbnext`, on `net10.0-windows` and `net48`. P2-A and P2-B ran from the command line on November 12 and 13, 2026; P2-C through P2-F are untested. All `My Project` designer files, `Application.Designer.vb`, `Settings.Designer.vb`, and `Resources.Designer.vb`, were written by hand in the style that Visual Studio generates, the same in every cell of a phase. No Visual Studio generator, settings designer, resource designer, or My Project page ran, so DR-6 shows that such code compiles and runs with the Preview 1 compiler, not that the generators produce it; generator validation is P2-F, untested.
+
+### DR-6 environment and method
+
+| Item | P2-A and P2-B |
+| --- | --- |
+| Compiler | Preview 1 `vbc.exe`, SHA-256 `FAD3987F...`, through the project's import of `VbNext.Toolset.props`; each build log shows that compiler as the tool path, and no stock `vbc.exe` or `RoslynHive` |
+| SDK and restore | SDK 10.0.400 from the sample's `global.json`; `dotnet build -v:d --disable-build-servers` with a binary log, restoring from the empty package source of DR-1C |
+| Cells | For each target, cell A with no `LangVersion` (17.13) and cell B with `-p:LangVersion=vbnext`, built from identical source; one build per cell, no retries |
+| Sample | The DR-1 Windows Forms sample, `MyType` `WindowsForms`, `StartupObject` `My.MyApplication`, in fresh copies under `C:\VbNext IDE Test` |
+| Comparison | Metadata, method IL with tokens replaced by names, PDB compilation options, and, in P2-B, the embedded resources, read with System.Reflection.Metadata |
+| Visual Studio, debugger | Not used |
+
+### DR-6 P2-A: ordinary VB and `vbnext` `My` infrastructure
+
+P2-A built `DR6P2A-N10-A`, `-N10-B`, `-N48-A`, and `-N48-B`, copied from the DR-1B and DR-1C Preview 1 samples, and compared them with each other and with the earlier stock-SDK builds `DR1B-C-OrdinaryVb-StockSdk` and `DR1C-C-Net48-StockSdk` (cell C, not rebuilt).
+
+| Check | `net10.0-windows` | `net48` |
+| --- | --- | --- |
+| Builds | A and B: 0 warnings, 0 errors | A and B: 0 warnings, 0 errors |
+| Metadata and IL | A = C. A and B differ only in `Form1.Form1_Shown` and its lambda, as below | A = B = C |
+| `My` methods | All 35 identical in A and B: `MyApplication` 4, `MyComputer` 1, `MyProject` 6, `MyForms` 9, `MyWebServices` 7, `ThreadSafeObjectProvider` 2, `MySettings` 5, `MySettingsProperty` 1 | Identical, as all IL |
+| Entry point | `My.MyApplication::Main` | `My.MyApplication::Main` |
+| PDB options | A and B differ only in the language version, `17.13` and `vbnext`; A and C only in the compiler and runtime versions | The same |
+| Smoke run | A and B: 17 PASS of 17, `RESULT PASS` | A and B: 16 PASS of 16, `RESULT PASS` |
+
+The one difference outside `My` code is VB-065. In the sample's `--smoke` harness in `Form1_Shown`, interpolated strings passed to `StringBuilder.AppendLine` bind to `AppendInterpolatedStringHandler` with `vbnext` and to `String.Format` with 17.13, on `net10.0-windows` only, as [Interpolated strings (VB-065)](#interpolated-strings-vb-065) records. Evidence: `C:\VbNext IDE Test\evidence\DR6-P2A`, SHA-256 manifest `28675F68...`, 66 files.
+
+### DR-6 P2-B: `My.Resources` and persistent `My.Settings`
+
+P2-B added to the P2-A sources, the same in all four cells: `My Project\Resources.resx` with one string, `P2BGreeting`, `"Hello from My.Resources"`, and a hand-written `Resources.Designer.vb` in `My.Resources`; a user-scoped string setting, `P2BNote`, default `"default-note"`, in `Settings.settings` and `Settings.Designer.vb`; and a test file, `P2BTest.vb`, a `Handles Me.Shown` handler with no interpolated strings. `SaveMySettingsOnExit` stays `False`, so only the explicit `Save` writes settings. To keep settings apart, each build set `-p:Company` and `-p:Product` to the cell's name, and the four executables are in different folders; the assembly name stays `DR1AWinFormsVbNext`.
+
+The cells were `DR6P2B-R2-N10-A`, `-N10-B`, `-N48-A`, and `-N48-B`, built at 08:00 CST on November 13, 2026. All four builds used the Preview 1 compiler, with no `/langversion` in A and `/langversion:vbnext` in B, and had 0 warnings and 0 errors. An external runner started each executable twice, as two processes, with a token unique to the run, `persisted-<cell>-<GUID>`:
+
+1. Save process: `P2BNote` is `"default-note"`; it is set to the token; `My.Settings.Save()`; then it is set to `"unsaved-after-save"` without saving.
+2. The runner checks that exactly one file, `user.config`, exists in the cell's own settings folder, that it holds the token and neither the unsaved value nor the application-scoped setting, and that no roaming folder exists.
+3. Reload process: `P2BNote` is the token at start; it is set to `"unsaved-before-reload"` without saving; `My.Settings.Reload()`; `P2BNote` is the token again.
+4. The runner checks that `user.config` has the same size, last-write time, and SHA-256 after the reload process.
+
+Both processes also check `My.Resources.P2BGreeting`, `My.Resources.ResourceManager.BaseName`, the application-scoped `My.Settings.GreetingText`, and `My.Application.SaveMySettingsOnExit`.
+
+| Cell | Save process | Reload process | `My.Resources.P2BGreeting` | `user.config` SHA-256, after save and after reload |
+| --- | --- | --- | --- | --- |
+| N10-A, `net10.0-windows`, 17.13 | 8 PASS, 0 FAIL, exit 0 | 8 PASS, 0 FAIL, exit 0 | `Hello from My.Resources` | `912BA02D...`, unchanged |
+| N10-B, `net10.0-windows`, `vbnext` | 8 PASS, 0 FAIL, exit 0 | 8 PASS, 0 FAIL, exit 0 | `Hello from My.Resources` | `95A8C116...`, unchanged |
+| N48-A, `net48`, 17.13 | 8 PASS, 0 FAIL, exit 0 | 8 PASS, 0 FAIL, exit 0 | `Hello from My.Resources` | `3A3E6891...`, unchanged |
+| N48-B, `net48`, `vbnext` | 8 PASS, 0 FAIL, exit 0 | 8 PASS, 0 FAIL, exit 0 | `Hello from My.Resources` | `DF724006...`, unchanged |
+
+The four `user.config` files, under `%LOCALAPPDATA%`, are distinct, and each holds only its own cell's token:
+
+- `DR6P2B-R2-N10-A\DR1AWinFormsVbNext_Url_uyhpensf0aaffxqyezaepfshkxkhzvou\1.0.0.0\user.config`
+- `DR6P2B-R2-N10-B\DR1AWinFormsVbNext_Url_sd5oqhkauamrl0addoqepj1pf35qhoag\1.0.0.0\user.config`
+- `DR6P2B-R2-N48-A\DR1AWinFormsVbNext.exe_Url_411csstyys2sf2ed54kwbndpeiyjshvg\1.0.0.0\user.config`
+- `DR6P2B-R2-N48-B\DR1AWinFormsVbNext.exe_Url_dynamm1knam4fqfenhd3x0ykoqmxlg3r\1.0.0.0\user.config`
+
+`%LOCALAPPDATA%` gained exactly these four folders, which were left in place, and `%APPDATA%` did not change.
+
+Comparison of cell A with cell B:
+
+| Check | `net10.0-windows` | `net48` |
+| --- | --- | --- |
+| Method IL | 58 of 60 methods identical. `Form1.Form1_Shown` and `_Closure$__15-0._Lambda$__0`, in the `Form1.vb` inherited from P2-A, differ by VB-065 as in P2-A | 60 of 60 identical |
+| `P2B_Shown` | Identical IL; no interpolated string handler | Identical IL |
+| Metadata | The VB-065 type and member references and the token, blob, and IL hash shifts they cause, as in P2-A; and the intentional `AssemblyCompany` and `AssemblyProduct` values | Only the intentional `AssemblyCompany` and `AssemblyProduct` values |
+| Embedded resources | Identical: `DR1AWinFormsVbNext.Resources.resources`, one entry, `P2BGreeting`, SHA-256 `CA629141...`, the same on both targets | Identical, the same resource |
+| PDB options | Only the language version, `17.13` and `vbnext` | Only the language version |
+
+Differences by target, not by language version:
+
+- `user.config`: on `net10.0-windows` the folder is named `DR1AWinFormsVbNext_Url_<hash>` and the section types come from `System.Configuration.ConfigurationManager`, version 10.0.0.0, 941 bytes; on `net48` the folder is `DR1AWinFormsVbNext.exe_Url_<hash>` and the types come from `System`, version 4.0.0.0, 869 bytes. This is runtime configuration behavior, not compiler output.
+- IL: the inherited sample has `ApplyApplicationDefaults` on `net10.0-windows` and `MyApplication_Startup` on `net48`, and `MyApplication`'s constructor and `Form1_Shown` differ with the sample's source for each target.
+- PDB options: the conditional compilation symbols and the global imports.
+
+Compared with P2-A, P2-B adds only `P2B_Shown` and its closure, the `P2BNote` accessors, and the `My.Resources` members; `Form1`'s constructor changes to connect the `Handles Me.Shown` handler, and the PDB lists 9 source files instead of 7. Evidence: `C:\VbNext IDE Test\evidence\DR6-P2B`, SHA-256 manifest `0F40C874...`, 126 files; the validation run is in its `rerun` folder.
+
+#### DR-6 P2-B first attempt and harness correction
+
+The first P2-B attempt, on November 12, stopped before any run. Both `net48` builds failed with `BC30451` for `ConfigurationManager` and `ConfigurationUserLevel` at one line of the first test file, which looked up the `user.config` path with `ConfigurationManager`; the `net48` project has no reference to `System.Configuration.dll`. The `net10.0-windows` builds succeeded. The errors were in the test file, not in the `My` code or the compiler, and were the same in A and B. The corrected test file, revision r2, has no `ConfigurationManager` lookup, takes the token from the runner, and adds the unsaved changes after the save and before the reload; the runner finds `user.config` instead. The first attempt's cells and evidence are kept unchanged, and the correction is recorded in the `harness-fix` folder of the P2-B evidence.
+
+### DR-6 untested
+
+- P2-C through P2-F, the remaining phases of DR-6:
+  - P2-C: the application lifecycle, single-instance behavior, exceptions, shutdown, and a custom `Sub Main`.
+  - P2-D: `My.Forms` default-instance behavior with primary constructors.
+  - P2-E: the `My` infrastructure of WPF on .NET Framework 4.8 (`net48`).
+  - P2-F: Visual Studio My Project pages and actual designer generation; it requires separate approval.
+- The Visual Studio `My` generators, the settings and resource designers, and the My Project pages; DR-6 used hand-written files only.
+- Settings other than one user-scoped string, other setting types and scopes, settings upgrade across versions, and roaming settings; resources other than one string.
+- WPF, `net472` and `net47`, and the edges of the application framework that [Untested](#untested) lists.
+- Visual Studio and the debugger.
+
+### DR-6 deviations and evidence limits
+
+- `Company` and `Product` were set per cell from the command line, so assembly attributes differ between the cells by design.
+- P2-A: a variable-name clash in the copy script left one cell's `My Project` folder empty; the copy was redone before the build. The IL comparison script needed two fixes before its output was recorded, and only error-free output is in the evidence. The smoke runs were made after the `net10.0-windows` difference was found.
+- Hive backups in `%TEMP%`: after DR-5D, more files went missing from the backups. A check at 22:42 CST on November 12 found the D29C backup at 1,230 files where the snapshots up to 22:34:38 CST had counted 1,234. On November 13 each backup was compared with the inventory written when it was made: D29C lacks 4 files, `ExcludedDirectories.lst`, `settings.json`, `ApplicationPrivateSettings.lock`, and `extensions.configurationchanged`, 800 bytes, and DR-3B, DR-3C, DR-3D, and DR-4B each lack the same 48 files, 39,330,246 bytes, among them caches, the two `privateregistry.bin` log files, window layouts, and the two empty files that [DR-5D deviations and evidence limits](#dr-5d-deviations-and-evidence-limits) records. Every remaining file still has the hash its inventory records. The affected backup folders have last-write times of 22:34:51 to 22:34:52 CST on November 12. The cause is unknown; no DR-6 command wrote to these backups, and the backups were not restored.
+- The surviving backups were copied on November 13, 07:46 to 07:54 CST, to `C:\VbNext IDE Test\evidence\Protected-Backups`, each file checked against its source by SHA-256, with a SHA-256 manifest (`41566336...`, 6,501 files). The backups did not change during the copy, and their file counts were the same before and after the P2-B validation run. During that operation a helper function named `LP`, a built-in PowerShell alias of `Out-Printer`, was called three times with a path and no input; the default printer's queue showed no job afterwards.
+
 ## Known limitations
 
 - **Compiler routing in the experimental instance.** The RoslynDev compiler extension installs per-hive MSBuild `ImportBefore` files under `%LOCALAPPDATA%\Microsoft\MSBuild\Current\`. When a build sets `RoslynHive` to that hive, as builds in the experimental instance do, and `UseSharedCompilation` is `false`, as `VbNext.Toolset.props` sets it, they point `VbcToolPath` at the extension's own compiler, assembly version `42.42.42.42` (`5.13.0-dev`), instead of the Preview 1 compiler (DR-3B.3, DR-3B.4). It is recorded as a known IDE integration issue, not fixed. The output matched Preview 1's for the DR-1A sample, which does not make the two compilers interchangeable. Use a command-line build without `RoslynHive` when the Preview 1 compiler must be the one used, as in DR-3D.2.
@@ -309,12 +410,12 @@ Hypothesis, not a confirmed cause: the VB expression evaluator reads the languag
 Remaining desktop validation, in priority order:
 
 1. Edit and Continue of Vb.Next forms other than an index from the end (DR-5D tested `^1` to `^2` only), and the Immediate window after an update, where DR-5D failed; rude edits; Hot Reload in general; WPF and XAML Hot Reload. Basic debugging is done for the tested `net10.0-windows` workflows under `/debugexe` and by attach (DR-4, DR-5B, DR-5D); `net48` and F5 from a project are not.
-2. My Project pages and the files they generate.
+2. My Project pages and the files they generate. DR-6 P2-A and P2-B tested hand-written, generated-style `My` files from the command line only; P2-C through P2-F are untested.
 3. `net472` and `net47`.
 4. Deployment and platform configurations: x86, x64, and ARM64; publish; single-file; ClickOnce.
 5. Designer workflows beyond those DR-3 tested, and a WPF save round trip with captured evidence.
 
-Also untested: the edges of the Windows Forms application framework, such as a single-instance application, a splash screen, `UnhandledException`, high-DPI settings other than the default, and saving `My.Settings`.
+Also untested: the edges of the Windows Forms application framework, such as a single-instance application, a splash screen, `UnhandledException`, and high-DPI settings other than the default. Saving and reloading `My.Settings` is tested for one user-scoped string setting only (DR-6 P2-B).
 
 Earlier IDE checks of console projects are in [vbnext-vs1-validation.md](vbnext-vs1-validation.md); they did not cover desktop applications.
 
@@ -324,7 +425,7 @@ A proposal, not yet authorized; each step needs the owner's approval before it s
 
 1. Done: basic Visual Studio debugging for Windows Forms and WPF, with breakpoints, stepping, Locals, Watch, and the Immediate window, for the tested workflows (DR-4).
 2. Partly done: Edit and Continue, one ordinary VB method-body edit (DR-5B), and one edit of a Vb.Next index from the end, `_stages(^1)` to `_stages(^2)`, which passed for its primary objective (DR-5D). The Immediate window failure after the DR-5D update is an open defect, tracked separately; no investigation or fix of it is authorized.
-3. Proposed next desktop milestone, not authorized: My Project and the generated application infrastructure.
+3. Partly done: My Project and the generated application infrastructure (DR-6). P2-A and P2-B passed from the command line with hand-written designer files; P2-C through P2-F are untested, and each needs the owner's approval.
 4. Additional compatibility and publishing checks.
 
 The array-slice investigation is not reopened by this milestone unless new regression evidence appears. Desktop stays first: this milestone does not advance Razor and VBHTML or MAUI work.
