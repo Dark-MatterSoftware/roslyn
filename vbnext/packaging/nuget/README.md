@@ -1,4 +1,4 @@
-# VbNext.Compilers.Toolset (preview, unpublished)
+# VbNext.Compilers.Toolset (preview)
 
 **Vb.Next** is an independent, community project built on the open-source Roslyn compiler. It is not affiliated with, endorsed by, or supported by Microsoft. See `NOTICE.md`.
 
@@ -18,7 +18,9 @@ The package was tested with `dotnet build` and .NET SDK 10.0.400, for console, W
 
 ## Use
 
-Reference the package with `PrivateAssets="all"`, so that it does not flow to projects that reference yours, and set the language version. The version below is an example of the form a release candidate takes; it is not a published package:
+Reference the package with `PrivateAssets="all"`, so that it does not flow to projects that reference yours, and set the language version. The examples use version 1.0.0-preview.2-rc.2; use the version of the package you install.
+
+NuGet restores the package from any feed that has it, such as nuget.org or a local folder feed listed in a `NuGet.config` file.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -29,7 +31,7 @@ Reference the package with `PrivateAssets="all"`, so that it does not flow to pr
     <LangVersion>vbnext</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2-rc.1" PrivateAssets="all" />
+    <PackageReference Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2-rc.2" PrivateAssets="all" />
   </ItemGroup>
 </Project>
 ```
@@ -43,7 +45,7 @@ With Central Package Management, put the version in `Directory.Packages.props` a
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2-rc.1" />
+    <PackageVersion Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2-rc.2" />
   </ItemGroup>
 </Project>
 ```

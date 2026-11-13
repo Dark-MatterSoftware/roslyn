@@ -1,5 +1,11 @@
 <#
-    Builds the unpublished VbNext.Compilers.Toolset NuGet package from an existing ZIP stage folder.
+    Builds the VbNext.Compilers.Toolset NuGet package from an existing ZIP stage folder.
+
+    The README, the build files, and the nuspec come from the checkout this script is in, not from the stage. A version
+    that is not a dev version (its prerelease label has no identifier dev) needs a stage whose VERSION.txt says
+    Source state: clean, and a clean checkout at the stage's commit: git status reports no change, tracked or untracked,
+    outside the files .gitignore excludes. The package's repository commit then describes every file in it. A dev version
+    can be packed from any checkout; the script then warns, and reports the checkout's commit and state.
 
     -Version      Required, and new for every pack: the NuGet cache never refreshes a version it already has. It must be
                   the stage's Vb.Next version, or that version plus a number, for example 1.0.0-preview.2-dev.1.
@@ -48,13 +54,40 @@ if ((Test-Under $workFull $stage) -or (Test-Under $outFull $stage)) { throw 'Wor
 # 1. The source stage: its version, the two-file toolset, and every file against its manifest.
 $stageVersion = ''
 $commit = ''
+$stageSourceState = ''
 foreach ($line in Get-Content -LiteralPath (Join-Path $stage 'VERSION.txt')) {
     if ($line -match '^Vb\.Next (\S+)$') { $stageVersion = $Matches[1] }
     if ($line -match '^Commit: ([0-9a-f]{40})$') { $commit = $Matches[1] }
+    if ($line -match '^Source state: (.+)$') { $stageSourceState = $Matches[1] }
 }
 if (-not $stageVersion -or -not $commit) { throw "'$stage\VERSION.txt' does not name a Vb.Next version and commit." }
 if (-not ($Version -eq $stageVersion -or $Version -match ('^' + [regex]::Escape($stageVersion) + '\.\d+$'))) {
     throw "The package version '$Version' is not the stage version '$stageVersion' or '$stageVersion.<number>'."
+}
+
+# The packaging checkout, read before anything is written. The README, the build files, and the nuspec come from it.
+$isDevVersion = ($Version -match '^\d+\.\d+\.\d+-(?<label>.+)$') -and ($Matches['label'] -match '(^|[.-])dev([.-]|$)')
+$env:GIT_OPTIONAL_LOCKS = '0'
+$packagingCommit = "$(git -c core.longpaths=true -C $repo rev-parse HEAD)".Trim()
+$packagingCommitOk = ($LASTEXITCODE -eq 0) -and ($packagingCommit -match '^[0-9a-f]{40}$')
+$packagingTopLevel = "$(git -c core.longpaths=true -C $repo rev-parse --show-toplevel)".Trim().Replace('/', '\').TrimEnd('\')
+$packagingTopLevelOk = ($LASTEXITCODE -eq 0) -and ($packagingTopLevel -eq $repo)
+$packagingStatusLines = @(git -c core.longpaths=true -C $repo status --porcelain --untracked-files=all)
+$packagingStatusOk = $LASTEXITCODE -eq 0
+$packagingChanged = @($packagingStatusLines | ForEach-Object { $_.Substring(3) })
+if (-not ($packagingCommitOk -and $packagingTopLevelOk -and $packagingStatusOk)) {
+    if (-not $isDevVersion) { throw "'$Version' is not a dev version, so the script must be in a git checkout; '$repo' is not one, or git failed." }
+    $packagingState = 'unknown: not a git checkout, or git failed'
+    Write-Warning "The README, the build files, and the nuspec come from '$repo', whose commit and state are unknown. The package's repository commit, $commit, is the compiler's."
+} else {
+    $packagingState = if ($packagingChanged.Count -eq 0) { 'clean' } else { "dirty, $($packagingChanged.Count) changed paths: " + ($packagingChanged -join ', ') }
+    if (-not $isDevVersion) {
+        if ($stageSourceState -ne 'clean') { throw "'$Version' is not a dev version, so it needs a stage built from a clean tree; '$stage\VERSION.txt' says Source state: '$stageSourceState'." }
+        if ($packagingChanged.Count -ne 0) { throw "'$Version' is not a dev version, so it needs a clean checkout; git status in '$repo' reports $($packagingChanged.Count) changed paths, the first '$($packagingChanged[0])'." }
+        if ($packagingCommit -ne $commit) { throw "'$Version' is not a dev version, so the checkout must be at the stage's commit $commit; '$repo' is at $packagingCommit." }
+    } elseif ($packagingCommit -ne $commit -or $packagingChanged.Count -ne 0) {
+        Write-Warning "The README, the build files, and the nuspec come from '$repo' at $packagingCommit ($packagingState), not from the stage's commit $commit. The package's repository commit, $commit, is the compiler's."
+    }
 }
 
 $manifest = @{}
@@ -163,4 +196,5 @@ $packageHash = Get-Sha256 $nupkg
 "Package: $nupkg"
 "SHA-256: $packageHash"
 "Source stage: $stage ($stageVersion, commit $commit)"
+"Packaging checkout: $repo (commit $(if ($packagingCommitOk) { $packagingCommit } else { 'unknown' }), $packagingState)"
 "SDK: $sdkUsed; work folder: $workFull"
