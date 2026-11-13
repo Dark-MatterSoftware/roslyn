@@ -5,6 +5,7 @@
     -Dotnet        The dotnet.exe of the stock SDK to test with.
     -WorkDir       Where the test projects, logs, and report go. Must be outside the package.
     -SdkVersion    Optional. Pins this SDK version with a global.json in WorkDir.
+    -ExpectedVersion  Optional. The version vbc /version must report. Without it, the version VERSION.txt names.
 
     Builds HelloVbNext inside the package, as a user would, and everything else in WorkDir.
     The test projects import VbNext.Toolset.props from a Directory.Build.props and VbNext.Toolset.targets from a
@@ -17,13 +18,22 @@ param(
     [Parameter(Mandatory = $true)][string]$Dotnet,
     [string]$WorkDir = (Join-Path $env:TEMP ('VbNextValidation-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))),
     [string]$SdkVersion = '',
-    [string]$ExpectedVersion = '1.0.0-preview.1',
+    [string]$ExpectedVersion = '',
     [string]$TargetFramework = 'net10.0'
 )
 
 $ErrorActionPreference = 'Stop'
 $package = (Resolve-Path -LiteralPath $PackagePath).Path.TrimEnd('\')
 $dotnetExe = (Resolve-Path -LiteralPath $Dotnet).Path
+# The version the package must report: -ExpectedVersion, or else the one its VERSION.txt names.
+$expectedSource = '-ExpectedVersion'
+if ($ExpectedVersion -eq '') {
+    $versionPath = Join-Path $package 'VERSION.txt'
+    $firstLine = if (Test-Path -LiteralPath $versionPath) { "$(Get-Content -LiteralPath $versionPath -TotalCount 1)" } else { '' }
+    if ($firstLine -notmatch '^Vb\.Next (\d+\.\d+\.\d+(-[0-9A-Za-z][0-9A-Za-z.-]*)?)$') { throw "Pass -ExpectedVersion: '$versionPath' does not start with 'Vb.Next <version>'." }
+    $ExpectedVersion = $Matches[1]
+    $expectedSource = 'VERSION.txt'
+}
 New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
 $work = (Resolve-Path -LiteralPath $WorkDir).Path.TrimEnd('\')
 if (($work + '\').StartsWith($package + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'WorkDir must be outside the package.' }
@@ -144,6 +154,7 @@ $sdkUsed = (& { Push-Location -LiteralPath $work; try { & $dotnetExe --version }
 $results.Add("Package: $package")
 $results.Add("dotnet: $dotnetExe, SDK $sdkUsed")
 $results.Add('OS: ' + [Environment]::OSVersion.VersionString)
+$results.Add("Expected version: $ExpectedVersion, from $expectedSource")
 $versionFile = Join-Path $package 'VERSION.txt'
 if (Test-Path -LiteralPath $versionFile) { Get-Content -LiteralPath $versionFile | ForEach-Object { $results.Add("  $_") } }
 

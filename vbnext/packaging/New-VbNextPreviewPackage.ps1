@@ -1,17 +1,30 @@
 <#
     Builds the Vb.Next preview ZIP under artifacts\vbnext-release.
 
-    Builds the Release net472 compiler with the release informational version and deterministic source paths,
-    stages the portable layout with VbNext.Toolset.props, VbNext.Toolset.targets, and the samples that git tracks, and writes VERSION.txt, MANIFEST.sha256, the ZIP, and its SHA-256 checksum file.
-    It changes no source file. The repo's global.json pins the SDK in %LOCALAPPDATA%\dotnet-vbnext.
+    -Version  Required, for example 1.0.0-preview.2-rc.1. It is a dev version when its prerelease label contains the
+              identifier dev, delimited by '.', '-' or the ends of the label: 1.0.0-dev.3 and 1.0.0-preview.2-dev are dev
+              versions; 1.0.0-preview.2, 1.0.0-preview.2-rc.1 and 1.0.0 are not. A version that is not a dev version needs
+              a clean source tree: git status reports no change, tracked or untracked, outside the files .gitignore excludes.
+              A dev version can be built from a changed tree; VERSION.txt then says so and lists the changed paths.
+    -SdkDir   The SDK that builds the compiler. The repo's global.json pins the SDK in %LOCALAPPDATA%\dotnet-vbnext.
+
+    Builds the Release net472 compiler with the release informational version, <version>+<commit>, and deterministic
+    source paths, stages the portable layout with VbNext.Toolset.props, VbNext.Toolset.targets, and the samples that
+    git tracks, and writes VERSION.txt, MANIFEST.sha256, the ZIP, and its SHA-256 checksum file.
+    It never replaces or deletes a stage, ZIP, or checksum file: if one exists for the version, it stops before building.
+    It changes no source file, and works the same from a separate git worktree.
 #>
 param(
-    [string]$Version = '1.0.0-preview.1',
+    [Parameter(Mandatory = $true)][string]$Version,
     [string]$SdkDir = (Join-Path $env:LOCALAPPDATA 'dotnet-vbnext')
 )
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+
+if ($Version -notmatch '^\d+\.\d+\.\d+(-(?<label>[0-9A-Za-z][0-9A-Za-z.-]*))?$') { throw "'$Version' is not a version such as 1.0.0-preview.2." }
+$label = $Matches['label']
+$isDevVersion = [bool]$label -and ($label -match '(^|[.-])dev([.-]|$)')
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $dotnet = Join-Path $SdkDir 'dotnet.exe'
@@ -19,10 +32,30 @@ $name = "VbNext-$Version"
 $zipName = "$name-win-net472.zip"
 $outDir = Join-Path $repo 'artifacts\vbnext-release'
 $stage = Join-Path $outDir "stage\$name"
+$zipPath = Join-Path $outDir $zipName
+$sumsPath = Join-Path $outDir "$name-SHA256SUMS.txt"
 $compilerOut = Join-Path $repo 'artifacts\bin\vbc\Release\net472'
 
-$commit = (git -C $repo rev-parse HEAD).Trim()
-$changed = @(git -C $repo status --porcelain -- src/Compilers src/Dependencies vbnext eng global.json License.txt THIRD-PARTY-NOTICES.txt | ForEach-Object { $_.Substring(3) })
+# Never replace a stage or a release artifact.
+$existing = @($stage, $zipPath, $sumsPath | Where-Object { Test-Path -LiteralPath $_ })
+if ($existing.Count -ne 0) { throw "Already exists, so nothing was built: $($existing -join ', '). Use a new -Version." }
+
+# The source state, read once, before the build writes anything.
+$commit = "$(git -C $repo rev-parse HEAD)".Trim()
+if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') { throw "'$repo' is not a git checkout." }
+$topLevel = "$(git -C $repo rev-parse --show-toplevel)".Trim().Replace('/', '\').TrimEnd('\')
+if ($topLevel -ne $repo.TrimEnd('\')) { throw "The script is not in the checkout at '$topLevel'." }
+# The build writes only under artifacts\, which .gitignore must exclude, or the outputs would change the source state.
+foreach ($output in $outDir, $compilerOut) {
+    git -C $repo check-ignore -q --no-index -- ($output.Substring($repo.Length + 1).Replace('\', '/') + '/x')
+    if ($LASTEXITCODE -ne 0) { throw "'$output' is not ignored by git." }
+}
+$statusLines = @(git -C $repo status --porcelain --untracked-files=all)
+if ($LASTEXITCODE -ne 0) { throw 'git status failed.' }
+$changed = @($statusLines | ForEach-Object { $_.Substring(3) })
+if ($changed.Count -ne 0 -and -not $isDevVersion) {
+    throw "'$Version' is not a dev version, so it needs a clean source tree; git status reports $($changed.Count) changed paths, the first '$($changed[0])'."
+}
 $informationalVersion = "$Version+$commit"
 
 # Build only the compiler.
@@ -34,8 +67,11 @@ if ($LASTEXITCODE -ne 0) { throw "The compiler build failed." }
 $built = (Get-Item (Join-Path $compilerOut 'Microsoft.CodeAnalysis.VisualBasic.dll')).VersionInfo.ProductVersion
 if ($built -ne $informationalVersion) { throw "The compiler reports '$built', not '$informationalVersion'." }
 
+# The build must not change the source state it recorded.
+$statusAfter = @(git -C $repo status --porcelain --untracked-files=all)
+if (($statusAfter -join "`n") -ne ($statusLines -join "`n")) { throw 'The compiler build changed files that git tracks or does not ignore.' }
+
 # Stage the layout.
-if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force (Join-Path $stage 'compiler') | Out-Null
 Copy-Item $compilerOut (Join-Path $stage 'compiler\net472') -Recurse
 Copy-Item (Join-Path $repo 'vbnext\VbNext.Toolset.props'), (Join-Path $repo 'vbnext\VbNext.Toolset.targets') $stage
@@ -65,7 +101,7 @@ foreach ($file in $sampleImports.Keys) {
     if ($imports -notcontains $sampleImports[$file]) { throw "'$file' does not import '$($sampleImports[$file])'." }
 }
 $sdkVersion = (& $dotnet --version).Trim()
-$sourceState = if ($changed.Count -eq 0) { 'clean' } else { 'uncommitted changes in ' + ($changed -join ', ') }
+$sourceState = if ($changed.Count -eq 0) { 'clean' } else { "dirty, $($changed.Count) changed paths: " + ($changed -join ', ') }
 @(
     "Vb.Next $Version"
     "Source: https://github.com/Dark-MatterSoftware/roslyn"
@@ -99,8 +135,6 @@ $manifest = foreach ($file in $files) {
 $manifest | Set-Content (Join-Path $stage 'MANIFEST.sha256') -Encoding ASCII
 
 # Entry names use forward slashes, under one top-level folder.
-$zipPath = Join-Path $outDir $zipName
-if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 $zip = [IO.Compression.ZipFile]::Open($zipPath, [IO.Compression.ZipArchiveMode]::Create)
 try {
     foreach ($file in @(Get-ChildItem $stage -Recurse -File)) {
@@ -112,7 +146,8 @@ try {
 }
 
 $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-"$hash  $zipName" | Set-Content (Join-Path $outDir "$name-SHA256SUMS.txt") -Encoding ASCII
+if (Test-Path -LiteralPath $sumsPath) { throw "'$sumsPath' already exists." }
+"$hash  $zipName" | Set-Content -LiteralPath $sumsPath -Encoding ASCII
 
 "Package: $zipPath"
 "SHA-256: $hash"
