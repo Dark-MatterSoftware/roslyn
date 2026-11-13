@@ -2,7 +2,7 @@
     Builds the Vb.Next preview ZIP under artifacts\vbnext-release.
 
     Builds the Release net472 compiler with the release informational version and deterministic source paths,
-    stages the portable layout with the samples that git tracks, and writes VERSION.txt, MANIFEST.sha256, the ZIP, and its SHA-256 checksum file.
+    stages the portable layout with VbNext.Toolset.props, VbNext.Toolset.targets, and the samples that git tracks, and writes VERSION.txt, MANIFEST.sha256, the ZIP, and its SHA-256 checksum file.
     It changes no source file. The repo's global.json pins the SDK in %LOCALAPPDATA%\dotnet-vbnext.
 #>
 param(
@@ -38,7 +38,7 @@ if ($built -ne $informationalVersion) { throw "The compiler reports '$built', no
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force (Join-Path $stage 'compiler') | Out-Null
 Copy-Item $compilerOut (Join-Path $stage 'compiler\net472') -Recurse
-Copy-Item (Join-Path $repo 'vbnext\VbNext.Toolset.props') $stage
+Copy-Item (Join-Path $repo 'vbnext\VbNext.Toolset.props'), (Join-Path $repo 'vbnext\VbNext.Toolset.targets') $stage
 foreach ($tracked in @(git -C $repo ls-files -- vbnext/samples)) {
     $target = Join-Path $stage ($tracked.Substring('vbnext/'.Length))
     New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
@@ -55,6 +55,15 @@ foreach ($file in $required) {
 $cultures = @(Get-ChildItem (Join-Path $stage 'compiler\net472') -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'Microsoft.CodeAnalysis.VisualBasic.resources.dll') })
 if ($cultures.Count -ne 13) { throw "Expected 13 localized resource folders, found $($cultures.Count)." }
 
+# The toolset is two files: the props is imported early, and the targets late. The sample must import both.
+foreach ($file in 'VbNext.Toolset.props', 'VbNext.Toolset.targets') {
+    if (-not (Test-Path (Join-Path $stage $file))) { throw "The toolset file '$file' is missing." }
+}
+$sampleImports = [ordered]@{ 'samples\Directory.Build.props' = '..\VbNext.Toolset.props'; 'samples\Directory.Build.targets' = '..\VbNext.Toolset.targets' }
+foreach ($file in $sampleImports.Keys) {
+    $imports = @(([xml](Get-Content -LiteralPath (Join-Path $stage $file) -Raw)).Project.Import | ForEach-Object { $_.Project })
+    if ($imports -notcontains $sampleImports[$file]) { throw "'$file' does not import '$($sampleImports[$file])'." }
+}
 $sdkVersion = (& $dotnet --version).Trim()
 $sourceState = if ($changed.Count -eq 0) { 'clean' } else { 'uncommitted changes in ' + ($changed -join ', ') }
 @(

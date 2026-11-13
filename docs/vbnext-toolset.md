@@ -2,7 +2,7 @@
 
 **Vb.Next** is an independent community effort. It is not affiliated with, endorsed by, or supported by Microsoft.
 
-The .NET SDK compiles Visual Basic with the compiler it ships. That compiler rejects `LangVersion` `vbnext`. `vbnext/VbNext.Toolset.props` points the SDK's `Vbc` task at the compiler built from this repo instead. No package is involved, so nothing here can replace the Microsoft compiler by accident.
+The .NET SDK compiles Visual Basic with the compiler it ships. That compiler rejects `LangVersion` `vbnext`. `vbnext/VbNext.Toolset.props` and `vbnext/VbNext.Toolset.targets` point the SDK's `Vbc` task at the compiler built from this repo instead. No package is involved, so nothing here can replace the Microsoft compiler by accident.
 
 ## Build the compiler
 
@@ -16,12 +16,26 @@ This writes `artifacts\bin\vbc\Release\net472\vbc.exe`. Rebuild it after pulling
 
 ## Use it from a project
 
-Import the props file and set the language version:
+Import `VbNext.Toolset.props` early, from a `Directory.Build.props`, and `VbNext.Toolset.targets` late, from a `Directory.Build.targets`, in the project's folder or a folder above it:
+
+```xml
+<!-- Directory.Build.props -->
+<Project>
+  <Import Project="C:\path\to\VB.Next\vbnext\VbNext.Toolset.props" />
+</Project>
+```
+
+```xml
+<!-- Directory.Build.targets -->
+<Project>
+  <Import Project="C:\path\to\VB.Next\vbnext\VbNext.Toolset.targets" />
+</Project>
+```
+
+Then set the language version in the project:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="C:\path\to\VB.Next\vbnext\VbNext.Toolset.props" />
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
@@ -30,9 +44,11 @@ Import the props file and set the language version:
 </Project>
 ```
 
-Set `VbNextCompilerDir` before the import to use a `vbc.exe` from another folder. Without it, the props uses a `compiler\net472` folder beside itself, as in the release ZIP, and then the compiler built in this repo. The build stops with an error if `vbc.exe` is missing.
+The targets file must be read after the SDK's Visual Basic targets. MSBuild files read before them, such as the per-user `ImportBefore` files of the RoslynDev compiler extension, can change the compiler path. A `Directory.Build.targets` is late enough. The end of a project file with an `Sdk` attribute is not, because the SDK's targets are imported after it.
 
-`vbnext/samples/HelloVbNext` is a working example. Its `Directory.Build.props` imports the toolset, so it builds on its own:
+Set `VbNextCompilerDir` before the props import to use a `vbc.exe` from another folder. Without it, the props uses a `compiler\net472` folder beside itself, as in the release ZIP, and then the compiler built in this repo. The build stops with an error, before it compiles, if `vbc.exe` is missing, if the targets file was not imported, or if a later import points `VbcToolPath` or `VbcToolExe` at another compiler.
+
+`vbnext/samples/HelloVbNext` is a working example. Its `Directory.Build.props` and `Directory.Build.targets` import the toolset, so it builds on its own:
 
 ```powershell
 dotnet run --project vbnext\samples\HelloVbNext\HelloVbNext.vbproj
@@ -42,11 +58,11 @@ The sample targets `net10.0`, so running it needs a .NET 10 runtime. The SDK tha
 
 `vbnext/packaging/New-VbNextPreviewPackage.ps1` builds the preview ZIP in `artifacts\vbnext-release`, and `vbnext/packaging/validation/` checks an extracted ZIP; see `docs/vbnext-release-plan.md`.
 
-## What the props file sets
+## What the toolset sets
 
 | Property | Value | Why |
 | --- | --- | --- |
-| `VbcToolPath`, `VbcToolExe` | The Vb.Next `vbc.exe` | The `Vbc` task runs this compiler. |
+| `VbcToolPath`, `VbcToolExe` | The Vb.Next `vbc.exe`, set in `VbNext.Toolset.targets` | The `Vbc` task runs this compiler. |
 | `UseSharedCompilation` | `false` | The SDK's compiler server would compile with the SDK's compiler. |
 | `UseHostCompilerIfAvailable` | `false` | Visual Studio's in-process compiler would compile with the Roslyn build inside Visual Studio. |
 

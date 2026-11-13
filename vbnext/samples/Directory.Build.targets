@@ -1,2 +1,4 @@
 <Project>
+  <!-- Selects the Vb.Next compiler. This must come after the SDK's own Visual Basic targets, so it is here, not in Directory.Build.props. -->
+  <Import Project="..\VbNext.Toolset.targets" />
 </Project>

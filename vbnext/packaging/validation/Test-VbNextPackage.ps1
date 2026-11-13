@@ -7,7 +7,10 @@
     -SdkVersion    Optional. Pins this SDK version with a global.json in WorkDir.
 
     Builds HelloVbNext inside the package, as a user would, and everything else in WorkDir.
-    Changes only this process's environment. Exits 1 if a check fails.
+    The test projects import VbNext.Toolset.props from a Directory.Build.props and VbNext.Toolset.targets from a
+    Directory.Build.targets, as the README says. A package without VbNext.Toolset.targets fails, except the
+    1.0.0-preview.1 layout, which shipped only the props file; with -ExpectedVersion 1.0.0-preview.1 that layout is
+    checked as it was released, with the props import alone.    Changes only this process's environment. Exits 1 if a check fails.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$PackagePath,
@@ -28,7 +31,12 @@ $logs = Join-Path $work 'logs'
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 $compiler = Join-Path $package 'compiler\net472\vbc.exe'
 $props = Join-Path $package 'VbNext.Toolset.props'
-
+$targets = Join-Path $package 'VbNext.Toolset.targets'
+$propsText = if (Test-Path -LiteralPath $props) { Get-Content -LiteralPath $props -Raw } else { '' }
+$targetsText = if (Test-Path -LiteralPath $targets) { Get-Content -LiteralPath $targets -Raw } else { '' }
+# Preview 1 shipped only the props file, and that props selects the compiler itself.
+$propsOnlyLayout = $targetsText -eq '' -and $propsText -ne '' -and $propsText -notmatch 'VbNextToolsetPropsImported'
+$legacy = $propsOnlyLayout -and $ExpectedVersion -eq '1.0.0-preview.1'
 # Native commands write to stderr when a build fails; that must not stop the script.
 $ErrorActionPreference = 'Continue'
 
@@ -71,16 +79,31 @@ function Run([string]$label, [string]$dll) {
     New-Object PSObject -Property @{ Exit = $code; Lines = $lines }
 }
 
+function Get-Imports([string]$file) {
+    if (-not (Test-Path -LiteralPath $file)) { return @() }
+    @(([xml](Get-Content -LiteralPath $file -Raw)).Project.Import | ForEach-Object { $_.Project })
+}
+
 function New-Project([string]$name, [string]$ext, [string]$source, [bool]$import, [string]$langVersion) {
     $dir = Join-Path $work "projects\$name"
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    $importLine = if ($import) { "  <Import Project=`"$props`" />`r`n" } else { '' }
+    $dbProps = Join-Path $dir 'Directory.Build.props'
+    $dbTargets = Join-Path $dir 'Directory.Build.targets'
+    # As the README says: the props early, from Directory.Build.props, and the targets late, from Directory.Build.targets.
+    if ($import) {
+        Set-Content -LiteralPath $dbProps -Value "<Project>`r`n  <Import Project=`"$props`" />`r`n</Project>`r`n"
+        if (-not $legacy) { Set-Content -LiteralPath $dbTargets -Value "<Project>`r`n  <Import Project=`"$targets`" />`r`n</Project>`r`n" }
+    }
     $langLine = if ($langVersion) { "    <LangVersion>$langVersion</LangVersion>`r`n" } else { '' }
-    $xml = "<Project Sdk=`"Microsoft.NET.Sdk`">`r`n$importLine  <PropertyGroup>`r`n    <OutputType>Exe</OutputType>`r`n    <TargetFramework>$TargetFramework</TargetFramework>`r`n$langLine  </PropertyGroup>`r`n</Project>`r`n"
+    $xml = "<Project Sdk=`"Microsoft.NET.Sdk`">`r`n  <PropertyGroup>`r`n    <OutputType>Exe</OutputType>`r`n    <TargetFramework>$TargetFramework</TargetFramework>`r`n$langLine  </PropertyGroup>`r`n</Project>`r`n"
     Set-Content -LiteralPath (Join-Path $dir "$name.$ext") -Value $xml
     $file = if ($ext -eq 'csproj') { 'Program.cs' } else { 'Program.vb' }
     Set-Content -LiteralPath (Join-Path $dir $file) -Value $source
-    New-Object PSObject -Property @{ Project = (Join-Path $dir "$name.$ext"); Dll = (Join-Path $dir "bin\Debug\$TargetFramework\$name.dll") }
+    # A static check of the files just written: a toolset project imports both files, and any other project imports neither.
+    $propsImported = (Get-Imports $dbProps) -contains $props
+    $targetsImported = (Get-Imports $dbTargets) -contains $targets
+    $importsOk = if (-not $import) { -not (Test-Path -LiteralPath $dbProps) -and -not (Test-Path -LiteralPath $dbTargets) } elseif ($legacy) { $propsImported -and -not (Test-Path -LiteralPath $dbTargets) } else { $propsImported -and $targetsImported }
+    New-Object PSObject -Property @{ Project = (Join-Path $dir "$name.$ext"); Dll = (Join-Path $dir "bin\Debug\$TargetFramework\$name.dll"); ImportsOk = $importsOk; ImportDetail = "imports props $propsImported, targets $targetsImported" }
 }
 
 $vbnextSource = @'
@@ -137,11 +160,25 @@ foreach ($line in Get-Content -LiteralPath $manifestPath) {
 $unlisted = @(Get-ChildItem -LiteralPath $package -Recurse -File | ForEach-Object { $_.FullName.Substring($package.Length + 1).Replace('\', '/') } | Where-Object { $_ -ne 'MANIFEST.sha256' -and $_ -notmatch '^samples/[^/]+/(bin|obj)/' -and -not $listed.ContainsKey($_) })
 Check 'Manifest' ($bad -eq 0 -and $unlisted.Count -eq 0) "$($listed.Count) entries, $bad mismatched, $($unlisted.Count) unlisted"
 
-# 2. Compiler version.
+# 2. Toolset layout, in the package itself.
+if ($legacy) {
+    Check 'Toolset layout' $true 'the 1.0.0-preview.1 layout: VbNext.Toolset.props only, imported alone'
+} elseif ($propsOnlyLayout) {
+    Check 'Toolset layout' $false "VbNext.Toolset.targets is missing and VbNext.Toolset.props is the 1.0.0-preview.1 version; that layout is accepted only with -ExpectedVersion 1.0.0-preview.1, not '$ExpectedVersion'"
+} else {
+    $layoutOk = $propsText -match 'VbNextToolsetPropsImported' -and $targetsText -match 'VbNextToolsetTargetsImported'
+    Check 'Toolset layout' $layoutOk "VbNext.Toolset.props present $($propsText -ne ''), VbNext.Toolset.targets present $($targetsText -ne '')"
+}
+$sampleProps = Get-Imports (Join-Path $package 'samples\Directory.Build.props')
+$sampleTargets = Get-Imports (Join-Path $package 'samples\Directory.Build.targets')
+$sampleOk = ($sampleProps -contains '..\VbNext.Toolset.props') -and ($legacy -or ($sampleTargets -contains '..\VbNext.Toolset.targets'))
+Check 'The sample imports the toolset' $sampleOk ('Directory.Build.props imports: ' + ($sampleProps -join ', ') + '; Directory.Build.targets imports: ' + ($sampleTargets -join ', '))
+
+# 3. Compiler version.
 $reported = (& $compiler /version | Select-Object -First 1)
 Check 'Compiler version' ("$reported".StartsWith("$ExpectedVersion ")) "vbc /version: $reported"
 
-# 3. HelloVbNext, inside the package, against the baseline.
+# 4. HelloVbNext, inside the package, against the baseline.
 $expected = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'expected-output.txt'))
 $b = Build 'HelloVbNext' (Join-Path $package 'samples\HelloVbNext\HelloVbNext.vbproj')
 Check 'HelloVbNext builds with the package compiler' ($b.Exit -eq 0 -and $b.Compiler -eq $compiler) "exit $($b.Exit), compiler $($b.Compiler)"
@@ -150,31 +187,31 @@ $diff = 0
 for ($i = 0; $i -lt [Math]::Max($expected.Count, $r.Lines.Count); $i++) { if ($i -ge $expected.Count -or $i -ge $r.Lines.Count -or $expected[$i] -cne $r.Lines[$i]) { $diff++ } }
 Check 'HelloVbNext output' ($r.Exit -eq 0 -and $diff -eq 0) "exit $($r.Exit), $($r.Lines.Count) of $($expected.Count) lines, $diff differ"
 
-# 4. A Vb.Next app outside the package.
+# 5. A Vb.Next app outside the package.
 $p = New-Project 'VbNextApp' 'vbproj' $vbnextSource $true 'vbnext'
 $b = Build 'VbNextApp' $p.Project
 $r = Run 'VbNextApp' $p.Dll
-Check 'Vb.Next app builds and runs' ($b.Exit -eq 0 -and $b.Compiler -eq $compiler -and (($r.Lines -join '|') -eq 'into:portable|last:30|select:three')) "exit $($b.Exit), compiler $($b.Compiler), output $($r.Lines -join ' | ')"
+Check 'Vb.Next app builds and runs' ($p.ImportsOk -and $b.Exit -eq 0 -and $b.Compiler -eq $compiler -and (($r.Lines -join '|') -eq 'into:portable|last:30|select:three')) "$($p.ImportDetail), exit $($b.Exit), compiler $($b.Compiler), output $($r.Lines -join ' | ')"
 
-# 5. An ordinary VB app with the toolset.
+# 6. An ordinary VB app with the toolset.
 $p = New-Project 'PlainVbApp' 'vbproj' $plainSource $true ''
 $b = Build 'PlainVbApp' $p.Project
 $r = Run 'PlainVbApp' $p.Dll
-Check 'Ordinary VB app builds with the toolset' ($b.Exit -eq 0 -and $b.Compiler -eq $compiler -and (($r.Lines -join '|') -eq 'plain:10')) "exit $($b.Exit), compiler $($b.Compiler), output $($r.Lines -join ' | ')"
+Check 'Ordinary VB app builds with the toolset' ($p.ImportsOk -and $b.Exit -eq 0 -and $b.Compiler -eq $compiler -and (($r.Lines -join '|') -eq 'plain:10')) "$($p.ImportDetail), exit $($b.Exit), compiler $($b.Compiler), output $($r.Lines -join ' | ')"
 
-# 6. A C# app, with the SDK's compiler.
+# 7. A C# app, with the SDK's compiler.
 $p = New-Project 'CSharpApp' 'csproj' 'System.Console.WriteLine("csharp:ok");' $false ''
 $b = Build 'CSharpApp' $p.Project
 $r = Run 'CSharpApp' $p.Dll
 $stock = $b.Compiler -ne '' -and -not $b.Compiler.StartsWith($package, [StringComparison]::OrdinalIgnoreCase)
-Check 'C# app builds with the stock compiler' ($b.Exit -eq 0 -and $stock -and (($r.Lines -join '|') -eq 'csharp:ok')) "exit $($b.Exit), compiler $($b.Compiler)"
+Check 'C# app builds with the stock compiler' ($p.ImportsOk -and $b.Exit -eq 0 -and $stock -and (($r.Lines -join '|') -eq 'csharp:ok')) "$($p.ImportDetail), exit $($b.Exit), compiler $($b.Compiler)"
 
-# 7. Vb.Next forms need the opt-in.
+# 8. Vb.Next forms need the opt-in.
 $p = New-Project 'NoOptIn' 'vbproj' $vbnextSource $true ''
 $b = Build 'NoOptIn' $p.Project
-Check 'Vb.Next forms need LangVersion vbnext' ($b.Exit -ne 0 -and $b.Compiler -eq $compiler -and ($b.Errors -contains 'BC36716')) "exit $($b.Exit), errors $($b.Errors -join ',')"
+Check 'Vb.Next forms need LangVersion vbnext' ($p.ImportsOk -and $b.Exit -ne 0 -and $b.Compiler -eq $compiler -and ($b.Errors -contains 'BC36716')) "$($p.ImportDetail), exit $($b.Exit), errors $($b.Errors -join ',')"
 
-# 8. The stock compiler rejects vbnext and the Vb.Next forms.
+# 9. The stock compiler rejects vbnext and the Vb.Next forms.
 $p = New-Project 'StockVbNext' 'vbproj' $vbnextSource $false 'vbnext'
 $b = Build 'StockVbNext' $p.Project
 Check 'Stock compiler rejects LangVersion vbnext' ($b.Exit -ne 0 -and ($b.Errors -contains 'BC2014')) "exit $($b.Exit), errors $($b.Errors -join ',')"
@@ -183,12 +220,12 @@ $b = Build 'StockForms' $p.Project
 $stock = $b.Compiler -ne '' -and -not $b.Compiler.StartsWith($package, [StringComparison]::OrdinalIgnoreCase)
 Check 'Stock compiler rejects the Vb.Next forms' ($b.Exit -ne 0 -and $stock -and $b.Errors.Count -gt 0) "exit $($b.Exit), compiler $($b.Compiler), errors $($b.Errors -join ',')"
 
-# 9. Without the import, ordinary VB builds with the stock compiler.
+# 10. Without the import, ordinary VB builds with the stock compiler.
 $p = New-Project 'StockPlainVb' 'vbproj' $plainSource $false ''
 $b = Build 'StockPlainVb' $p.Project
 $r = Run 'StockPlainVb' $p.Dll
 $stock = $b.Compiler -ne '' -and -not $b.Compiler.StartsWith($package, [StringComparison]::OrdinalIgnoreCase)
-Check 'Removing the import restores the stock compiler' ($b.Exit -eq 0 -and $stock -and (($r.Lines -join '|') -eq 'plain:10')) "exit $($b.Exit), compiler $($b.Compiler)"
+Check 'Removing the import restores the stock compiler' ($p.ImportsOk -and $b.Exit -eq 0 -and $stock -and (($r.Lines -join '|') -eq 'plain:10')) "exit $($b.Exit), compiler $($b.Compiler)"
 
 $sdks = @($script:sdksSeen.Keys)
 Check 'Every build used the reported SDK' ($sdks.Count -eq 1 -and $sdks[0] -eq $sdkUsed) ('SDKs in the build logs: ' + ($sdks -join ', '))

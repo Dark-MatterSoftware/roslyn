@@ -1,7 +1,13 @@
 <Project>
   <!--
     Compiles Visual Basic with the Vb.Next compiler built from this repo instead of the compiler in the .NET SDK.
-    Import this file from a project, or from a Directory.Build.props, and set LangVersion to vbnext.
+    Use it with VbNext.Toolset.targets, and set LangVersion to vbnext:
+      - Import this file early: from a Directory.Build.props, or at the top of the project.
+      - Import VbNext.Toolset.targets late: from a Directory.Build.targets. In a project with an Sdk attribute, the
+        end of the project file is not late enough, because the SDK's targets are imported after it.
+    The compiler is chosen in VbNext.Toolset.targets because MSBuild imports that are read after this file, such as
+    the per-user ImportBefore files of the RoslynDev compiler extension, can change VbcToolPath. VbNextCheckCompiler
+    stops the build if the targets file was not imported, or if the compiler is not the one in VbNextCompilerDir.
 
     Build the compiler first:
       dotnet build src\Compilers\VisualBasic\vbc\AnyCpu\vbc.csproj -c Release -f net472
@@ -10,17 +16,29 @@
     as in the release ZIP, is used, and then the compiler built in this repo.
   -->
   <PropertyGroup>
+    <VbNextToolsetPropsImported>true</VbNextToolsetPropsImported>
     <VbNextCompilerDir Condition="'$(VbNextCompilerDir)' == '' and Exists('$(MSBuildThisFileDirectory)compiler\net472\vbc.exe')">$(MSBuildThisFileDirectory)compiler\net472\</VbNextCompilerDir>
     <VbNextCompilerDir Condition="'$(VbNextCompilerDir)' == ''">$(MSBuildThisFileDirectory)..\artifacts\bin\vbc\Release\net472\</VbNextCompilerDir>
-    <VbcToolPath>$(VbNextCompilerDir)</VbcToolPath>
-    <VbcToolExe>vbc.exe</VbcToolExe>
     <!-- The SDK's compiler server, and Visual Studio's in-process compiler, would compile with their own compiler. -->
     <UseSharedCompilation>false</UseSharedCompilation>
     <UseHostCompilerIfAvailable>false</UseHostCompilerIfAvailable>
   </PropertyGroup>
 
+  <!-- Defined here, so that it also runs when only this file is imported. It reads the values when it runs, after every import. -->
   <Target Name="VbNextCheckCompiler" BeforeTargets="CoreCompile" Condition="'$(Language)' == 'VB'">
-    <Error Condition="!Exists('$(VbNextCompilerDir)vbc.exe')"
-           Text="The Vb.Next compiler was not found at '$(VbNextCompilerDir)vbc.exe'. Build src\Compilers\VisualBasic\vbc\AnyCpu\vbc.csproj with -c Release -f net472, or set VbNextCompilerDir." />
+    <PropertyGroup>
+      <_VbNextExpectedToolPath>$([MSBuild]::NormalizeDirectory('$(VbNextCompilerDir)'))</_VbNextExpectedToolPath>
+      <_VbNextActualToolPath></_VbNextActualToolPath>
+      <_VbNextActualToolPath Condition="'$(VbcToolPath)' != ''">$([MSBuild]::NormalizeDirectory('$(VbcToolPath)'))</_VbNextActualToolPath>
+    </PropertyGroup>
+    <!-- MSBuild compares strings in conditions without regard to case. -->
+    <Error Condition="!Exists('$(_VbNextExpectedToolPath)vbc.exe')"
+           Text="The Vb.Next compiler was not found at '$(_VbNextExpectedToolPath)vbc.exe'. Build src\Compilers\VisualBasic\vbc\AnyCpu\vbc.csproj with -c Release -f net472, or set VbNextCompilerDir." />
+    <Error Condition="'$(VbNextToolsetTargetsImported)' != 'true'"
+           Text="VbNext.Toolset.targets was not imported, so the Vb.Next compiler is not selected. Import it from a Directory.Build.targets." />
+    <Error Condition="'$(_VbNextActualToolPath)' != '$(_VbNextExpectedToolPath)'"
+           Text="The Visual Basic compiler folder is '$(VbcToolPath)', not the Vb.Next compiler folder '$(_VbNextExpectedToolPath)'. Something imported after VbNext.Toolset.targets changed VbcToolPath." />
+    <Error Condition="'$(VbcToolExe)' != 'vbc.exe'"
+           Text="The Visual Basic compiler is '$(VbcToolExe)', not vbc.exe. Something imported after VbNext.Toolset.targets changed VbcToolExe." />
   </Target>
 </Project>

@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Selects the Vb.Next compiler that VbNext.Toolset.props found. Import VbNext.Toolset.props first, then import this
+    file late, from a Directory.Build.targets, so it is read after the ImportBefore files of Microsoft.VisualBasic.targets,
+    such as the RoslynDev compiler extension's, which would otherwise replace VbcToolPath.
+    VbNextCheckCompiler in VbNext.Toolset.props checks the result before CoreCompile.
+  -->
+  <PropertyGroup Condition="'$(VbNextToolsetPropsImported)' == 'true'">
+    <VbNextToolsetTargetsImported>true</VbNextToolsetTargetsImported>
+    <VbcToolPath>$(VbNextCompilerDir)</VbcToolPath>
+    <VbcToolExe>vbc.exe</VbcToolExe>
+  </PropertyGroup>
+
+  <Target Name="VbNextCheckToolsetProps" BeforeTargets="CoreCompile" Condition="'$(Language)' == 'VB' and '$(VbNextToolsetPropsImported)' != 'true'">
+    <Error Text="VbNext.Toolset.targets was imported without VbNext.Toolset.props. Import VbNext.Toolset.props from a Directory.Build.props." />
+  </Target>
+</Project>

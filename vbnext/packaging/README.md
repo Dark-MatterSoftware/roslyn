@@ -11,13 +11,14 @@ This is a preview. It is for trying the language, not for production code.
 - Windows, with .NET Framework 4.7.2 or later (included in current Windows).
 - A Microsoft .NET SDK, installed separately. Preview 1 is validated with .NET SDK 10.0.403, and with the .NET 11 SDK 11.0.100-rc.1.26425.128.
 
-The .NET SDK is not included and is not changed. Only the projects that import `VbNext.Toolset.props` use the Vb.Next compiler.
+The .NET SDK is not included and is not changed. Only the projects that import the toolset, `VbNext.Toolset.props` and `VbNext.Toolset.targets`, use the Vb.Next compiler.
 
 ## Contents
 
 | Path | Contents |
 | --- | --- |
-| `VbNext.Toolset.props` | MSBuild settings that point a project's Visual Basic compiler at `compiler\net472` |
+| `VbNext.Toolset.props` | MSBuild settings, imported early, that find `compiler\net472` and turn off the shared compiler server |
+| `VbNext.Toolset.targets` | MSBuild settings, imported late, that point a project's Visual Basic compiler at `compiler\net472` |
 | `compiler\net472\` | The Vb.Next compiler, `vbc.exe`, and its dependencies |
 | `samples\HelloVbNext\` | A sample console app that uses the Vb.Next forms |
 | `VERSION.txt` | The version and the source commit |
@@ -31,12 +32,26 @@ The .NET SDK is not included and is not changed. Only the projects that import `
 
 ## Use
 
-Import the props file in a Visual Basic project and set the language version:
+The toolset is two files. Import `VbNext.Toolset.props` early, from a `Directory.Build.props`, and `VbNext.Toolset.targets` late, from a `Directory.Build.targets`, in the project's folder or a folder above it, as `samples\` does:
+
+```xml
+<!-- Directory.Build.props -->
+<Project>
+  <Import Project="C:\Tools\VbNext-1.0.0-preview.1\VbNext.Toolset.props" />
+</Project>
+```
+
+```xml
+<!-- Directory.Build.targets -->
+<Project>
+  <Import Project="C:\Tools\VbNext-1.0.0-preview.1\VbNext.Toolset.targets" />
+</Project>
+```
+
+Then set the language version in the Visual Basic project:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="C:\Tools\VbNext-1.0.0-preview.1\VbNext.Toolset.props" />
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -45,7 +60,9 @@ Import the props file in a Visual Basic project and set the language version:
 </Project>
 ```
 
-Then build as usual with `dotnet build`. To import it for every project in a folder, put the `Import` in a `Directory.Build.props`, as `samples\Directory.Build.props` does. Import it only into Visual Basic projects: it also turns off the shared compiler server.
+Then build as usual with `dotnet build`. The targets file must be read after the SDK's Visual Basic targets, so do not import it at the end of the project file: in a project with an `Sdk` attribute, the SDK's targets are imported after the project's own content. The build stops with an error, before it compiles, if the targets file was not imported, or if another import points the project at a different compiler. Import the toolset only into Visual Basic projects: it also turns off the shared compiler server.
+
+The 1.0.0-preview.1 ZIP contains only `VbNext.Toolset.props`, which selects the compiler by itself; projects that use it import only that file.
 
 To try the sample:
 
@@ -55,7 +72,7 @@ dotnet run --project samples\HelloVbNext\HelloVbNext.vbproj
 
 ## Remove
 
-Delete the `Import` line and the `LangVersion` `vbnext` setting from the project, then delete the extracted folder. The project builds again with the SDK's own compiler, which rejects `vbnext`.
+Delete the two `Import` lines and the `LangVersion` `vbnext` setting, then delete the extracted folder. The project builds again with the SDK's own compiler, which rejects `vbnext`.
 
 ## Known limitations
 
