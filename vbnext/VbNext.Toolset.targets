@@ -21,7 +21,9 @@
   </PropertyGroup>
 
   <Target Name="VbNextReportDebugType" BeforeTargets="CoreCompile" Condition="'$(_VbNextRequestedDebugType)' != ''">
-    <Warning Code="VBNEXT0001" Text="DebugType=$(_VbNextRequestedDebugType) is not supported by the Vb.Next compiler, which does not include the Windows PDB writer; emitting a portable PDB instead. Set DebugType to portable or embedded to remove this warning." />
+    <Warning Code="VBNEXT0001" Condition="'$(DebugType)' == 'portable'" Text="DebugType=$(_VbNextRequestedDebugType) is not supported by the Vb.Next compiler, which does not include the Windows PDB writer; emitting a portable PDB instead. Set DebugType to portable or embedded to remove this warning." />
+    <!-- A global property, such as -p:DebugType=full on the command line, cannot be changed by the PropertyGroup above. -->
+    <Error Code="VBNEXT0002" Condition="'$(DebugType)' != 'portable'" Text="DebugType=$(DebugType) is not supported by the Vb.Next compiler, which does not include the Windows PDB writer. It was set as an MSBuild global property, for example -p:DebugType=$(DebugType) on the command line, which the Vb.Next toolset cannot change, so nothing was compiled. Select portable or embedded debug symbols, for example -p:DebugType=portable." />
   </Target>
 
   <Target Name="VbNextCheckToolsetProps" BeforeTargets="CoreCompile" Condition="'$(Language)' == 'VB' and '$(VbNextToolsetPropsImported)' != 'true'">

@@ -62,6 +62,8 @@ The package uses NuGet's `build` folder only, not `buildTransitive`, so only the
 
 `DebugType` `portable`, the .NET SDK default, and `embedded` work as usual. The package does not include the Windows PDB writer, so a project with `DebugType` `full` or `pdbonly` gets a portable PDB instead, with warning `VBNEXT0001`. Set `DebugType` to `portable` or `embedded` to remove the warning.
 
+MSBuild does not let the package change a `DebugType` passed on the command line, such as `-p:DebugType=full`: the build then stops with error `VBNEXT0002` before compiling. Pass `-p:DebugType=portable` or `embedded` instead.
+
 ## Restore first
 
 NuGet adds the package's MSBuild files when it restores. `dotnet build` restores first. With `msbuild`, pass `-restore`. A project whose last restore did not include the package builds with the SDK's compiler, so a project without `LangVersion` `vbnext` builds with no error; one with it should then fail with `BC2014`, but that is inferred from the stock compiler's behavior, not tested with a stale restore. To see which compiler ran, look for `PathToTool=` in a detailed build log (`-v:d`).
