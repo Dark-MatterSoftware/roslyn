@@ -64,6 +64,10 @@ The package uses NuGet's `build` folder only, not `buildTransitive`, so only the
 
 MSBuild does not let the package change a `DebugType` passed on the command line, such as `-p:DebugType=full`: the build then stops with error `VBNEXT0002` before compiling. Pass `-p:DebugType=portable` or `embedded` instead.
 
+## License and notices
+
+`LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, and `NOTICE.md` are at the package root. The license and notice files of the bundled .NET runtime packages are in `notices\<package>.<version>\`.
+
 ## Restore first
 
 NuGet adds the package's MSBuild files when it restores. `dotnet build` restores first. With `msbuild`, pass `-restore`. A project whose last restore did not include the package builds with the SDK's compiler, so a project without `LangVersion` `vbnext` builds with no error; one with it should then fail with `BC2014`, but that is inferred from the stock compiler's behavior, not tested with a stale restore. To see which compiler ran, look for `PathToTool=` in a detailed build log (`-v:d`).

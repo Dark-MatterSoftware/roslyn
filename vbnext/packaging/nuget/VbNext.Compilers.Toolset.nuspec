@@ -26,6 +26,7 @@
     <file src="README.md" target="" />
     <file src="LICENSE.txt" target="" />
     <file src="THIRD-PARTY-NOTICES.txt" target="" />
+    <file src="notices\**" target="notices" />
     <file src="NOTICE.md" target="" />
     <file src="VERSION.txt" target="" />
   </files>

@@ -111,7 +111,7 @@ if ((Get-Content -LiteralPath (Join-Path $stage 'VbNext.Toolset.props') -Raw) -n
 
 # 2. The package layout: the ZIP's toolset, compiler, and notices, plus this folder's build files and README.
 $content = Join-Path $workFull 'content'
-$fromStage = @($manifest.Keys | Where-Object { $rootFiles -contains $_ -or $_.StartsWith('compiler/net472/') } | Sort-Object)
+$fromStage = @($manifest.Keys | Where-Object { $rootFiles -contains $_ -or $_.StartsWith('compiler/net472/') -or $_.StartsWith('notices/') } | Sort-Object)
 foreach ($entry in $fromStage) {
     $target = Join-Path $content $entry.Replace('/', '\')
     New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null

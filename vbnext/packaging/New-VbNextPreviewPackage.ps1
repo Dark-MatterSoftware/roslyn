@@ -93,6 +93,27 @@ foreach ($file in $required) {
 }
 $diaSymReader = @(Get-ChildItem -LiteralPath $stage -Recurse -File -Filter '*DiaSymReader*')
 if ($diaSymReader.Count -ne 0) { throw "The stage must not contain DiaSymReader files: $($diaSymReader.Name -join ', ')." }
+# The license and notice files of the .NET runtime packages whose DLLs are bundled, copied byte for byte from the NuGet
+# packages the compiler build restored, into notices\<id>.<version>. Each bundled DLL must be that package's
+# lib\net462 file, so the notices belong to the shipped binaries. The other bundled System.* packages have no such files.
+$nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
+$noticePackages = [ordered]@{ 'System.Collections.Immutable' = '10.0.10'; 'System.Reflection.Metadata' = '10.0.10'; 'System.Text.Encoding.CodePages' = '8.0.0' }
+foreach ($id in $noticePackages.Keys) {
+    $packageDir = Join-Path $nugetRoot ("$id\$($noticePackages[$id])".ToLowerInvariant())
+    $cachedDll = Join-Path $packageDir "lib\net462\$id.dll"
+    if (-not (Test-Path -LiteralPath $cachedDll) -or (Get-FileHash -LiteralPath $cachedDll).Hash -ne (Get-FileHash -LiteralPath (Join-Path $stage "compiler\net472\$id.dll")).Hash) {
+        throw "compiler\net472\$id.dll is not the lib\net462 file of $id $($noticePackages[$id]) in '$nugetRoot', so its notices cannot be staged."
+    }
+    $noticeFiles = @(Get-ChildItem -LiteralPath $packageDir -File | Where-Object { $_.Name -in 'LICENSE.TXT', 'THIRD-PARTY-NOTICES.TXT' })
+    if ($noticeFiles.Count -eq 0) { throw "$id $($noticePackages[$id]) has no license or notice file in '$packageDir'." }
+    $noticeDir = Join-Path $stage "notices\$id.$($noticePackages[$id])"
+    New-Item -ItemType Directory -Force $noticeDir | Out-Null
+    foreach ($noticeFile in $noticeFiles) {
+        $copy = Join-Path $noticeDir $noticeFile.Name
+        Copy-Item -LiteralPath $noticeFile.FullName -Destination $copy
+        if ((Get-FileHash -LiteralPath $copy).Hash -ne (Get-FileHash -LiteralPath $noticeFile.FullName).Hash) { throw "The copy of '$($noticeFile.FullName)' differs." }
+    }
+}
 $cultures = @(Get-ChildItem (Join-Path $stage 'compiler\net472') -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'Microsoft.CodeAnalysis.VisualBasic.resources.dll') })
 if ($cultures.Count -ne 13) { throw "Expected 13 localized resource folders, found $($cultures.Count)." }
 

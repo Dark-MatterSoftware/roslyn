@@ -28,6 +28,7 @@ The same compiler is also available as a NuGet package, `VbNext.Compilers.Toolse
 | `VERSION.txt` | The version and the source commit |
 | `MANIFEST.sha256` | The SHA-256 hash of every other file |
 | `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, `NOTICE.md` | License and notices |
+| `notices\` | The license and notice files of the bundled .NET runtime packages, one folder per package and version |
 
 ## Install
 
