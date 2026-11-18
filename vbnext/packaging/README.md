@@ -86,6 +86,7 @@ Delete the two `Import` lines and the `LangVersion` `vbnext` setting, then delet
 - Untested: projects that target .NET 8, including `net8.0-windows` desktop projects; design-time builds in Visual Studio; and the WPF `*.g.i.vb` files that only design-time builds generate.
 - The editor in Visual Studio does not know `vbnext`: IntelliSense and live errors show squiggles on Vb.Next forms, even though the build succeeds. No Visual Studio extension is included.
 - The compiler assemblies keep the Roslyn names `Microsoft.CodeAnalysis` and `Microsoft.CodeAnalysis.VisualBasic`, with the assembly version of a Roslyn developer build. They are used only by `vbc.exe` from this folder.
+- Debug symbols are portable PDBs. `DebugType` `portable`, the .NET SDK default, and `embedded` work as usual. The Windows PDB writer is not included, so a project with `DebugType` `full` or `pdbonly` gets a portable PDB instead, with warning `VBNEXT0001`; set `DebugType` to `portable` or `embedded` to remove the warning. Visual Studio and `dotnet` tools read portable PDBs.
 - The files are not signed.
 
 ## Building the ZIP

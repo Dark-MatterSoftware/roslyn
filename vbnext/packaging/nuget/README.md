@@ -18,7 +18,7 @@ The package was tested with `dotnet build` and .NET SDK 10.0.400, for console, W
 
 ## Use
 
-Reference the package with `PrivateAssets="all"`, so that it does not flow to projects that reference yours, and set the language version. The examples use version 1.0.0-preview.2-rc.2; use the version of the package you install.
+Reference the package with `PrivateAssets="all"`, so that it does not flow to projects that reference yours, and set the language version. The examples use version 1.0.0-preview.2; use the version of the package you install.
 
 NuGet restores the package from any feed that has it, such as nuget.org or a local folder feed listed in a `NuGet.config` file.
 
@@ -31,7 +31,7 @@ NuGet restores the package from any feed that has it, such as nuget.org or a loc
     <LangVersion>vbnext</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2-rc.2" PrivateAssets="all" />
+    <PackageReference Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2" PrivateAssets="all" />
   </ItemGroup>
 </Project>
 ```
@@ -45,7 +45,7 @@ With Central Package Management, put the version in `Directory.Packages.props` a
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2-rc.2" />
+    <PackageVersion Include="VbNext.Compilers.Toolset" Version="1.0.0-preview.2" />
   </ItemGroup>
 </Project>
 ```
@@ -57,6 +57,10 @@ With Central Package Management, put the version in `Directory.Packages.props` a
 Do not use `GlobalPackageReference` for this package unless every project in the repo is Visual Basic: it adds the package to every project, and the package turns off the shared compiler server for C# projects too.
 
 The package uses NuGet's `build` folder only, not `buildTransitive`, so only the projects that reference it use the Vb.Next compiler.
+
+## Debug symbols
+
+`DebugType` `portable`, the .NET SDK default, and `embedded` work as usual. The package does not include the Windows PDB writer, so a project with `DebugType` `full` or `pdbonly` gets a portable PDB instead, with warning `VBNEXT0001`. Set `DebugType` to `portable` or `embedded` to remove the warning.
 
 ## Restore first
 

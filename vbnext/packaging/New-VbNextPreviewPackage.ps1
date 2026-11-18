@@ -74,6 +74,9 @@ if (($statusAfter -join "`n") -ne ($statusLines -join "`n")) { throw 'The compil
 # Stage the layout.
 New-Item -ItemType Directory -Force (Join-Path $stage 'compiler') | Out-Null
 Copy-Item $compilerOut (Join-Path $stage 'compiler\net472') -Recurse
+# Microsoft.DiaSymReader.Native, the Windows PDB writer, is not redistributed: it is Microsoft-licensed, and only DebugType
+# full and pdbonly use it. VbNext.Toolset.targets builds those as portable PDBs, with warning VBNEXT0001.
+Get-ChildItem -LiteralPath (Join-Path $stage 'compiler\net472') -File -Filter 'Microsoft.DiaSymReader.Native.*.dll' | Remove-Item
 Copy-Item (Join-Path $repo 'vbnext\VbNext.Toolset.props'), (Join-Path $repo 'vbnext\VbNext.Toolset.targets') $stage
 foreach ($tracked in @(git -C $repo ls-files -- vbnext/samples)) {
     $target = Join-Path $stage ($tracked.Substring('vbnext/'.Length))
@@ -88,6 +91,8 @@ $required = 'vbc.exe', 'vbc.exe.config', 'vbc.rsp', 'Microsoft.CodeAnalysis.dll'
 foreach ($file in $required) {
     if (-not (Test-Path (Join-Path $stage "compiler\net472\$file"))) { throw "The compiler file '$file' is missing." }
 }
+$diaSymReader = @(Get-ChildItem -LiteralPath $stage -Recurse -File -Filter '*DiaSymReader*')
+if ($diaSymReader.Count -ne 0) { throw "The stage must not contain DiaSymReader files: $($diaSymReader.Name -join ', ')." }
 $cultures = @(Get-ChildItem (Join-Path $stage 'compiler\net472') -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'Microsoft.CodeAnalysis.VisualBasic.resources.dll') })
 if ($cultures.Count -ne 13) { throw "Expected 13 localized resource folders, found $($cultures.Count)." }
 

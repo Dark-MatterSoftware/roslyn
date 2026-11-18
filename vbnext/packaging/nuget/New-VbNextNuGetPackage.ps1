@@ -100,6 +100,8 @@ $mismatched = @($manifest.Keys | Where-Object { $f = Join-Path $stage $_.Replace
 $unlisted = @(Get-ChildItem -LiteralPath $stage -Recurse -File | ForEach-Object { $_.FullName.Substring($stage.Length + 1).Replace('\', '/') } | Where-Object { $_ -ne 'MANIFEST.sha256' -and -not $manifest.ContainsKey($_) })
 if ($mismatched.Count -or $unlisted.Count) { throw "The stage does not match its manifest: $($mismatched.Count) mismatched, $($unlisted.Count) unlisted." }
 $rootFiles = 'VbNext.Toolset.props', 'VbNext.Toolset.targets', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'NOTICE.md', 'VERSION.txt'
+$diaSymReader = @($manifest.Keys | Where-Object { $_ -match 'DiaSymReader' })
+if ($diaSymReader.Count -ne 0) { throw "The stage contains DiaSymReader files, which the package must not include: $($diaSymReader -join ', ')." }
 foreach ($required in $rootFiles + 'compiler/net472/vbc.exe') {
     if (-not $manifest.ContainsKey($required)) { throw "The stage has no '$required'." }
 }

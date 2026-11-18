@@ -11,6 +11,19 @@
     <VbcToolExe>vbc.exe</VbcToolExe>
   </PropertyGroup>
 
+  <!--
+    The Vb.Next compiler does not include the Windows PDB writer, Microsoft.DiaSymReader.Native, which DebugType full and
+    pdbonly need. Those projects get a portable PDB, the .NET SDK default, instead of failing with BC37225.
+  -->
+  <PropertyGroup Condition="'$(VbNextToolsetPropsImported)' == 'true' and '$(MSBuildProjectExtension)' == '.vbproj' and ('$(DebugType)' == 'full' or '$(DebugType)' == 'pdbonly')">
+    <_VbNextRequestedDebugType>$(DebugType)</_VbNextRequestedDebugType>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <Target Name="VbNextReportDebugType" BeforeTargets="CoreCompile" Condition="'$(_VbNextRequestedDebugType)' != ''">
+    <Warning Code="VBNEXT0001" Text="DebugType=$(_VbNextRequestedDebugType) is not supported by the Vb.Next compiler, which does not include the Windows PDB writer; emitting a portable PDB instead. Set DebugType to portable or embedded to remove this warning." />
+  </Target>
+
   <Target Name="VbNextCheckToolsetProps" BeforeTargets="CoreCompile" Condition="'$(Language)' == 'VB' and '$(VbNextToolsetPropsImported)' != 'true'">
     <Error Text="VbNext.Toolset.targets was imported without VbNext.Toolset.props. Import VbNext.Toolset.props from a Directory.Build.props." />
   </Target>
