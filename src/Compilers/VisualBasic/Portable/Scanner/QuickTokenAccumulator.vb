@@ -293,7 +293,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     Case AccumulatorState.Punctuation
                         If c = "."c AndAlso index > qtStart AndAlso pageArr(index - 1) = "."c AndAlso CheckFeatureAvailability(Feature.ArrayRange) Then
-                            state = AccumulatorState.AfterDotDot
+                            ' Let the full scanner choose between ".." and the dots of an XML descendant axis ("...").
+                            state = AccumulatorState.Bad
+                            Exit While
                         ElseIf flags = CharFlags.White Then
                             state = AccumulatorState.FollowingWhite
                         ElseIf flags = CharFlags.CR Then

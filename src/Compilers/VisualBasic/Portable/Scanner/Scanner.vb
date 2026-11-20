@@ -1254,7 +1254,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case "."c
                     If CanGet(1) AndAlso IsDecimalDigit(Peek(1)) Then
                         Return ScanNumericLiteral(precedingTrivia)
-                    ElseIf CanGet(1) AndAlso Peek(1) = "."c AndAlso CheckFeatureAvailability(Feature.ArrayRange) Then
+                    ElseIf CanGet(1) AndAlso Peek(1) = "."c AndAlso
+                           Not (CanGet(2) AndAlso Peek(2) = "."c) AndAlso
+                           Not (_lineBufferOffset > 0 AndAlso Peek(-1) = "."c) AndAlso
+                           CheckFeatureAvailability(Feature.ArrayRange) Then
+                        ' A run of three or more dots is never a range, so "x...<b>" stays an XML descendant axis.
                         Return MakeDotDotToken(precedingTrivia)
                     Else
                         Return MakeDotToken(precedingTrivia, fullWidth)
