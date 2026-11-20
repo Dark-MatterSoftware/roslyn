@@ -92,6 +92,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         End Property
 
         ''' <summary>
+        ''' The language version recorded in the portable PDB of the method's version. The delta PDB of an Edit and
+        ''' Continue update (method version greater than 1) records no compilation options, so when that PDB records no
+        ''' language version, the one recorded in the module's baseline PDB (version 1) is used. Nothing when neither
+        ''' records one, as with a Windows PDB.
+        ''' </summary>
+        Friend Shared Function GetRecordedLanguageVersion(tryGetLanguageVersion As Func(Of Integer, String), methodVersion As Integer) As String
+            Dim recorded = tryGetLanguageVersion(methodVersion)
+            If recorded Is Nothing AndAlso methodVersion > 1 Then
+                recorded = tryGetLanguageVersion(1)
+            End If
+            Return recorded
+        End Function
+
+        ''' <summary>
         ''' Create a context for evaluating expressions at a type scope.
         ''' </summary>
         ''' <param name="compilation">Compilation.</param>
@@ -221,7 +235,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
 
             ' The module's portable PDB records the language version it was compiled with, so a module built with vbnext
             ' evaluates vbnext expressions.
-            Dim parseOptions = SyntaxHelpers.GetParseOptions(PdbCompilationOptions.TryGetLanguageVersion(symReader, methodVersion))
+            Dim parseOptions = SyntaxHelpers.GetParseOptions(GetRecordedLanguageVersion(Function(version) PdbCompilationOptions.TryGetLanguageVersion(symReader, version), methodVersion))
 
             Return New EvaluationContext(
                 New MethodContextReuseConstraints(moduleId, methodToken, methodVersion, reuseSpan),
