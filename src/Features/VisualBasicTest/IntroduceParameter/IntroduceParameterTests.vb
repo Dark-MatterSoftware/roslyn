@@ -1079,6 +1079,64 @@ End Class"
 
             Await VerifyVB.VerifyRefactoringAsync(source, source)
         End Function
+
+        <Fact>
+        Public Async Function TestInModuleTrampolineHasNoShared() As Task
+            Dim source =
+"Module Program
+    Sub M(x As Integer, y As Integer, z As Integer)
+        Dim num As Integer = [|x * y * z|]
+    End Sub
+End Module"
+            Dim expected =
+"Module Program
+    Public Function GetNum(x As Integer, y As Integer, z As Integer) As Integer
+        Return x * y * z
+    End Function
+
+    Sub M(x As Integer, y As Integer, z As Integer, num As Integer)
+    End Sub
+End Module"
+            Await New VerifyVB.Test With
+                {
+                   .TestCode = source,
+                   .FixedCode = expected,
+                   .CodeActionIndex = 1
+                }.RunAsync()
+        End Function
+
+        <Fact>
+        Public Async Function TestInModuleOverloadHasNoShared() As Task
+            Dim source =
+"Module Program
+    Sub M(x As Integer, y As Integer, z As Integer)
+        Dim num As Integer = [|x * y * z|]
+    End Sub
+
+    Sub M1(x As Integer, y As Integer, z As Integer)
+        M(z, y, x)
+    End Sub
+End Module"
+            Dim expected =
+"Module Program
+    Public Sub M(x As Integer, y As Integer, z As Integer)
+        M(x, y, z, x * y * z)
+    End Sub
+
+    Sub M(x As Integer, y As Integer, z As Integer, num As Integer)
+    End Sub
+
+    Sub M1(x As Integer, y As Integer, z As Integer)
+        M(z, y, x)
+    End Sub
+End Module"
+            Await New VerifyVB.Test With
+                {
+                   .TestCode = source,
+                   .FixedCode = expected,
+                   .CodeActionIndex = 2
+                }.RunAsync()
+        End Function
     End Class
 End Namespace
 

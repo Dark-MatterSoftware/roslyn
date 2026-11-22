@@ -455,7 +455,13 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
                 ? CodeGenerationSymbolFactory.CreateMethodSymbol(_methodSymbol, name: newMethodIdentifier, parameters: validParameters, statements: [newStatement], returnType: typeSymbol)
                 : CodeGenerationSymbolFactory.CreateMethodSymbol(_methodSymbol, statements: [newStatement], containingType: _methodSymbol.ContainingType);
 
-            var newMethodDeclaration = info.Service.CreateMethodDeclaration(newMethod, CodeGenerationDestination.Unspecified, info, cancellationToken);
+            // A method generated inside a Visual Basic Module must not get a Shared modifier (BC30433). The VB code generator
+            // omits it only when told the destination is a module, so say so; C# static classes report TypeKind.Class.
+            var destination = _methodSymbol.ContainingType?.TypeKind == TypeKind.Module
+                ? CodeGenerationDestination.ModuleType
+                : CodeGenerationDestination.Unspecified;
+
+            var newMethodDeclaration = info.Service.CreateMethodDeclaration(newMethod, destination, info, cancellationToken);
             Contract.ThrowIfNull(newMethodDeclaration);
             return newMethodDeclaration;
         }
