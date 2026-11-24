@@ -64,6 +64,8 @@ Namespace Microsoft.CodeAnalysis.Operations
             Select Case boundNode.Kind
                 Case BoundKind.AssignmentOperator
                     Return CreateBoundAssignmentOperatorOperation(DirectCast(boundNode, BoundAssignmentOperator))
+                Case BoundKind.RefFieldAssignment
+                    Return CreateBoundRefFieldAssignmentOperation(DirectCast(boundNode, BoundRefFieldAssignment))
                 Case BoundKind.MeReference
                     Return CreateBoundMeReferenceOperation(DirectCast(boundNode, BoundMeReference))
                 Case BoundKind.MyBaseReference
@@ -332,7 +334,6 @@ Namespace Microsoft.CodeAnalysis.Operations
                      BoundKind.XmlProcessingInstruction,
                      BoundKind.UnboundLambda,
                      BoundKind.UnstructuredExceptionHandlingStatement,
-                     BoundKind.RefFieldAssignment,
                      BoundKind.ArrayLength
 
                     Dim constantValue As ConstantValue = Nothing
@@ -567,6 +568,16 @@ Namespace Microsoft.CodeAnalysis.Operations
                 Dim constantValue As ConstantValue = boundAssignmentOperator.ConstantValueOpt
                 Return New SimpleAssignmentOperation(isRef, target, value, _semanticModel, syntax, type, constantValue, isImplicit)
             End If
+        End Function
+
+        Private Function CreateBoundRefFieldAssignmentOperation(boundRefFieldAssignment As BoundRefFieldAssignment) As IOperation
+            Dim target As IOperation = Create(boundRefFieldAssignment.FieldAccess)
+            Dim value As IOperation = Create(boundRefFieldAssignment.Reference)
+            Dim isImplicit As Boolean = boundRefFieldAssignment.WasCompilerGenerated
+            Dim syntax As SyntaxNode = boundRefFieldAssignment.Syntax
+            Dim type As ITypeSymbol = boundRefFieldAssignment.Type
+            Dim constantValue As ConstantValue = boundRefFieldAssignment.ConstantValueOpt
+            Return New SimpleAssignmentOperation(isRef:=True, target, value, _semanticModel, syntax, type, constantValue, isImplicit)
         End Function
 
         Private Function CreateBoundMeReferenceOperation(boundMeReference As BoundMeReference) As IInstanceReferenceOperation

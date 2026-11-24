@@ -1656,6 +1656,12 @@ lUnsplitAndFinish:
             Return Nothing
         End Function
 
+        Public Overrides Function VisitRefFieldAssignment(node As BoundRefFieldAssignment) As BoundNode
+            VisitLvalue(node.FieldAccess)
+            VisitRvalue(node.Reference)
+            Return Nothing
+        End Function
+
         Public Overrides Function VisitCompoundAssignmentTargetPlaceholder(node As BoundCompoundAssignmentTargetPlaceholder) As BoundNode
             Dim replacement As BoundExpression = GetPlaceholderSubstitute(node)
 

@@ -130,5 +130,28 @@ End Module
             Dim use = tree.GetRoot().DescendantNodes().OfType(Of IdentifierNameSyntax)().Last(Function(n) n.Identifier.ValueText = "text")
             Assert.Equal(analysis.VariablesDeclared.Single(), model.GetSymbolInfo(use).Symbol)
         End Sub
+
+        <Fact>
+        Public Sub RefFieldAssignmentReadsReferentAndWritesTarget()
+            Dim compilation = CreateCompilation("
+ByRef Structure Cell
+    Public ByRef Value As Integer
+
+    Sub New(items As Integer(), index As Integer)
+        Value = ByRef items(index)
+    End Sub
+End Structure
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=s_vbNext)
+            compilation.VerifyDiagnostics()
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim assignment = tree.GetRoot().DescendantNodes().OfType(Of AssignmentStatementSyntax)().Single()
+
+            Dim analysis = model.AnalyzeDataFlow(assignment, assignment)
+            Assert.True(analysis.Succeeded)
+            Assert.Equal("index, items", Names(analysis.ReadInside))
+            Assert.Equal("index, items", Names(analysis.DataFlowsIn))
+            Assert.Equal("Me", Names(analysis.WrittenInside))
+        End Sub
     End Class
 End Namespace

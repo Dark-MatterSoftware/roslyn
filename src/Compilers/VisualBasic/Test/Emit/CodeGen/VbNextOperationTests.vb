@@ -107,6 +107,36 @@ End Class
         End Sub
 
         <Fact>
+        Public Sub RefFieldAssignmentIsARefSimpleAssignment()
+            Dim compilation = CreateCompilation("
+ByRef Structure Cell
+    Public ByRef Value As Integer
+
+    Sub New(items As Integer(), index As Integer)
+        Value = ByRef items(index)
+    End Sub
+End Structure
+", targetFramework:=TargetFramework.Net90, parseOptions:=VbNext)
+            compilation.VerifyDiagnostics()
+
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim assignmentSyntax = tree.GetRoot().DescendantNodes().OfType(Of AssignmentStatementSyntax)().Single()
+            Dim statement = Assert.IsAssignableFrom(Of IExpressionStatementOperation)(model.GetOperation(assignmentSyntax))
+            Dim assignment = Assert.IsAssignableFrom(Of ISimpleAssignmentOperation)(statement.Operation)
+
+            Assert.True(assignment.IsRef)
+            Assert.Equal("Value", Assert.IsAssignableFrom(Of IFieldReferenceOperation)(assignment.Target).Field.Name)
+            Dim elementReference = Assert.IsAssignableFrom(Of IArrayElementReferenceOperation)(assignment.Value)
+            Assert.Equal("items", Assert.IsAssignableFrom(Of IParameterReferenceOperation)(elementReference.ArrayReference).Parameter.Name)
+            Assert.Equal("index", Assert.IsAssignableFrom(Of IParameterReferenceOperation)(elementReference.Indices.Single()).Parameter.Name)
+            Assert.DoesNotContain(statement.DescendantsAndSelf(), Function(operation) operation.Kind = OperationKind.None)
+
+            Dim block = tree.GetRoot().DescendantNodes().OfType(Of MethodBlockBaseSyntax)().Single()
+            Assert.NotNull(FlowAnalysis.ControlFlowGraph.Create(block, model))
+        End Sub
+
+        <Fact>
         Public Sub RecordWith()
             VerifyOperationTrees("
 Namespace System.Runtime.CompilerServices

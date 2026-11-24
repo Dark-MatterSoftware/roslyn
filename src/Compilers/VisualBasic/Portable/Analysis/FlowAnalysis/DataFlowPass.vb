@@ -1854,6 +1854,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Nothing
         End Function
 
+        Public Overrides Function VisitRefFieldAssignment(node As BoundRefFieldAssignment) As BoundNode
+            MyBase.VisitRefFieldAssignment(node)
+            Assign(node.FieldAccess, node.Reference)
+            Return Nothing
+        End Function
+
         Protected Overrides Sub VisitForControlInitialization(node As BoundForToStatement)
             MyBase.VisitForControlInitialization(node)
             Assign(node.ControlVariable, node.InitialValue)
