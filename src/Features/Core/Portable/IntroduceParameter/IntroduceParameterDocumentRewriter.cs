@@ -14,6 +14,7 @@ using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.LanguageService;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Microsoft.CodeAnalysis.Simplification;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.IntroduceParameter;
@@ -330,7 +331,8 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
 
                 var conditionalRoot = _syntaxFacts.GetRootConditionalAccessExpression(invocation);
                 var named = ShouldArgumentBeNamed(compilation, invocationSemanticModel, invocationArguments, insertionIndex, cancellationToken);
-                var newMethodInvocation = GenerateNewMethodInvocation(invocation, requiredArguments, newMethodIdentifier);
+                var invokedMethod = invocationSemanticModel.GetSymbolInfo(invocation, cancellationToken).GetAnySymbol() as IMethodSymbol;
+                var newMethodInvocation = GenerateNewMethodInvocation(invocation, invokedMethod, requiredArguments, newMethodIdentifier);
 
                 SeparatedSyntaxList<TArgumentSyntax> allArguments;
                 if (conditionalRoot is null)
@@ -356,18 +358,35 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
             return typeSymbol;
         }
 
-        private SyntaxNode GenerateNewMethodInvocation(SyntaxNode invocation, List<SyntaxNode> arguments, string newMethodIdentifier)
+        private SyntaxNode GenerateNewMethodInvocation(
+            SyntaxNode invocation, IMethodSymbol? invokedMethod, List<SyntaxNode> arguments, string newMethodIdentifier)
         {
-            var methodName = _generator.IdentifierName(newMethodIdentifier);
             var fullExpression = _syntaxFacts.GetExpressionOfInvocationExpression(invocation);
+            var invokedName = fullExpression;
             if (_syntaxFacts.IsMemberAccessExpression(fullExpression))
             {
-                var receiverExpression = _syntaxFacts.GetExpressionOfMemberAccessExpression(fullExpression);
-                methodName = _generator.MemberAccessExpression(receiverExpression, newMethodIdentifier);
+                invokedName = _syntaxFacts.GetNameOfMemberAccessExpression(fullExpression);
             }
             else if (_syntaxFacts.IsMemberBindingExpression(fullExpression))
             {
-                methodName = _generator.MemberBindingExpression(_generator.IdentifierName(newMethodIdentifier));
+                invokedName = _syntaxFacts.GetNameOfMemberBindingExpression(fullExpression);
+            }
+
+            var typeArguments = _syntaxFacts.GetTypeArgumentsOfGenericName(invokedName);
+            var methodName = typeArguments.Count > 0
+                ? _generator.GenericName(newMethodIdentifier, typeArguments).WithAdditionalAnnotations(Simplifier.Annotation)
+                : invokedMethod is { IsGenericMethod: true }
+                    ? _generator.GenericName(newMethodIdentifier, invokedMethod.TypeArguments.Select(_generator.TypeExpression))
+                        .WithAdditionalAnnotations(Simplifier.Annotation)
+                    : _generator.IdentifierName(newMethodIdentifier);
+            if (_syntaxFacts.IsMemberAccessExpression(fullExpression))
+            {
+                var receiverExpression = _syntaxFacts.GetExpressionOfMemberAccessExpression(fullExpression);
+                methodName = _generator.MemberAccessExpression(receiverExpression, methodName);
+            }
+            else if (_syntaxFacts.IsMemberBindingExpression(fullExpression))
+            {
+                methodName = _generator.MemberBindingExpression(methodName);
             }
 
             return _generator.InvocationExpression(methodName, arguments);
@@ -635,7 +654,7 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
                 var argumentParameter = _semanticFacts.FindParameterForArgument(invocationSemanticModel, arguments[i], cancellationToken);
                 if (argumentParameter is not null)
                 {
-                    mapping[argumentParameter] = i;
+                    mapping[argumentParameter.OriginalDefinition] = i;
                 }
             }
         }

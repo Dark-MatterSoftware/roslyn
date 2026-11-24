@@ -387,6 +387,78 @@ public sealed class IntroduceParameterTests : AbstractCSharpCodeActionTest_NoEdi
             """, index: 1, new(options: new OptionsCollection(GetLanguage()), parseOptions: CSharpParseOptions.Default));
 
     [Fact]
+    public Task TestGenericMethodTrampolineCallSitePreservesTypeArguments()
+        => TestInRegularAndScriptAsync("""
+            class Program
+            {
+                int M<T>(int y)
+                {
+                    int num = [|y + 1|];
+                    return num;
+                }
+
+                int M1()
+                {
+                    return M<int>(1);
+                }
+            }
+            """, """
+            class Program
+            {
+                private int GetNum<T>(int y)
+                {
+                    return y + 1;
+                }
+
+                int M<T>(int y, int num)
+                {
+                    return num;
+                }
+
+                int M1()
+                {
+                    return M<int>(1, GetNum<int>(1));
+                }
+            }
+            """, index: 1, new(options: new OptionsCollection(GetLanguage()), parseOptions: CSharpParseOptions.Default));
+
+    [Fact]
+    public Task TestGenericMethodTrampolineUsesInferredTypeArgumentsNotAvailableToExtractedMethod()
+        => TestInRegularAndScriptAsync("""
+            class Program
+            {
+                int M<T>(T x, int y)
+                {
+                    int num = [|y + 1|];
+                    return num;
+                }
+
+                int M1()
+                {
+                    return M(1, 2);
+                }
+            }
+            """, """
+            class Program
+            {
+                private int GetNum<T>(int y)
+                {
+                    return y + 1;
+                }
+
+                int M<T>(T x, int y, int num)
+                {
+                    return num;
+                }
+
+                int M1()
+                {
+                    return M(1, 2, GetNum<int>(2));
+                }
+            }
+            """, index: 1, new(options: new OptionsCollection(GetLanguage()), parseOptions: CSharpParseOptions.Default));
+
+    [Fact]
     public Task TestExpressionWithSingleMethodCallAndAccessorsTrampoline()
         => TestInRegularAndScriptAsync("""
             using System;

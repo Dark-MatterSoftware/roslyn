@@ -2,6 +2,11 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Immutable
+Imports Microsoft.CodeAnalysis.CodeActions
+Imports Microsoft.CodeAnalysis.CodeRefactorings
+Imports Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
+Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.CodeRefactorings
 Imports VerifyVB = Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions.VisualBasicCodeRefactoringVerifier(Of
     Microsoft.CodeAnalysis.VisualBasic.IntroduceParameter.VisualBasicIntroduceParameterCodeRefactoringProvider)
 
@@ -1138,5 +1143,142 @@ End Module"
                 }.RunAsync()
         End Function
     End Class
-End Namespace
 
+    ''' <summary>
+    ''' VB-187b: Introduce Parameter keeps generic method type parameters and
+    ''' explicit type arguments that are required for inference.
+    ''' </summary>
+    <UseExportProvider>
+    <Trait(Traits.Feature, Traits.Features.CodeActionsIntroduceParameter)>
+    Public Class IntroduceParameterGenericMethodTests
+        Inherits AbstractVisualBasicCodeActionTest_NoEditor
+
+        Protected Overrides Function CreateCodeRefactoringProvider(workspace As TestWorkspace, parameters As TestParameters) As CodeRefactoringProvider
+            Return DirectCast(Activator.CreateInstance(GetType(Microsoft.CodeAnalysis.VisualBasic.IntroduceParameter.VisualBasicIntroduceParameterCodeRefactoringProvider), nonPublic:=True), CodeRefactoringProvider)
+        End Function
+
+        Protected Overrides Function MassageActions(actions As ImmutableArray(Of CodeAction)) As ImmutableArray(Of CodeAction)
+            Return GetNestedActions(actions)
+        End Function
+
+        <Fact>
+        Public Async Function TestGenericMethodTrampolinePreservesTypeParameters() As Task
+            Dim markup =
+<File>
+Class Program
+    Public Function M(Of T)(x As T) As Integer
+        Dim num As Integer = [|x.GetHashCode()|]
+    End Function
+End Class
+</File>
+            Dim expected =
+<File>
+Class Program
+    Public Function GetNum(Of T)(x As T) As Integer
+        Return x.GetHashCode()
+    End Function
+
+    Public Function M(Of T)(x As T, num As Integer) As Integer
+    End Function
+End Class
+</File>
+            Await TestAsync(markup, expected, index:=1, parseOptions:=New VisualBasicParseOptions(LanguageVersion.VisualBasic16))
+        End Function
+
+        <Fact>
+        Public Async Function TestGenericMethodOverloadPreservesTypeParameters() As Task
+            Dim markup =
+<File>
+Class Program
+    Public Function M(Of T)(x As T) As Integer
+        Dim num As Integer = [|x.GetHashCode()|]
+    End Function
+
+    Public Function M1() As Integer
+        Return M(Of Integer)(1)
+    End Function
+End Class
+</File>
+            Dim expected =
+<File>
+Class Program
+    Public Function M(Of T)(x As T) As Integer
+        Return M(x, x.GetHashCode())
+    End Function
+
+    Public Function M(Of T)(x As T, num As Integer) As Integer
+    End Function
+
+    Public Function M1() As Integer
+        Return M(Of Integer)(1)
+    End Function
+End Class
+</File>
+            Await TestAsync(markup, expected, index:=2, parseOptions:=New VisualBasicParseOptions(LanguageVersion.VisualBasic16))
+        End Function
+
+        <Fact>
+        Public Async Function TestGenericMethodTrampolineCallSitePreservesTypeArguments() As Task
+            Dim markup =
+<File>
+Class Program
+    Public Function M(Of T)(y As Integer) As Integer
+        Dim num As Integer = [|y + 1|]
+    End Function
+
+    Public Function M1() As Integer
+        Return M(Of Integer)(1)
+    End Function
+End Class
+</File>
+            Dim expected =
+<File>
+Class Program
+    Public Function GetNum(Of T)(y As Integer) As Integer
+        Return y + 1
+    End Function
+
+    Public Function M(Of T)(y As Integer, num As Integer) As Integer
+    End Function
+
+    Public Function M1() As Integer
+        Return M(Of Integer)(1, GetNum(Of Integer)(1))
+    End Function
+End Class
+</File>
+            Await TestAsync(markup, expected, index:=1, parseOptions:=New VisualBasicParseOptions(LanguageVersion.VisualBasic16))
+        End Function
+
+        <Fact>
+        Public Async Function TestGenericMethodTrampolineUsesInferredTypeArgumentsNotAvailableToExtractedMethod() As Task
+            Dim markup =
+<File>
+Class Program
+    Public Function M(Of T)(x As T, y As Integer) As Integer
+        Dim num As Integer = [|y + 1|]
+    End Function
+
+    Public Function M1() As Integer
+        Return M(1, 2)
+    End Function
+End Class
+</File>
+            Dim expected =
+<File>
+Class Program
+    Public Function GetNum(Of T)(y As Integer) As Integer
+        Return y + 1
+    End Function
+
+    Public Function M(Of T)(x As T, y As Integer, num As Integer) As Integer
+    End Function
+
+    Public Function M1() As Integer
+        Return M(1, 2, GetNum(Of Integer)(2))
+    End Function
+End Class
+</File>
+            Await TestAsync(markup, expected, index:=1, parseOptions:=New VisualBasicParseOptions(LanguageVersion.VisualBasic16))
+        End Function
+    End Class
+End Namespace
