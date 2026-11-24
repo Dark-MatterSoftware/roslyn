@@ -43,13 +43,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _nextState = If(slotAllocator?.GetFirstUnusedStateMachineState(increasing), firstState)
         End Sub
 
-        Public Function AllocateState(awaitOrYieldReturnSyntax As SyntaxNode) As StateMachineState
+        Public Function AllocateState(awaitOrYieldReturnSyntax As SyntaxNode, awaitId As AwaitDebugId) As StateMachineState
             Debug.Assert(SyntaxBindingUtilities.BindsToResumableStateMachineState(awaitOrYieldReturnSyntax))
 
             Dim direction = If(_increasing, +1, -1)
             Dim state As StateMachineState
 
-            If _slotAllocator?.TryGetPreviousStateMachineState(awaitOrYieldReturnSyntax, awaitId:=Nothing, state) = True Then
+            If _slotAllocator?.TryGetPreviousStateMachineState(awaitOrYieldReturnSyntax, awaitId, state) = True Then
 #If DEBUG Then
                 ' two states of the new state machine should not match the same state of the previous machine
                 Debug.Assert(Not _matchedStates(state * direction))

@@ -158,7 +158,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Structure
 
             Protected Sub AddResumableState(awaitOrYieldReturnSyntax As SyntaxNode, <Out> ByRef state As StateMachineState, <Out> ByRef resumeLabel As GeneratedLabelSymbol)
-                AddResumableState(_resumableStateAllocator, awaitOrYieldReturnSyntax, state, resumeLabel)
+                AddResumableState(_resumableStateAllocator, awaitOrYieldReturnSyntax, Nothing, state, resumeLabel)
+            End Sub
+
+            Protected Sub AddResumableState(awaitOrYieldReturnSyntax As SyntaxNode, awaitId As AwaitDebugId, <Out> ByRef state As StateMachineState, <Out> ByRef resumeLabel As GeneratedLabelSymbol)
+                AddResumableState(_resumableStateAllocator, awaitOrYieldReturnSyntax, awaitId, state, resumeLabel)
             End Sub
 
             ''' <summary>
@@ -166,7 +170,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ''' with a second allocator, decreasing from <see cref="StateMachineState.FirstResumableAsyncIteratorState"/>.
             ''' </summary>
             Protected Sub AddResumableState(allocator As ResumableStateMachineStateAllocator, awaitOrYieldReturnSyntax As SyntaxNode, <Out> ByRef state As StateMachineState, <Out> ByRef resumeLabel As GeneratedLabelSymbol)
-                state = allocator.AllocateState(awaitOrYieldReturnSyntax)
+                AddResumableState(allocator, awaitOrYieldReturnSyntax, Nothing, state, resumeLabel)
+            End Sub
+
+            Protected Sub AddResumableState(allocator As ResumableStateMachineStateAllocator, awaitOrYieldReturnSyntax As SyntaxNode, awaitId As AwaitDebugId, <Out> ByRef state As StateMachineState, <Out> ByRef resumeLabel As GeneratedLabelSymbol)
+                state = allocator.AllocateState(awaitOrYieldReturnSyntax, awaitId)
 
                 If _tryBlockSyntaxForNextFinalizerState IsNot Nothing AndAlso UseFinalizerBookkeeping Then
                     If SlotAllocatorOpt Is Nothing OrElse
@@ -179,16 +187,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     _tryBlockSyntaxForNextFinalizerState = Nothing
                 End If
 
-                AddStateDebugInfo(awaitOrYieldReturnSyntax, state)
+                AddStateDebugInfo(awaitOrYieldReturnSyntax, awaitId, state)
                 AddState(state, resumeLabel)
             End Sub
 
             Protected Sub AddStateDebugInfo(node As SyntaxNode, state As StateMachineState)
+                AddStateDebugInfo(node, Nothing, state)
+            End Sub
+
+            Protected Sub AddStateDebugInfo(node As SyntaxNode, awaitId As AwaitDebugId, state As StateMachineState)
                 Debug.Assert(SyntaxBindingUtilities.BindsToResumableStateMachineState(node) OrElse
                              SyntaxBindingUtilities.BindsToTryStatement(node), $"Unexpected syntax: {node.Kind()}")
 
                 Dim syntaxOffset = CurrentMethod.CalculateLocalSyntaxOffset(node.SpanStart, node.SyntaxTree)
-                _stateDebugInfoBuilder.Add(New StateMachineStateDebugInfo(syntaxOffset, awaitId:=Nothing, state))
+                _stateDebugInfoBuilder.Add(New StateMachineStateDebugInfo(syntaxOffset, awaitId, state))
             End Sub
 
             Protected Sub AddState(stateNumber As Integer, <Out> ByRef resumeLabel As GeneratedLabelSymbol)

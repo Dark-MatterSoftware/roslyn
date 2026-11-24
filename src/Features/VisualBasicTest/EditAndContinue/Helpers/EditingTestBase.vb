@@ -276,8 +276,8 @@ End Namespace
             End Select
         End Function
 
-        Friend Shared Function GetActiveStatements(oldSource As String, newSource As String, Optional flags As ActiveStatementFlags() = Nothing, Optional documentIndex As Integer = 0) As ActiveStatementsDescription
-            Return New ActiveStatementsDescription(oldSource, newSource, Function(source) SyntaxFactory.ParseSyntaxTree(source, path:=GetDocumentFilePath(documentIndex)), flags)
+        Friend Shared Function GetActiveStatements(oldSource As String, newSource As String, Optional flags As ActiveStatementFlags() = Nothing, Optional documentIndex As Integer = 0, Optional parseOptions As VisualBasicParseOptions = Nothing) As ActiveStatementsDescription
+            Return New ActiveStatementsDescription(oldSource, newSource, Function(source) SyntaxFactory.ParseSyntaxTree(source, options:=parseOptions, path:=GetDocumentFilePath(documentIndex)), flags)
         End Function
 
         Friend Shared Function GetSyntaxMap(oldSource As String, newSource As String) As SyntaxMapDescription

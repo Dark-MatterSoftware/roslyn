@@ -1,4 +1,4 @@
-﻿' Licensed to the .NET Foundation under one or more agreements.
+' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -2349,6 +2349,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
                 areSimilar:=Nothing,
                 cancellationToken)
 
+            ' Async Using resource variables still introduce DisposeAsync awaits around the active statement.
+            ReportUnmatchedStatements(Of UsingBlockSyntax)(diagnostics, forwardMap, oldActiveStatement, oldEncompassingAncestor, oldModel, newActiveStatement, newEncompassingAncestor, newModel,
+                nodeSelector:=Function(node) node.IsKind(SyntaxKind.UsingBlock) AndAlso
+                    DirectCast(node, UsingBlockSyntax).UsingStatement.Expression Is Nothing AndAlso
+                    DirectCast(node, UsingBlockSyntax).UsingStatement.AsyncKeyword.Kind = SyntaxKind.AsyncKeyword,
+                getTypedNodes:=Function(n) OneOrMany.Create(Of SyntaxNode)(GetAsyncUsingResourceTypeNode(n)),
+                areEquivalent:=Function(n1, n2) AreEquivalentIgnoringLambdaBodies(n1.UsingStatement, n2.UsingStatement),
+                areSimilar:=Nothing,
+                cancellationToken)
+
             ReportUnmatchedStatements(Of ForEachBlockSyntax)(diagnostics, forwardMap, oldActiveStatement, oldEncompassingAncestor, oldModel, newActiveStatement, newEncompassingAncestor, newModel,
                 nodeSelector:=Function(node) node.IsKind(SyntaxKind.ForEachBlock),
                 getTypedNodes:=Function(n) OneOrMany.Create(Of SyntaxNode)(n.ForEachStatement.Expression),
@@ -2360,6 +2370,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
 
 #End Region
 
+
+        Private Shared Function GetAsyncUsingResourceTypeNode(block As UsingBlockSyntax) As SyntaxNode
+            Dim asClause = block.UsingStatement.Variables(0).AsClause
+            Dim simple = TryCast(asClause, SimpleAsClauseSyntax)
+            If simple IsNot Nothing Then
+                Return simple.Type
+            End If
+
+            Return DirectCast(asClause, AsNewClauseSyntax).NewExpression
+        End Function
         Protected Overrides Iterator Function GetParseOptionsRudeEdits(oldOptions As ParseOptions, newOptions As ParseOptions) As IEnumerable(Of Diagnostic)
             For Each rudeEdit In MyBase.GetParseOptionsRudeEdits(oldOptions, newOptions)
                 Yield rudeEdit

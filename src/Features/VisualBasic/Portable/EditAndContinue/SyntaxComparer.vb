@@ -436,7 +436,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
                     isLeaf = True
                     Return Label.EndWithStatement
 
-                Case SyntaxKind.LocalDeclarationStatement
+                Case SyntaxKind.LocalDeclarationStatement,
+                     SyntaxKind.TupleDeconstructionStatement,
+                     SyntaxKind.DeconstructionDeclarationStatement
                     Return Label.LocalDeclarationStatement
 
                 Case SyntaxKind.VariableDeclarator
@@ -599,6 +601,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
 
                 Case SyntaxKind.MidAssignmentStatement,
                      SyntaxKind.SimpleAssignmentStatement,
+                     SyntaxKind.NothingCoalescingAssignmentStatement,
                      SyntaxKind.AddAssignmentStatement,
                      SyntaxKind.SubtractAssignmentStatement,
                      SyntaxKind.MultiplyAssignmentStatement,

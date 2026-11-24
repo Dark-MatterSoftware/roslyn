@@ -11,9 +11,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         Public Shared Function BindsToResumableStateMachineState(node As SyntaxNode) As Boolean
             Return node.IsKind(SyntaxKind.YieldStatement) OrElse
                    node.IsKind(SyntaxKind.AwaitExpression) OrElse
-                   node.IsKind(SyntaxKind.ModifiedIdentifier) AndAlso node.Parent.IsKind(SyntaxKind.VariableDeclarator) AndAlso IsAsyncUsing(node.Parent.Parent) OrElse
+                   IsGeneratedDisposeAwait(node) OrElse
+                   IsAwaitEach(node)
+        End Function
+
+        Public Shared Function IsGeneratedDisposeAwait(node As SyntaxNode) As Boolean
+            Return node.IsKind(SyntaxKind.ModifiedIdentifier) AndAlso
+                   node.Parent.IsKind(SyntaxKind.VariableDeclarator) AndAlso
+                   IsAsyncUsing(node.Parent.Parent) OrElse
                    IsAsyncUsing(node) AndAlso DirectCast(node, UsingStatementSyntax).Expression IsNot Nothing OrElse
-                   IsAwaitEach(node) OrElse
                    node.IsKind(SyntaxKind.ForEachBlock) AndAlso IsAwaitEach(DirectCast(node, ForEachBlockSyntax).ForEachStatement)
         End Function
 

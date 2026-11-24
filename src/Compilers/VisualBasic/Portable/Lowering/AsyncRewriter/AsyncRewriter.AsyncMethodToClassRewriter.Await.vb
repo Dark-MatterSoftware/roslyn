@@ -7,6 +7,7 @@ Imports System.Collections.Immutable
 Imports System.Threading
 Imports Microsoft.Cci
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
@@ -112,7 +113,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Private Function GenerateAwaitForIncompleteTask(awaiterTemp As LocalSymbol) As BoundBlock
                 Dim state As StateMachineState = 0
                 Dim resumeLabel As GeneratedLabelSymbol = Nothing
-                AddResumableState(awaiterTemp.GetDeclaratorSyntax(), state, resumeLabel)
+                Dim awaitSyntax = awaiterTemp.GetDeclaratorSyntax()
+                Dim awaitId = If(SyntaxBindingUtilities.IsGeneratedDisposeAwait(awaitSyntax), New AwaitDebugId(1), Nothing)
+                AddResumableState(awaitSyntax, awaitId, state, resumeLabel)
 
                 Dim awaiterType As TypeSymbol = awaiterTemp.Type
                 Dim awaiterFieldType As TypeSymbol = awaiterType

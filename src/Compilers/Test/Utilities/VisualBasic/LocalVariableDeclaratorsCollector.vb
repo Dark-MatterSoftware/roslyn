@@ -54,6 +54,20 @@ Friend NotInheritable Class LocalVariableDeclaratorsCollector
         MyBase.VisitVariableDeclarator(node)
     End Sub
 
+    Public Overrides Sub VisitTupleDeconstructionStatement(node As TupleDeconstructionStatementSyntax)
+        For Each name In node.Names
+            Me._builder.Add(name)
+        Next
+        MyBase.VisitTupleDeconstructionStatement(node)
+    End Sub
+
+    Public Overrides Sub VisitDeconstructionSlot(node As DeconstructionSlotSyntax)
+        If node.Name IsNot Nothing Then
+            Me._builder.Add(node.Name)
+        End If
+        MyBase.VisitDeconstructionSlot(node)
+    End Sub
+
     Public Overrides Sub VisitIdentifierName(node As IdentifierNameSyntax)
     End Sub
 
