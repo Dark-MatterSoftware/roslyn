@@ -16,6 +16,27 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.CodeRefactorings.E
             Return New ExtractMethodCodeRefactoringProvider()
         End Function
 
+        <Fact>
+        Public Async Function TestExpressionInSingleLineIfStatement() As Task
+            Await TestInRegularAndScriptAsync(
+"Class C
+    Shared Sub M(letters As String, i As Integer)
+        Dim count = 0
+        If ""aeiou"".Contains([|letters(i)|]) Then count += 1
+    End Sub
+End Class",
+"Class C
+    Shared Sub M(letters As String, i As Integer)
+        Dim count = 0
+        If ""aeiou"".Contains({|Rename:NewMethod|}(letters, i)) Then count += 1
+    End Sub
+
+    Private Shared Function NewMethod(letters As String, i As Integer) As Char
+        Return letters(i)
+    End Function
+End Class")
+        End Function
+
         <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540686")>
         Public Async Function TestExtractReturnExpression() As Task
             Await TestInRegularAndScriptAsync(

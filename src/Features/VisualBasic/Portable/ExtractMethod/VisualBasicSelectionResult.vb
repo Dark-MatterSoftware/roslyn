@@ -1,4 +1,4 @@
-' Licensed to the .NET Foundation under one or more agreements.
+﻿' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -248,6 +248,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                                    .FirstOrDefault(Function(n) n.IsStatementContainerNode)
 
                 If statementContainer IsNot Nothing Then
+                    Dim singleLineIf = TryCast(statementContainer, SingleLineIfStatementSyntax)
+                    If singleLineIf IsNot Nothing AndAlso singleLineIf.Condition.Span.Contains(containingScope.Span) Then
+                        ' The single-line If is the statement to replace, not its own call-site container.
+                        Return singleLineIf.Parent
+                    End If
+
                     Return statementContainer
                 End If
 

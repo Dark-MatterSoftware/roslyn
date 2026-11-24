@@ -1,4 +1,4 @@
-' Licensed to the .NET Foundation under one or more agreements.
+﻿' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
@@ -125,6 +125,35 @@ Class C
             System.Console.WriteLine(item & price)
         Next
     End Sub
+End Class")
+        End Function
+
+        <Fact>
+        Public Async Function TestAwaitEachDeconstructionLoop() As Task
+            Await TestInRegularAndScriptAsync(InVbNext(
+"Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Class C
+    Async Function M(prices As IAsyncEnumerable(Of (String, Decimal))) As Task
+        [|Await Each (item, price) In prices
+            System.Console.WriteLine(item & price)
+        Next|]
+    End Function
+End Class"),
+"Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Class C
+    Async Function M(prices As IAsyncEnumerable(Of (String, Decimal))) As Task
+        Await {|Rename:NewMethod|}(prices)
+    End Function
+
+    Private Shared Async Function NewMethod(prices As IAsyncEnumerable(Of (String, Decimal))) As Task
+        Await Each (item, price) In prices
+            System.Console.WriteLine(item & price)
+        Next
+    End Function
 End Class")
         End Function
 
