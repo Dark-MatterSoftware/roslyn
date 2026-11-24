@@ -63,14 +63,76 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup
             '       (a) Async functions: If R is not Task or Task(Of T) or an instantiation of Task(Of T), pretty list return type to Task(Of R).
             '       (b) Iterator functions: If R is not IEnumerable/IEnumerator or IEnumerable(Of T)/IEnumerator(Of T) or an instantiation
             '           of these generic types, pretty list return type to IEnumerable(Of R).
+            '       (c) Async Iterator functions: If R is not IAsyncEnumerable(Of T)/IAsyncEnumerator(Of T) or an instantiation
+            '           of these generic types, pretty list return type to IAsyncEnumerable(Of R) when available.
+            '           Never wrap a valid async-iterator return type in Task(Of T) (DR5D3-1 / DR5D4-EDITOR-AITER).
 
-            If modifiers.Any(SyntaxKind.AsyncKeyword) Then
+            Dim isAsync = modifiers.Any(SyntaxKind.AsyncKeyword)
+            Dim isIterator = modifiers.Any(SyntaxKind.IteratorKeyword)
+
+            If isAsync AndAlso isIterator Then
+                ' Async Iterator authoring is Vb.Next-only. Under Visual Basic 17.13 / default / latest,
+                ' the combination is invalid; preserve the historical Async-first pretty-listing path
+                ' (Task wrap) so ordinary VB.NET editor behavior does not change (DR5D3-1).
+                If IsVbNext(semanticModel) Then
+                    Return RewriteAsyncIteratorFunction(oldAsClauseOpt, parameterListOpt, asClauseOpt, semanticModel, position, cancellationToken)
+                End If
+
                 Return RewriteAsyncFunction(oldAsClauseOpt, parameterListOpt, asClauseOpt, semanticModel, position, cancellationToken)
-            ElseIf modifiers.Any(SyntaxKind.IteratorKeyword) Then
+            ElseIf isAsync Then
+                Return RewriteAsyncFunction(oldAsClauseOpt, parameterListOpt, asClauseOpt, semanticModel, position, cancellationToken)
+            ElseIf isIterator Then
                 Return RewriteIteratorFunction(oldAsClauseOpt, parameterListOpt, asClauseOpt, semanticModel, position, cancellationToken)
             Else
                 Return False
             End If
+        End Function
+
+        Private Function IsVbNext(semanticModel As SemanticModel) As Boolean
+            Dim parseOptions = TryCast(semanticModel?.SyntaxTree.Options, VisualBasicParseOptions)
+            Return parseOptions IsNot Nothing AndAlso parseOptions.LanguageVersion = LanguageVersion.VbNext
+        End Function
+
+        Private Function RewriteAsyncIteratorFunction(oldAsClauseOpt As AsClauseSyntax,
+                                                      ByRef parameterListOpt As ParameterListSyntax,
+                                                      ByRef asClauseOpt As SimpleAsClauseSyntax,
+                                                      semanticModel As SemanticModel,
+                                                      position As Integer,
+                                                      cancellationToken As CancellationToken) As Boolean
+            If semanticModel Is Nothing Then
+                Return False
+            End If
+
+            ' There is no non-generic IAsyncEnumerable; leave declarations without an AsClause unchanged.
+            If asClauseOpt Is Nothing Then
+                Return False
+            End If
+
+            Dim returnType = semanticModel.GetTypeInfo(oldAsClauseOpt.Type, cancellationToken).Type
+            If returnType Is Nothing OrElse returnType.IsErrorType() Then
+                Return False
+            End If
+
+            Dim iAsyncEnumerableOfT = semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1")
+            Dim iAsyncEnumeratorOfT = semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerator`1")
+
+            ' Valid Async Iterator return types must not be wrapped in Task(Of T).
+            If iAsyncEnumerableOfT IsNot Nothing AndAlso returnType.OriginalDefinition.Equals(iAsyncEnumerableOfT) Then
+                Return False
+            End If
+
+            If iAsyncEnumeratorOfT IsNot Nothing AndAlso returnType.OriginalDefinition.Equals(iAsyncEnumeratorOfT) Then
+                Return False
+            End If
+
+            ' Incorrect return type R: pretty list to IAsyncEnumerable(Of R) when the type is available.
+            ' If IAsyncEnumerable(Of T) is unavailable, leave unchanged — never fall through to Task(Of R).
+            If iAsyncEnumerableOfT IsNot Nothing Then
+                RewriteFunctionAsClause(iAsyncEnumerableOfT.Construct(returnType), asClauseOpt, semanticModel, position)
+                Return True
+            End If
+
+            Return False
         End Function
 
         Private Function RewriteAsyncFunction(oldAsClauseOpt As AsClauseSyntax,

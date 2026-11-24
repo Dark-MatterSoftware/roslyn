@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeCleanup;
 using Microsoft.CodeAnalysis.CodeCleanup.Providers;
 using Microsoft.CodeAnalysis.Test.Utilities;
+using Microsoft.CodeAnalysis.Testing;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.VisualBasic;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -2358,6 +2360,206 @@ public sealed class AddMissingTokensTests
             End Class
             """);
 
+    // DR5D3-1 / DR5D4-EDITOR-AITER: Async Iterator returning IAsyncEnumerable(Of T) must not be
+    // rewritten to Task(Of IAsyncEnumerable(Of T)) by AddMissingTokens / pretty listing.
+    [Fact]
+    public Task TestAsyncIteratorFunction_PreservesIAsyncEnumerable()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As IAsyncEnumerable(Of Integer)
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As IAsyncEnumerable(Of Integer)
+                End Function
+            End Class
+            """);
+
+    // DR5D3-1: Async Iterator returning IAsyncEnumerator(Of T) must not be wrapped in Task(Of T).
+    [Fact]
+    public Task TestAsyncIteratorFunction_PreservesIAsyncEnumerator()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As IAsyncEnumerator(Of Integer)
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As IAsyncEnumerator(Of Integer)
+                End Function
+            End Class
+            """);
+
+    // DR5D3-1: Async Iterator with an incorrect non-async-iterator return type should become
+    // IAsyncEnumerable(Of R), not Task(Of R).
+    [Fact]
+    public Task TestAsyncIteratorFunction_WrapsIncorrectReturnAsIAsyncEnumerable()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As Integer
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As IAsyncEnumerable(Of Integer)
+                End Function
+            End Class
+            """);
+
+    // DR5D3-1: qualified IAsyncEnumerable(Of T) must also be left alone under VbNext.
+    [Fact]
+    public Task TestAsyncIteratorFunction_PreservesQualifiedIAsyncEnumerable()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Class Test
+                Async Iterator Function Goo() As System.Collections.Generic.IAsyncEnumerable(Of Integer)
+                End Function
+            End Class|]
+            """, """
+
+            Class Test
+                Async Iterator Function Goo() As System.Collections.Generic.IAsyncEnumerable(Of Integer)
+                End Function
+            End Class
+            """);
+
+    // DR5D3-1: missing AsClause — no non-generic IAsyncEnumerable; leave unchanged under VbNext.
+    [Fact]
+    public Task TestAsyncIteratorFunction_MissingAsClause_Unchanged()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Class Test
+                Async Iterator Function Goo()
+                End Function
+            End Class|]
+            """, """
+
+            Class Test
+                Async Iterator Function Goo()
+                End Function
+            End Class
+            """);
+
+    // DR5D3-1: error/unresolved return type — leave unchanged (do not invent Task or IAsyncEnumerable).
+    [Fact]
+    public Task TestAsyncIteratorFunction_ErrorReturnType_Unchanged()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Class Test
+                Async Iterator Function Goo() As NotARealType
+                End Function
+            End Class|]
+            """, """
+
+            Class Test
+                Async Iterator Function Goo() As NotARealType
+                End Function
+            End Class
+            """);
+
+    // DR5D3-1: under VisualBasic17_13, invalid Async+Iterator keeps historical Async-first Task wrap.
+    [Fact]
+    public Task TestAsyncIteratorFunction_VisualBasic17_13_StillUsesAsyncTaskWrap()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As Integer
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As System.Threading.Tasks.Task(Of Integer)
+                End Function
+            End Class
+            """, languageVersion: LanguageVersion.VisualBasic17_13);
+
+    // DR5D3-1: default/latest map to ordinary VB.NET (17.13) — same historical Async-first path.
+    [Fact]
+    public Task TestAsyncIteratorFunction_Latest_StillUsesAsyncTaskWrap()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As Integer
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Collections.Generic
+
+            Class Test
+                Async Iterator Function Goo() As System.Threading.Tasks.Task(Of Integer)
+                End Function
+            End Class
+            """, languageVersion: LanguageVersion.Latest);
+
+    // DR5D3-1 control: ordinary Async Function still wraps non-Task returns in Task(Of T).
+    [Fact]
+    public Task TestAsyncFunction_StillWrapsIntegerAsTaskOfInteger_WithNetCoreRefs()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Threading.Tasks
+
+            Class Test
+                Async Function Goo() As Integer
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Threading.Tasks
+
+            Class Test
+                Async Function Goo() As Task(Of Integer)
+                End Function
+            End Class
+            """, languageVersion: LanguageVersion.VisualBasic17_13);
+
+    // DR5D3-1 control: ordinary Iterator Function still wraps non-enumerable returns in IEnumerable(Of T).
+    [Fact]
+    public Task TestIteratorFunction_StillWrapsIntegerAsIEnumerableOfInteger_WithNetCoreRefs()
+        => VerifyWithNetCoreAsync("""
+            [|
+            Imports System.Collections.Generic
+
+            Class Test
+                Iterator Function Goo() As Integer
+                End Function
+            End Class|]
+            """, """
+
+            Imports System.Collections.Generic
+
+            Class Test
+                Iterator Function Goo() As IEnumerable(Of Integer)
+                End Function
+            End Class
+            """, languageVersion: LanguageVersion.VisualBasic17_13);
+
     [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/602932")]
     public Task TestAsyncLambdaFunction()
         => VerifyAsync("""
@@ -2582,6 +2784,25 @@ public sealed class AddMissingTokensTests
         Assert.Equal(expectedResult, (await cleanDocument.GetSyntaxRootAsync()).ToFullString());
     }
 
+    /// <summary>
+    /// Code cleanup with modern framework references so IAsyncEnumerable(Of T) / IAsyncEnumerator(Of T) bind.
+    /// Used by DR5D3-1 Async Iterator regression tests.
+    /// </summary>
+    private static async Task VerifyWithNetCoreAsync(
+        string codeWithMarker,
+        string expectedResult,
+        LanguageVersion languageVersion = LanguageVersion.VbNext)
+    {
+        MarkupTestFile.GetSpans(codeWithMarker, out var codeWithoutMarker, out var textSpans);
+
+        var document = await CreateDocumentWithNetCoreAsync(codeWithoutMarker, languageVersion);
+        var codeCleanups = CodeCleaner.GetDefaultProviders(document).WhereAsArray(p => p.Name is PredefinedCodeCleanupProviderNames.AddMissingTokens or PredefinedCodeCleanupProviderNames.Format or PredefinedCodeCleanupProviderNames.Simplification);
+
+        var cleanDocument = await CodeCleaner.CleanupAsync(document, textSpans[0], await document.GetCodeCleanupOptionsAsync(CancellationToken.None), codeCleanups);
+
+        Assert.Equal(expectedResult, (await cleanDocument.GetSyntaxRootAsync()).ToFullString());
+    }
+
     private static Document CreateDocument(string code, string language)
     {
         var solution = new AdhocWorkspace().CurrentSolution;
@@ -2590,5 +2811,20 @@ public sealed class AddMissingTokensTests
 
         return project.AddMetadataReference(NetFramework.mscorlib)
                       .AddDocument("Document", SourceText.From(code));
+    }
+
+    private static async Task<Document> CreateDocumentWithNetCoreAsync(string code, LanguageVersion languageVersion)
+    {
+        var solution = new AdhocWorkspace().CurrentSolution;
+        var projectId = ProjectId.CreateNewId();
+        var project = solution.AddProject(projectId, "Project", "Project.dll", LanguageNames.VisualBasic).GetProject(projectId);
+
+        var parseOptions = ((VisualBasicParseOptions)project.ParseOptions).WithLanguageVersion(languageVersion);
+        project = project.WithParseOptions(parseOptions);
+
+        var references = await ReferenceAssemblies.Net.Net80.ResolveAsync(LanguageNames.VisualBasic, CancellationToken.None);
+        project = project.AddMetadataReferences(references);
+
+        return project.AddDocument("Document", SourceText.From(code));
     }
 }
