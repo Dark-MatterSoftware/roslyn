@@ -558,5 +558,175 @@ End Module
   IL_0026:  ret
 }")
         End Sub
+
+        ' D11 / VB-065 desktop overload pins: Framework refs (no handler contracts) keep String.Format;
+        ' modern .NET under vbnext selects Append* handler overloads; 17.13 keeps String.Format.
+
+        <Fact>
+        Public Sub Overload_StringBuilderAppend_WithHoles_UsesStringFormat_OnNetFramework_VbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Text
+
+Module Program
+    Function Build(count As Integer) As String
+        Dim builder As New StringBuilder()
+        builder.Append($""{count} items"")
+        Return builder.ToString()
+    End Function
+End Module
+", targetFramework:=TargetFramework.NetFramework, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation).VerifyDiagnostics().VerifyIL("Program.Build", "
+{
+  // Code size       34 (0x22)
+  .maxstack  4
+  IL_0000:  newobj     ""Sub System.Text.StringBuilder..ctor()""
+  IL_0005:  dup
+  IL_0006:  ldstr      ""{0} items""
+  IL_000b:  ldarg.0
+  IL_000c:  box        ""Integer""
+  IL_0011:  call       ""Function String.Format(String, Object) As String""
+  IL_0016:  callvirt   ""Function System.Text.StringBuilder.Append(String) As System.Text.StringBuilder""
+  IL_001b:  pop
+  IL_001c:  callvirt   ""Function System.Text.StringBuilder.ToString() As String""
+  IL_0021:  ret
+}")
+        End Sub
+
+        <Fact>
+        Public Sub Overload_StringBuilderAppendLine_WithHoles_UsesStringFormat_OnNetFramework_VbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Text
+
+Module Program
+    Function Build(count As Integer) As String
+        Dim builder As New StringBuilder()
+        builder.AppendLine($""{count} items"")
+        Return builder.ToString()
+    End Function
+End Module
+", targetFramework:=TargetFramework.NetFramework, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation).VerifyDiagnostics().VerifyIL("Program.Build", "
+{
+  // Code size       34 (0x22)
+  .maxstack  4
+  IL_0000:  newobj     ""Sub System.Text.StringBuilder..ctor()""
+  IL_0005:  dup
+  IL_0006:  ldstr      ""{0} items""
+  IL_000b:  ldarg.0
+  IL_000c:  box        ""Integer""
+  IL_0011:  call       ""Function String.Format(String, Object) As String""
+  IL_0016:  callvirt   ""Function System.Text.StringBuilder.AppendLine(String) As System.Text.StringBuilder""
+  IL_001b:  pop
+  IL_001c:  callvirt   ""Function System.Text.StringBuilder.ToString() As String""
+  IL_0021:  ret
+}")
+        End Sub
+
+        <Fact>
+        Public Sub Overload_StringBuilderAppendLine_WithHoles_UsesHandler_OnNet90_VbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Text
+
+Module Program
+    Function Build(count As Integer) As String
+        Dim builder As New StringBuilder()
+        builder.AppendLine($""{count} items"")
+        Return builder.ToString()
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, verify:=Verification.FailsPEVerify).VerifyDiagnostics().VerifyIL("Program.Build", "
+{
+  // Code size       54 (0x36)
+  .maxstack  6
+  .locals init (System.Text.StringBuilder V_0,
+                System.Text.StringBuilder.AppendInterpolatedStringHandler V_1,
+                System.Text.StringBuilder.AppendInterpolatedStringHandler V_2)
+  IL_0000:  newobj     ""Sub System.Text.StringBuilder..ctor()""
+  IL_0005:  dup
+  IL_0006:  stloc.0
+  IL_0007:  ldloc.0
+  IL_0008:  ldloca.s   V_2
+  IL_000a:  ldc.i4.6
+  IL_000b:  ldc.i4.1
+  IL_000c:  ldloc.0
+  IL_000d:  call       ""Sub System.Text.StringBuilder.AppendInterpolatedStringHandler..ctor(Integer, Integer, System.Text.StringBuilder)""
+  IL_0012:  ldloca.s   V_2
+  IL_0014:  ldarg.0
+  IL_0015:  call       ""Sub System.Text.StringBuilder.AppendInterpolatedStringHandler.AppendFormatted(Of Integer)(Integer)""
+  IL_001a:  ldloca.s   V_2
+  IL_001c:  ldstr      "" items""
+  IL_0021:  call       ""Sub System.Text.StringBuilder.AppendInterpolatedStringHandler.AppendLiteral(String)""
+  IL_0026:  ldloc.2
+  IL_0027:  stloc.1
+  IL_0028:  ldloca.s   V_1
+  IL_002a:  callvirt   ""Function System.Text.StringBuilder.AppendLine(ByRef System.Text.StringBuilder.AppendInterpolatedStringHandler) As System.Text.StringBuilder""
+  IL_002f:  pop
+  IL_0030:  callvirt   ""Function System.Text.StringBuilder.ToString() As String""
+  IL_0035:  ret
+}")
+        End Sub
+
+        <Fact>
+        Public Sub Overload_StringBuilderAppendLine_WithHoles_UsesStringFormat_OnNet90_Vb17_13()
+            Dim compilation = CreateCompilation("
+Imports System.Text
+
+Module Program
+    Function Build(count As Integer) As String
+        Dim builder As New StringBuilder()
+        builder.AppendLine($""{count} items"")
+        Return builder.ToString()
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=Vb17_13)
+
+            CompileAndVerify(compilation, verify:=Verification.FailsPEVerify).VerifyDiagnostics().VerifyIL("Program.Build", "
+{
+  // Code size       34 (0x22)
+  .maxstack  4
+  IL_0000:  newobj     ""Sub System.Text.StringBuilder..ctor()""
+  IL_0005:  dup
+  IL_0006:  ldstr      ""{0} items""
+  IL_000b:  ldarg.0
+  IL_000c:  box        ""Integer""
+  IL_0011:  call       ""Function String.Format(String, Object) As String""
+  IL_0016:  callvirt   ""Function System.Text.StringBuilder.AppendLine(String) As System.Text.StringBuilder""
+  IL_001b:  pop
+  IL_001c:  callvirt   ""Function System.Text.StringBuilder.ToString() As String""
+  IL_0021:  ret
+}")
+        End Sub
+
+        <Fact>
+        Public Sub Overload_StringBuilderAppend_Constant_PrefersString_OnNet90_VbNext()
+            Dim compilation = CreateCompilation("
+Imports System.Text
+
+Module Program
+    Function Build() As String
+        Dim builder As New StringBuilder()
+        builder.Append($""items"")
+        Return builder.ToString()
+    End Function
+End Module
+", targetFramework:=TargetFramework.Net90, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+
+            CompileAndVerify(compilation, verify:=Verification.FailsPEVerify).VerifyDiagnostics().VerifyIL("Program.Build", "
+{
+  // Code size       23 (0x17)
+  .maxstack  3
+  IL_0000:  newobj     ""Sub System.Text.StringBuilder..ctor()""
+  IL_0005:  dup
+  IL_0006:  ldstr      ""items""
+  IL_000b:  callvirt   ""Function System.Text.StringBuilder.Append(String) As System.Text.StringBuilder""
+  IL_0010:  pop
+  IL_0011:  callvirt   ""Function System.Text.StringBuilder.ToString() As String""
+  IL_0016:  ret
+}")
+        End Sub
     End Class
 End Namespace
