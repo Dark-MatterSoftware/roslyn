@@ -1025,123 +1025,69 @@ End Structure
         End Sub
 
         ''' <summary>
-        ''' Escape hatch: only VBNEXT_EE_ARRAYSLICE_LOOP=0, exactly, forces the legacy Array.Copy path off.
+        ''' Production CompileExpression for vbnext Portable PDB uses the ArraySliceCopy helper; CompileExpressionCore(False)
+        ''' retains legacy Array.Copy for offline comparison only (no production environment override).
         ''' </summary>
-        <Theory>
-        <InlineData(Nothing, False)>
-        <InlineData("0", True)>
-        <InlineData("1", False)>
-        <InlineData("true", False)>
-        <InlineData(" 0", False)>
-        <InlineData("0 ", False)>
-        <InlineData("00", False)>
-        <InlineData("", False)>
-        Public Sub ArraySliceLoopOption_OnlyExactZeroForcesOff(value As String, expected As Boolean)
-            Assert.Equal(expected, EvaluationContext.IsArraySliceLoopForcedOff(value))
+        <Fact>
+        Public Sub ArraySliceHelper_DefaultOnForVbNext_LegacyOffComparableViaCore()
+            Dim comp = CreateCompilationWithMscorlib40({ArrayRangeSource}, options:=TestOptions.DebugDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            comp.VerifyDiagnostics()
+            Dim runtime = CreateRuntimeInstance(comp, debugFormat:=DebugInformationFormat.PortablePdb)
+            Dim context = CreateMethodContext(runtime, "D.M")
+            Assert.True(context.IsArraySliceLoopEnabled)
+
+            For Each expr In {"a(1..^1)", "a(r)", "a(1..^1)(0)"}
+                Dim flags = Microsoft.VisualStudio.Debugger.Evaluation.DkmEvaluationFlags.TreatAsExpression
+                Dim onData = New CompilationTestData()
+                Dim offData = New CompilationTestData()
+                Dim diagnostics = DiagnosticBag.GetInstance()
+                Dim resultProperties As ResultProperties = Nothing
+                context.CompileExpression(expr, flags, NoAliases, diagnostics, resultProperties, onData)
+                Assert.Equal("", String.Join(vbCrLf, diagnostics.AsEnumerable().Where(Function(d) d.Severity = DiagnosticSeverity.Error).Select(Function(d) d.ToString())))
+                diagnostics.Free()
+
+                diagnostics = DiagnosticBag.GetInstance()
+                context.CompileExpressionCore(expr, flags, NoAliases, diagnostics, resultProperties, offData, useArraySliceLoop:=False)
+                Assert.Equal("", String.Join(vbCrLf, diagnostics.AsEnumerable().Where(Function(d) d.Severity = DiagnosticSeverity.Error).Select(Function(d) d.ToString())))
+                diagnostics.Free()
+
+                Dim onIL = onData.GetMethodData("<>x.<>m0").GetMethodIL()
+                Dim offIL = offData.GetMethodData("<>x.<>m0").GetMethodIL()
+                Assert.NotEqual(offIL, onIL)
+                Assert.Contains("<>ArraySliceCopy", onIL)
+                Assert.DoesNotContain("System.Array.Copy", onIL)
+                Assert.Contains("System.Array.Copy", offIL)
+                Assert.DoesNotContain("<>ArraySliceCopy", offIL)
+            Next
         End Sub
 
         ''' <summary>
-        ''' An evaluation context reads VBNEXT_EE_ARRAYSLICE_LOOP when it is created. These tests set the test
-        ''' process's environment, so they run alone (VbNextArraySliceEnvironmentCollection) and restore the previous value.
+        ''' VB 17.13 Portable PDB and vbnext Windows PDB (no recorded language version) never enable the ArraySliceCopy helper.
         ''' </summary>
-        <Xunit.CollectionAttribute(VbNextArraySliceEnvironmentCollection.Name)>
-        Public Class ArraySliceLoopEnvironmentTests
-            Inherits ExpressionCompilerTestBase
-
-            Private Shared Function CompileWithOption(context As EvaluationContext, expr As String, useArraySliceLoop As Boolean?) As String
-                Dim testData = New CompilationTestData()
-                Dim diagnostics = DiagnosticBag.GetInstance()
-                Dim resultProperties As ResultProperties = Nothing
-                Dim flags = Microsoft.VisualStudio.Debugger.Evaluation.DkmEvaluationFlags.TreatAsExpression
-                If useArraySliceLoop.HasValue Then
-                    context.CompileExpressionCore(expr, flags, NoAliases, diagnostics, resultProperties, testData, useArraySliceLoop:=useArraySliceLoop.Value)
-                Else
-                    context.CompileExpression(expr, flags, NoAliases, diagnostics, resultProperties, testData)
-                End If
-                Dim errors = String.Join(vbCrLf, diagnostics.AsEnumerable().Where(Function(d) d.Severity = DiagnosticSeverity.Error).Select(Function(d) d.ToString()))
-                diagnostics.Free()
-                Assert.Equal("", errors)
-                Return testData.GetMethodData("<>x.<>m0").GetMethodIL()
-            End Function
-
-            Private Function CreateRuntime(source As String, parseOptions As VisualBasicParseOptions, debugFormat As DebugInformationFormat) As RuntimeInstance
-                Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll, parseOptions:=parseOptions)
-                comp.VerifyDiagnostics()
-                Return CreateRuntimeInstance(comp, debugFormat:=debugFormat)
-            End Function
-
-            <Fact>
-            Public Sub EnvironmentVariable_ZeroForcesLegacyCopy_DefaultIsLoopForVbNext()
-                Dim previous = Environment.GetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable)
-                Try
-                    Dim runtime = CreateRuntime(ArrayRangeSource, TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext), DebugInformationFormat.PortablePdb)
-                    For Each expr In {"a(1..^1)", "a(r)", "a(1..^1)(0)"}
-                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, Nothing)
-                        Dim baseline = CreateMethodContext(runtime, "D.M")
-                        Assert.True(baseline.IsArraySliceLoopEnabled)
-                        Dim offIL = CompileWithOption(baseline, expr, False)
-                        Dim onIL = CompileWithOption(baseline, expr, True)
-                        Assert.NotEqual(offIL, onIL)
-                        Assert.Equal(onIL, CompileWithOption(baseline, expr, Nothing))
-                        Assert.Contains("<>ArraySliceCopy", onIL)
-                        Assert.DoesNotContain("System.Array.Copy", onIL)
-
-                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, "0")
-                        Dim forcedOff = CreateMethodContext(runtime, "D.M")
-                        Assert.False(forcedOff.IsArraySliceLoopEnabled)
-                        Assert.Equal(offIL, CompileWithOption(forcedOff, expr, Nothing))
-                        Assert.Contains("System.Array.Copy", offIL)
-                        Assert.DoesNotContain("<>ArraySliceCopy", offIL)
-
-                        ' A context keeps the force-off value that it read when it was created.
-                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, "0")
-                        Dim created = CreateMethodContext(runtime, "D.M")
-                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, Nothing)
-                        Assert.False(created.IsArraySliceLoopEnabled)
-                        Assert.Equal(offIL, CompileWithOption(created, expr, Nothing))
-                        Assert.True(CreateMethodContext(runtime, "D.M").IsArraySliceLoopEnabled)
-                    Next
-                Finally
-                    Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, previous)
-                End Try
-                Assert.Equal(previous, Environment.GetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable))
-            End Sub
-
-            ''' <summary>
-            ''' VB 17.13 modules and vbnext modules with a Windows PDB (no recorded language version) never enable the loop,
-            ''' including when the former opt-in value "1" is set.
-            ''' </summary>
-            <Fact>
-            Public Sub EnvironmentVariable_LeavesLegacyModulesUnchanged()
-                Dim previous = Environment.GetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable)
-                Try
-                    Dim runtimes = {
-                        CreateRuntime(Source, TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13), DebugInformationFormat.PortablePdb),
-                        CreateRuntime(Source, TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext), DebugInformationFormat.Pdb)}
-                    For Each runtime As RuntimeInstance In runtimes
-                        For Each expr In {"a(1)", "a.Length", "s.X + n"}
-                            Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, Nothing)
-                            Dim offIL = CompileWithOption(CreateMethodContext(runtime, "C.M"), expr, Nothing)
-                            Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, "1")
-                            Dim context = CreateMethodContext(runtime, "C.M")
-                            Assert.False(context.IsArraySliceLoopEnabled)
-                            Assert.Equal(offIL, CompileWithOption(context, expr, Nothing))
-                            Assert.DoesNotContain("System.Array.Copy", offIL)
-                        Next
-                    Next
-                Finally
-                    Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, previous)
-                End Try
-                Assert.Equal(previous, Environment.GetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable))
-            End Sub
-        End Class
-    End Class
-
-    ''' <summary>
-    ''' Tests that set VBNEXT_EE_ARRAYSLICE_LOOP in the test process run in this collection, with no other test.
-    ''' </summary>
-    <Xunit.CollectionDefinitionAttribute(VbNextArraySliceEnvironmentCollection.Name, DisableParallelization:=True)>
-    Public NotInheritable Class VbNextArraySliceEnvironmentCollection
-        Public Const Name As String = "VbNext EE array-slice environment"
+        <Fact>
+        Public Sub ArraySliceHelper_DisabledForLegacyLanguageOrWindowsPdb()
+            Dim comp1713 = CreateCompilationWithMscorlib40({Source}, options:=TestOptions.DebugDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic17_13))
+            comp1713.VerifyDiagnostics()
+            Dim compWinPdb = CreateCompilationWithMscorlib40({Source}, options:=TestOptions.DebugDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            compWinPdb.VerifyDiagnostics()
+            Dim runtimes = {
+                CreateRuntimeInstance(comp1713, debugFormat:=DebugInformationFormat.PortablePdb),
+                CreateRuntimeInstance(compWinPdb, debugFormat:=DebugInformationFormat.Pdb)}
+            For Each runtime As RuntimeInstance In runtimes
+                For Each expr In {"a(1)", "a.Length", "s.X + n"}
+                    Dim context = CreateMethodContext(runtime, "C.M")
+                    Assert.False(context.IsArraySliceLoopEnabled)
+                    Dim testData = New CompilationTestData()
+                    Dim diagnostics = DiagnosticBag.GetInstance()
+                    Dim resultProperties As ResultProperties = Nothing
+                    context.CompileExpression(expr, Microsoft.VisualStudio.Debugger.Evaluation.DkmEvaluationFlags.TreatAsExpression, NoAliases, diagnostics, resultProperties, testData)
+                    Assert.Equal("", String.Join(vbCrLf, diagnostics.AsEnumerable().Where(Function(d) d.Severity = DiagnosticSeverity.Error).Select(Function(d) d.ToString())))
+                    diagnostics.Free()
+                    Dim il = testData.GetMethodData("<>x.<>m0").GetMethodIL()
+                    Assert.DoesNotContain("<>ArraySliceCopy", il)
+                    Assert.DoesNotContain("System.Array.Copy", il)
+                Next
+            Next
+        End Sub
     End Class
 End Namespace

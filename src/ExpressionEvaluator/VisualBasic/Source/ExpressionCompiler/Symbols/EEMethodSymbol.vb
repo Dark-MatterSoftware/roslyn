@@ -65,9 +65,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             Me.New(compilation, container, name, location, sourceMethod, sourceLocals, sourceLocalsForBinding, sourceDisplayClassVariables, voidType, generateMethodBody, useArraySliceLoop:=False)
         End Sub
 
-        ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
-        ' via <>ArraySliceCopy. True for vbnext evaluation parse options (see EvaluationContext.IsArraySliceLoopEnabled)
-        ' or when a test passes it.
+        ' Whether a Vb.Next array slice that is the whole expression uses <>ArraySliceCopy instead of Array.Copy.
+        ' True for vbnext evaluation parse options (see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
         Friend Sub New(
             compilation As VisualBasicCompilation,
             container As EENamedTypeSymbol,

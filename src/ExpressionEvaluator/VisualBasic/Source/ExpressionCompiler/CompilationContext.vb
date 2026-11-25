@@ -57,7 +57,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         End Sub
 
         ' Whether Vb.Next array-slice evaluations rewrite Array.Copy to <>ArraySliceCopy (element GetValue/SetValue
-        ' loop). True for vbnext evaluation parse options (see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
+        ' loop). True for vbnext evaluation parse options (see EvaluationContext.IsArraySliceLoopEnabled) or when a test forces it.
         Friend Sub New(
             compilation As VisualBasicCompilation,
             currentFrame As MethodSymbol,
