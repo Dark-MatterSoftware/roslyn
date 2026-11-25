@@ -246,9 +246,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend NotOverridable Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             Dim compilation = Me.DeclaringCompilation
-            If Type.ContainsTupleNames() AndAlso
-                compilation.HasTupleNamesAttributes Then
+            If compilation IsNot Nothing AndAlso
+               Type.ContainsTupleNames() AndAlso
+               compilation.HasTupleNamesAttributes Then
                 AddSynthesizedAttribute(attributes, compilation.SynthesizeTupleNamesAttribute(Type))
+            End If
+
+            If Not IsMe AndAlso compilation IsNot Nothing Then
+                moduleBuilder.AddNullableMetadataAttribute(Me, attributes, Type, GetDeclaredNullableAnnotation())
             End If
         End Sub
     End Class

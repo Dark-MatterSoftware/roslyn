@@ -79,6 +79,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If IsReadOnlyByRef Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
             End If
+
+            If Not IsMe Then
+                moduleBuilder.AddNullableMetadataAttribute(Me, attributes, Type, GetDeclaredNullableAnnotation())
+            End If
         End Sub
 
         Friend MustOverride Function WithTypeAndCustomModifiers(type As TypeSymbol, customModifiers As ImmutableArray(Of CustomModifier), refCustomModifiers As ImmutableArray(Of CustomModifier)) As ParameterSymbol

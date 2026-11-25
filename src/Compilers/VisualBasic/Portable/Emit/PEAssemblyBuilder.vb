@@ -65,10 +65,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             Return _additionalTypes.Concat(MyBase.GetAdditionalTopLevelTypes())
         End Function
 
-        Public Overrides Function GetEmbeddedTypes(diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
-            Return ImmutableArray(Of NamedTypeSymbol).Empty
-        End Function
-
         Public NotOverridable Overrides Function GetFiles(context As EmitContext) As IEnumerable(Of Cci.IFileReference)
             If Not context.IsRefAssembly Then
                 Return GetFilesCore(context, _lazyFiles)

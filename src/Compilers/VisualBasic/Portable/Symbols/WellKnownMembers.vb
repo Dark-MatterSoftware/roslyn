@@ -187,6 +187,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New SynthesizedAttributeData(Me, constructorSymbol, arguments, namedStringArguments)
         End Function
 
+        Private _nullableMetadataRequired As Integer
+
+        Friend Sub MarkNullableMetadataRequired()
+            Interlocked.Exchange(_nullableMetadataRequired, 1)
+        End Sub
+
+        Friend ReadOnly Property IsNullableMetadataRequired As Boolean
+            Get
+                Return Volatile.Read(_nullableMetadataRequired) <> 0
+            End Get
+        End Property
+
+        Friend Function SynthesizeAttributeUsageAttribute(targets As AttributeTargets, allowMultiple As Boolean, inherited As Boolean) As SynthesizedAttributeData
+            Dim attributeTargetsType = GetWellKnownType(WellKnownType.System_AttributeTargets)
+            Dim boolType = GetSpecialType(SpecialType.System_Boolean)
+            Dim arguments = ImmutableArray.Create(New TypedConstant(attributeTargetsType, TypedConstantKind.Enum, CInt(targets)))
+            Dim namedArguments = ImmutableArray.Create(
+                New KeyValuePair(Of WellKnownMember, TypedConstant)(WellKnownMember.System_AttributeUsageAttribute__AllowMultiple, New TypedConstant(boolType, TypedConstantKind.Primitive, allowMultiple)),
+                New KeyValuePair(Of WellKnownMember, TypedConstant)(WellKnownMember.System_AttributeUsageAttribute__Inherited, New TypedConstant(boolType, TypedConstantKind.Primitive, inherited)))
+            Return TrySynthesizeAttribute(WellKnownMember.System_AttributeUsageAttribute__ctor, arguments, namedArguments)
+        End Function
+
         Private Shared Function ReturnNothingOrThrowIfAttributeNonOptional(constructor As WellKnownMember, Optional isOptionalUse As Boolean = False) As SynthesizedAttributeData
             If isOptionalUse OrElse WellKnownMembers.IsSynthesizedAttributeOptional(constructor) Then
                 Return Nothing

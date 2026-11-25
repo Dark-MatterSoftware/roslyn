@@ -843,6 +843,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim elementAnnotation = binder.CapturedAnnotationOf(capturedElement)
                     Dim arrayType = binder.ApplyArrayRankSpecifiersToType(capturedElement, arrayTypeSyntax.RankSpecifiers, diagBag)
                     StampArrayElementAnnotation(arrayType, capturedElement, elementAnnotation)
+                    StampIntermediateArrayAnnotations(arrayType, capturedElement)
                     binder._capturedNullableAnnotation = NullableAnnotation.NotAnnotated
                     Return SingleLookupResult.Good(arrayType)
                 End If

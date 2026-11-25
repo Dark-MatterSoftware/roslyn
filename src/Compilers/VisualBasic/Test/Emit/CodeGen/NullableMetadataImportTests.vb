@@ -522,8 +522,9 @@ End Module
             Dim mix = DirectCast(consumer.GetTypeByMetadataName("Program").GetMembers("Mix").Single(), IMethodSymbol)
             Assert.Equal(NullableAnnotation.Annotated, find.ReturnNullableAnnotation)
             Assert.Equal(NullableAnnotation.Annotated, find.Parameters(0).NullableAnnotation)
-            Assert.Equal(NullableAnnotation.None, mix.ReturnNullableAnnotation)
-            Assert.Equal(NullableAnnotation.None, mix.Parameters(0).NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, mix.ReturnNullableAnnotation)
+            Assert.Equal(NullableAnnotation.NotAnnotated, mix.Parameters(0).NullableAnnotation)
+            Assert.DoesNotContain(mix.GetAttributes(), Function(attribute) attribute.AttributeClass.Name = "NullableAttribute")
         End Sub
 
         Private Shared Function FrameworkPack(packageName As String, versionFolder As String) As IEnumerable(Of MetadataReference)

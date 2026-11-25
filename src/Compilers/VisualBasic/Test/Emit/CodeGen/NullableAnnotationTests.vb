@@ -181,8 +181,10 @@ End Module
 ", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
 
             compilation.VerifyDiagnostics()
-            Dim attribute = EmittedMethodAttribute(compilation, "Program", "Plain", "NullableContextAttribute")
-            Assert.Equal(CByte(1), attribute.ConstructorArguments.Single().Value)
+            Dim method = EmittedMethod(compilation, "Program", "Plain")
+            Assert.DoesNotContain(method.GetAttributes(), Function(attribute) attribute.AttributeClass.Name.StartsWith("Nullable", StringComparison.Ordinal))
+            Assert.Equal(CByte(1), method.GetReturnTypeAttributes().Single(Function(attribute) attribute.AttributeClass.Name = "NullableAttribute").ConstructorArguments.Single().Value)
+            Assert.Equal(CByte(1), method.Parameters(0).GetAttributes().Single(Function(attribute) attribute.AttributeClass.Name = "NullableAttribute").ConstructorArguments.Single().Value)
         End Sub
 
         <Fact>
@@ -196,11 +198,10 @@ End Module
 ", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
 
             compilation.VerifyDiagnostics()
-            Dim attribute = EmittedMethodAttribute(compilation, "Program", "Mix", "NullableAttribute")
-            Dim values = attribute.ConstructorArguments.Single().Values
-            Assert.Equal(2, values.Length)
-            Assert.Equal(CByte(2), values(0).Value)
-            Assert.Equal(CByte(1), values(1).Value)
+            Dim method = EmittedMethod(compilation, "Program", "Mix")
+            Assert.DoesNotContain(method.GetAttributes(), Function(attribute) attribute.AttributeClass.Name = "NullableAttribute")
+            Assert.Equal(CByte(2), method.GetReturnTypeAttributes().Single(Function(attribute) attribute.AttributeClass.Name = "NullableAttribute").ConstructorArguments.Single().Value)
+            Assert.Equal(CByte(1), method.Parameters(0).GetAttributes().Single(Function(attribute) attribute.AttributeClass.Name = "NullableAttribute").ConstructorArguments.Single().Value)
         End Sub
 
         <Fact>

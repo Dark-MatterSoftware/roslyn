@@ -415,6 +415,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             userDefined = AdaptedMethodSymbol.GetReturnTypeAttributes()
             AdaptedMethodSymbol.AddSynthesizedReturnTypeAttributes(synthesized)
+            DirectCast(context.Module, PEModuleBuilder).AddNullableMetadataAttribute(
+                AdaptedMethodSymbol,
+                synthesized,
+                AdaptedMethodSymbol.ReturnType,
+                AdaptedMethodSymbol.GetReturnNullableAnnotation())
 
             ' Note that callers of this method (CCI and ReflectionEmitter) have to enumerate 
             ' all items of the returned iterator, otherwise the synthesized ArrayBuilder may leak.

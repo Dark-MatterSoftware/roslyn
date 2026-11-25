@@ -660,6 +660,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
         End Sub
 
+        Private Shared Sub StampIntermediateArrayAnnotations(arrayType As TypeSymbol, elementType As TypeSymbol)
+            Dim current = TryCast(arrayType, ArrayTypeSymbol)
+            Do While current IsNot Nothing AndAlso
+                     current.ElementType IsNot Nothing AndAlso
+                     current.ElementType IsNot elementType AndAlso
+                     current.ElementType.TypeKind = TypeKind.Array
+                If current.ElementNullableAnnotation = NullableAnnotation.None Then
+                    current.SetElementNullableAnnotation(NullableAnnotation.NotAnnotated)
+                End If
+
+                current = DirectCast(current.ElementType, ArrayTypeSymbol)
+            Loop
+        End Sub
+
         Private Shared Function AllowsReferenceAnnotation(decoderContext As ModifiedIdentifierTypeDecoderContext) As Boolean
             Return (decoderContext And (ModifiedIdentifierTypeDecoderContext.LocalType Or ModifiedIdentifierTypeDecoderContext.ParameterType)) <> 0
         End Function
@@ -766,6 +780,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                result.TypeKind = TypeKind.Array AndAlso
                (asClauseType Is Nothing OrElse asClauseType.TypeKind <> TypeKind.Array) Then
                 StampArrayElementAnnotation(result, asClauseType, nullableAnnotation)
+                StampIntermediateArrayAnnotations(result, asClauseType)
                 nullableAnnotation = NullableAnnotation.NotAnnotated
             End If
 
