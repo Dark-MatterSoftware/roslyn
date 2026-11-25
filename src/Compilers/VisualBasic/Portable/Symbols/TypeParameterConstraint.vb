@@ -13,7 +13,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' </summary>
     Friend Structure TypeParameterConstraint
         Public Sub New(kind As TypeParameterConstraintKind, loc As Location)
-            Me.New(kind, Nothing, loc)
+            Me.New(kind, Nothing, loc, NullableAnnotation.None)
             Debug.Assert((kind = TypeParameterConstraintKind.Constructor) OrElse
                          (kind = TypeParameterConstraintKind.ReferenceType) OrElse
                          (kind = TypeParameterConstraintKind.ValueType) OrElse
@@ -21,25 +21,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         Public Sub New(type As TypeSymbol, loc As Location)
-            Me.New(TypeParameterConstraintKind.None, type, loc)
+            Me.New(type, loc, NullableAnnotation.None)
+        End Sub
+
+        Public Sub New(type As TypeSymbol, loc As Location, annotation As NullableAnnotation)
+            Me.New(TypeParameterConstraintKind.None, type, loc, annotation)
             Debug.Assert(type IsNot Nothing)
         End Sub
 
-        Private Sub New(kind As TypeParameterConstraintKind, type As TypeSymbol, loc As Location)
+        Private Sub New(kind As TypeParameterConstraintKind, type As TypeSymbol, loc As Location, annotation As NullableAnnotation)
             ' The location should only be provided for type parameters from source.
             Debug.Assert((loc Is Nothing) OrElse loc.PossiblyEmbeddedOrMySourceTree IsNot Nothing)
             Me.Kind = kind
             Me.TypeConstraint = type
             Me.LocationOpt = loc
+            Me.ConstraintNullableAnnotation = annotation
         End Sub
 
         Public Function AtLocation(loc As Location) As TypeParameterConstraint
-            Return New TypeParameterConstraint(Kind, TypeConstraint, loc)
+            Return New TypeParameterConstraint(Kind, TypeConstraint, loc, ConstraintNullableAnnotation)
         End Function
 
         Public ReadOnly Kind As TypeParameterConstraintKind
         Public ReadOnly TypeConstraint As TypeSymbol
         Public ReadOnly LocationOpt As Location
+        Public ReadOnly ConstraintNullableAnnotation As NullableAnnotation
 
         Public ReadOnly Property IsConstructorConstraint As Boolean
             Get

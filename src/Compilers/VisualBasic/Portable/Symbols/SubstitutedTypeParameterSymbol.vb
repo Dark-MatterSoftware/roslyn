@@ -94,9 +94,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Overrides ReadOnly Property ConstraintTypesNoUseSiteDiagnostics As ImmutableArray(Of TypeSymbol)
             Get
-                Return InternalSubstituteTypeParametersDistinct(TypeSubstitution, _originalDefinition.ConstraintTypesNoUseSiteDiagnostics)
+                Dim original = _originalDefinition.ConstraintTypesNoUseSiteDiagnostics
+                Dim substituted = InternalSubstituteTypeParametersDistinct(TypeSubstitution, original)
+                If original.Length = substituted.Length Then
+                    For i = 0 To original.Length - 1
+                        NullableAnnotationSubstitution.Preserve(original(i), substituted(i))
+                    Next
+                End If
+
+                Return substituted
             End Get
         End Property
+
+        Friend Overrides Function GetReferenceTypeConstraintNullableAnnotation() As NullableAnnotation
+            Return _originalDefinition.GetReferenceTypeConstraintNullableAnnotation()
+        End Function
+
+        Friend Overrides Function GetConstraintNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Dim original = _originalDefinition.GetConstraintNullableAnnotations()
+            If original.Length = ConstraintTypesNoUseSiteDiagnostics.Length Then
+                Return original
+            End If
+
+            Return MyBase.GetConstraintNullableAnnotations()
+        End Function
 
         Friend Overrides ReadOnly Property HasUnmanagedTypeConstraint As Boolean
             Get

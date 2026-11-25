@@ -66,9 +66,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property Type As TypeSymbol
             Get
                 If Me._lazyType Is Nothing Then
-                    Interlocked.CompareExchange(Me._lazyType,
-                                                _originalDefinition.Type.InternalSubstituteTypeParameters(TypeSubstitution).AsTypeSymbolOnly(),
-                                                Nothing)
+                    Dim original = _originalDefinition.Type
+                    Dim substituted = NullableAnnotationSubstitution.Preserve(original, original.InternalSubstituteTypeParameters(TypeSubstitution).AsTypeSymbolOnly())
+                    Interlocked.CompareExchange(Me._lazyType, substituted, Nothing)
                 End If
 
                 Return Me._lazyType

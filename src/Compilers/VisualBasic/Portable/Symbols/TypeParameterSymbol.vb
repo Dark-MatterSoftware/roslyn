@@ -366,9 +366,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 #Region "ITypeParameterSymbol"
 
+        Friend Overridable Function GetReferenceTypeConstraintNullableAnnotation() As NullableAnnotation
+            Return NullableAnnotation.None
+        End Function
+
+        Friend Overridable Function GetConstraintNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Return Me.ConstraintTypesNoUseSiteDiagnostics.SelectAsArray(Function(t) NullableAnnotation.None)
+        End Function
+
         Private ReadOnly Property ITypeParameterSymbol_ReferenceTypeConstraintNullableAnnotation As NullableAnnotation Implements ITypeParameterSymbol.ReferenceTypeConstraintNullableAnnotation
             Get
-                Return NullableAnnotation.None
+                Return GetReferenceTypeConstraintNullableAnnotation()
             End Get
         End Property
 
@@ -398,7 +406,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property ITypeParameterSymbol_ConstraintNullableAnnotations As ImmutableArray(Of NullableAnnotation) Implements ITypeParameterSymbol.ConstraintNullableAnnotations
             Get
-                Return Me.ConstraintTypesNoUseSiteDiagnostics.SelectAsArray(Function(t) NullableAnnotation.None)
+                Return GetConstraintNullableAnnotations()
             End Get
         End Property
 

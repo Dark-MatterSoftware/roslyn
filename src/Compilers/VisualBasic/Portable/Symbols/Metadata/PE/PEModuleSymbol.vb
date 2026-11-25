@@ -83,6 +83,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
         Private _lazyObsoleteAttributeData As ObsoleteAttributeData = ObsoleteAttributeData.Uninitialized
 
+        ' 0 unknown, 1 all members, 2 public only, 3 public and internal.
+        Private _lazyNullableMemberMetadata As Integer
+
         Friend Sub New(assemblySymbol As PEAssemblySymbol, [module] As PEModule, importOptions As MetadataImportOptions, ordinal As Integer)
             Me.New(DirectCast(assemblySymbol, AssemblySymbol), [module], importOptions, ordinal)
             Debug.Assert(ordinal >= 0)
@@ -533,6 +536,73 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Return MyBase.HasUnsupportedMetadata
             End Get
         End Property
+
+        ''' <summary>
+        ''' NullablePublicOnlyAttribute limits which imported members carry nullable annotations.
+        ''' Absence of the attribute decodes every member.
+        ''' </summary>
+        Friend Function ShouldDecodeNullableAttributes(symbol As Symbol) As Boolean
+            If symbol Is Nothing Then
+                Return False
+            End If
+
+            Dim mode = Volatile.Read(_lazyNullableMemberMetadata)
+            If mode = 0 Then
+                Dim includesInternals As Boolean = False
+                Dim computed As Integer
+                If _module.HasNullablePublicOnlyAttribute(EntityHandle.ModuleDefinition, includesInternals) Then
+                    computed = If(includesInternals, 3, 2)
+                Else
+                    computed = 1
+                End If
+
+                Interlocked.CompareExchange(_lazyNullableMemberMetadata, computed, 0)
+                mode = Volatile.Read(_lazyNullableMemberMetadata)
+            End If
+
+            If mode = 1 Then
+                Return True
+            End If
+
+            Dim isInternal As Boolean = False
+            If Not IsEffectivelyPublicOrInternal(symbol, isInternal) Then
+                Return False
+            End If
+
+            If mode = 2 Then
+                Return Not isInternal
+            End If
+
+            Return True
+        End Function
+
+        Private Shared Function IsEffectivelyPublicOrInternal(symbol As Symbol, ByRef isInternal As Boolean) As Boolean
+            isInternal = False
+            Dim current = symbol
+            If current.Kind = SymbolKind.TypeParameter Then
+                current = current.ContainingSymbol
+            End If
+
+            Do
+                Select Case current.Kind
+                    Case SymbolKind.NamedType, SymbolKind.Event, SymbolKind.Field, SymbolKind.Method, SymbolKind.Property
+                    Case Else
+                        Return False
+                End Select
+
+                Select Case current.DeclaredAccessibility
+                    Case Accessibility.Public, Accessibility.Protected, Accessibility.ProtectedOrFriend
+                    Case Accessibility.Friend, Accessibility.ProtectedAndFriend
+                        isInternal = True
+                    Case Else
+                        Return False
+                End Select
+
+                current = current.ContainingType
+            Loop While current IsNot Nothing
+
+            Return True
+        End Function
 
         Friend Overrides ReadOnly Property ObsoleteAttributeData As ObsoleteAttributeData
             Get

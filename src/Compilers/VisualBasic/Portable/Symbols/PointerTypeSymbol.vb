@@ -17,6 +17,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _pointedAtType As TypeSymbol
         Private ReadOnly _customModifiers As ImmutableArray(Of CustomModifier)
 
+        Friend ReadOnly Property PointedAtType As TypeSymbol
+            Get
+                Return _pointedAtType
+            End Get
+        End Property
+
         Public Sub New(pointedAtType As TypeSymbol, customModifiers As ImmutableArray(Of CustomModifier))
             Debug.Assert(pointedAtType IsNot Nothing)
 

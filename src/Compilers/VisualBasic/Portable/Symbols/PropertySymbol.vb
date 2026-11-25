@@ -654,9 +654,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overridable Function GetNullableAnnotation() As NullableAnnotation
+            Return NullableAnnotation.None
+        End Function
+
         Private ReadOnly Property IPropertySymbol_NullableAnnotation As NullableAnnotation Implements IPropertySymbol.NullableAnnotation
             Get
-                Return NullableAnnotation.None
+                Return GetNullableAnnotation()
             End Get
         End Property
 

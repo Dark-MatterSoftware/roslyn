@@ -26,6 +26,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _elementNullableAnnotation = annotation
         End Sub
 
+        Friend ReadOnly Property ElementNullableAnnotation As NullableAnnotation
+            Get
+                Return _elementNullableAnnotation
+            End Get
+        End Property
+
         ''' <summary>
         ''' Create a new ArrayTypeSymbol.
         ''' </summary>

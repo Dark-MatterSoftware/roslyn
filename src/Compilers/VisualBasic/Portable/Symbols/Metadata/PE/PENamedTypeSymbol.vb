@@ -40,6 +40,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private _lazyIsReadOnly As ThreeState = ThreeState.Unknown
         Private _lazyIsRefLike As ThreeState = ThreeState.Unknown
         Private _lazyIsRecord As ThreeState = ThreeState.Unknown
+        ' -1 unknown, -2 absent, otherwise the context byte.
+        Private _lazyNullableContext As Integer = -1
 #End Region
 
         ''' <summary>
@@ -173,6 +175,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Debug.Assert(Not _mangleName OrElse _name.Length < name.Length)
         End Sub
 
+        Friend Function GetNullableContextValue() As Byte?
+            Dim cached = Volatile.Read(_lazyNullableContext)
+            If cached = -1 Then
+                Dim computed As Integer = -2
+                Dim value As Byte
+                If ContainingPEModule.[Module].HasNullableContextAttribute(_handle, value) Then
+                    computed = value
+                Else
+                    Dim outer = TryCast(_container, PENamedTypeSymbol)
+                    If outer IsNot Nothing Then
+                        Dim outerValue = outer.GetNullableContextValue()
+                        If outerValue.HasValue Then
+                            computed = outerValue.Value
+                        End If
+                    End If
+                End If
+
+                Interlocked.CompareExchange(_lazyNullableContext, computed, -1)
+                cached = Volatile.Read(_lazyNullableContext)
+            End If
+
+            If cached < 0 Then
+                Return Nothing
+            End If
+
+            Return CByte(cached)
+        End Function
+
         Friend ReadOnly Property ContainingPEModule As PEModuleSymbol
             Get
                 Dim s As Symbol = _container
@@ -264,6 +294,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                     Dim token As EntityHandle = moduleSymbol.Module.GetBaseTypeOfTypeOrThrow(Me._handle)
                     If Not token.IsNil Then
                         Dim decodedType = New MetadataDecoder(moduleSymbol, Me).GetTypeOfToken(token)
+                        decodedType = NullableMetadataDecoder.Transform(decodedType, _handle, moduleSymbol, accessSymbol:=Me, contextSymbol:=Me).Type
                         Return DirectCast(TupleTypeDecoder.DecodeTupleTypesIfApplicable(decodedType, _handle, moduleSymbol), NamedTypeSymbol)
 
                     End If
@@ -289,6 +320,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 For Each interfaceImpl In interfaceImpls
                     Dim interfaceHandle As EntityHandle = moduleSymbol.Module.MetadataReader.GetInterfaceImplementation(interfaceImpl).Interface
                     Dim typeSymbol As TypeSymbol = tokenDecoder.GetTypeOfToken(interfaceHandle)
+                    typeSymbol = NullableMetadataDecoder.Transform(typeSymbol, interfaceImpl, moduleSymbol, accessSymbol:=Me, contextSymbol:=Me).Type
 
                     typeSymbol = DirectCast(TupleTypeDecoder.DecodeTupleTypesIfApplicable(typeSymbol, interfaceImpl, moduleSymbol), NamedTypeSymbol)
 

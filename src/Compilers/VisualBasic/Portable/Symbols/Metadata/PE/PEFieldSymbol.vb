@@ -30,6 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _flags As FieldAttributes
         Private ReadOnly _containingType As PENamedTypeSymbol
         Private _lazyType As TypeSymbol
+        Private _lazyNullableAnnotation As NullableAnnotation
         Private _lazyCustomModifiers As ImmutableArray(Of CustomModifier)
         Private _lazyRefCustomModifiers As ImmutableArray(Of CustomModifier)
         Private _lazyRefKind As RefKind
@@ -370,7 +371,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Dim refCustomModifiers As ImmutableArray(Of ModifierInfo(Of TypeSymbol)) = Nothing
                 GetSignatureParts(fieldInfo, type, customModifiers, refCustomModifiers)
 
-                type = TupleTypeDecoder.DecodeTupleTypesIfApplicable(type, _handle, moduleSymbol)
+                Dim decoded = NullableMetadataDecoder.Transform(type, _handle, moduleSymbol, accessSymbol:=Me, contextSymbol:=_containingType)
+                _lazyNullableAnnotation = decoded.Annotation
+                type = TupleTypeDecoder.DecodeTupleTypesIfApplicable(decoded.Type, _handle, moduleSymbol)
 
                 ' A ref field marked IsReadOnly is ref readonly, as C# declares it.
                 If fieldInfo.IsByRef Then
@@ -416,6 +419,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Return _lazyType
             End Get
         End Property
+
+        Friend Overrides Function GetNullableAnnotation() As NullableAnnotation
+            EnsureSignatureIsLoaded()
+            Return _lazyNullableAnnotation
+        End Function
 
         Public Overrides ReadOnly Property CustomModifiers As ImmutableArray(Of CustomModifier)
             Get

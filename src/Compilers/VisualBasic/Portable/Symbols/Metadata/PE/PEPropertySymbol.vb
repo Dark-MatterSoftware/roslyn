@@ -28,6 +28,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _parameters As ImmutableArray(Of ParameterSymbol)
         Private ReadOnly _returnsByRef As Boolean
         Private ReadOnly _propertyType As TypeSymbol
+        Private ReadOnly _nullableAnnotation As NullableAnnotation
         Private ReadOnly _getMethod As PEMethodSymbol
         Private ReadOnly _setMethod As PEMethodSymbol
         Private ReadOnly _handle As PropertyDefinitionHandle
@@ -141,8 +142,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Dim returnInfo As ParamInfo(Of TypeSymbol) = propertyParams(0)
 
             _returnsByRef = returnInfo.IsByRef
-            _propertyType = returnInfo.Type
-            _propertyType = TupleTypeDecoder.DecodeTupleTypesIfApplicable(_propertyType, handle, moduleSymbol)
+            Dim decodedProperty = NullableMetadataDecoder.Transform(returnInfo.Type, handle, moduleSymbol, accessSymbol:=_containingType, contextSymbol:=_containingType)
+            _nullableAnnotation = decodedProperty.Annotation
+            _propertyType = TupleTypeDecoder.DecodeTupleTypesIfApplicable(decodedProperty.Type, handle, moduleSymbol)
         End Sub
 
         Public Overrides ReadOnly Property ContainingSymbol As Symbol
@@ -296,6 +298,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Return _propertyType
             End Get
         End Property
+
+        Friend Overrides Function GetNullableAnnotation() As NullableAnnotation
+            Return _nullableAnnotation
+        End Function
 
         Public Overrides ReadOnly Property TypeCustomModifiers As ImmutableArray(Of CustomModifier)
             Get
@@ -534,6 +540,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                     End If
                 End If
 
+                Dim nullableContext As Symbol = Nothing
+                If accessorParameter IsNot Nothing Then
+                    nullableContext = accessorParameter.ContainingSymbol
+                End If
+
                 parameters(i) = PEParameterSymbol.Create(
                     [property],
                     name,
@@ -546,7 +557,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                     hasOptionCompare:=hasOptionCompare,
                     ordinal:=i,
                     defaultValue:=defaultValue,
-                    customModifiers:=VisualBasicCustomModifier.Convert(info.CustomModifiers))
+                    customModifiers:=VisualBasicCustomModifier.Convert(info.CustomModifiers),
+                    nullableContext:=nullableContext)
             Next
             Return parameters.AsImmutableOrNull()
         End Function

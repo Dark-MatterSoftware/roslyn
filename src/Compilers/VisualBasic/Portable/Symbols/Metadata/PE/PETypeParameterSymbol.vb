@@ -35,6 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 #End Region
 
         Private _lazyConstraintTypes As ImmutableArray(Of TypeSymbol)
+        Private _lazyConstraintAnnotations As ImmutableArray(Of NullableAnnotation)
 
         ''' <summary>
         ''' Actually stores <see cref="ThreeState"/>
@@ -218,11 +219,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                         Continue For
                     End If
 
-                    typeSymbol = TupleTypeDecoder.DecodeTupleTypesIfApplicable(typeSymbol,
+                    Dim decodedConstraint = NullableMetadataDecoder.Transform(
+                        typeSymbol,
+                        constraintHandle,
+                        moduleSymbol,
+                        accessSymbol:=_containingSymbol,
+                        contextSymbol:=_containingSymbol)
+                    typeSymbol = TupleTypeDecoder.DecodeTupleTypesIfApplicable(decodedConstraint.Type,
                                                                                constraintHandle,
                                                                                moduleSymbol)
 
-                    constraintsBuilder.Add(New TypeParameterConstraint(typeSymbol, Nothing))
+                    constraintsBuilder.Add(New TypeParameterConstraint(typeSymbol, Nothing, decodedConstraint.Annotation))
                 Next
             End If
 
@@ -356,6 +363,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
                 _lazyCachedBoundsUseSiteInfo.InterlockedInitializeFromSentinel(primaryDependency, useSiteInfo)
                 _lazyHasIsUnmanagedConstraint = hasUnmanagedModreqPattern.ToThreeState()
+                _lazyConstraintAnnotations = GetConstraintAnnotationsOnly(constraints)
 
                 ' Note, we are relying on the fact that _lazyConstraintTypes is initialized last, and
                 ' we depend on the memory barrier from this interlocked operation to prevent write reordering
@@ -364,6 +372,57 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             Debug.Assert(_lazyCachedBoundsUseSiteInfo.IsInitialized)
         End Sub
+
+        Friend Overrides Function GetReferenceTypeConstraintNullableAnnotation() As NullableAnnotation
+            If Not HasReferenceTypeConstraint Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim flag As Byte = 0
+            Dim ignored As ImmutableArray(Of Byte) = Nothing
+            Dim moduleSymbol = DirectCast(ContainingModule, PEModuleSymbol)
+            If Not moduleSymbol.[Module].HasNullableAttribute(_handle, flag, ignored) Then
+                Dim context = NullableMetadataDecoder.ContextValue(_containingSymbol)
+                If Not context.HasValue Then
+                    Return NullableAnnotation.None
+                End If
+
+                flag = context.Value
+            End If
+
+            Select Case flag
+                Case 2
+                    Return NullableAnnotation.Annotated
+                Case 1
+                    Return NullableAnnotation.NotAnnotated
+                Case Else
+                    Return NullableAnnotation.None
+            End Select
+        End Function
+
+        Friend Overrides Function GetConstraintNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            EnsureAllConstraintsAreResolved()
+            If _lazyConstraintAnnotations.IsDefault Then
+                Return MyBase.GetConstraintNullableAnnotations()
+            End If
+
+            Return _lazyConstraintAnnotations
+        End Function
+
+        Private Shared Function GetConstraintAnnotationsOnly(constraints As ImmutableArray(Of TypeParameterConstraint)) As ImmutableArray(Of NullableAnnotation)
+            If constraints.IsEmpty Then
+                Return ImmutableArray(Of NullableAnnotation).Empty
+            End If
+
+            Dim builder = ArrayBuilder(Of NullableAnnotation).GetInstance()
+            For Each constraint In constraints
+                If constraint.TypeConstraint IsNot Nothing Then
+                    builder.Add(constraint.ConstraintNullableAnnotation)
+                End If
+            Next
+
+            Return builder.ToImmutableAndFree()
+        End Function
 
         Friend Overrides Function GetConstraintsUseSiteInfo() As UseSiteInfo(Of AssemblySymbol)
             EnsureAllConstraintsAreResolved()

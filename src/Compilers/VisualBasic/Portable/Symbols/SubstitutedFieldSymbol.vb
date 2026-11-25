@@ -161,9 +161,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public Overrides ReadOnly Property Type As TypeSymbol
             Get
-                Return _originalDefinition.Type.InternalSubstituteTypeParameters(_containingType.TypeSubstitution).Type
+                Dim original = _originalDefinition.Type
+                Dim substituted = original.InternalSubstituteTypeParameters(_containingType.TypeSubstitution).Type
+                Return NullableAnnotationSubstitution.Preserve(original, substituted)
             End Get
         End Property
+
+        Friend Overrides Function GetNullableAnnotation() As NullableAnnotation
+            Return _originalDefinition.GetNullableAnnotation()
+        End Function
 
         Public Overrides ReadOnly Property CustomModifiers As ImmutableArray(Of CustomModifier)
             Get

@@ -37,6 +37,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private _packedFlags As PackedFlags
 
         Private _lazyTypeParameters As ImmutableArray(Of TypeParameterSymbol)
+        ' -1 unknown, -2 absent, otherwise the context byte.
+        Private _lazyNullableContext As Integer = -1
 
         Private _lazyExplicitMethodImplementations As ImmutableArray(Of MethodSymbol)
 
@@ -823,6 +825,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Return _handle
             End Get
         End Property
+
+        Friend Function GetNullableContextValue() As Byte?
+            Dim cached = Volatile.Read(_lazyNullableContext)
+            If cached = -1 Then
+                Dim computed As Integer = -2
+                Dim value As Byte
+                If _containingType.ContainingPEModule.[Module].HasNullableContextAttribute(_handle, value) Then
+                    computed = value
+                Else
+                    Dim containing = _containingType.GetNullableContextValue()
+                    If containing.HasValue Then
+                        computed = containing.Value
+                    End If
+                End If
+
+                Interlocked.CompareExchange(_lazyNullableContext, computed, -1)
+                cached = Volatile.Read(_lazyNullableContext)
+            End If
+
+            If cached < 0 Then
+                Return Nothing
+            End If
+
+            Return CByte(cached)
+        End Function
+
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            Return Signature.ReturnParam.GetDeclaredNullableAnnotation()
+        End Function
 
         Public Overrides ReadOnly Property IsMustOverride As Boolean
             Get

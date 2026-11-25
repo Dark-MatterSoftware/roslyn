@@ -25,6 +25,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _containingSymbol As Symbol
         Private ReadOnly _name As String
         Private ReadOnly _type As TypeSymbol
+        Private ReadOnly _nullableAnnotation As NullableAnnotation
         Private ReadOnly _handle As ParameterHandle
         Private ReadOnly _flags As ParameterAttributes
         Private ReadOnly _ordinal As UShort
@@ -88,14 +89,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             hasOptionCompare As Boolean,
             ordinal As Integer,
             defaultValue As ConstantValue,
-            customModifiers As ImmutableArray(Of CustomModifier)
+            customModifiers As ImmutableArray(Of CustomModifier),
+            Optional nullableContext As Symbol = Nothing
         ) As PEParameterSymbol
             If customModifiers.IsEmpty AndAlso refCustomModifiers.IsEmpty Then
-                Return New PEParameterSymbol(containingSymbol, name, isByRef, type, handle, flags, isParamArray, hasOptionCompare, ordinal, defaultValue)
+                Return New PEParameterSymbol(containingSymbol, name, isByRef, type, handle, flags, isParamArray, hasOptionCompare, ordinal, defaultValue, nullableContext)
             End If
 
             Return New PEParameterSymbolWithCustomModifiers(containingSymbol, name, isByRef, refCustomModifiers, type, handle, flags,
-                                                            isParamArray, hasOptionCompare, ordinal, defaultValue, customModifiers)
+                                                            isParamArray, hasOptionCompare, ordinal, defaultValue, customModifiers, nullableContext)
         End Function
 
         Private Sub New(
@@ -108,7 +110,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             isParamArray As Boolean,
             hasOptionCompare As Boolean,
             ordinal As Integer,
-            defaultValue As ConstantValue
+            defaultValue As ConstantValue,
+            Optional nullableContext As Symbol = Nothing
         )
 
             Debug.Assert(containingSymbol IsNot Nothing)
@@ -118,7 +121,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             _containingSymbol = containingSymbol
             Dim hasNameInMetadata As Boolean
             _name = EnsureParameterNameNotEmpty(name, hasNameInMetadata)
-            _type = TupleTypeDecoder.DecodeTupleTypesIfApplicable(type, handle, DirectCast(containingSymbol.ContainingModule, PEModuleSymbol))
+            Dim decoded = DecodeNullableType(type, handle, containingSymbol, nullableContext)
+            _nullableAnnotation = decoded.Annotation
+            _type = decoded.Type
             _handle = handle
             _ordinal = CType(ordinal, UShort)
             _flags = flags
@@ -167,7 +172,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             isBad = False
             _containingSymbol = containingSymbol
-            _type = TupleTypeDecoder.DecodeTupleTypesIfApplicable(type, handle, moduleSymbol)
+            Dim decoded = DecodeNullableType(type, handle, containingSymbol, nullableContext:=Nothing, moduleSymbol:=moduleSymbol)
+            _nullableAnnotation = decoded.Annotation
+            _type = decoded.Type
             _ordinal = CType(ordinal, UShort)
             _handle = handle
 
@@ -221,9 +228,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 hasOptionCompare As Boolean,
                 ordinal As Integer,
                 defaultValue As ConstantValue,
-                customModifiers As ImmutableArray(Of CustomModifier)
+                customModifiers As ImmutableArray(Of CustomModifier),
+                Optional nullableContext As Symbol = Nothing
             )
-                MyBase.New(containingSymbol, name, isByRef, type, handle, flags, isParamArray, hasOptionCompare, ordinal, defaultValue)
+                MyBase.New(containingSymbol, name, isByRef, type, handle, flags, isParamArray, hasOptionCompare, ordinal, defaultValue, nullableContext)
 
                 _customModifiers = customModifiers
                 _refCustomModifiers = refCustomModifiers
@@ -262,6 +270,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 End Get
             End Property
         End Class
+
+        Private Shared Function DecodeNullableType(
+            type As TypeSymbol,
+            handle As ParameterHandle,
+            containingSymbol As Symbol,
+            nullableContext As Symbol,
+            Optional moduleSymbol As PEModuleSymbol = Nothing) As DecodedNullableType
+
+            If moduleSymbol Is Nothing Then
+                moduleSymbol = TryCast(containingSymbol.ContainingModule, PEModuleSymbol)
+            End If
+
+            If moduleSymbol Is Nothing Then
+                Return New DecodedNullableType(type, NullableAnnotation.None)
+            End If
+
+            Dim context = If(nullableContext, containingSymbol)
+            Dim access As Symbol = containingSymbol
+            If containingSymbol.Kind = SymbolKind.Property Then
+                access = containingSymbol.ContainingType
+            End If
+
+            Dim decoded = NullableMetadataDecoder.Transform(type, handle, moduleSymbol, access, context)
+            Return New DecodedNullableType(TupleTypeDecoder.DecodeTupleTypesIfApplicable(decoded.Type, handle, moduleSymbol), decoded.Annotation)
+        End Function
+
+        Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+            Return _nullableAnnotation
+        End Function
 
         Private Shared Function Pack(isByRef As Boolean, hasNameInMetadata As Boolean, hasOptionCompare As Boolean) As Byte
             Dim isByRefBits As Integer = If(isByRef, s_isByRefMask, 0)
