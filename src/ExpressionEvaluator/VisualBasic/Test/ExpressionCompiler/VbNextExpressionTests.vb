@@ -143,15 +143,9 @@ End Class
         <InlineData("a(1..^1)")>
         <InlineData("a(r)")>
         Public Sub VbNextModule_ArraySliceOfFrameLocal_IL(expr As String)
-            Dim comp = CreateCompilationWithMscorlib40({ArrayRangeSource}, options:=TestOptions.DebugDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
-            comp.VerifyDiagnostics()
-            ' A portable PDB records vbnext, so the evaluator parses vbnext forms (as in Compile above).
-            Dim runtime = CreateRuntimeInstance(comp, debugFormat:=DebugInformationFormat.PortablePdb)
-            Dim context = CreateMethodContext(runtime, "D.M")
-            Dim errorMessage As String = Nothing
+            ' Documents the legacy Array.Copy lowering (rewriter forced off). Default vbnext CompileExpression uses the loop.
             Dim testData = New CompilationTestData()
-            context.CompileExpression(expr:=expr, error:=errorMessage, testData:=testData, formatter:=DebuggerDiagnosticFormatter.Instance)
-            Assert.Null(errorMessage)
+            Assert.Equal("", CompileSliceExpression(expr, enabled:=False, testData:=testData))
             Dim expectedIL As String
             Select Case expr
                 Case "a(1..^1)"
@@ -305,324 +299,91 @@ End Class
         End Function
 
         ''' <summary>
-        ''' A slice that is the whole expression runs its own side effects exactly as bound, through the allocation
-        ''' of the result, then copies with a loop. The original Array.Copy call remains only on the path where it throws.
+        ''' A whole-expression slice keeps BindArrayRange side effects through allocation, then calls
+        ''' &lt;&gt;ArraySliceCopy instead of Array.Copy. The helper holds the GetValue/SetValue loop and the Array.Copy fallback.
         ''' </summary>
         <Theory>
         <InlineData("a(1..^1)")>
         <InlineData("a(r)")>
         Public Sub SliceRewriter_WholeExpressionSlice_CopiesWithLoop(expr As String)
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression(expr, enabled:=True, testData:=testData))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
             Dim original = SliceRewriterIL(expr, enabled:=False)
-            Dim rewrittenData As CompilationTestData.MethodData = Nothing
-            Dim rewritten = SliceRewriterIL(expr, enabled:=True, methodData:=rewrittenData)
-            Dim rewrittenLines = ILLines(rewritten)
-
-            ' The exact IL: the slice's own side effects as bound (the same instructions as with the rewriter off; only the
-            ' slot of the System.Index temporary differs, because the loop index and the copy source are declared first), through
-            ' the store of the allocated result, then the source read once into the copy source, the guard, the copy
-            ' loop, the original Array.Copy call on the copy source where it throws, and the result.
-            Dim expectedIL As String
-            Select Case expr
-                Case "a(1..^1)"
-                    expectedIL = "
-{
-  // Code size       90 (0x5a)
-  .maxstack  6
-  .locals init (Integer() V_0, //a
-                System.Range V_1, //r
-                System.Index V_2,
-                Integer V_3,
-                Integer V_4,
-                Integer() V_5,
-                Integer V_6,
-                Integer() V_7)
-  IL_0000:  ldc.i4.1
-  IL_0001:  stloc.3
-  IL_0002:  ldloc.0
-  IL_0003:  ldlen
-  IL_0004:  conv.i4
-  IL_0005:  ldc.i4.1
-  IL_0006:  sub.ovf
-  IL_0007:  stloc.s    V_4
-  IL_0009:  ldloc.s    V_4
-  IL_000b:  ldloc.3
-  IL_000c:  sub.ovf
-  IL_000d:  newarr     ""Integer""
-  IL_0012:  stloc.s    V_5
-  IL_0014:  ldloc.0
-  IL_0015:  stloc.s    V_7
-  IL_0017:  ldloc.s    V_7
-  IL_0019:  brfalse.s  IL_0048
-  IL_001b:  ldloc.3
-  IL_001c:  ldc.i4.0
-  IL_001d:  blt.s      IL_0048
-  IL_001f:  ldloc.s    V_4
-  IL_0021:  ldloc.s    V_7
-  IL_0023:  ldlen
-  IL_0024:  conv.i4
-  IL_0025:  bgt.s      IL_0048
-  IL_0027:  ldc.i4.0
-  IL_0028:  stloc.s    V_6
-  IL_002a:  br.s       IL_003e
-  IL_002c:  ldloc.s    V_5
-  IL_002e:  ldloc.s    V_6
-  IL_0030:  ldloc.s    V_7
-  IL_0032:  ldloc.3
-  IL_0033:  ldloc.s    V_6
-  IL_0035:  add
-  IL_0036:  ldelem.i4
-  IL_0037:  stelem.i4
-  IL_0038:  ldloc.s    V_6
-  IL_003a:  ldc.i4.1
-  IL_003b:  add
-  IL_003c:  stloc.s    V_6
-  IL_003e:  ldloc.s    V_6
-  IL_0040:  ldloc.s    V_4
-  IL_0042:  ldloc.3
-  IL_0043:  sub
-  IL_0044:  blt.s      IL_002c
-  IL_0046:  br.s       IL_0057
-  IL_0048:  ldloc.s    V_7
-  IL_004a:  ldloc.3
-  IL_004b:  ldloc.s    V_5
-  IL_004d:  ldc.i4.0
-  IL_004e:  ldloc.s    V_4
-  IL_0050:  ldloc.3
-  IL_0051:  sub.ovf
-  IL_0052:  call       ""Sub System.Array.Copy(System.Array, Integer, System.Array, Integer, Integer)""
-  IL_0057:  ldloc.s    V_5
-  IL_0059:  ret
-}"
-                Case "a(r)"
-                    expectedIL = "
-{
-  // Code size      125 (0x7d)
-  .maxstack  6
-  .locals init (Integer() V_0, //a
-                System.Range V_1, //r
-                System.Index V_2,
-                Integer V_3,
-                Integer V_4,
-                System.Range V_5,
-                Integer() V_6,
-                Integer V_7,
-                Integer() V_8,
-                System.Index V_9)
-  IL_0000:  ldloc.1
-  IL_0001:  stloc.s    V_5
-  IL_0003:  ldloca.s   V_5
-  IL_0005:  call       ""Function System.Range.get_Start() As System.Index""
-  IL_000a:  stloc.s    V_9
-  IL_000c:  ldloca.s   V_9
-  IL_000e:  ldloc.0
-  IL_000f:  ldlen
-  IL_0010:  conv.i4
-  IL_0011:  call       ""Function System.Index.GetOffset(Integer) As Integer""
-  IL_0016:  stloc.3
-  IL_0017:  ldloca.s   V_5
-  IL_0019:  call       ""Function System.Range.get_End() As System.Index""
-  IL_001e:  stloc.s    V_9
-  IL_0020:  ldloca.s   V_9
-  IL_0022:  ldloc.0
-  IL_0023:  ldlen
-  IL_0024:  conv.i4
-  IL_0025:  call       ""Function System.Index.GetOffset(Integer) As Integer""
-  IL_002a:  stloc.s    V_4
-  IL_002c:  ldloc.s    V_4
-  IL_002e:  ldloc.3
-  IL_002f:  sub.ovf
-  IL_0030:  newarr     ""Integer""
-  IL_0035:  stloc.s    V_6
-  IL_0037:  ldloc.0
-  IL_0038:  stloc.s    V_8
-  IL_003a:  ldloc.s    V_8
-  IL_003c:  brfalse.s  IL_006b
-  IL_003e:  ldloc.3
-  IL_003f:  ldc.i4.0
-  IL_0040:  blt.s      IL_006b
-  IL_0042:  ldloc.s    V_4
-  IL_0044:  ldloc.s    V_8
-  IL_0046:  ldlen
-  IL_0047:  conv.i4
-  IL_0048:  bgt.s      IL_006b
-  IL_004a:  ldc.i4.0
-  IL_004b:  stloc.s    V_7
-  IL_004d:  br.s       IL_0061
-  IL_004f:  ldloc.s    V_6
-  IL_0051:  ldloc.s    V_7
-  IL_0053:  ldloc.s    V_8
-  IL_0055:  ldloc.3
-  IL_0056:  ldloc.s    V_7
-  IL_0058:  add
-  IL_0059:  ldelem.i4
-  IL_005a:  stelem.i4
-  IL_005b:  ldloc.s    V_7
-  IL_005d:  ldc.i4.1
-  IL_005e:  add
-  IL_005f:  stloc.s    V_7
-  IL_0061:  ldloc.s    V_7
-  IL_0063:  ldloc.s    V_4
-  IL_0065:  ldloc.3
-  IL_0066:  sub
-  IL_0067:  blt.s      IL_004f
-  IL_0069:  br.s       IL_007a
-  IL_006b:  ldloc.s    V_8
-  IL_006d:  ldloc.3
-  IL_006e:  ldloc.s    V_6
-  IL_0070:  ldc.i4.0
-  IL_0071:  ldloc.s    V_4
-  IL_0073:  ldloc.3
-  IL_0074:  sub.ovf
-  IL_0075:  call       ""Sub System.Array.Copy(System.Array, Integer, System.Array, Integer, Integer)""
-  IL_007a:  ldloc.s    V_6
-  IL_007c:  ret
-}"
-                Case Else
-                    Throw New System.ArgumentException(expr)
-            End Select
-            rewrittenData.VerifyIL(expectedIL)
-
-            Assert.Equal(1, CountOf(original, "System.Array.Copy"))
-            Assert.DoesNotContain("stelem", original)
-            Assert.Equal(1, CountOf(rewritten, "System.Array.Copy"))
-            Assert.Equal(1, CountOf(rewritten, "newarr"))
-            Assert.Contains("ldelem.i4", rewritten)
-            Assert.Contains("stelem.i4", rewritten)
-            Assert.Contains(rewrittenLines, Function(line) line.Contains(" blt"))
+            VerifyLoopRewrite(original, rewritten)
+            AssertHelperCopiesElements(testData)
+            ' <>m0 shape matches legacy BindArrayRange except Array.Copy becomes <>ArraySliceCopy (same argument count shape: source, start, dest, length).
+            Assert.Equal(CountOf(original, "newarr"), CountOf(rewritten, "newarr"))
+            Assert.Contains("call       ""Sub <>x.<>ArraySliceCopy(System.Array, Integer, System.Array, Integer)""", rewritten)
         End Sub
 
         ''' <summary>
-        ''' A slice inside a larger expression is left as bound.
-        ''' </summary>
-        <Fact>
-        Public Sub SliceRewriter_NestedSlice_IsNotRewritten()
-            Dim original = SliceRewriterIL("a(1..2)(0)", enabled:=False)
-            Dim rewritten = SliceRewriterIL("a(1..2)(0)", enabled:=True)
-            Assert.Equal(original, rewritten)
-            Assert.Equal(1, CountOf(rewritten, "System.Array.Copy"))
-            Assert.DoesNotContain("stelem", rewritten)
-        End Sub
-
-        ''' <summary>
-        ''' The rewritten slice reads its source exactly as often as the original, through the allocation of the
-        ''' result, and then once more into the copy source, where the original Array.Copy call reads its source argument.
-        ''' The guard, the loop and the fallback Array.Copy call read only the copy source.
+        ''' A slice inside a larger expression is rewritten in place (helper call stays in the slice BoundSequence).
         ''' </summary>
         <Theory>
-        <InlineData("byRefArray(1..^1)", "S.M", -1, "ldarg.3", "ldind.ref")>
-        <InlineData("captured(1..^1)", "S.L", 999, "$VB$Local_captured", Nothing)>
-        <InlineData("strings(1..^1)", "S.M", -1, "ldarg.1", Nothing)>
-        Public Sub SliceRewriter_SourceIsReadOnceForCopy(expr As String, frame As String, atLineNumber As Integer, sourceLoad As String, dereference As String)
-            Dim original = SliceRewriterIL(expr, enabled:=False, sources:=s_sliceSources, methodName:=frame, atLineNumber:=atLineNumber)
-            Dim rewritten = SliceRewriterIL(expr, enabled:=True, sources:=s_sliceSources, methodName:=frame, atLineNumber:=atLineNumber)
+        <InlineData("a(1..2)(0)")>
+        <InlineData("a(1..^1)(0)")>
+        <InlineData("a(1..^1).Length")>
+        Public Sub SliceRewriter_NestedSlice_CopiesWithLoop(expr As String)
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression(expr, enabled:=True, testData:=testData))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
+            Dim original = SliceRewriterIL(expr, enabled:=False)
+            Assert.NotEqual(original, rewritten)
             VerifyLoopRewrite(original, rewritten)
+            AssertHelperCopiesElements(testData)
+        End Sub
 
-            Dim lines = ILLines(rewritten)
-            Dim loads = System.Linq.Enumerable.Range(0, lines.Length).Where(Function(i) lines(i).Contains(sourceLoad)).ToArray()
-            ' As many reads of the source as the original: the same reads in the side effects, and the Array.Copy argument's read becomes the capture.
-            Assert.Equal(CountOf(original, sourceLoad), loads.Length)
-            Dim capture = loads.Last()
-            Assert.True(System.Array.FindIndex(lines, Function(line) line.Contains("newarr")) < capture)
-            Dim store = capture + 1
-            If dereference IsNot Nothing Then
-                Assert.Contains(dereference, lines(store))
-                store += 1
-            End If
-            Assert.Contains("stloc", lines(store))
-            Dim copySource = lines(store).Split(" "c).Last()
-            Assert.StartsWith("V_", copySource)
-            Dim copySourceReads = System.Linq.Enumerable.Range(0, lines.Length).Where(Function(i) lines(i).Contains("ldloc") AndAlso lines(i).EndsWith(" " & copySource, StringComparison.Ordinal)).ToArray()
-            ' The null check, the length check, the loop's element read, and the fallback Array.Copy call's source argument.
-            Assert.Equal(4, copySourceReads.Length)
-            Assert.True(copySourceReads.All(Function(i) i > store))
-            Assert.Equal(store + 1, copySourceReads(0))
-            Assert.Contains("brfalse", lines(store + 2))
-            Dim copyCall = System.Array.FindIndex(lines, Function(line) line.Contains("System.Array.Copy"))
-            Assert.Equal(copyCall - 7, copySourceReads(3))
+        <Fact>
+        Public Sub SliceRewriter_SliceAsMethodArgument_CopiesWithLoop()
+            Dim sources = {
+                ArrayRangeSource.Replace(
+                    "Shared Sub M()",
+                    "Shared Function Id(values As Integer()) As Integer()" & vbCrLf &
+                    "        Return values" & vbCrLf &
+                    "    End Function" & vbCrLf &
+                    "    Shared Sub M()")}
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression("Id(a(1..^1))", enabled:=True, testData:=testData, sources:=sources, methodName:="D.M"))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
+            Dim original = SliceRewriterIL("Id(a(1..^1))", enabled:=False, sources:=sources, methodName:="D.M")
+            Assert.NotEqual(original, rewritten)
+            VerifyLoopRewrite(original, rewritten)
+            AssertHelperCopiesElements(testData)
         End Sub
 
         ''' <summary>
-        ''' A spilled receiver. Me._items is read once (IL_0001), as bound; the evaluator's code generator keeps the
-        ''' spilled reference on the stack (dup for ^1's length at IL_0008) instead of in a local. After the result is
-        ''' allocated (IL_0016), that same reference is stored into the copy source V_4 (IL_0017). The null check (IL_0019),
-        ''' the length check (IL_0022), the loop's element read (IL_002e) and the fallback Array.Copy call's source argument
-        ''' (IL_0041) all read V_4; S._items is not read again.
+        ''' Receiver / parameter source reads in &lt;&gt;m0 match the legacy Array.Copy path: BindArrayRange side effects
+        ''' are unchanged, and the trailing helper call reads the source once as its first argument (as Array.Copy did).
+        ''' </summary>
+        <Theory>
+        <InlineData("byRefArray(1..^1)", "S.M", -1, "ldarg.3")>
+        <InlineData("captured(1..^1)", "S.L", 999, "$VB$Local_captured")>
+        <InlineData("strings(1..^1)", "S.M", -1, "ldarg.1")>
+        Public Sub SliceRewriter_SourceIsReadOnceForCopy(expr As String, frame As String, atLineNumber As Integer, sourceLoad As String)
+            Dim original = SliceRewriterIL(expr, enabled:=False, sources:=s_sliceSources, methodName:=frame, atLineNumber:=atLineNumber)
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression(expr, enabled:=True, testData:=testData, sources:=s_sliceSources, methodName:=frame, atLineNumber:=atLineNumber))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
+            VerifyLoopRewrite(original, rewritten)
+            Assert.Equal(CountOf(original, sourceLoad), CountOf(rewritten, sourceLoad))
+            AssertHelperCopiesElements(testData)
+        End Sub
+
+        ''' <summary>
+        ''' A spilled receiver is evaluated once as bound; &lt;&gt;m0 passes that reference to &lt;&gt;ArraySliceCopy.
         ''' </summary>
         <Fact>
         Public Sub SliceRewriter_SpilledReceiver_SourceIsReadOnceForCopy()
             Dim original = SliceRewriterIL("_items(1..^1)", enabled:=False, sources:=s_sliceSources, methodName:="S.M")
-            Dim rewrittenData As CompilationTestData.MethodData = Nothing
-            Dim rewritten = SliceRewriterIL("_items(1..^1)", enabled:=True, methodData:=rewrittenData, sources:=s_sliceSources, methodName:="S.M")
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression("_items(1..^1)", enabled:=True, testData:=testData, sources:=s_sliceSources, methodName:="S.M"))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
             VerifyLoopRewrite(original, rewritten)
             Assert.Equal(1, CountOf(original, "S._items"))
             Assert.Equal(1, CountOf(rewritten, "S._items"))
-            rewrittenData.VerifyIL("
-{
-  // Code size       80 (0x50)
-  .maxstack  6
-  .locals init (Integer V_0,
-                Integer V_1,
-                Integer() V_2,
-                Integer V_3,
-                Integer() V_4)
-  IL_0000:  ldarg.0
-  IL_0001:  ldfld      ""S._items As Integer()""
-  IL_0006:  ldc.i4.1
-  IL_0007:  stloc.0
-  IL_0008:  dup
-  IL_0009:  ldlen
-  IL_000a:  conv.i4
-  IL_000b:  ldc.i4.1
-  IL_000c:  sub.ovf
-  IL_000d:  stloc.1
-  IL_000e:  ldloc.1
-  IL_000f:  ldloc.0
-  IL_0010:  sub.ovf
-  IL_0011:  newarr     ""Integer""
-  IL_0016:  stloc.2
-  IL_0017:  stloc.s    V_4
-  IL_0019:  ldloc.s    V_4
-  IL_001b:  brfalse.s  IL_0041
-  IL_001d:  ldloc.0
-  IL_001e:  ldc.i4.0
-  IL_001f:  blt.s      IL_0041
-  IL_0021:  ldloc.1
-  IL_0022:  ldloc.s    V_4
-  IL_0024:  ldlen
-  IL_0025:  conv.i4
-  IL_0026:  bgt.s      IL_0041
-  IL_0028:  ldc.i4.0
-  IL_0029:  stloc.3
-  IL_002a:  br.s       IL_0039
-  IL_002c:  ldloc.2
-  IL_002d:  ldloc.3
-  IL_002e:  ldloc.s    V_4
-  IL_0030:  ldloc.0
-  IL_0031:  ldloc.3
-  IL_0032:  add
-  IL_0033:  ldelem.i4
-  IL_0034:  stelem.i4
-  IL_0035:  ldloc.3
-  IL_0036:  ldc.i4.1
-  IL_0037:  add
-  IL_0038:  stloc.3
-  IL_0039:  ldloc.3
-  IL_003a:  ldloc.1
-  IL_003b:  ldloc.0
-  IL_003c:  sub
-  IL_003d:  blt.s      IL_002c
-  IL_003f:  br.s       IL_004e
-  IL_0041:  ldloc.s    V_4
-  IL_0043:  ldloc.0
-  IL_0044:  ldloc.2
-  IL_0045:  ldc.i4.0
-  IL_0046:  ldloc.1
-  IL_0047:  ldloc.0
-  IL_0048:  sub.ovf
-  IL_0049:  call       ""Sub System.Array.Copy(System.Array, Integer, System.Array, Integer, Integer)""
-  IL_004e:  ldloc.2
-  IL_004f:  ret
-}")
+            AssertHelperCopiesElements(testData)
+            Assert.Contains("call       ""Sub <>x.<>ArraySliceCopy(System.Array, Integer, System.Array, Integer)""", rewritten)
         End Sub
 
         ''' <summary>
@@ -653,60 +414,67 @@ End Class
         Private Shared ReadOnly s_sliceSources As String() = {ArrayRangeSource, SliceRewriterSource}
 
         ''' <summary>
-        ''' The checks that every rewritten whole-expression slice shares. With the option off, the slice copies
-        ''' with Array.Copy only. With it on, there is one allocation, a copy loop, and the original Array.Copy call on
-        ''' the fallback path.
+        ''' Shared checks for the in-place helper rewrite: legacy path uses Array.Copy only; rewritten &lt;&gt;m0
+        ''' allocates once and calls &lt;&gt;ArraySliceCopy (no inline stelem / Array.Copy in &lt;&gt;m0).
         ''' </summary>
         Private Shared Sub VerifyLoopRewrite(original As String, rewritten As String)
             Assert.Equal(1, CountOf(original, "System.Array.Copy"))
+            Assert.DoesNotContain("<>ArraySliceCopy", original)
             Assert.DoesNotContain("stelem", original)
-            Assert.Equal(1, CountOf(rewritten, "System.Array.Copy"))
+            Assert.Equal(1, CountOf(rewritten, "<>ArraySliceCopy"))
             Assert.Equal(1, CountOf(rewritten, "newarr"))
-            Assert.Contains("stelem", rewritten)
-            Assert.Contains(ILLines(rewritten), Function(line) line.Contains(" blt"))
+            Assert.DoesNotContain("System.Array.Copy", rewritten)
+            Assert.DoesNotContain("stelem", rewritten)
+        End Sub
+
+        Private Shared Sub AssertHelperCopiesElements(testData As CompilationTestData)
+            Dim helperIL = testData.GetMethodData("<>x.<>ArraySliceCopy").GetMethodIL()
+            Assert.Contains("GetValue", helperIL)
+            Assert.Contains("SetValue", helperIL)
+            Assert.Contains("System.Array.Copy", helperIL)
+            Assert.Contains(ILLines(helperIL), Function(line) line.Contains(" blt"))
         End Sub
 
         <Fact>
         Public Sub SliceRewriter_StringArray_CopiesWithLoop()
             Dim original = SliceRewriterIL("strings(1..^1)", enabled:=False, sources:=s_sliceSources, methodName:="S.M")
-            Dim rewritten = SliceRewriterIL("strings(1..^1)", enabled:=True, sources:=s_sliceSources, methodName:="S.M")
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression("strings(1..^1)", enabled:=True, testData:=testData, sources:=s_sliceSources, methodName:="S.M"))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
             VerifyLoopRewrite(original, rewritten)
             Assert.Contains("newarr     ""String""", rewritten)
-            Assert.Contains("ldelem.ref", rewritten)
-            Assert.Contains("stelem.ref", rewritten)
+            AssertHelperCopiesElements(testData)
         End Sub
 
         ''' <summary>
-        ''' Elements of an Object() are copied as references. The loop's element access suppresses the
-        ''' RuntimeHelpers.GetObjectValue call that VB otherwise emits for an Object value, so boxed values are not cloned,
-        ''' as with Array.Copy.
+        ''' Object() slices allocate Object() and call the helper; element identity is covered by runtime off≡on tests.
         ''' </summary>
         <Fact>
         Public Sub SliceRewriter_ObjectArray_CopiesWithLoop()
             Dim original = SliceRewriterIL("objects(1..^1)", enabled:=False, sources:=s_sliceSources, methodName:="S.M")
-            Dim rewritten = SliceRewriterIL("objects(1..^1)", enabled:=True, sources:=s_sliceSources, methodName:="S.M")
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression("objects(1..^1)", enabled:=True, testData:=testData, sources:=s_sliceSources, methodName:="S.M"))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0").GetMethodIL()
             VerifyLoopRewrite(original, rewritten)
             Assert.Contains("newarr     ""Object""", rewritten)
-            Assert.Contains("ldelem.ref", rewritten)
-            Assert.Contains("stelem.ref", rewritten)
             Assert.DoesNotContain("GetObjectValue", original)
             Assert.DoesNotContain("GetObjectValue", rewritten)
+            AssertHelperCopiesElements(testData)
         End Sub
 
         <Fact>
         Public Sub SliceRewriter_GenericArray_CopiesWithLoop()
             Dim original = SliceRewriterIL("items(1..^1)", enabled:=False, sources:=s_sliceSources, methodName:="S.G", methodDataName:="<>x.<>m0(Of T)")
-            Dim rewritten = SliceRewriterIL("items(1..^1)", enabled:=True, sources:=s_sliceSources, methodName:="S.G", methodDataName:="<>x.<>m0(Of T)")
+            Dim testData = New CompilationTestData()
+            Assert.Equal("", CompileSliceExpression("items(1..^1)", enabled:=True, testData:=testData, sources:=s_sliceSources, methodName:="S.G"))
+            Dim rewritten = testData.GetMethodData("<>x.<>m0(Of T)").GetMethodIL()
             VerifyLoopRewrite(original, rewritten)
-            Dim rewrittenLines = ILLines(rewritten)
-            Assert.Contains(rewrittenLines, Function(line) line.Contains("newarr") AndAlso line.EndsWith("""T""", StringComparison.Ordinal))
-            Assert.Contains(rewrittenLines, Function(line) line.Contains("ldelem") AndAlso line.EndsWith("""T""", StringComparison.Ordinal))
-            Assert.Contains(rewrittenLines, Function(line) line.Contains("stelem") AndAlso line.EndsWith("""T""", StringComparison.Ordinal))
+            Assert.Contains(ILLines(rewritten), Function(line) line.Contains("newarr") AndAlso line.EndsWith("""T""", StringComparison.Ordinal))
+            AssertHelperCopiesElements(testData)
         End Sub
 
         ''' <summary>
-        ''' A receiver that is not a local or parameter is spilled into a temporary once, as bound; the loop reads
-        ''' the temporary.
+        ''' A receiver that is not a local or parameter is spilled into a temporary once, as bound; the helper receives that reference.
         ''' </summary>
         <Theory>
         <InlineData("_items(1..^1)", "S._items")>
@@ -725,8 +493,6 @@ End Class
             Dim rewritten = SliceRewriterIL("byRefArray(1..^1)", enabled:=True, sources:=s_sliceSources, methodName:="S.M")
             VerifyLoopRewrite(original, rewritten)
             Assert.Contains("ldind.ref", rewritten)
-            Assert.Contains("ldelem.i4", rewritten)
-            Assert.Contains("stelem.i4", rewritten)
         End Sub
 
         ''' <summary>
@@ -740,7 +506,6 @@ End Class
             VerifyLoopRewrite(original, rewritten)
             Assert.Contains("$VB$Local_captured", original)
             Assert.Contains("$VB$Local_captured", rewritten)
-            Assert.Contains("ldelem.i4", rewritten)
         End Sub
 
         ''' <summary>
@@ -1019,23 +784,260 @@ End Class
             End Try
         End Sub
 
+        Private Const SemanticSliceSource = "
+Public Class Sem
+    Public Shared Log As System.Text.StringBuilder
+    Public Shared Function Mark(tag As String, value As Object) As Object
+        Log.Append(tag & "";"")
+        Return value
+    End Function
+    Public Shared Function GetItems() As Integer()
+        Log.Append(""GetItems;"")
+        Return New Integer() {10, 20, 30, 40, 50}
+    End Function
+    Public Shared Function GetStart() As Integer
+        Log.Append(""GetStart;"")
+        Return 1
+    End Function
+    Public Shared Function GetEnd() As Integer
+        Log.Append(""GetEnd;"")
+        Return 4
+    End Function
+    Public Shared Function GetFirstValue() As Integer
+        Log.Append(""GetFirstValue;"")
+        Return 7
+    End Function
+    Public Shared Function Process(first As Integer, values As Integer()) As String
+        Log.Append(""Process;"")
+        Return first.ToString() & "":"" & String.Join("","", values)
+    End Function
+    Public Shared Function Cond(value As Boolean) As Boolean
+        Log.Append(""Cond;"" & value.ToString() & "";"")
+        Return value
+    End Function
+    Public Shared Function Id(values As Integer()) As Integer()
+        Return values
+    End Function
+    Public Shared Function MakeSpots() As Spot()
+        Return New Spot() {
+            New Spot With {.X = 1, .Y = 2},
+            New Spot With {.X = 3, .Y = 4},
+            New Spot With {.X = 5, .Y = 6},
+            New Spot With {.X = 7, .Y = 8}}
+    End Function
+    Public Shared Sub M(items As String(), nums As Integer(), refs As Object(), structs As Spot())
+        System.Console.WriteLine(items)
+    End Sub
+End Class
+Public Structure Spot
+    Public X As Integer
+    Public Y As Integer
+    Public Overrides Function ToString() As String
+        Return X.ToString() & ""/"" & Y.ToString()
+    End Function
+End Structure
+"
+
+        Private Function CreateSemanticFrames() As RuntimeFrames
+            Dim comp = CreateCompilationWithMscorlib40({ArrayRangeSource, SemanticSliceSource}, options:=TestOptions.DebugDll, parseOptions:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext))
+            comp.VerifyDiagnostics()
+            Return New RuntimeFrames With {
+                .Runtime = CreateRuntimeInstance(comp, debugFormat:=DebugInformationFormat.PortablePdb),
+                .SourceAssembly = System.Reflection.Assembly.Load(comp.EmitToArray().ToArray()),
+                .AssemblyName = comp.AssemblyName}
+        End Function
+
+        Private Shared Function InvokeSemantic(frames As RuntimeFrames, expr As String, enabled As Boolean, ParamArray args As Object()) As Object
+            Dim method = CompileRuntimeSlice(frames, "Sem.M", expr, enabled)
+            Try
+                Return method.Invoke(Nothing, args)
+            Catch ex As System.Reflection.TargetInvocationException
+                Throw ex.InnerException
+            End Try
+        End Function
+
         ''' <summary>
-        ''' The experimental opt-in. Only VBNEXT_EE_ARRAYSLICE_LOOP=1, exactly, enables the loop.
+        ''' PART A: rewritten slices must not run when their containing conditional / short-circuit operand is skipped.
+        ''' Constant and non-constant conditions; invalid bounds must not throw when unevaluated.
+        ''' </summary>
+        <Fact>
+        Public Sub SliceRewriter_Semantic_ConditionalEvaluation_NotHoisted()
+            Dim frames = CreateSemanticFrames()
+            Dim handler As System.ResolveEventHandler = Function(sender, e) If(New System.Reflection.AssemblyName(e.Name).Name = frames.AssemblyName, frames.SourceAssembly, Nothing)
+            AddHandler System.AppDomain.CurrentDomain.AssemblyResolve, handler
+            Try
+                Dim semType = frames.SourceAssembly.GetType("Sem", throwOnError:=True)
+                Dim logField = semType.GetField("Log")
+                Dim items = New String() {"alpha", "beta", "gamma"}
+                Dim nums = New Integer() {10, 20, 30, 40, 50}
+                Dim emptyArgs = New Object() {items, nums, Nothing, Nothing}
+
+                For Each enabled In {False, True}
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    Assert.Equal("safe", InvokeSemantic(frames, "If(False, items(100..200)(0), ""safe"")", enabled, emptyArgs))
+                    Assert.Equal("", DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString())
+
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    Assert.Equal(False, InvokeSemantic(frames, "False AndAlso items(100..200).Length > 0", enabled, emptyArgs))
+                    Assert.Equal("", DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString())
+
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    Assert.Equal(True, InvokeSemantic(frames, "True OrElse items(100..200).Length > 0", enabled, emptyArgs))
+                    Assert.Equal("", DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString())
+
+                    ' Non-constant conditions: Cond is observed; the skipped slice must not run (no throw).
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    Assert.Equal("safe", InvokeSemantic(frames, "If(Cond(False), items(100..200)(0), ""safe"")", enabled, emptyArgs))
+                    Assert.Equal("Cond;False;", DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString())
+
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    Assert.Equal(False, InvokeSemantic(frames, "Cond(False) AndAlso items(100..200).Length > 0", enabled, emptyArgs))
+                    Assert.Equal("Cond;False;", DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString())
+
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    Assert.Equal(True, InvokeSemantic(frames, "Cond(True) OrElse items(100..200).Length > 0", enabled, emptyArgs))
+                    Assert.Equal("Cond;True;", DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString())
+                Next
+
+                ' IL: with a non-constant condition, <>ArraySliceCopy stays in the true branch after the short-circuit branch.
+                Dim testData = New CompilationTestData()
+                Assert.Equal("", CompileSliceExpression("If(Cond(False), items(100..200)(0), ""safe"")", enabled:=True, testData:=testData, sources:={ArrayRangeSource, SemanticSliceSource}, methodName:="Sem.M"))
+                Dim il = testData.GetMethodData("<>x.<>m0").GetMethodIL()
+                Dim helperAt = il.IndexOf("<>ArraySliceCopy", StringComparison.Ordinal)
+                Dim branchAt = Math.Max(il.IndexOf("brfalse", StringComparison.Ordinal), il.IndexOf("brtrue", StringComparison.Ordinal))
+                Assert.True(helperAt > 0 AndAlso branchAt >= 0 AndAlso branchAt < helperAt, $"helper must stay after short-circuit branch; branch@{branchAt} helper@{helperAt}{vbCrLf}{il}")
+                Assert.Contains("ldstr      ""safe""", il)
+                Assert.Contains("Function Sem.Cond(Boolean)", il)
+            Finally
+                RemoveHandler System.AppDomain.CurrentDomain.AssemblyResolve, handler
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' PART B: receiver, endpoints, surrounding arguments execute once, in BindArrayRange / call order.
+        ''' </summary>
+        <Fact>
+        Public Sub SliceRewriter_Semantic_EvaluationOrder_MatchesLegacy()
+            Dim frames = CreateSemanticFrames()
+            Dim handler As System.ResolveEventHandler = Function(sender, e) If(New System.Reflection.AssemblyName(e.Name).Name = frames.AssemblyName, frames.SourceAssembly, Nothing)
+            AddHandler System.AppDomain.CurrentDomain.AssemblyResolve, handler
+            Try
+                Dim semType = frames.SourceAssembly.GetType("Sem", throwOnError:=True)
+                Dim logField = semType.GetField("Log")
+                Dim emptyArgs = New Object() {Nothing, Nothing, Nothing, Nothing}
+                Dim expectedOrder = "GetFirstValue;GetItems;GetStart;GetEnd;Process;"
+                Dim results = New String(1) {}
+                Dim logs = New String(1) {}
+                For Each enabled In {False, True}
+                    logField.SetValue(Nothing, New System.Text.StringBuilder())
+                    results(If(enabled, 1, 0)) = DirectCast(InvokeSemantic(frames, "Process(GetFirstValue(), GetItems()(GetStart()..GetEnd()))", enabled, emptyArgs), String)
+                    logs(If(enabled, 1, 0)) = DirectCast(logField.GetValue(Nothing), System.Text.StringBuilder).ToString()
+                Next
+                Assert.Equal("7:20,30,40", results(0))
+                Assert.Equal(results(0), results(1))
+                Assert.Equal(expectedOrder, logs(0))
+                Assert.Equal(logs(0), logs(1))
+
+                ' Multiple slices in one expression; nested slice; slice as argument — off≡on values and a single helper call per slice in IL.
+                Assert.Equal(InvokeSemantic(frames, "nums(1..2)(0)", False, {Nothing, New Integer() {10, 20, 30, 40}, Nothing, Nothing}),
+                             InvokeSemantic(frames, "nums(1..2)(0)", True, {Nothing, New Integer() {10, 20, 30, 40}, Nothing, Nothing}))
+                Dim nestedData = New CompilationTestData()
+                Assert.Equal("", CompileSliceExpression("nums(1..3)(0..1)(0)", enabled:=True, testData:=nestedData, sources:={ArrayRangeSource, SemanticSliceSource}, methodName:="Sem.M"))
+                Assert.Equal(2, CountOf(nestedData.GetMethodData("<>x.<>m0").GetMethodIL(), "<>ArraySliceCopy"))
+            Finally
+                RemoveHandler System.AppDomain.CurrentDomain.AssemblyResolve, handler
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' PART C: non-default values, identity, empty / invalid / Nothing — loop path agrees with Array.Copy path.
+        ''' </summary>
+        <Fact>
+        Public Sub SliceRewriter_Semantic_ValuesAndExceptions_AgreeWithLegacy()
+            Dim frames = CreateSemanticFrames()
+            Dim handler As System.ResolveEventHandler = Function(sender, e) If(New System.Reflection.AssemblyName(e.Name).Name = frames.AssemblyName, frames.SourceAssembly, Nothing)
+            AddHandler System.AppDomain.CurrentDomain.AssemblyResolve, handler
+            Try
+                Dim semType = frames.SourceAssembly.GetType("Sem", throwOnError:=True)
+                Dim makeSpots = Function() DirectCast(semType.GetMethod("MakeSpots").Invoke(Nothing, Nothing), System.Array)
+                Dim refA As New Object()
+                Dim refB As New Object()
+                Dim refC As New Object()
+                Dim cases = New List(Of (Name As String, Expr As String, Args As Func(Of Object()), Describe As Func(Of Object, String))) From {
+                    ("Integer non-default", "nums(1..^1)", Function() {Nothing, New Integer() {10, 20, 30, 40, 50}, Nothing, Nothing},
+                        Function(r) String.Join(",", DirectCast(r, Integer()))),
+                    ("String non-default", "items(1..^1)", Function() {New String() {"alpha", "beta", "gamma"}, Nothing, Nothing, Nothing},
+                        Function(r) String.Join(",", DirectCast(r, String()))),
+                    ("Reference identity", "refs(0..3)", Function() {Nothing, Nothing, New Object() {refA, refB, refC}, Nothing},
+                        Function(r)
+                            Dim arr = DirectCast(r, Object())
+                            Return arr.Length.ToString() & ":" & String.Join(",", New String() {
+                                Object.ReferenceEquals(arr(0), refA).ToString(),
+                                Object.ReferenceEquals(arr(1), refB).ToString(),
+                                Object.ReferenceEquals(arr(2), refC).ToString()})
+                        End Function),
+                    ("Structure fields", "structs(1..3)", Function() {Nothing, Nothing, Nothing, makeSpots()},
+                        Function(r)
+                            Dim arr = DirectCast(r, System.Array)
+                            Return String.Join(",", System.Linq.Enumerable.Range(0, arr.Length).Select(Function(i) arr.GetValue(i).ToString()))
+                        End Function),
+                    ("Empty slice", "nums(2..2)", Function() {Nothing, New Integer() {10, 20, 30}, Nothing, Nothing},
+                        Function(r) "len=" & DirectCast(r, Integer()).Length)}
+
+                Dim expected = New Dictionary(Of String, String) From {
+                    {"Integer non-default", "20,30,40"},
+                    {"String non-default", "beta"},
+                    {"Reference identity", "3:True,True,True"},
+                    {"Structure fields", "3/4,5/6"},
+                    {"Empty slice", "len=0"}}
+                For Each c In cases
+                    Dim off = c.Describe(InvokeSemantic(frames, c.Expr, False, c.Args()))
+                    Dim [on] = c.Describe(InvokeSemantic(frames, c.Expr, True, c.Args()))
+                    _output.WriteLine($"{c.Name}: off={off} on={[on]}")
+                    Assert.Equal(c.Name & ": " & expected(c.Name), c.Name & ": " & off)
+                    Assert.Equal(c.Name & ": " & off, c.Name & ": " & [on])
+                Next
+
+                Assert.Equal("beta", InvokeSemantic(frames, "items(1..^1)(0)", True, {New String() {"alpha", "beta", "gamma"}, Nothing, Nothing, Nothing}))
+                Assert.Equal(20, InvokeSemantic(frames, "nums(1..^1)(0)", True, {Nothing, New Integer() {10, 20, 30, 40}, Nothing, Nothing}))
+
+                For Each enabled In {False, True}
+                    Dim thrown As Exception = Nothing
+                    Try
+                        InvokeSemantic(frames, "nums(100..200)", enabled, {Nothing, New Integer() {1, 2, 3}, Nothing, Nothing})
+                    Catch ex As Exception
+                        thrown = ex
+                    End Try
+                    ' Array.Copy throws ArgumentException for destination length / bounds; both paths must agree.
+                    Assert.IsType(Of ArgumentException)(thrown)
+
+                    thrown = Nothing
+                    Try
+                        InvokeSemantic(frames, "CType(Nothing, Integer())(0..1)", enabled, {Nothing, Nothing, Nothing, Nothing})
+                    Catch ex As Exception
+                        thrown = ex
+                    End Try
+                    Assert.True(TypeOf thrown Is NullReferenceException OrElse TypeOf thrown Is ArgumentNullException, $"{enabled}: {thrown}")
+                Next
+            Finally
+                RemoveHandler System.AppDomain.CurrentDomain.AssemblyResolve, handler
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' Escape hatch: only VBNEXT_EE_ARRAYSLICE_LOOP=0, exactly, forces the legacy Array.Copy path off.
         ''' </summary>
         <Theory>
         <InlineData(Nothing, False)>
-        <InlineData("0", False)>
-        <InlineData("1", True)>
+        <InlineData("0", True)>
+        <InlineData("1", False)>
         <InlineData("true", False)>
-        <InlineData("True", False)>
-        <InlineData(" 1", False)>
-        <InlineData("1 ", False)>
-        <InlineData("01", False)>
+        <InlineData(" 0", False)>
+        <InlineData("0 ", False)>
+        <InlineData("00", False)>
         <InlineData("", False)>
-        <InlineData("2", False)>
-        <InlineData("yes", False)>
-        Public Sub ArraySliceLoopOption_OnlyExactOneEnables(value As String, expected As Boolean)
-            Assert.Equal(expected, EvaluationContext.IsArraySliceLoopRequested(value))
+        Public Sub ArraySliceLoopOption_OnlyExactZeroForcesOff(value As String, expected As Boolean)
+            Assert.Equal(expected, EvaluationContext.IsArraySliceLoopForcedOff(value))
         End Sub
 
         ''' <summary>
@@ -1069,37 +1071,35 @@ End Class
             End Function
 
             <Fact>
-            Public Sub EnvironmentVariable_EnablesLoopOnlyForExactOne()
+            Public Sub EnvironmentVariable_ZeroForcesLegacyCopy_DefaultIsLoopForVbNext()
                 Dim previous = Environment.GetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable)
                 Try
                     Dim runtime = CreateRuntime(ArrayRangeSource, TestOptions.Regular.WithLanguageVersion(LanguageVersion.VbNext), DebugInformationFormat.PortablePdb)
-                    For Each expr In {"a(1..^1)", "a(r)"}
+                    For Each expr In {"a(1..^1)", "a(r)", "a(1..^1)(0)"}
                         Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, Nothing)
                         Dim baseline = CreateMethodContext(runtime, "D.M")
-                        Assert.False(baseline.IsArraySliceLoopEnabled)
+                        Assert.True(baseline.IsArraySliceLoopEnabled)
                         Dim offIL = CompileWithOption(baseline, expr, False)
                         Dim onIL = CompileWithOption(baseline, expr, True)
                         Assert.NotEqual(offIL, onIL)
-                        Assert.Equal(offIL, CompileWithOption(baseline, expr, Nothing))
+                        Assert.Equal(onIL, CompileWithOption(baseline, expr, Nothing))
+                        Assert.Contains("<>ArraySliceCopy", onIL)
+                        Assert.DoesNotContain("System.Array.Copy", onIL)
 
-                        For Each value In {Nothing, "0", "1", "true", "True", " 1", "1 ", "01", "2"}
-                            Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, value)
-                            Dim enabled = String.Equals(value, "1", StringComparison.Ordinal)
-                            Dim context = CreateMethodContext(runtime, "D.M")
-                            Assert.Equal(enabled, context.IsArraySliceLoopEnabled)
-                            Assert.Equal(If(enabled, onIL, offIL), CompileWithOption(context, expr, Nothing))
-                            ' The test override selects either form, whatever the environment.
-                            Assert.Equal(offIL, CompileWithOption(context, expr, False))
-                            Assert.Equal(onIL, CompileWithOption(context, expr, True))
-                        Next
+                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, "0")
+                        Dim forcedOff = CreateMethodContext(runtime, "D.M")
+                        Assert.False(forcedOff.IsArraySliceLoopEnabled)
+                        Assert.Equal(offIL, CompileWithOption(forcedOff, expr, Nothing))
+                        Assert.Contains("System.Array.Copy", offIL)
+                        Assert.DoesNotContain("<>ArraySliceCopy", offIL)
 
-                        ' A context keeps the value that it read when it was created.
-                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, "1")
+                        ' A context keeps the force-off value that it read when it was created.
+                        Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, "0")
                         Dim created = CreateMethodContext(runtime, "D.M")
                         Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, Nothing)
-                        Assert.True(created.IsArraySliceLoopEnabled)
-                        Assert.Equal(onIL, CompileWithOption(created, expr, Nothing))
-                        Assert.False(CreateMethodContext(runtime, "D.M").IsArraySliceLoopEnabled)
+                        Assert.False(created.IsArraySliceLoopEnabled)
+                        Assert.Equal(offIL, CompileWithOption(created, expr, Nothing))
+                        Assert.True(CreateMethodContext(runtime, "D.M").IsArraySliceLoopEnabled)
                     Next
                 Finally
                     Environment.SetEnvironmentVariable(EvaluationContext.ArraySliceLoopVariable, previous)
@@ -1108,8 +1108,8 @@ End Class
             End Sub
 
             ''' <summary>
-            ''' With VBNEXT_EE_ARRAYSLICE_LOOP=1, a VB 17.13 module, and a vbnext module with a Windows PDB (which records no
-            ''' language version), are evaluated exactly as without it.
+            ''' VB 17.13 modules and vbnext modules with a Windows PDB (no recorded language version) never enable the loop,
+            ''' including when the former opt-in value "1" is set.
             ''' </summary>
             <Fact>
             Public Sub EnvironmentVariable_LeavesLegacyModulesUnchanged()

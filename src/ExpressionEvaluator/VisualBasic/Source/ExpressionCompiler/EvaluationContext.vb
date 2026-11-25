@@ -42,9 +42,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         Private ReadOnly _inScopeHoistedLocalSlots As ImmutableSortedSet(Of Integer)
         Private ReadOnly _methodDebugInfo As MethodDebugInfo(Of TypeSymbol, LocalSymbol)
         Private ReadOnly _parseOptions As VisualBasicParseOptions
-        ' Experimental: whether this context's evaluations may copy a Vb.Next array slice with a loop instead of
-        ' Array.Copy. Read from the evaluator process's environment when the context is created (see ArraySliceLoopVariable).
-        Private ReadOnly _arraySliceLoopRequested As Boolean
+        ' Optional force-off for the debugger array-slice loop (see ArraySliceLoopVariable). Read when the context is created.
+        Private ReadOnly _arraySliceLoopForcedOff As Boolean
 
         Private Sub New(
             methodContextReuseConstraints As MethodContextReuseConstraints?,
@@ -64,13 +63,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             _inScopeHoistedLocalSlots = inScopeHoistedLocalSlots
             _methodDebugInfo = methodDebugInfo
             _parseOptions = If(parseOptions, SyntaxHelpers.ParseOptions)
-            _arraySliceLoopRequested = IsArraySliceLoopRequested(GetArraySliceLoopVariable())
+            _arraySliceLoopForcedOff = IsArraySliceLoopForcedOff(GetArraySliceLoopVariable())
         End Sub
 
-        ' The experimental opt-in. Only the exact value "1" enables the loop; when the variable is absent or has any
-        ' other value, the loop is disabled.
+        ' Escape hatch only: VBNEXT_EE_ARRAYSLICE_LOOP=0 forces the legacy Array.Copy EE path for diagnostics.
+        ' The loop is the default for vbnext evaluations; it is not enabled by setting this variable to "1".
         Friend Const ArraySliceLoopVariable As String = "VBNEXT_EE_ARRAYSLICE_LOOP"
 
+        Friend Shared Function IsArraySliceLoopForcedOff(value As String) As Boolean
+            Return String.Equals(value, "0", StringComparison.Ordinal)
+        End Function
+
+        ' Retained for older tests/docs that referred to the former opt-in; only "1" was ever a request.
         Friend Shared Function IsArraySliceLoopRequested(value As String) As Boolean
             Return String.Equals(value, "1", StringComparison.Ordinal)
         End Function
@@ -83,11 +87,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             End Try
         End Function
 
-        ' Experimental: whether CompileExpression copies a whole-expression array slice with a loop. Only when the
-        ' opt-in is set and the module's portable PDB records vbnext.
+        ' Debugger-specific: CompileExpression copies Vb.Next array slices (including nested) with an element loop
+        ' when the evaluation parse options are vbnext (portable/embedded PDB language-version). Ordinary 17.13 and
+        ' Windows-PDB evaluations stay on Array.Copy. Set VBNEXT_EE_ARRAYSLICE_LOOP=0 to force Array.Copy for diagnostics.
         Friend ReadOnly Property IsArraySliceLoopEnabled As Boolean
             Get
-                Return _arraySliceLoopRequested AndAlso _parseOptions.LanguageVersion = LanguageVersion.VbNext
+                Return Not _arraySliceLoopForcedOff AndAlso _parseOptions.LanguageVersion = LanguageVersion.VbNext
             End Get
         End Property
 
@@ -386,7 +391,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         End Function
 
         ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
-        ' instead of Array.Copy. CompileExpression passes IsArraySliceLoopEnabled; tests may pass either value.
+        ' with an element loop instead of Array.Copy. CompileExpression passes IsArraySliceLoopEnabled; tests may pass either value.
         Friend Function CreateCompilationContext(withSyntax As Boolean, useArraySliceLoop As Boolean) As CompilationContext
             Return New CompilationContext(
                 Compilation,

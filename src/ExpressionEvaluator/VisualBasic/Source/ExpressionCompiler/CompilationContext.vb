@@ -56,9 +56,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             Me.New(compilation, currentFrame, currentSourceMethod, locals, inScopeHoistedLocalSlots, methodDebugInfo, withSyntax, parseOptions, useArraySliceLoop:=False)
         End Sub
 
-        ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
-        ' instead of Array.Copy, in the methods this context creates. True when the evaluator's opt-in is enabled
-        ' (VBNEXT_EE_ARRAYSLICE_LOOP=1 and a vbnext module, see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
+        ' Whether Vb.Next array-slice evaluations rewrite Array.Copy to <>ArraySliceCopy (element GetValue/SetValue
+        ' loop). True for vbnext evaluation parse options (see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
         Friend Sub New(
             compilation As VisualBasicCompilation,
             currentFrame As MethodSymbol,
@@ -156,14 +155,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             <Out> ByRef synthesizedMethod As EEMethodSymbol) As CommonPEModuleBuilder
 
             Dim objectType = Me.Compilation.GetSpecialType(SpecialType.System_Object)
-            Dim synthesizedType = New EENamedTypeSymbol(
-                Me.Compilation.SourceAssembly.GlobalNamespace,
-                objectType,
-                syntax,
-                _currentFrame,
-                typeName,
-                methodName,
-                Me,
+            Dim generateMethodBody As GenerateMethodBody =
                 Function(method As EEMethodSymbol, diags As DiagnosticBag, ByRef properties As ResultProperties)
                     Dim hasDisplayClassMe = _displayClassVariables.ContainsKey(GeneratedNameConstants.HoistedMeName)
                     Dim bindAsExpression = syntax.Kind = SyntaxKind.PrintStatement
@@ -177,6 +169,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                     Return If(bindAsExpression,
                         BindExpression(binder, DirectCast(syntax, PrintStatementSyntax).Expression, diags, properties),
                         BindStatement(binder, syntax, diags, properties))
+                End Function
+            ' When the debugger array-slice loop is enabled, emit <>ArraySliceCopy beside <>m0 so the rewriter can
+            ' replace Array.Copy in place (preserving conditional/short-circuit evaluation context).
+            Dim synthesizedType = New EENamedTypeSymbol(
+                Me.Compilation.SourceAssembly.GlobalNamespace,
+                objectType,
+                syntax,
+                _currentFrame,
+                typeName,
+                Function(currentFrame As MethodSymbol, container As EENamedTypeSymbol)
+                    Dim methods = ArrayBuilder(Of MethodSymbol).GetInstance()
+                    methods.Add(Me.CreateMethod(container, methodName, syntax, generateMethodBody))
+                    If _useArraySliceLoop Then
+                        methods.Add(New ArraySliceCopyHelperSymbol(container, Me.Compilation))
+                    End If
+                    Return methods.ToImmutableAndFree()
                 End Function)
 
             Dim moduleBuilder = CreateModuleBuilder(

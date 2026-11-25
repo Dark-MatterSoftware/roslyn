@@ -66,8 +66,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
         End Sub
 
         ' Experimental: whether a Vb.Next array slice that is the whole expression copies its elements with a loop
-        ' instead of Array.Copy. True when the evaluator's opt-in is enabled (VBNEXT_EE_ARRAYSLICE_LOOP=1 and a vbnext
-        ' module, see EvaluationContext.IsArraySliceLoopEnabled) or when a test passes it.
+        ' via <>ArraySliceCopy. True for vbnext evaluation parse options (see EvaluationContext.IsArraySliceLoopEnabled)
+        ' or when a test passes it.
         Friend Sub New(
             compilation As VisualBasicCompilation,
             container As EENamedTypeSymbol,
@@ -546,8 +546,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                     Return newBody
                 End If
 
-                ' Experimental, off unless this evaluation asked for it: a Vb.Next array slice that is the whole
-                ' expression copies its elements with a loop instead of Array.Copy. The block's locals are unchanged.
+                ' Debugger-specific: Vb.Next array slices replace Array.Copy with <>ArraySliceCopy in place
+                ' (preserves conditional/short-circuit evaluation). The method's original locals are unchanged.
                 If _useArraySliceLoop Then
                     newBody = ArraySliceRewriter.Rewrite(_compilation, Me, newBody)
                 End If
