@@ -110,7 +110,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     Case SyntaxKind.DotDotToken
                         ' ..end and .. are ranges with no start. Binary start..end is handled after a term.
-                        If Not _evaluatingConditionCompilationExpression Then
+                        ' DW-1b.3: ".. .<name>" is a whitespace-split XML descendant axis (17.13), not a range.
+                        If Not _evaluatingConditionCompilationExpression AndAlso
+                           PeekToken(1).Kind = SyntaxKind.DotToken AndAlso
+                           PeekToken(2).Kind = SyntaxKind.LessThanToken Then
+                            Dim dotDotToken = DirectCast(startToken, PunctuationSyntax)
+                            GetNextToken()
+                            expression = ParseWhitespaceSplitXmlDescendantAccess(term:=Nothing, dotDotToken:=dotDotToken)
+                        ElseIf Not _evaluatingConditionCompilationExpression Then
                             GetNextToken()
                             Dim rightOperand As ExpressionSyntax = Nothing
                             If CanStartRangeOperand() Then
@@ -185,11 +192,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                         Dim [operator] As SyntaxToken = ParseBinaryOperator()
 
                         If [operator].Kind = SyntaxKind.DotDotToken Then
-                            Dim rightOperand As ExpressionSyntax = Nothing
-                            If CanStartRangeOperand() Then
-                                rightOperand = ParseExpressionCore(precedence)
+                            ' DW-1b.3: "x.. .<name>" is a whitespace-split XML descendant axis, not a range to .<name>.
+                            If LooksLikeWhitespaceSplitXmlDescendantAfterDotDot() Then
+                                expression = ParseWhitespaceSplitXmlDescendantAccess(
+                                    term:=expression,
+                                    dotDotToken:=DirectCast([operator], PunctuationSyntax))
+                            Else
+                                Dim rightOperand As ExpressionSyntax = Nothing
+                                If CanStartRangeOperand() Then
+                                    rightOperand = ParseExpressionCore(precedence)
+                                End If
+                                expression = SyntaxFactory.RangeExpression(expression, DirectCast([operator], PunctuationSyntax), rightOperand)
                             End If
-                            expression = SyntaxFactory.RangeExpression(expression, DirectCast([operator], PunctuationSyntax), rightOperand)
                         Else
                             Dim rightOperand As ExpressionSyntax = ParseExpressionCore(precedence)
                             expression = SyntaxFactory.BinaryExpression(GetBinaryOperatorHelper([operator]), expression, [operator], rightOperand)
@@ -216,6 +230,65 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 Case Else
                     Return True
             End Select
+        End Function
+
+        ''' <summary>
+        ''' After a range <c>DotDot</c> has been consumed, <c>.&lt;name&gt;</c> begins a whitespace-split
+        ''' XML descendant axis (<c>x.. .&lt;b&gt;</c>), not a range whose end is XML element access.
+        ''' </summary>
+        Private Function LooksLikeWhitespaceSplitXmlDescendantAfterDotDot() As Boolean
+            Return CurrentToken.Kind = SyntaxKind.DotToken AndAlso
+                   PeekToken(1).Kind = SyntaxKind.LessThanToken
+        End Function
+
+        ''' <summary>
+        ''' Splits a scanned <c>..</c> token into two <c>.</c> tokens, preserving leading/trailing trivia
+        ''' for exact source round-tripping (DW-1b.3).
+        ''' </summary>
+        Private Shared Sub SplitDotDotIntoDots(
+            dotDotToken As PunctuationSyntax,
+            ByRef firstDot As PunctuationSyntax,
+            ByRef secondDot As PunctuationSyntax)
+
+            Debug.Assert(dotDotToken IsNot Nothing AndAlso dotDotToken.Kind = SyntaxKind.DotDotToken)
+            firstDot = New PunctuationSyntax(SyntaxKind.DotToken, ".", dotDotToken.GetLeadingTrivia(), Nothing)
+            secondDot = New PunctuationSyntax(SyntaxKind.DotToken, ".", Nothing, dotDotToken.GetTrailingTrivia())
+        End Sub
+
+        Private Function ParseXmlDescendantAxisName() As XmlBracketedNameSyntax
+            TryEatNewLineIfFollowedBy(SyntaxKind.LessThanToken)
+            If CurrentToken.Kind = SyntaxKind.LessThanToken Then
+                Return ParseBracketedXmlQualifiedName()
+            End If
+
+            Return ReportExpectedXmlBracketedName()
+        End Function
+
+        ''' <summary>
+        ''' Parses <c>.. .&lt;name&gt;</c> / <c>..  .&lt;name&gt;</c> as <see cref="SyntaxKind.XmlDescendantAccessExpression"/>
+        ''' once the <c>DotDot</c> token has already been consumed into <paramref name="dotDotToken"/>.
+        ''' </summary>
+        Private Function ParseWhitespaceSplitXmlDescendantAccess(
+            term As ExpressionSyntax,
+            dotDotToken As PunctuationSyntax
+        ) As ExpressionSyntax
+            Debug.Assert(dotDotToken.Kind = SyntaxKind.DotDotToken)
+            Debug.Assert(CurrentToken.Kind = SyntaxKind.DotToken)
+
+            Dim firstDot As PunctuationSyntax = Nothing
+            Dim secondDot As PunctuationSyntax = Nothing
+            SplitDotDotIntoDots(dotDotToken, firstDot, secondDot)
+
+            Dim thirdDotToken = DirectCast(CurrentToken, PunctuationSyntax)
+            GetNextToken()
+
+            Return SyntaxFactory.XmlMemberAccessExpression(
+                SyntaxKind.XmlDescendantAccessExpression,
+                term,
+                firstDot,
+                secondDot,
+                thirdDotToken,
+                ParseXmlDescendantAxisName())
         End Function
 
         Private Function ParseTerm(
@@ -1337,15 +1410,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                             Dim thirdDotToken As PunctuationSyntax = Nothing
                             TryGetToken(SyntaxKind.DotToken, thirdDotToken)
 
-                            ' Parse the Xml element name
-                            TryEatNewLineIfFollowedBy(SyntaxKind.LessThanToken)
-                            Dim name As XmlBracketedNameSyntax
-                            If CurrentToken.Kind = SyntaxKind.LessThanToken Then
-                                name = ParseBracketedXmlQualifiedName()
-                            Else
-                                name = ReportExpectedXmlBracketedName()
-                            End If
-                            Return SyntaxFactory.XmlMemberAccessExpression(SyntaxKind.XmlDescendantAccessExpression, Term, DotOrBangToken, secondDotToken, thirdDotToken, name)
+                            Return SyntaxFactory.XmlMemberAccessExpression(
+                                SyntaxKind.XmlDescendantAccessExpression,
+                                Term,
+                                DotOrBangToken,
+                                secondDotToken,
+                                thirdDotToken,
+                                ParseXmlDescendantAxisName())
+                        End If
+
+                    Case SyntaxKind.DotDotToken
+                        ' DW-1b.3: "x. ..<name>" — DotDot stands for the 2nd/3rd dots of a descendant axis.
+                        If PeekToken(1).Kind = SyntaxKind.LessThanToken Then
+                            Dim secondDot As PunctuationSyntax = Nothing
+                            Dim thirdDot As PunctuationSyntax = Nothing
+                            SplitDotDotIntoDots(DirectCast(CurrentToken, PunctuationSyntax), secondDot, thirdDot)
+                            GetNextToken()
+                            Return SyntaxFactory.XmlMemberAccessExpression(
+                                SyntaxKind.XmlDescendantAccessExpression,
+                                Term,
+                                DotOrBangToken,
+                                secondDot,
+                                thirdDot,
+                                ParseXmlDescendantAxisName())
                         End If
 
                     Case Else
