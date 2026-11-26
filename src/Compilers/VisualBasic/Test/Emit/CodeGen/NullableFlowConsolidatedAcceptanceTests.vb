@@ -672,7 +672,8 @@ End Class
             Dim forward = Compile(body)
             Dim backward = Compile(reversed)
             Assert.Equal(5, forward.GetDiagnostics().Count(Function(d) d.Code = ERRID.WRN_PossibleNullReturn))
-            Assert.Equal(1, forward.GetDiagnostics().Count(Function(d) d.Code = ERRID.WRN_PossibleNullReference))
+            ' Ordinary callers use the declared non-null return instead of the cycle summary.
+            Assert.Equal(0, forward.GetDiagnostics().Count(Function(d) d.Code = ERRID.WRN_PossibleNullReference))
             Assert.Equal(0, forward.GetDiagnostics().Count(Function(d) d.Code = ERRID.WRN_PossibleNullReference AndAlso SpanText(d) = "Ready()"))
             Assert.Equal(Picture(forward), Picture(backward))
         End Sub

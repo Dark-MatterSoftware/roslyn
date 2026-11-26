@@ -5369,6 +5369,7 @@ ContinueCandidatesLoop:
                                                diagnostic:=inferenceDiagnosticsBag) Then
                     candidate.SetInferenceLevel(inferenceLevel)
                     candidate.Candidate = candidate.Candidate.Construct(typeArguments)
+                    StampInferredNullableAnnotations(candidate, arguments, parameterToArgumentMap, paramArrayItems)
 
                     ' Need check for Option Strict and warn if parameter type is an assumed inferred type.
                     If binder.OptionStrict = OptionStrict.On AndAlso Not inferredTypeByAssumption.IsNull Then
@@ -5429,6 +5430,193 @@ ContinueCandidatesLoop:
             End If
 
             Return (candidate.State = CandidateAnalysisResultState.Applicable)
+        End Function
+
+        ''' <summary>
+        ''' Supplements a successful type inference with nullable annotations taken from the
+        ''' arguments that contributed to each method type parameter. Inference success, the
+        ''' inferred CLR types, and overload ranking are unchanged.
+        ''' </summary>
+        Private Shared Sub StampInferredNullableAnnotations(candidate As CandidateAnalysisResult, arguments As ImmutableArray(Of BoundExpression), parameterToArgumentMap As ArrayBuilder(Of Integer), paramArrayItems As ArrayBuilder(Of Integer))
+            Dim method = TryCast(candidate.Candidate.UnderlyingSymbol, MethodSymbol)
+            If method Is Nothing OrElse method.Arity = 0 OrElse parameterToArgumentMap Is Nothing Then
+                Return
+            End If
+
+            Dim original = method.OriginalDefinition
+            Dim parameters = original.Parameters
+            Dim annotations(method.Arity - 1) As NullableAnnotation
+            If parameters.Length > 0 Then
+                Dim counted = Math.Min(parameters.Length, parameterToArgumentMap.Count)
+                For parameterIndex = 0 To counted - 1
+                    Dim argumentIndex = parameterToArgumentMap(parameterIndex)
+                    If argumentIndex < 0 OrElse argumentIndex >= arguments.Length Then
+                        Continue For
+                    End If
+
+                    ContributeNullableAnnotation(parameters(parameterIndex).Type, arguments(argumentIndex), annotations, original)
+                Next
+            End If
+
+            If paramArrayItems IsNot Nothing AndAlso paramArrayItems.Count > 0 AndAlso parameters.Length > 0 Then
+                Dim element = ArrayElement(parameters(parameters.Length - 1).Type)
+                If element IsNot Nothing Then
+                    For item = 0 To paramArrayItems.Count - 1
+                        Dim argumentIndex = paramArrayItems(item)
+                        If argumentIndex >= 0 AndAlso argumentIndex < arguments.Length Then
+                            ContributeNullableAnnotation(element, arguments(argumentIndex), annotations, original)
+                        End If
+                    Next
+                End If
+            End If
+
+            method.SetTypeArgumentNullableAnnotations(ImmutableArray.Create(annotations))
+        End Sub
+
+        Private Shared Function ArrayElement(type As TypeSymbol) As TypeSymbol
+            Dim arrayType = TryCast(type, ArrayTypeSymbol)
+            If arrayType Is Nothing Then
+                Return Nothing
+            End If
+
+            Return arrayType.ElementType
+        End Function
+
+        Private Shared Sub ContributeNullableAnnotation(parameterType As TypeSymbol, argument As BoundExpression, annotations() As NullableAnnotation, method As MethodSymbol)
+            If parameterType Is Nothing OrElse argument Is Nothing Then
+                Return
+            End If
+
+            Dim typeParameter = TryCast(parameterType, TypeParameterSymbol)
+            If typeParameter IsNot Nothing Then
+                ContributeTypeParameter(typeParameter, AnnotationOfArgument(argument), annotations, method)
+                Return
+            End If
+
+            Dim lambda = LambdaArgument(argument)
+            Dim parameterNamed = TryCast(parameterType, NamedTypeSymbol)
+            If lambda IsNot Nothing AndAlso parameterNamed IsNot Nothing AndAlso parameterNamed.DelegateInvokeMethod IsNot Nothing Then
+                Dim invoke = parameterNamed.DelegateInvokeMethod
+                Dim lambdaParameters = lambda.Parameters
+                Dim lambdaCount = Math.Min(invoke.Parameters.Length, lambdaParameters.Length)
+                For lambdaIndex = 0 To lambdaCount - 1
+                    ContributeTypeParameter(TryCast(invoke.Parameters(lambdaIndex).Type, TypeParameterSymbol), DirectCast(lambdaParameters(lambdaIndex), IParameterSymbol).NullableAnnotation, annotations, method)
+                Next
+
+                ContributeTypeParameter(TryCast(invoke.ReturnType, TypeParameterSymbol), DirectCast(lambda, IMethodSymbol).ReturnNullableAnnotation, annotations, method)
+                Return
+            End If
+
+            If parameterNamed Is Nothing Then
+                Return
+            End If
+
+            Dim argumentNamed = TryCast(ArgumentType(argument), NamedTypeSymbol)
+            If argumentNamed Is Nothing OrElse argumentNamed.OriginalDefinition IsNot parameterNamed.OriginalDefinition Then
+                Return
+            End If
+
+            Dim parameterArguments = parameterNamed.TypeArgumentsNoUseSiteDiagnostics
+            Dim argumentAnnotations = argumentNamed.GetTypeArgumentNullableAnnotations()
+            Dim typeCount = parameterArguments.Length
+            For typeIndex = 0 To typeCount - 1
+                Dim incoming = NullableAnnotation.None
+                If Not argumentAnnotations.IsDefault AndAlso typeIndex < argumentAnnotations.Length Then
+                    incoming = argumentAnnotations(typeIndex)
+                End If
+
+                Dim inner = TryCast(parameterArguments(typeIndex), TypeParameterSymbol)
+                If inner IsNot Nothing Then
+                    ContributeTypeParameter(inner, incoming, annotations, method)
+                End If
+            Next
+        End Sub
+
+        Private Shared Sub ContributeTypeParameter(typeParameter As TypeParameterSymbol, incoming As NullableAnnotation, annotations() As NullableAnnotation, method As MethodSymbol)
+            If typeParameter Is Nothing OrElse incoming = NullableAnnotation.None Then
+                Return
+            End If
+
+            Dim owner = TryCast(typeParameter.ContainingSymbol, MethodSymbol)
+            If owner Is Nothing OrElse owner.OriginalDefinition IsNot method.OriginalDefinition Then
+                Return
+            End If
+
+            If typeParameter.Ordinal < 0 OrElse typeParameter.Ordinal >= annotations.Length Then
+                Return
+            End If
+
+            annotations(typeParameter.Ordinal) = CombineNullableAnnotation(annotations(typeParameter.Ordinal), incoming)
+        End Sub
+
+        Private Shared Function CombineNullableAnnotation(current As NullableAnnotation, incoming As NullableAnnotation) As NullableAnnotation
+            If incoming = NullableAnnotation.None OrElse current = NullableAnnotation.Annotated Then
+                Return current
+            End If
+
+            If current = NullableAnnotation.None OrElse incoming = NullableAnnotation.Annotated Then
+                Return incoming
+            End If
+
+            Return NullableAnnotation.NotAnnotated
+        End Function
+
+        Private Shared Function AnnotationOfArgument(argument As BoundExpression) As NullableAnnotation
+            Dim current = argument
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Parenthesized
+                        current = DirectCast(current, BoundParenthesized).Expression
+                    Case BoundKind.Conversion, BoundKind.DirectCast
+                        current = DirectCast(current, BoundConversionOrCast).Operand
+                    Case BoundKind.Local
+                        Return DirectCast(DirectCast(current, BoundLocal).LocalSymbol, ILocalSymbol).NullableAnnotation
+                    Case BoundKind.Parameter
+                        Return DirectCast(DirectCast(current, BoundParameter).ParameterSymbol, IParameterSymbol).NullableAnnotation
+                    Case Else
+                        Return NullableAnnotation.None
+                End Select
+            End While
+
+            Return NullableAnnotation.None
+        End Function
+
+        Private Shared Function ArgumentType(argument As BoundExpression) As TypeSymbol
+            Dim current = argument
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Parenthesized
+                        current = DirectCast(current, BoundParenthesized).Expression
+                    Case BoundKind.Conversion, BoundKind.DirectCast
+                        current = DirectCast(current, BoundConversionOrCast).Operand
+                    Case BoundKind.Local
+                        Return DirectCast(current, BoundLocal).LocalSymbol.Type
+                    Case BoundKind.Parameter
+                        Return DirectCast(current, BoundParameter).ParameterSymbol.Type
+                    Case Else
+                        Return current.Type
+                End Select
+            End While
+
+            Return Nothing
+        End Function
+
+        Private Shared Function LambdaArgument(argument As BoundExpression) As LambdaSymbol
+            Dim current = argument
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Parenthesized
+                        current = DirectCast(current, BoundParenthesized).Expression
+                    Case BoundKind.Conversion, BoundKind.DirectCast, BoundKind.TryCast
+                        current = DirectCast(current, BoundConversionOrCast).Operand
+                    Case BoundKind.Lambda
+                        Return DirectCast(current, BoundLambda).LambdaSymbol
+                    Case Else
+                        Return Nothing
+                End Select
+            End While
+
+            Return Nothing
         End Function
 
         Private Shared Function ConstructIfNeedTo(candidate As Candidate, typeArguments As ImmutableArray(Of TypeSymbol), typeArgumentAnnotations As ImmutableArray(Of NullableAnnotation)) As Candidate

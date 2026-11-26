@@ -156,11 +156,13 @@ End Class
             Assert.Equal(2, Count(compilation, 42510, "Nothing"))
             Assert.Equal(0, Count(compilation, 42512, "carried"))
             Assert.Equal(1, Count(compilation, 42513, "carried"))
-            Assert.Equal(1, Count(compilation, 42512, "text"))
+            ' The caller of a cyclic NotNullWhen uses the declared contract.
+            Assert.Equal(0, Count(compilation, 42512, "text"))
             Assert.Equal(0, Count(compilation, 42512, "ready"))
             Assert.Equal(1, Count(compilation, 42512, "loose"))
-            Assert.Equal(2, Count(compilation, 42511, "One(2)"))
-            Assert.Equal(1, Count(compilation, 42511, "Mid()"))
+            ' Ordinary callers of a cycle use the declared return contract.
+            Assert.Equal(0, Count(compilation, 42511, "One(2)"))
+            Assert.Equal(0, Count(compilation, 42511, "Mid()"))
             Assert.Equal(0, Count(compilation, 42512, "quiet"))
             Assert.Equal(1, Count(compilation, 42528, "Return Again(value)"))
             Assert.Equal(1, Count(compilation, 42528, "Return Other(value)"))

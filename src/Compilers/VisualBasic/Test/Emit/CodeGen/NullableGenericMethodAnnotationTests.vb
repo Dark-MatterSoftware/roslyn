@@ -98,8 +98,8 @@ Module Program
     End Function
 End Module
 ")
-            Assert.Equal("", Picture(compilation))
-            Assert.Equal(NullableAnnotation.None, Invocation(compilation, "Identity(value)").ReturnNullableAnnotation)
+            Assert.Equal("42512:inferred", Picture(compilation))
+            Assert.Equal(NullableAnnotation.Annotated, Invocation(compilation, "Identity(value)").ReturnNullableAnnotation)
             Assert.Equal(NullableAnnotation.None, Invocation(compilation, "Identity(""Hello"")").ReturnNullableAnnotation)
         End Sub
 
@@ -352,7 +352,7 @@ End Module
             Dim mutual = Compile(MutualSource(reversed:=False))
             Dim reversed = Compile(MutualSource(reversed:=True))
             Assert.Equal(Picture(mutual), Picture(reversed))
-            Assert.Equal("42511:ContinueMutual(depth)|42511:Left(depth - 1)|42511:Nothing|42511:NullLeft(depth - 1)|42511:NullRight(depth)|42511:Right(depth)|42511:StopMutual(depth - 1)|42512:mutual|42512:mutualNull|42512:stopped|42513:carried|42528:Return Again(value)|42528:Return Other(value)|42532:Return ""ready""|42532:Return ContinueMutual(depth)", Picture(mutual))
+            Assert.Equal("42511:ContinueMutual(depth)|42511:Left(depth - 1)|42511:Nothing|42511:NullLeft(depth - 1)|42511:NullRight(depth)|42511:Right(depth)|42511:StopMutual(depth - 1)|42513:carried|42528:Return Again(value)|42528:Return Other(value)|42532:Return ""ready""|42532:Return ContinueMutual(depth)", Picture(mutual))
         End Sub
 
         <Fact>
@@ -373,19 +373,18 @@ End Module
             Dim handler = Compile("
 Module Program
     Sub Go()
-        Dim s As String = ""x""
+        Dim text As String = ""Hello""
         On Error GoTo Handler
         Error 5
-        Dim length = s.Length
+        System.Console.WriteLine(text.Length)
         Exit Sub
 Handler:
-        s = Nothing
+        text = Nothing
         Resume Next
     End Sub
 End Module
 ")
-            Assert.Equal(0, Count(handler, 42512, "s"))
-            Assert.Equal(0, Count(handler, 42510, "Nothing"))
+            Assert.Equal("42510:Nothing|42512:text", Picture(handler))
         End Sub
 
         Private Shared Function MutualSource(reversed As Boolean) As String

@@ -68,3 +68,15 @@ Slice 10c warns from flow analysis on the experimental version.
 Slice 10d emits the nullable metadata attributes.
 
 Slice 10e stores annotations on generics and on overridden signatures.
+
+## Flow policies approved on November 26, 2026
+
+These decisions apply when the language version is `vbnext` and nullable warnings are enabled. `default` and `latest` stay on Visual Basic 17.13. They do not change emitted IL, runtime method identity, or overload ranking.
+
+Inferred method type arguments keep the existing inferred CLR types. A nullable annotation is added from the arguments that contributed to each method type parameter. An annotated contribution wins over a non-annotated one. An oblivious contribution does not become a non-null guarantee. A nullable local that flow already knows is not null does not warn at the inferred result. An inferred extension receiver is not one of the reduced method's inference arguments, so that result stays oblivious unless the type arguments are written explicitly.
+
+An ordinary caller uses the method's declared nullable contract, whether the callee was compiled from source or imported from metadata. The callee's body is checked on its own. A method that is inside a recursive cycle does not treat that cycle's declared contracts as proof that its own body meets them. A caller outside the cycle still uses the declared contract. Conservative warnings inside a recursive body remain.
+
+`On Error` and `Resume` keep their existing runtime behavior. While a handler is active, a local that a handler assigns from `Nothing` is not treated as proven non-null, including on the statement a `Resume Next` can reach after `Error`. `On Error Resume Next` does not, by itself, discard every nullable fact in the method. A `Resume` does not fall through into the statements written after it.
+
+When `MaybeNull` and `NotNull` are both declared on the same output, `NotNull` wins, in either attribute order. The metadata attributes are unchanged. A valid `NotNull` on a return type, including `As <NotNull> T`, is a postcondition of normal completion. The substituted type may still be nullable. An ordinary caller may rely on that postcondition. A body that returns `Nothing` is still diagnosed.

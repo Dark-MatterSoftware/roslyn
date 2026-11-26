@@ -120,7 +120,7 @@ Later, and only after the four items above are understood:
 
 - **Raw string literals.** Scanner and interpolated-string parsing, plus classification. Visual Basic already has multiline string literals from VB 14, so the design has to say how a new literal differs.
 - **Required members.** Symbol and emit work with an existing metadata attribute. Depends on object-initializer binding.
-- **Nullable reference types and records.** These cut across symbols, binding, public API, IDE, and metadata. They are poor first features. Nullable annotations also collide with Visual Basic's existing `?` nullable value-type syntax, so the design problem is larger than the C# one.
+- **Nullable reference types and records.** These cut across symbols, binding, public API, IDE, and metadata. They are poor first features. Nullable annotations also collide with Visual Basic's existing `?` nullable value-type syntax, so the design problem is larger than the C# one. The fork's VB-030 flow policies are recorded in `docs/vbnext-vb030-syntax.md`. That work is not owner-accepted, and the public nullable API remains outstanding.
 
 `docs/Language Feature Status.md` should be treated as the upstream inventory. Vb.Next should not re-implement a feature that section already lists as merged for Visual Basic.
 
