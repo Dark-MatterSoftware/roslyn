@@ -294,12 +294,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return _originalTypeArgumentAnnotations
         End Function
 
+        Friend Overrides ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return _curriedFromMethod.ReturnTypeFlowAnalysisAnnotations
+            End Get
+        End Property
+
         Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
             Dim declared = _curriedFromMethod.GetReturnNullableAnnotation()
-            ' A declared non-null return, including Class-constrained T and a NotNull contract,
-            ' stays non-null. Receiver inference fills only an absent declaration annotation.
-            If declared = NullableAnnotation.NotAnnotated OrElse
-               (_curriedFromMethod.ReturnTypeFlowAnalysisAnnotations And FlowAnalysisAnnotations.NotNull) = FlowAnalysisAnnotations.NotNull Then
+            ' An explicit T? stays annotated. Inference does not remove it.
+            If declared = NullableAnnotation.Annotated Then
                 Return declared
             End If
 
@@ -504,7 +508,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         type = type.InternalSubstituteTypeParameters(_curryTypeSubstitution).Type
                     End If
 
-                    ApplyStoredAnnotations(originalType, type)
+                    ' A partial reduction is shared by every later construction of this definition.
+                    ' Call-specific annotations stay on those constructions. A fully reduced
+                    ' method is itself the call symbol, so its return type can carry them.
+                    If _curriedTypeParameters.IsEmpty Then
+                        ApplyStoredAnnotations(originalType, type)
+                    End If
                     Interlocked.CompareExchange(_lazyReturnType, type, Nothing)
                 End If
 

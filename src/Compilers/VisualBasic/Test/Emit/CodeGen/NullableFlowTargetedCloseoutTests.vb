@@ -81,7 +81,14 @@ End Module
         Public Sub ExtensionReceiver_CoversNestedArgumentsContractsAndOrder()
             Dim compilation = Compile("
 Imports System
+Imports System.Diagnostics.CodeAnalysis
 Imports System.Runtime.CompilerServices
+Namespace System.Diagnostics.CodeAnalysis
+    <AttributeUsage(AttributeTargets.ReturnValue)>
+    Public NotInheritable Class NotNullAttribute
+        Inherits Attribute
+    End Class
+End Namespace
 Class Pair(Of T)
     Public Item As T
 End Class
@@ -134,7 +141,7 @@ Module Program
         Return value
     End Function
 End Module
-" & Attributes())
+")
             Dim seen = Picture(compilation)
             Assert.True(seen.Contains("42512:nested"), seen)
             Assert.True(Not seen.Contains("42512:nestedReady"), seen)

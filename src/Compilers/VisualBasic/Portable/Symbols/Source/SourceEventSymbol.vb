@@ -183,7 +183,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             ' if there is an As clause we use its type as event's type
             If syntax.AsClause IsNot Nothing Then
-                type = binder.DecodeIdentifierType(syntax.Identifier, syntax.AsClause, Nothing, diagnostics)
+                Dim ignored As NullableAnnotation = NullableAnnotation.None
+                type = binder.DecodeIdentifierType(syntax.Identifier, syntax.AsClause, Nothing, diagnostics, ignored)
                 If Not syntax.AsClause.AsKeyword.IsMissing Then
                     If Not type.IsDelegateType Then
                         Binder.ReportDiagnostic(diagnostics, syntax.AsClause.Type, ERRID.ERR_EventTypeNotDelegate)

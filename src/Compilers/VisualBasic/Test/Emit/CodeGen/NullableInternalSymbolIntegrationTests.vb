@@ -241,10 +241,9 @@ End Class
             Assert.IsType(Of RetargetingEventSymbol)(retargetedEvent)
             Dim sourceEventType = DirectCast(sourceEvent.Type, NamedTypeSymbol)
             Dim eventType = DirectCast(retargetedEvent.Type, NamedTypeSymbol)
-            ' Event type binding does not capture declaration annotations, and events have no
-            ' separate annotation field. Retargeting therefore preserves the absent annotation.
-            Assert.Equal(NullableAnnotation.None, sourceEventType.GetTypeArgumentNullableAnnotations().Single())
-            Assert.Equal(NullableAnnotation.None, eventType.GetTypeArgumentNullableAnnotations().Single())
+            ' The event has no annotation of its own. The constructed delegate or type argument does.
+            Assert.Equal(NullableAnnotation.Annotated, sourceEventType.GetTypeArgumentNullableAnnotations().Single())
+            Assert.Equal(NullableAnnotation.Annotated, eventType.GetTypeArgumentNullableAnnotations().Single())
             Assert.Equal(NullableAnnotation.None, DirectCast(retargetedEvent, IEventSymbol).NullableAnnotation)
         End Sub
 
