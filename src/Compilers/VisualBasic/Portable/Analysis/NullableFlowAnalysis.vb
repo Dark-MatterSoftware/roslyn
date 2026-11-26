@@ -114,7 +114,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitReturnStatement(node As BoundReturnStatement) As BoundNode
             If node.ExpressionOpt IsNot Nothing Then
                 Dim mayBeNull = ExpressionMayBeNull(node.ExpressionOpt)
-                If mayBeNull AndAlso AnnotationOf(_method) = NullableAnnotation.NotAnnotated Then
+                If mayBeNull AndAlso ReturnDisallowsNull() Then
                     Warn(ERRID.WRN_PossibleNullReturn, node.ExpressionOpt.Syntax)
                 End If
             End If
@@ -159,7 +159,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim invocation = DirectCast(expr, BoundCall)
                     WarnReceiver(invocation.ReceiverOpt)
                     CheckArguments(invocation.Method, invocation.Arguments)
-                    Return AnnotationOf(invocation.Method) = NullableAnnotation.Annotated
+                    Return CallResultMayBeNull(invocation.Method)
                 Case BoundKind.PropertyAccess
                     VisitPropertyAccess(DirectCast(expr, BoundPropertyAccess))
                     Return False
@@ -204,7 +204,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Continue For
                 End If
 
-                If ExpressionMayBeNull(arguments(i)) AndAlso AnnotationOf(parameter) = NullableAnnotation.NotAnnotated Then
+                If ExpressionMayBeNull(arguments(i)) AndAlso ArgumentDisallowsNull(parameter) Then
                     Warn(ERRID.WRN_PossibleNullArgument, arguments(i).Syntax, parameter.Name)
                 End If
             Next
@@ -213,6 +213,56 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ExpressionMayBeNull(arguments(i))
             Next
         End Sub
+
+        Private Function ReturnDisallowsNull() As Boolean
+            If AnnotationOf(_method) = NullableAnnotation.None Then
+                Return False
+            End If
+
+            Return DisallowsNull(AnnotationOf(_method) = NullableAnnotation.NotAnnotated, _method.ReturnTypeFlowAnalysisAnnotations, outputContract:=True)
+        End Function
+
+        Private Function ArgumentDisallowsNull(parameter As ParameterSymbol) As Boolean
+            Dim declared = AnnotationOf(parameter)
+            If declared = NullableAnnotation.None Then
+                Return False
+            End If
+
+            Return DisallowsNull(declared = NullableAnnotation.NotAnnotated, parameter.FlowAnalysisAnnotations, outputContract:=False)
+        End Function
+
+        Private Shared Function CallResultMayBeNull(method As MethodSymbol) As Boolean
+            If method Is Nothing OrElse AnnotationOf(method) = NullableAnnotation.None Then
+                Return False
+            End If
+
+            Dim annotations = method.ReturnTypeFlowAnalysisAnnotations
+            If HasContract(annotations, FlowAnalysisAnnotations.NotNull) Then
+                Return False
+            End If
+            If HasContract(annotations, FlowAnalysisAnnotations.MaybeNull) Then
+                Return True
+            End If
+
+            Return AnnotationOf(method) = NullableAnnotation.Annotated
+        End Function
+
+        Private Shared Function DisallowsNull(declaredNotNull As Boolean, annotations As FlowAnalysisAnnotations, outputContract As Boolean) As Boolean
+            Dim allow = If(outputContract, FlowAnalysisAnnotations.MaybeNull, FlowAnalysisAnnotations.AllowNull)
+            Dim disallow = If(outputContract, FlowAnalysisAnnotations.NotNull, FlowAnalysisAnnotations.DisallowNull)
+            If HasContract(annotations, allow) AndAlso Not HasContract(annotations, disallow) Then
+                Return False
+            End If
+            If HasContract(annotations, disallow) Then
+                Return True
+            End If
+
+            Return declaredNotNull
+        End Function
+
+        Private Shared Function HasContract(annotations As FlowAnalysisAnnotations, contract As FlowAnalysisAnnotations) As Boolean
+            Return (annotations And contract) = contract
+        End Function
 
         Private Function MayBeNull(symbol As Symbol) As Boolean
             If symbol Is Nothing Then

@@ -79,6 +79,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend NotOverridable Overrides ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return OriginalDefinition.ReturnTypeFlowAnalysisAnnotations
+            End Get
+        End Property
+
+        Friend NotOverridable Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return OriginalDefinition.FlowAnalysisAnnotations
+            End Get
+        End Property
+
+        Friend NotOverridable Overrides ReadOnly Property ReturnNotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Return OriginalDefinition.ReturnNotNullIfParameterNotNull
+            End Get
+        End Property
+
+        Friend NotOverridable Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return OriginalDefinition.NotNullMembers
+            End Get
+        End Property
+
+        Friend NotOverridable Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return OriginalDefinition.NotNullWhenTrueMembers
+            End Get
+        End Property
+
+        Friend NotOverridable Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return OriginalDefinition.NotNullWhenFalseMembers
+            End Get
+        End Property
+
         Friend NotOverridable Overrides ReadOnly Property ImplementationAttributes As Reflection.MethodImplAttributes
             Get
                 Return OriginalDefinition.ImplementationAttributes

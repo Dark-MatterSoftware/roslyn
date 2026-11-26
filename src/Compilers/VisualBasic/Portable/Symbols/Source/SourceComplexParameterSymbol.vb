@@ -115,13 +115,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return DirectCast(attributesBag.EarlyDecodedWellKnownAttributeData, ParameterEarlyWellKnownAttributeData)
         End Function
 
-        Friend Overrides Function GetDecodedWellKnownAttributeData() As CommonParameterWellKnownAttributeData
+        Friend Overrides Function GetDecodedWellKnownAttributeData() As ParameterWellKnownAttributeData
             Dim attributesBag As CustomAttributesBag(Of VisualBasicAttributeData) = Me._lazyCustomAttributesBag
             If attributesBag Is Nothing OrElse Not attributesBag.IsDecodedWellKnownAttributeDataComputed Then
                 attributesBag = Me.GetAttributesBag()
             End If
 
-            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, CommonParameterWellKnownAttributeData)
+            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, ParameterWellKnownAttributeData)
         End Function
 
         Public Overrides ReadOnly Property HasExplicitDefaultValue As Boolean

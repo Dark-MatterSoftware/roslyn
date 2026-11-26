@@ -77,6 +77,95 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return GetTargetAttributeSignatureIndex(description) <> -1
         End Function
 
+        Friend Function DecodeBooleanConstructorArgument() As Boolean?
+            Dim arguments = CommonConstructorArguments
+            If arguments.IsDefaultOrEmpty OrElse arguments.Length <> 1 Then
+                Return Nothing
+            End If
+
+            Dim value As Boolean
+            If arguments(0).TryDecodeValue(SpecialType.System_Boolean, value) Then
+                Return value
+            End If
+
+            Return Nothing
+        End Function
+
+        Friend Function DecodeNotNullIfNotNullArgument() As String
+            Dim arguments = CommonConstructorArguments
+            If arguments.IsDefaultOrEmpty OrElse arguments.Length <> 1 Then
+                Return Nothing
+            End If
+
+            Return DecodeNullableString(arguments(0))
+        End Function
+
+        Friend Function DecodeMemberNotNullNames() As ImmutableArray(Of String)
+            Dim arguments = CommonConstructorArguments
+            If arguments.IsDefaultOrEmpty Then
+                Return ImmutableArray(Of String).Empty
+            End If
+
+            Return ReadMemberNames(arguments(0))
+        End Function
+
+        Friend Function DecodeMemberNotNullWhenNames(ByRef sense As Boolean) As ImmutableArray(Of String)
+            sense = False
+            Dim arguments = CommonConstructorArguments
+            If arguments.IsDefaultOrEmpty OrElse arguments.Length < 2 OrElse Not arguments(0).TryDecodeValue(SpecialType.System_Boolean, sense) Then
+                Return ImmutableArray(Of String).Empty
+            End If
+
+            Return ReadMemberNames(arguments(1))
+        End Function
+
+        Friend Function ToSynthesizedAttribute(compilation As VisualBasicCompilation) As SynthesizedAttributeData
+            If compilation Is Nothing OrElse AttributeConstructor Is Nothing Then
+                Return Nothing
+            End If
+
+            Return New SynthesizedAttributeData(compilation, AttributeConstructor, CommonConstructorArguments, CommonNamedArguments)
+        End Function
+
+        Private Shared Function ReadMemberNames(value As TypedConstant) As ImmutableArray(Of String)
+            If value.IsNull Then
+                Return ImmutableArray(Of String).Empty
+            End If
+
+            If value.Kind = TypedConstantKind.Array Then
+                Dim values = value.Values
+                If values.IsDefaultOrEmpty Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Dim builder = ArrayBuilder(Of String).GetInstance()
+                For Each member In values
+                    Dim name = DecodeNullableString(member)
+                    If name IsNot Nothing Then
+                        builder.Add(name)
+                    End If
+                Next
+
+                Return builder.ToImmutableAndFree()
+            End If
+
+            Dim singleName = DecodeNullableString(value)
+            If singleName Is Nothing Then
+                Return ImmutableArray(Of String).Empty
+            End If
+
+            Return ImmutableArray.Create(singleName)
+        End Function
+
+        Private Shared Function DecodeNullableString(value As TypedConstant) As String
+            Dim name As String = Nothing
+            If value.Kind <> TypedConstantKind.Primitive OrElse Not value.TryDecodeValue(SpecialType.System_String, name) Then
+                Return Nothing
+            End If
+
+            Return name
+        End Function
+
         Friend MustOverride Function GetTargetAttributeSignatureIndex(description As AttributeDescription) As Integer
 
         ''' <summary>

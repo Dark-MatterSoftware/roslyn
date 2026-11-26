@@ -655,14 +655,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return _lazyCustomAttributesBag
         End Function
 
-        Private Function GetDecodedWellKnownAttributeData() As CommonFieldWellKnownAttributeData
+        Private Function GetDecodedWellKnownAttributeData() As FieldWellKnownAttributeData
             Dim attributesBag As CustomAttributesBag(Of VisualBasicAttributeData) = Me._lazyCustomAttributesBag
             If attributesBag Is Nothing OrElse Not attributesBag.IsDecodedWellKnownAttributeDataComputed Then
                 attributesBag = Me.GetAttributesBag()
             End If
 
-            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, CommonFieldWellKnownAttributeData)
+            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, FieldWellKnownAttributeData)
         End Function
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return NullableAnalysisAttributes.FromFieldData(GetDecodedWellKnownAttributeData())
+            End Get
+        End Property
 
         ' This should be called at most once after the attributes are bound.  Attributes must be bound after the class
         ' and members are fully declared to avoid infinite recursion.
@@ -746,11 +752,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             If attrData.IsTargetAttribute(AttributeDescription.SpecialNameAttribute) Then
-                arguments.GetOrCreateData(Of CommonFieldWellKnownAttributeData)().HasSpecialNameAttribute = True
+                arguments.GetOrCreateData(Of FieldWellKnownAttributeData)().HasSpecialNameAttribute = True
             ElseIf attrData.IsTargetAttribute(AttributeDescription.NonSerializedAttribute) Then
 
                 If Me.ContainingType.IsSerializable Then
-                    arguments.GetOrCreateData(Of CommonFieldWellKnownAttributeData)().HasNonSerializedAttribute = True
+                    arguments.GetOrCreateData(Of FieldWellKnownAttributeData)().HasNonSerializedAttribute = True
                 Else
                     diagnostics.Add(ERRID.ERR_InvalidNonSerializedUsage, arguments.AttributeSyntaxOpt.GetLocation())
                 End If
@@ -762,14 +768,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     offset = 0
                 End If
 
-                arguments.GetOrCreateData(Of CommonFieldWellKnownAttributeData)().SetFieldOffset(offset)
+                arguments.GetOrCreateData(Of FieldWellKnownAttributeData)().SetFieldOffset(offset)
 
             ElseIf attrData.IsTargetAttribute(AttributeDescription.MarshalAsAttribute) Then
-                MarshalAsAttributeDecoder(Of CommonFieldWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).Decode(arguments, AttributeTargets.Field, MessageProvider.Instance)
+                MarshalAsAttributeDecoder(Of FieldWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).Decode(arguments, AttributeTargets.Field, MessageProvider.Instance)
             ElseIf attrData.IsTargetAttribute(AttributeDescription.DateTimeConstantAttribute) Then
                 VerifyConstantValueMatches(attrData.DecodeDateTimeConstantValue(), arguments)
             ElseIf attrData.IsTargetAttribute(AttributeDescription.DecimalConstantAttribute) Then
                 VerifyConstantValueMatches(attrData.DecodeDecimalConstantValue(), arguments)
+            ElseIf NullableAnalysisAttributes.TryDecodeFieldAttribute(attrData, arguments) Then
             Else
                 MyBase.DecodeWellKnownAttribute(arguments)
             End If
@@ -781,7 +788,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' If not, report ERR_FieldHasMultipleDistinctConstantValues.
         ''' </summary>
         Private Sub VerifyConstantValueMatches(attrValue As ConstantValue, ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation))
-            Dim data = arguments.GetOrCreateData(Of CommonFieldWellKnownAttributeData)()
+            Dim data = arguments.GetOrCreateData(Of FieldWellKnownAttributeData)()
             Dim constValue As ConstantValue
             Dim diagnostics = DirectCast(arguments.Diagnostics, BindingDiagnosticBag)
 

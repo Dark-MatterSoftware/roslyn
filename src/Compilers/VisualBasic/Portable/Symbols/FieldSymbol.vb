@@ -459,6 +459,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         ''' <summary>
+        ''' Nullable analysis contract declared on this field. This does not change <see cref="Type"/>.
+        ''' </summary>
+        Friend Overridable ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return FlowAnalysisAnnotations.None
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Returns the RefKind of the field. 
         ''' </summary>
         Private ReadOnly Property IFieldSymbol_RefKind As RefKind Implements IFieldSymbol.RefKind

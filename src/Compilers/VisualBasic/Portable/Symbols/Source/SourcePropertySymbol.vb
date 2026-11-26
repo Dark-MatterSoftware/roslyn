@@ -609,23 +609,62 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return Me.GetAttributesBag().Attributes
         End Function
 
-        Private Function GetDecodedWellKnownAttributeData() As CommonPropertyWellKnownAttributeData
+        Private Function GetDecodedWellKnownAttributeData() As PropertyWellKnownAttributeData
             Dim attributesBag As CustomAttributesBag(Of VisualBasicAttributeData) = Me._lazyCustomAttributesBag
             If attributesBag Is Nothing OrElse Not attributesBag.IsDecodedWellKnownAttributeDataComputed Then
                 attributesBag = Me.GetAttributesBag()
             End If
 
-            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, CommonPropertyWellKnownAttributeData)
+            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, PropertyWellKnownAttributeData)
         End Function
 
-        Private Function GetDecodedReturnTypeWellKnownAttributeData() As CommonReturnTypeWellKnownAttributeData
+        Private Function GetDecodedReturnTypeWellKnownAttributeData() As ReturnTypeWellKnownAttributeData
             Dim attributesBag As CustomAttributesBag(Of VisualBasicAttributeData) = Me._lazyReturnTypeCustomAttributesBag
             If attributesBag Is Nothing OrElse Not attributesBag.IsDecodedWellKnownAttributeDataComputed Then
                 attributesBag = Me.GetReturnTypeAttributesBag()
             End If
 
-            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, CommonReturnTypeWellKnownAttributeData)
+            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, ReturnTypeWellKnownAttributeData)
         End Function
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return NullableAnalysisAttributes.FromPropertyData(GetDecodedWellKnownAttributeData(), GetDecodedReturnTypeWellKnownAttributeData())
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Return data.NotNullMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Return data.NotNullWhenTrueMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Return data.NotNullWhenFalseMembers
+            End Get
+        End Property
 
         Friend Overrides Function EarlyDecodeWellKnownAttribute(ByRef arguments As EarlyDecodeWellKnownAttributeArguments(Of EarlyWellKnownAttributeBinder, NamedTypeSymbol, AttributeSyntax, AttributeLocation)) As VisualBasicAttributeData
             Debug.Assert(arguments.AttributeType IsNot Nothing)
@@ -683,17 +722,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
 
                 If isMarshalAs Then
-                    MarshalAsAttributeDecoder(Of CommonReturnTypeWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).
+                    MarshalAsAttributeDecoder(Of ReturnTypeWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).
                         Decode(arguments, AttributeTargets.Field, MessageProvider.Instance)
 
                     Return
                 End If
             Else
                 If attrData.IsTargetAttribute(AttributeDescription.SpecialNameAttribute) Then
-                    arguments.GetOrCreateData(Of CommonPropertyWellKnownAttributeData).HasSpecialNameAttribute = True
+                    arguments.GetOrCreateData(Of PropertyWellKnownAttributeData).HasSpecialNameAttribute = True
                     Return
                 ElseIf attrData.IsTargetAttribute(AttributeDescription.ExcludeFromCodeCoverageAttribute) Then
-                    arguments.GetOrCreateData(Of CommonPropertyWellKnownAttributeData).HasExcludeFromCodeCoverageAttribute = True
+                    arguments.GetOrCreateData(Of PropertyWellKnownAttributeData).HasExcludeFromCodeCoverageAttribute = True
                     Return
                 ElseIf Not IsWithEvents AndAlso attrData.IsTargetAttribute(AttributeDescription.DebuggerHiddenAttribute) Then
                     ' if neither getter or setter is marked by DebuggerHidden Dev11 reports a warning
@@ -720,6 +759,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
             End If
 
+            NullableAnalysisAttributes.TryDecodePropertyAttribute(attrData, arguments)
             MyBase.DecodeWellKnownAttribute(arguments)
         End Sub
 

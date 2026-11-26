@@ -32,6 +32,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly _getMethod As PEMethodSymbol
         Private ReadOnly _setMethod As PEMethodSymbol
         Private ReadOnly _handle As PropertyDefinitionHandle
+        Private _lazyFlowAnalysisAnnotations As Integer = -1
+        Private _lazyMemberNotNull As NullableMemberNotNullData
         Private _lazyCustomAttributes As ImmutableArray(Of VisualBasicAttributeData)
 
         Private _lazyDocComment As Tuple(Of CultureInfo, String)
@@ -296,6 +298,63 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Public Overrides ReadOnly Property Type As TypeSymbol
             Get
                 Return _propertyType
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Dim existing = Volatile.Read(_lazyFlowAnalysisAnnotations)
+                If existing < 0 Then
+                    Dim decoded = NullableAnalysisAttributes.DecodeUnconditionalMetadataAnnotations(_containingType.ContainingPEModule.Module, Handle)
+                    Dim setter = SetMethod
+                    If setter IsNot Nothing AndAlso setter.ParameterCount > 0 Then
+                        decoded = decoded Or NullableAnalysisAttributes.InputAnnotations(setter.Parameters(setter.ParameterCount - 1).FlowAnalysisAnnotations)
+                    End If
+
+                    Dim getter = GetMethod
+                    If getter IsNot Nothing Then
+                        decoded = decoded Or NullableAnalysisAttributes.OutputAnnotations(getter.ReturnTypeFlowAnalysisAnnotations)
+                    End If
+
+                    Dim stored = Interlocked.CompareExchange(_lazyFlowAnalysisAnnotations, CInt(decoded), -1)
+                    If stored < 0 Then
+                        existing = CInt(decoded)
+                    Else
+                        existing = stored
+                    End If
+                End If
+
+                Return CType(existing, FlowAnalysisAnnotations)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return MemberNotNull.Members
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return MemberNotNull.WhenTrueMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return MemberNotNull.WhenFalseMembers
+            End Get
+        End Property
+
+        Private ReadOnly Property MemberNotNull As NullableMemberNotNullData
+            Get
+                Dim existing = _lazyMemberNotNull
+                If existing IsNot Nothing Then
+                    Return existing
+                End If
+
+                Dim created = NullableAnalysisAttributes.ReadMemberNotNull(_containingType.ContainingPEModule.Module, Handle)
+                Return InterlockedOperations.Initialize(_lazyMemberNotNull, created)
             End Get
         End Property
 

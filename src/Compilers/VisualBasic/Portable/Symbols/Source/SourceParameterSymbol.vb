@@ -164,7 +164,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend MustOverride Function GetAttributesBag() As CustomAttributesBag(Of VisualBasicAttributeData)
         Friend MustOverride Function GetEarlyDecodedWellKnownAttributeData() As ParameterEarlyWellKnownAttributeData
-        Friend MustOverride Function GetDecodedWellKnownAttributeData() As CommonParameterWellKnownAttributeData
+        Friend MustOverride Function GetDecodedWellKnownAttributeData() As ParameterWellKnownAttributeData
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return NullableAnalysisAttributes.FromParameterData(GetDecodedWellKnownAttributeData()) Or
+                    NullableAnalysisAttributes.PropertySetterInputAnnotations(Me)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableHashSet(Of String).Empty
+                End If
+
+                Return data.NotNullIfParameterNotNull
+            End Get
+        End Property
         Friend MustOverride ReadOnly Property AttributeDeclarationList As SyntaxList(Of AttributeListSyntax)
 
         Friend NotOverridable Overrides ReadOnly Property HasParamArrayAttribute As Boolean
@@ -368,11 +386,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 ' Attribute decoded and constant value stored during EarlyDecodeWellKnownAttribute.
                 DecodeDefaultParameterValueAttribute(AttributeDescription.DateTimeConstantAttribute, arguments)
             ElseIf attrData.IsTargetAttribute(AttributeDescription.InAttribute) Then
-                arguments.GetOrCreateData(Of CommonParameterWellKnownAttributeData)().HasInAttribute = True
+                arguments.GetOrCreateData(Of ParameterWellKnownAttributeData)().HasInAttribute = True
             ElseIf attrData.IsTargetAttribute(AttributeDescription.OutAttribute) Then
-                arguments.GetOrCreateData(Of CommonParameterWellKnownAttributeData)().HasOutAttribute = True
+                arguments.GetOrCreateData(Of ParameterWellKnownAttributeData)().HasOutAttribute = True
             ElseIf attrData.IsTargetAttribute(AttributeDescription.MarshalAsAttribute) Then
-                MarshalAsAttributeDecoder(Of CommonParameterWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).Decode(arguments, AttributeTargets.Parameter, MessageProvider.Instance)
+                MarshalAsAttributeDecoder(Of ParameterWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).Decode(arguments, AttributeTargets.Parameter, MessageProvider.Instance)
             ElseIf attrData.IsTargetAttribute(AttributeDescription.CallerArgumentExpressionAttribute) Then
                 Dim index = GetEarlyDecodedWellKnownAttributeData()?.CallerArgumentExpressionParameterIndex
                 If index = Ordinal Then
@@ -384,6 +402,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 If Not IsConsumedEnumeratorCancellationParameter() Then
                     DirectCast(arguments.Diagnostics, BindingDiagnosticBag).Add(ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage, arguments.AttributeSyntaxOpt.Location, Me.Name)
                 End If
+            Else
+                NullableAnalysisAttributes.TryDecodeParameterAttribute(attrData, arguments)
             End If
 
             MyBase.DecodeWellKnownAttribute(arguments)

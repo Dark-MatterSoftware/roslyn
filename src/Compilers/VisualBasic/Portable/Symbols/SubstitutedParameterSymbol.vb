@@ -59,6 +59,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return _originalDefinition.GetAttributes()
         End Function
 
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return _originalDefinition.FlowAnalysisAnnotations
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Return _originalDefinition.NotNullIfParameterNotNull
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property HasExplicitDefaultValue As Boolean
             Get
                 Return _originalDefinition.HasExplicitDefaultValue

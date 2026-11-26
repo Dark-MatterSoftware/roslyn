@@ -44,6 +44,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public MustOverride ReadOnly Property IsByRef As Boolean
 
         ''' <summary>
+        ''' Nullable analysis contract declared on this parameter. This does not change <see cref="Type"/>.
+        ''' </summary>
+        Friend Overridable ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return FlowAnalysisAnnotations.None
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Return ImmutableHashSet(Of String).Empty
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Is parameter explicitly declared ByRef. Can be different from IsByRef only for
         ''' String parameters of Declare methods.
         ''' </summary>

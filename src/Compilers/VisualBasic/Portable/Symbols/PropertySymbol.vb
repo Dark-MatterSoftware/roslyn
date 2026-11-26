@@ -25,6 +25,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         ''' <summary>
+        ''' Nullable analysis contract declared on this property. This does not change <see cref="Type"/>.
+        ''' </summary>
+        Friend Overridable ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return FlowAnalysisAnnotations.None
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray(Of String).Empty
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray(Of String).Empty
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray(Of String).Empty
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Get the original definition of this symbol. If this symbol is derived from another
         ''' symbol by (say) type substitution, this gets the original symbol, as it was defined
         ''' in source or metadata.

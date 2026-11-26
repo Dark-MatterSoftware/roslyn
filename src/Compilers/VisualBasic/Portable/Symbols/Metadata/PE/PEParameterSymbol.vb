@@ -61,6 +61,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
         Private _lazyIsParamArray As ThreeState
         Private _lazyIsReadOnlyByRef As ThreeState
+        Private _lazyFlowAnalysisAnnotations As Integer = -1
+        Private _lazyNotNullIfParameterNotNull As ImmutableHashSet(Of String)
 
         ''' <summary>
         ''' Attributes filtered out from m_lazyCustomAttributes, ParamArray, etc.
@@ -719,6 +721,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private ReadOnly Property PEModule As PEModule
             Get
                 Return DirectCast(_containingSymbol.ContainingModule, PEModuleSymbol).Module
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Dim existing = Volatile.Read(_lazyFlowAnalysisAnnotations)
+                If existing < 0 Then
+                    Dim decoded = CInt(NullableAnalysisAttributes.DecodeMetadataAnnotations(If(Handle.IsNil, Nothing, PEModule), Handle))
+                    existing = Interlocked.CompareExchange(_lazyFlowAnalysisAnnotations, decoded, -1)
+                    If existing < 0 Then
+                        existing = decoded
+                    End If
+                End If
+
+                Return CType(existing, FlowAnalysisAnnotations)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Dim existing = _lazyNotNullIfParameterNotNull
+                If existing IsNot Nothing Then
+                    Return existing
+                End If
+
+                Dim decoded = NullableAnalysisAttributes.ReadNotNullIfParameterNotNull(If(Handle.IsNil, Nothing, PEModule), Handle)
+                Return InterlockedOperations.Initialize(_lazyNotNullIfParameterNotNull, decoded)
             End Get
         End Property
 

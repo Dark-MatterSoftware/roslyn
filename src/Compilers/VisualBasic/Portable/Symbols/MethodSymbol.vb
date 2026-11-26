@@ -451,6 +451,48 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Friend MustOverride ReadOnly Property ReturnTypeMarshallingInformation As MarshalPseudoCustomAttributeData
 
         ''' <summary>
+        ''' Nullable analysis contract on the return value. This does not change <see cref="ReturnType"/>.
+        ''' </summary>
+        Friend Overridable ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return FlowAnalysisAnnotations.None
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Nullable analysis contract on the method itself, such as <c>DoesNotReturn</c>.
+        ''' </summary>
+        Friend Overridable ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return FlowAnalysisAnnotations.None
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property ReturnNotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Return ImmutableHashSet(Of String).Empty
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray(Of String).Empty
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray(Of String).Empty
+            End Get
+        End Property
+
+        Friend Overridable ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray(Of String).Empty
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Misc implementation metadata flags (ImplFlags in metadata).
         ''' </summary>
         Friend MustOverride ReadOnly Property ImplementationAttributes As System.Reflection.MethodImplAttributes Implements IMethodSymbolInternal.ImplementationAttributes

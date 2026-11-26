@@ -1650,6 +1650,11 @@ lReportErrorOnTwoTokens:
         Friend Overrides Sub AddSynthesizedReturnTypeAttributes(ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedReturnTypeAttributes(attributes)
 
+            Dim accessor = TryCast(Me, SourcePropertyAccessorSymbol)
+            If accessor IsNot Nothing Then
+                NullableAnalysisAttributes.AddPropertyGetterReturnContracts(accessor, TryCast(accessor.AssociatedSymbol, SourcePropertySymbol), attributes)
+            End If
+
             If Me.ReturnType.ContainsTupleNames() Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.SynthesizeTupleNamesAttribute(Me.ReturnType))
             End If
@@ -1675,14 +1680,75 @@ lReportErrorOnTwoTokens:
             Return Me.GetReturnTypeAttributesBag().Attributes
         End Function
 
-        Private Function GetDecodedReturnTypeWellKnownAttributeData() As CommonReturnTypeWellKnownAttributeData
+        Private Function GetDecodedReturnTypeWellKnownAttributeData() As ReturnTypeWellKnownAttributeData
             Dim attributesBag As CustomAttributesBag(Of VisualBasicAttributeData) = Me.m_lazyReturnTypeCustomAttributesBag
             If attributesBag Is Nothing OrElse Not attributesBag.IsDecodedWellKnownAttributeDataComputed Then
                 attributesBag = Me.GetReturnTypeAttributesBag()
             End If
 
-            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, CommonReturnTypeWellKnownAttributeData)
+            Return DirectCast(attributesBag.DecodedWellKnownAttributeData, ReturnTypeWellKnownAttributeData)
         End Function
+
+        Friend Overrides ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return NullableAnalysisAttributes.FromReturnData(GetDecodedReturnTypeWellKnownAttributeData())
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property ReturnNotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Dim data = GetDecodedReturnTypeWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableHashSet(Of String).Empty
+                End If
+
+                Return data.NotNullIfParameterNotNull
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data IsNot Nothing AndAlso data.HasDoesNotReturnAttribute Then
+                    Return FlowAnalysisAnnotations.DoesNotReturn
+                End If
+
+                Return FlowAnalysisAnnotations.None
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Return data.NotNullMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Return data.NotNullWhenTrueMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Dim data = GetDecodedWellKnownAttributeData()
+                If data Is Nothing Then
+                    Return ImmutableArray(Of String).Empty
+                End If
+
+                Return data.NotNullWhenFalseMembers
+            End Get
+        End Property
 
         Friend Overrides Function EarlyDecodeWellKnownAttribute(ByRef arguments As EarlyDecodeWellKnownAttributeArguments(Of EarlyWellKnownAttributeBinder, NamedTypeSymbol, AttributeSyntax, AttributeLocation)) As VisualBasicAttributeData
             Debug.Assert(arguments.AttributeType IsNot Nothing)
@@ -2004,6 +2070,7 @@ lReportErrorOnTwoTokens:
                 Else
                     DecodeModuleInitializerAttribute(arguments, diagnostics)
                 End If
+            ElseIf NullableAnalysisAttributes.TryDecodeMethodAttribute(attrData, arguments) Then
             ElseIf arguments.Attribute.IsTargetAttribute(AttributeDescription.OverloadResolutionPriorityAttribute) Then
 
                 If Not CanHaveOverloadResolutionPriority Then
@@ -2205,7 +2272,9 @@ lReportErrorOnTwoTokens:
             Debug.Assert(Not attrData.HasErrors)
 
             If attrData.IsTargetAttribute(AttributeDescription.MarshalAsAttribute) Then
-                MarshalAsAttributeDecoder(Of CommonReturnTypeWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).Decode(arguments, AttributeTargets.ReturnValue, MessageProvider.Instance)
+                MarshalAsAttributeDecoder(Of ReturnTypeWellKnownAttributeData, AttributeSyntax, VisualBasicAttributeData, AttributeLocation).Decode(arguments, AttributeTargets.ReturnValue, MessageProvider.Instance)
+            Else
+                NullableAnalysisAttributes.TryDecodeReturnAttribute(attrData, arguments)
             End If
         End Sub
 

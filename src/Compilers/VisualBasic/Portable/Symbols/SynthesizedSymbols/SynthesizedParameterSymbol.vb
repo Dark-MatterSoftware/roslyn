@@ -258,7 +258,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return NullableAnalysisAttributes.PropertySetterInputAnnotations(Me)
+            End Get
+        End Property
+
         Friend NotOverridable Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
+            NullableAnalysisAttributes.AddPropertySetterInputAttributes(Me, attributes)
             Dim compilation = Me.DeclaringCompilation
             If compilation IsNot Nothing AndAlso
                Type.ContainsTupleNames() AndAlso

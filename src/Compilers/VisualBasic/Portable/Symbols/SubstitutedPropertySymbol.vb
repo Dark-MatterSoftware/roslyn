@@ -78,6 +78,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return _originalDefinition.FlowAnalysisAnnotations
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return _originalDefinition.NotNullMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return _originalDefinition.NotNullWhenTrueMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return _originalDefinition.NotNullWhenFalseMembers
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property ContainingSymbol As Symbol
             Get
                 Return _containingType

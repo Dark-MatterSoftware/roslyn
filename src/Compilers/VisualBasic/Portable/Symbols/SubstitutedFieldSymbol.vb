@@ -95,6 +95,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return _originalDefinition.FlowAnalysisAnnotations
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property IsConst As Boolean
             Get
                 Return _originalDefinition.IsConst

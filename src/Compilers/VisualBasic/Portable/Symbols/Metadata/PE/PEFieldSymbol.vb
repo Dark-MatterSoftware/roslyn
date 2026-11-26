@@ -26,6 +26,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Inherits FieldSymbol
 
         Private ReadOnly _handle As FieldDefinitionHandle
+        Private _lazyFlowAnalysisAnnotations As Integer = -1
         Private ReadOnly _name As String
         Private ReadOnly _flags As FieldAttributes
         Private ReadOnly _containingType As PENamedTypeSymbol
@@ -417,6 +418,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Get
                 EnsureSignatureIsLoaded()
                 Return _lazyType
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Dim existing = Volatile.Read(_lazyFlowAnalysisAnnotations)
+                If existing < 0 Then
+                    Dim decoded = CInt(NullableAnalysisAttributes.DecodeUnconditionalMetadataAnnotations(_containingType.ContainingPEModule.Module, _handle))
+                    existing = Interlocked.CompareExchange(_lazyFlowAnalysisAnnotations, decoded, -1)
+                    If existing < 0 Then
+                        existing = decoded
+                    End If
+                End If
+
+                Return CType(existing, FlowAnalysisAnnotations)
             End Get
         End Property
 

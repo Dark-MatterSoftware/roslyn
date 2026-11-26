@@ -544,6 +544,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
         End Function
 
+        Friend Overrides ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Dim result = MyBase.ReturnTypeFlowAnalysisAnnotations
+                If MethodKind = MethodKind.PropertyGet Then
+                    result = result Or NullableAnalysisAttributes.OutputAnnotations(m_property.FlowAnalysisAnnotations)
+                End If
+
+                Return result
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return NullableAnalysisAttributes.Combine(m_property.NotNullMembers, MyBase.NotNullMembers)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return NullableAnalysisAttributes.Combine(m_property.NotNullWhenTrueMembers, MyBase.NotNullWhenTrueMembers)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return NullableAnalysisAttributes.Combine(m_property.NotNullWhenFalseMembers, MyBase.NotNullWhenFalseMembers)
+            End Get
+        End Property
+
         Friend Overrides Sub DecodeWellKnownAttribute(ByRef arguments As DecodeWellKnownAttributeArguments(Of AttributeSyntax, VisualBasicAttributeData, AttributeLocation))
             If arguments.SymbolPart = AttributeLocation.None Then
                 If arguments.Attribute.IsTargetAttribute(AttributeDescription.DebuggerHiddenAttribute) Then
@@ -563,6 +592,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
+            NullableAnalysisAttributes.AddPropertyAccessorContracts(Me, m_property, attributes)
 
             If m_property.IsAutoProperty Then
                 Dim compilation = DeclaringCompilation

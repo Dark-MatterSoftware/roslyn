@@ -49,6 +49,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return _originalParam.GetDeclaredNullableAnnotation()
         End Function
 
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return _originalParam.FlowAnalysisAnnotations
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Return _originalParam.NotNullIfParameterNotNull
+            End Get
+        End Property
+
         Friend Overrides ReadOnly Property IsMetadataIn As Boolean
             Get
                 Return _originalParam.IsMetadataIn

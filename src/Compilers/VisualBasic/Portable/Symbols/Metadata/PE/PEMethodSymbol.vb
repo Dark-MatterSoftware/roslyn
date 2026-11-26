@@ -35,6 +35,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Private _associatedPropertyOrEventOpt As Symbol
 
         Private _packedFlags As PackedFlags
+        Private _lazyDoesNotReturn As Integer
+        Private _lazyMemberNotNull As NullableMemberNotNullData
 
         Private _lazyTypeParameters As ImmutableArray(Of TypeParameterSymbol)
         ' -1 unknown, -2 absent, otherwise the context byte.
@@ -1059,6 +1061,59 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         Public Overrides ReadOnly Property ReturnType As TypeSymbol
             Get
                 Return Signature.ReturnParam.Type
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                Return Signature.ReturnParam.FlowAnalysisAnnotations
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property ReturnNotNullIfParameterNotNull As ImmutableHashSet(Of String)
+            Get
+                Return Signature.ReturnParam.NotNullIfParameterNotNull
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property FlowAnalysisAnnotations As FlowAnalysisAnnotations
+            Get
+                If _lazyDoesNotReturn = 0 Then
+                    Dim doesNotReturn = NullableAnalysisAttributes.HasDoesNotReturn(_containingType.ContainingPEModule.Module, Handle)
+                    Interlocked.CompareExchange(_lazyDoesNotReturn, If(doesNotReturn, 1, 2), 0)
+                End If
+
+                Return If(_lazyDoesNotReturn = 1, FlowAnalysisAnnotations.DoesNotReturn, FlowAnalysisAnnotations.None)
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullMembers As ImmutableArray(Of String)
+            Get
+                Return MemberNotNull.Members
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenTrueMembers As ImmutableArray(Of String)
+            Get
+                Return MemberNotNull.WhenTrueMembers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property NotNullWhenFalseMembers As ImmutableArray(Of String)
+            Get
+                Return MemberNotNull.WhenFalseMembers
+            End Get
+        End Property
+
+        Private ReadOnly Property MemberNotNull As NullableMemberNotNullData
+            Get
+                Dim existing = _lazyMemberNotNull
+                If existing IsNot Nothing Then
+                    Return existing
+                End If
+
+                Dim created = NullableAnalysisAttributes.ReadMemberNotNull(_containingType.ContainingPEModule.Module, Handle)
+                Return InterlockedOperations.Initialize(_lazyMemberNotNull, created)
             End Get
         End Property
 

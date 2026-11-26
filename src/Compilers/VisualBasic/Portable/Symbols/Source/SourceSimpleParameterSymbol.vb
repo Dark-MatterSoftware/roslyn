@@ -75,7 +75,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return Nothing
         End Function
 
-        Friend Overrides Function GetDecodedWellKnownAttributeData() As CommonParameterWellKnownAttributeData
+        Friend Overrides Function GetDecodedWellKnownAttributeData() As ParameterWellKnownAttributeData
             ' the attributes for partial method implementation are stored on the corresponding definition:
             Dim other = GetCorrespondingPartialParameter()
             If other IsNot Nothing Then
