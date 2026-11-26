@@ -75,6 +75,10 @@ Other entry points: `dotnet run --file eng/generate-compiler-code.cs` (regenerat
 
 Full conventions: `.github/memory/CONVENTIONS.md` and `.github/instructions/{Compiler,IDE,Razor}.instructions.md`.
 
+## VB.Next development environment
+
+Operational directory, archive, and local-configuration rules are in [`docs/vbnext-development-environment.md`](../docs/vbnext-development-environment.md). That document does not change the language mission. Machine-specific paths stay in local configuration.
+
 ## Agent Orientation
 
 When starting any task or answering any question about this repo:

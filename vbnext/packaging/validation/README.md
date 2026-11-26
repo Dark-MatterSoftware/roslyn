@@ -6,30 +6,34 @@
 
 Windows Sandbox needs Windows Pro or Enterprise, with the "Windows Sandbox" optional feature turned on.
 
-Put these in one folder, for example `C:\VbNextSandbox\input`:
+Choose a host working directory that is not the root of a system drive. The examples below call that directory `HOST_ROOT`. On this maintainer's machine, `HOST_ROOT` is `D:\Development\VBNext\TestProjects\PackagingValidation`. Another machine can use a directory under the user profile.
+
+Put these in `HOST_ROOT\input`:
 
 - `VbNext-1.0.0-preview.1-win-net472.zip` and `VbNext-1.0.0-preview.1-SHA256SUMS.txt`
 - the stock SDK installer from Microsoft, `dotnet-sdk-10.0.403-win-x64.exe`
 - this `validation` folder
 
-Create an empty `C:\VbNextSandbox\results`, and save this as `C:\VbNextSandbox\VbNext.wsb`:
+Create an empty `HOST_ROOT\results`, and save this as `HOST_ROOT\VbNext.wsb`. Replace both `HOST_ROOT` values with the chosen directory:
 
 ```xml
 <Configuration>
   <MappedFolders>
     <MappedFolder>
-      <HostFolder>C:\VbNextSandbox\input</HostFolder>
+      <HostFolder>HOST_ROOT\input</HostFolder>
       <SandboxFolder>C:\Input</SandboxFolder>
       <ReadOnly>true</ReadOnly>
     </MappedFolder>
     <MappedFolder>
-      <HostFolder>C:\VbNextSandbox\results</HostFolder>
+      <HostFolder>HOST_ROOT\results</HostFolder>
       <SandboxFolder>C:\Results</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>
   </MappedFolders>
 </Configuration>
 ```
+
+The input mapping stays read-only. The results mapping stays writable. Inside the sandbox those folders are `C:\Input` and `C:\Results`.
 
 Open `VbNext.wsb` to start the sandbox. Everything inside it is discarded when it closes.
 

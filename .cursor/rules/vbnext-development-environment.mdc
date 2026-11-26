@@ -1,0 +1,12 @@
+---
+description: VB.Next operational directories, archives, and local environment checks
+alwaysApply: true
+---
+
+# VB.Next development environment
+
+Follow `docs/vbnext-development-environment.md` for designated directories, temporary artifacts, archival, environment initialization, and destructive cleanup.
+
+This rule does not add language design requirements. Language work stays under `docs/vbnext-mission.md` and `.cursor/rules/vbnext-mission.mdc`.
+
+Machine-specific paths and storage thresholds stay in local configuration. They are not part of this rule.
