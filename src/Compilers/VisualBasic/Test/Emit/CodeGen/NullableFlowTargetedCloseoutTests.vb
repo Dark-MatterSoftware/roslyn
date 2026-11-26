@@ -362,6 +362,40 @@ End Module
         End Sub
 
         <Fact>
+        Public Sub HandlerTaint_StaysAfterALaterNonNullWrite()
+            Dim compilation = Compile("
+Imports System
+Module Program
+    Sub Reassigned()
+        Dim text As String = ""Hello""
+        On Error GoTo Handler
+        Error 5
+        text = ""restored""
+        Console.WriteLine(text.Length)
+        Exit Sub
+Handler:
+        text = Nothing
+        Resume Next
+    End Sub
+    Sub Checked()
+        Dim text As String = ""Hello""
+        On Error GoTo Handler
+        Error 5
+        If text IsNot Nothing Then
+            Console.WriteLine(text.Length)
+        End If
+        Exit Sub
+Handler:
+        text = Nothing
+        Resume Next
+    End Sub
+End Module
+")
+            Dim seen = Picture(compilation)
+            Assert.True(Count(compilation, "42512:text") = 2, seen)
+        End Sub
+
+        <Fact>
         Public Sub HandlerNameMatch_DoesNotSeeALambdaLocal()
             Dim compilation = Compile("
 Imports System

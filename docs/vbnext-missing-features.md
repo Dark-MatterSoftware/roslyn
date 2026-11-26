@@ -106,7 +106,7 @@ Do not start these until a Wave 1 feature has gone through parser, binder, tests
 
 | Id | Feature | Why it waits |
 | --- | --- | --- |
-| VB-030 | Nullable reference types | Highest discussion on vblang ([#355](https://github.com/dotnet/vblang/issues/355), 94 comments). The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type remains `Nullable(Of T)`. Flow analysis on `vbnext` follows the policies approved on November 26, 2026. Public symbol exposure of method type-argument annotations remains outstanding. |
+| VB-030 | Nullable reference types | Highest discussion on vblang ([#355](https://github.com/dotnet/vblang/issues/355), 94 comments). The spelling is locked in `docs/vbnext-vb030-syntax.md`. `?` on a value type remains `Nullable(Of T)`. Flow analysis on `vbnext` follows the policies approved on November 26, 2026, including a reduced extension receiver and a handler write that is not a literal `Nothing`. Public symbol exposure of method type-argument annotations remains outstanding. |
 | VB-031 | Records | `IsRecord` is hard-coded false. Covers record classes, record structures, and non-destructive `With` expressions. Needs VB-002, and probably VB-005. VB already has anonymous types and `With` blocks; the design has to say what a record adds. |
 | VB-032 | Primary constructors | C# 12. Touches type declarations, parameters, and lowering. |
 | VB-033 | Raw string literals | VB 14 already has multiline strings. [vblang #301](https://github.com/dotnet/vblang/issues/301) is about literal parsing. A new literal has to be distinct from the one that exists. |
