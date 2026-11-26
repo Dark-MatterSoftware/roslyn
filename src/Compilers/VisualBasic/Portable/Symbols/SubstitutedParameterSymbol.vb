@@ -125,12 +125,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Get
                 Dim original = _originalDefinition.Type
                 Dim substituted = original.InternalSubstituteTypeParameters(TypeSubstitution).Type
-                Return NullableAnnotationSubstitution.Preserve(original, substituted, ContainingNamedType())
+                Return NullableAnnotationSubstitution.Preserve(original, substituted, ContainingNamedType(), TryCast(ContainingSymbol, MethodSymbol))
             End Get
         End Property
 
         Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
-            Return NullableAnnotationSubstitution.AdjustTopLevel(_originalDefinition.Type, Type, _originalDefinition.GetDeclaredNullableAnnotation())
+            Return NullableAnnotationSubstitution.SubstituteMemberAnnotation(_originalDefinition.Type, Type, _originalDefinition.GetDeclaredNullableAnnotation(), ContainingNamedType(), TryCast(ContainingSymbol, MethodSymbol))
         End Function
 
         Public Overrides ReadOnly Property IsByRef As Boolean

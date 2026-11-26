@@ -929,6 +929,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(methodGroup.ResultKind = LookupResultKind.Good OrElse methodGroup.ResultKind = LookupResultKind.Inaccessible)
 
             Dim typeArguments = If(methodGroup.TypeArgumentsOpt IsNot Nothing, methodGroup.TypeArgumentsOpt.Arguments, ImmutableArray(Of TypeSymbol).Empty)
+            Dim typeArgumentAnnotations = If(methodGroup.TypeArgumentsOpt IsNot Nothing, methodGroup.TypeArgumentsOpt.TypeArgumentAnnotations, Nothing)
 
             ' To simplify code later
             If typeArguments.IsDefault Then
@@ -988,7 +989,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     arguments, argumentNames,
                     someCandidatesHaveOverloadResolutionPriority,
                     delegateReturnType, delegateReturnTypeReferenceBoundNode,
-                    includeEliminatedCandidates, isQueryOperatorInvocation, forceExpandedForm, asyncLambdaSubToFunctionMismatch,
+                    includeEliminatedCandidates, isQueryOperatorInvocation, forceExpandedForm, typeArgumentAnnotations, asyncLambdaSubToFunctionMismatch,
                     useSiteInfo)
 
                 applicableInstanceCandidateCount = EliminateNotApplicableToArguments(methodGroup, candidates, arguments, argumentNames, binder,
@@ -1029,7 +1030,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         arguments, argumentNames,
                         someCandidatesHaveOverloadResolutionPriority,
                         delegateReturnType, delegateReturnTypeReferenceBoundNode,
-                        includeEliminatedCandidates, isQueryOperatorInvocation, forceExpandedForm, asyncLambdaSubToFunctionMismatch,
+                        includeEliminatedCandidates, isQueryOperatorInvocation, forceExpandedForm, typeArgumentAnnotations, asyncLambdaSubToFunctionMismatch,
                         useSiteInfo)
                 End If
             End If
@@ -1111,7 +1112,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                         arguments, argumentNames,
                                         someCandidatesHaveOverloadResolutionPriority,
                                         Nothing, Nothing, includeEliminatedCandidates,
-                                        isQueryOperatorInvocation:=False, forceExpandedForm:=False, asyncLambdaSubToFunctionMismatch:=asyncLambdaSubToFunctionMismatch,
+                                        isQueryOperatorInvocation:=False, forceExpandedForm:=False, typeArgumentAnnotations:=Nothing, asyncLambdaSubToFunctionMismatch:=asyncLambdaSubToFunctionMismatch,
                                         useSiteInfo:=useSiteInfo)
             Debug.Assert(asyncLambdaSubToFunctionMismatch Is Nothing)
             candidates.Free()
@@ -3877,6 +3878,7 @@ Bailout:
             includeEliminatedCandidates As Boolean,
             isQueryOperatorInvocation As Boolean,
             forceExpandedForm As Boolean,
+            typeArgumentAnnotations As ImmutableArray(Of NullableAnnotation),
             <[In](), Out()> ByRef asyncLambdaSubToFunctionMismatch As HashSet(Of BoundExpression),
             <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
         )
@@ -3903,7 +3905,7 @@ Bailout:
                     CollectOverloadedCandidate(results, info, typeArguments, arguments, argumentNames,
                                                someCandidatesHaveOverloadResolutionPriority,
                                                delegateReturnType, delegateReturnTypeReferenceBoundNode,
-                                               includeEliminatedCandidates, binder, asyncLambdaSubToFunctionMismatch,
+                                               includeEliminatedCandidates, binder, typeArgumentAnnotations, asyncLambdaSubToFunctionMismatch,
                                                useSiteInfo)
                     Continue For
                 End If
@@ -4020,13 +4022,13 @@ Bailout:
                         CollectOverloadedCandidate(results, info, typeArguments, arguments, argumentNames,
                                                    someCandidatesHaveOverloadResolutionPriority,
                                                    delegateReturnType, delegateReturnTypeReferenceBoundNode,
-                                                   includeEliminatedCandidates, binder, asyncLambdaSubToFunctionMismatch,
+                                                   includeEliminatedCandidates, binder, typeArgumentAnnotations, asyncLambdaSubToFunctionMismatch,
                                                    useSiteInfo)
                     ElseIf includeEliminatedCandidates Then
                         CollectOverloadedCandidate(results, info, typeArguments, arguments, argumentNames,
                                                    someCandidatesHaveOverloadResolutionPriority,
                                                    delegateReturnType, delegateReturnTypeReferenceBoundNode,
-                                                   includeEliminatedCandidates, binder, asyncLambdaSubToFunctionMismatch,
+                                                   includeEliminatedCandidates, binder, typeArgumentAnnotations, asyncLambdaSubToFunctionMismatch,
                                                    useSiteInfo)
 
                         For l As Integer = k + 1 To quickInfo.Count - 1
@@ -4037,7 +4039,7 @@ Bailout:
                                 CollectOverloadedCandidate(results, info2, typeArguments, arguments, argumentNames,
                                                            someCandidatesHaveOverloadResolutionPriority,
                                                            delegateReturnType, delegateReturnTypeReferenceBoundNode,
-                                                           includeEliminatedCandidates, binder, asyncLambdaSubToFunctionMismatch,
+                                                           includeEliminatedCandidates, binder, typeArgumentAnnotations, asyncLambdaSubToFunctionMismatch,
                                                            useSiteInfo)
                             End If
                         Next
@@ -4199,6 +4201,7 @@ Bailout:
             delegateReturnTypeReferenceBoundNode As BoundNode,
             includeEliminatedCandidates As Boolean,
             binder As Binder,
+            typeArgumentAnnotations As ImmutableArray(Of NullableAnnotation),
             <[In](), Out()> ByRef asyncLambdaSubToFunctionMismatch As HashSet(Of BoundExpression),
             <[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)
         )
@@ -4222,7 +4225,7 @@ Bailout:
                     Debug.Assert(candidate.AppliesToNormalForm <> candidate.AppliesToParamArrayForm)
                     If includeEliminatedCandidates Then
 
-                        Dim candidateAnalysis As New CandidateAnalysisResult(ConstructIfNeedTo(candidate.Candidate, typeArguments), CandidateAnalysisResultState.ArgumentCountMismatch)
+                        Dim candidateAnalysis As New CandidateAnalysisResult(ConstructIfNeedTo(candidate.Candidate, typeArguments, typeArgumentAnnotations), CandidateAnalysisResultState.ArgumentCountMismatch)
 
                         If candidate.AppliesToParamArrayForm Then
                             candidateAnalysis.SetIsExpandedParamArrayForm()
@@ -4236,7 +4239,7 @@ Bailout:
                     Dim candidateAnalysis As CandidateAnalysisResult
 
                     If typeArguments.Length > 0 Then
-                        candidateAnalysis = New CandidateAnalysisResult(candidate.Candidate.Construct(typeArguments))
+                        candidateAnalysis = New CandidateAnalysisResult(ConstructIfNeedTo(candidate.Candidate, typeArguments, typeArgumentAnnotations))
                     Else
                         candidateAnalysis = New CandidateAnalysisResult(candidate.Candidate)
                     End If
@@ -5428,9 +5431,17 @@ ContinueCandidatesLoop:
             Return (candidate.State = CandidateAnalysisResultState.Applicable)
         End Function
 
-        Private Shared Function ConstructIfNeedTo(candidate As Candidate, typeArguments As ImmutableArray(Of TypeSymbol)) As Candidate
+        Private Shared Function ConstructIfNeedTo(candidate As Candidate, typeArguments As ImmutableArray(Of TypeSymbol), typeArgumentAnnotations As ImmutableArray(Of NullableAnnotation)) As Candidate
             If typeArguments.Length > 0 Then
-                Return candidate.Construct(typeArguments)
+                Dim constructed = candidate.Construct(typeArguments)
+                If Not typeArgumentAnnotations.IsDefault AndAlso Not typeArgumentAnnotations.IsEmpty Then
+                    Dim method = TryCast(constructed.UnderlyingSymbol, MethodSymbol)
+                    If method IsNot Nothing Then
+                        method.SetTypeArgumentNullableAnnotations(typeArgumentAnnotations)
+                    End If
+                End If
+
+                Return constructed
             End If
 
             Return candidate

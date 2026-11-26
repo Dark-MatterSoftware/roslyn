@@ -1156,7 +1156,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             ' Bind the base class.
-            Dim baseClassType = binder.BindTypeSyntax(baseClassSyntax, diagBag, suppressUseSiteError:=True, resolvingBaseType:=True)
+            Dim baseClassType = binder.BindAnnotatedTypeSyntax(baseClassSyntax, diagBag, suppressUseSiteError:=True, resolvingBaseType:=True)
             If baseClassType Is Nothing Then
                 Return Nothing
             End If
@@ -1223,7 +1223,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Dim types = DirectCast(baseDeclaration, InheritsStatementSyntax).Types
 
                 For Each baseClassSyntax In types
-                    Dim typeSymbol = binder.BindTypeSyntax(baseClassSyntax, diagBag, suppressUseSiteError:=True)
+                    Dim typeSymbol = binder.BindAnnotatedTypeSyntax(baseClassSyntax, diagBag, suppressUseSiteError:=True)
                     Dim namedType = TryCast(typeSymbol, NamedTypeSymbol)
 
                     If namedType IsNot Nothing AndAlso interfacesInThisPartial.Contains(namedType) Then
@@ -1279,7 +1279,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             For Each baseDeclaration In baseSyntax
                 Dim types = DirectCast(baseDeclaration, ImplementsStatementSyntax).Types
                 For Each baseClassSyntax In types
-                    Dim typeSymbol = binder.BindTypeSyntax(baseClassSyntax, diagBag, suppressUseSiteError:=True)
+                    Dim typeSymbol = binder.BindAnnotatedTypeSyntax(baseClassSyntax, diagBag, suppressUseSiteError:=True)
 
                     If Not interfacesInThisPartial.Add(typeSymbol) Then
                         Binder.ReportDiagnostic(diagBag, baseClassSyntax, ERRID.ERR_InterfaceImplementedTwice1, typeSymbol)
@@ -1401,7 +1401,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         If(getInherits, DirectCast(t, InheritsStatementSyntax).Types, DirectCast(t, ImplementsStatementSyntax).Types)
 
                     For Each typeSyntax In types
-                        Dim bt = binder.BindTypeSyntax(typeSyntax, BindingDiagnosticBag.Discarded, suppressUseSiteError:=True)
+                        Dim bt = binder.BindAnnotatedTypeSyntax(typeSyntax, BindingDiagnosticBag.Discarded, suppressUseSiteError:=True)
                         If TypeSymbol.Equals(bt, base, TypeCompareKind.ConsiderEverything) Then
                             Return typeSyntax.GetLocation()
                         End If

@@ -1263,6 +1263,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return NullableAnnotation.None
         End Function
 
+        Friend Overridable Sub SetTypeArgumentNullableAnnotations(annotations As ImmutableArray(Of NullableAnnotation))
+        End Sub
+
+        Friend Overridable Function GetTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Return Nothing
+        End Function
+
         Private ReadOnly Property IMethodSymbol_ReturnNullableAnnotation As NullableAnnotation Implements IMethodSymbol.ReturnNullableAnnotation
             Get
                 Return GetReturnNullableAnnotation()

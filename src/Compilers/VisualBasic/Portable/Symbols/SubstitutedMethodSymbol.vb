@@ -352,12 +352,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Get
                 Dim original = OriginalDefinition.ReturnType
                 Dim substituted = original.InternalSubstituteTypeParameters(Me.TypeSubstitution).Type
-                Return NullableAnnotationSubstitution.Preserve(original, substituted, ContainingType)
+                Return NullableAnnotationSubstitution.Preserve(original, substituted, ContainingType, Me)
             End Get
         End Property
 
         Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
-            Return NullableAnnotationSubstitution.SubstituteMemberAnnotation(OriginalDefinition.ReturnType, ReturnType, OriginalDefinition.GetReturnNullableAnnotation(), ContainingType)
+            Return NullableAnnotationSubstitution.SubstituteMemberAnnotation(OriginalDefinition.ReturnType, ReturnType, OriginalDefinition.GetReturnNullableAnnotation(), ContainingType, Me)
         End Function
 
         Public Overrides ReadOnly Property ReturnTypeCustomModifiers As ImmutableArray(Of CustomModifier)
@@ -751,6 +751,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Protected ReadOnly _substitution As TypeSubstitution
             Protected ReadOnly _typeArguments As ImmutableArray(Of TypeSymbol)
+            Private _typeArgumentNullableAnnotations As ImmutableArray(Of NullableAnnotation)
 
             Protected Sub New(substitution As TypeSubstitution, typeArguments As ImmutableArray(Of TypeSymbol))
                 Debug.Assert(Not typeArguments.IsEmpty)
@@ -786,6 +787,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return _typeArguments
                 End Get
             End Property
+
+            Friend Overrides Sub SetTypeArgumentNullableAnnotations(annotations As ImmutableArray(Of NullableAnnotation))
+                If annotations.IsDefault OrElse annotations.Length <> Me.Arity Then
+                    Return
+                End If
+
+                _typeArgumentNullableAnnotations = annotations
+            End Sub
+
+            Friend Overrides Function GetTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+                Return _typeArgumentNullableAnnotations
+            End Function
 
             Public Overrides Function GetHashCode() As Integer
                 Dim _hash As Integer = MyBase.GetHashCode()

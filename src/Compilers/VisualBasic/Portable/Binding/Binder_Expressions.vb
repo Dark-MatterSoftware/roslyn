@@ -3945,13 +3945,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             '      Perhaps for a missing type argument case [Goo(Of )].
 
             Dim boundArguments(arguments.Count - 1) As TypeSymbol
+            Dim captured As NullableAnnotation() = Nothing
+            Dim capture = ReferenceAnnotationsEnabled(typeArgumentsOpt)
+            Dim savedCapture = _captureNullableAnnotations
+            Dim savedAnnotation = _capturedNullableAnnotation
+            If capture Then
+                _captureNullableAnnotations = True
+                captured = New NullableAnnotation(arguments.Count - 1) {}
+            End If
 
             For i As Integer = 0 To arguments.Count - 1 Step 1
-                boundArguments(i) = BindTypeSyntax(arguments(i), diagnostics)
+                If capture Then
+                    _capturedNullableAnnotation = NullableAnnotation.None
+                    boundArguments(i) = BindTypeSyntax(arguments(i), diagnostics)
+                    captured(i) = CapturedAnnotationOf(boundArguments(i))
+                Else
+                    boundArguments(i) = BindTypeSyntax(arguments(i), diagnostics)
+                End If
             Next
 
+            If capture Then
+                _captureNullableAnnotations = savedCapture
+                _capturedNullableAnnotation = savedAnnotation
+            End If
+
             ' TODO: Should we set HasError flag if any of the BindTypeSyntax calls report errors?
-            Return New BoundTypeArguments(typeArgumentsOpt, boundArguments.AsImmutableOrNull())
+            Dim result = New BoundTypeArguments(typeArgumentsOpt, boundArguments.AsImmutableOrNull())
+            If captured IsNot Nothing Then
+                result.SetTypeArgumentAnnotations(captured.AsImmutableOrNull())
+            End If
+
+            Return result
         End Function
 
         ''' <summary>

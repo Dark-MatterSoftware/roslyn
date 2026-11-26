@@ -45,6 +45,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return type
         End Function
 
+        ''' <summary>
+        ''' Binds a base or implemented type with the same nullable-annotation capture as a declaration type.
+        ''' </summary>
+        Friend Function BindAnnotatedTypeSyntax(typeSyntax As TypeSyntax,
+                                                diagBag As BindingDiagnosticBag,
+                                                Optional suppressUseSiteError As Boolean = False,
+                                                Optional resolvingBaseType As Boolean = False) As TypeSymbol
+            If Not ReferenceAnnotationsEnabled(typeSyntax) Then
+                Return BindTypeSyntax(typeSyntax, diagBag, suppressUseSiteError, resolvingBaseType:=resolvingBaseType)
+            End If
+
+            Dim savedCapture = _captureNullableAnnotations
+            Dim savedAnnotation = _capturedNullableAnnotation
+            _captureNullableAnnotations = True
+            _capturedNullableAnnotation = NullableAnnotation.None
+            Dim type = BindTypeSyntax(typeSyntax, diagBag, suppressUseSiteError, resolvingBaseType:=resolvingBaseType)
+            _captureNullableAnnotations = savedCapture
+            _capturedNullableAnnotation = savedAnnotation
+            Return type
+        End Function
+
         Friend Function BindTypeOrAliasSyntax(typeSyntax As TypeSyntax,
                                diagBag As BindingDiagnosticBag,
                                Optional suppressUseSiteError As Boolean = False) As Symbol
