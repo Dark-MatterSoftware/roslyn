@@ -196,6 +196,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private _initializerPass As Boolean
         Private _applyInitializersAfterBase As Boolean
         Private _initializerClock As Integer
+        Private _initializersApplied As Boolean
+        Private _userMayHaveMutated As Boolean
         Private _body As BoundBlock
         Private _pendingContracts As List(Of Symbol)
         Private ReadOnly _normalExits As New List(Of NormalExit)()
@@ -219,6 +221,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend ReadOnly InProgress As New HashSet(Of MethodSymbol)()
             Friend ReadOnly Initializers As New Dictionary(Of Symbol, Dictionary(Of MemberSlot, FlowNullability))()
             Friend ReadOnly InitializersBound As New Dictionary(Of Symbol, ImmutableArray(Of BoundInitializer))()
+            Friend ReadOnly ContractCallees As New Dictionary(Of MethodSymbol, ImmutableArray(Of MethodSymbol))()
+        End Class
+
+        Private NotInheritable Class ContractCalleeWalker
+            Inherits BoundTreeWalkerWithStackGuard
+
+            Friend ReadOnly Callees As New List(Of MethodSymbol)()
+
+            Public Overrides Function VisitCall(node As BoundCall) As BoundNode
+                If node.Method IsNot Nothing AndAlso HasMemberContract(node.Method) Then
+                    Callees.Add(node.Method)
+                End If
+
+                Return MyBase.VisitCall(node)
+            End Function
         End Class
 
         Private Shared ReadOnly Facts As New ConditionalWeakTable(Of VisualBasicCompilation, ConstructorFacts)()
@@ -300,13 +317,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _isolation = 0
             _normalExits.Clear()
             _applyInitializersAfterBase = False
+            _initializersApplied = False
+            _userMayHaveMutated = False
             If IsConstructor(_method) AndAlso Not _initializerPass Then
                 SeedConstructorMembers()
                 If _method.IsShared Then
-                    ' A shared constructor has no base call. Later calls can drop shared
-                    ' facts; proven initializer values are restored when a call removes them.
+                    ' A shared constructor has no base call. Compiler-generated calls may drop
+                    ' shared facts; a later user call is a possible mutation and is not restored.
                     ApplyInitializers(publish:=Not _summaryOnly)
                     _initializerClock = _writeClock
+                    _initializersApplied = True
                 Else
                     Dim chained = FirstConstructorCallTarget()
                     If chained IsNot Nothing AndAlso IsSameTypeConstructor(chained) Then
@@ -317,6 +337,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Else
                         ApplyInitializers(publish:=Not _summaryOnly)
                         _initializerClock = _writeClock
+                        _initializersApplied = True
                     End If
                 End If
             End If
@@ -526,6 +547,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If node.FinallyBlockOpt IsNot Nothing Then
                 Dim clock = _writeClock
+                Dim exitsBeforeFinally = _normalExits.Count
                 SetSnapshot(MergeSnapshots(handlerState, leaving))
                 Visit(node.FinallyBlockOpt)
                 If leaving.Reachable AndAlso _reachable Then
@@ -533,6 +555,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Else
                     _reachable = False
                 End If
+
+                ApplyFinallyToExits(exitsBeforeFinally, clock)
             Else
                 SetSnapshot(leaving)
             End If
@@ -1235,7 +1259,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function EvaluateCall(node As BoundCall) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
-            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt)
+            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt, node.WasCompilerGenerated)
             SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
             Return effect.Result
         End Function
@@ -1274,7 +1298,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function EvaluateObjectCreation(node As BoundObjectCreationExpression) As FlowNullability
             _pendingContracts = Nothing
-            Dim effect = AnalyzeInvocation(node.ConstructorOpt, node.Arguments, node.DefaultArguments, receiver:=Nothing)
+            Dim effect = AnalyzeInvocation(node.ConstructorOpt, node.Arguments, node.DefaultArguments, receiver:=Nothing, compilerGenerated:=node.WasCompilerGenerated)
             SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
             If node.ConstructorOpt IsNot Nothing Then
                 _pendingContracts = ResolvedMembers(node.ConstructorOpt, node.ConstructorOpt.NotNullMembers)
@@ -1393,7 +1417,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function SplitCall(node As BoundCall) As ConditionSplit
             EvaluateReceiver(node.ReceiverOpt)
-            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt)
+            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt, node.WasCompilerGenerated)
             Dim split As New ConditionSplit()
             split.WhenTrue = effect.WhenTrue
             split.WhenFalse = effect.WhenFalse
@@ -1405,7 +1429,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Successful-return postconditions are applied only when a later argument has not
         ''' written the slot. They are not copied into exceptional snapshots.
         ''' </summary>
-        Private Function AnalyzeInvocation(method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression), defaultArguments As BitVector, receiver As BoundExpression) As InvocationEffect
+        Private Function AnalyzeInvocation(method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression), defaultArguments As BitVector, receiver As BoundExpression, compilerGenerated As Boolean) As InvocationEffect
             Dim effect As InvocationEffect
             If Not _reachable Then
                 effect.Result = FlowNullability.NotNull
@@ -1479,6 +1503,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 records.Add(record)
+                If parameter IsNot Nothing AndAlso parameter.IsByRef AndAlso IsConstructor(_method) Then
+                    NoteByRefMember(ArgumentValue(argument))
+                End If
             Next
 
             For index = 0 To survivors.Count - 1
@@ -1541,7 +1568,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             InvalidateCaptured(whenTrue, appliedTrue)
             InvalidateCaptured(whenFalse, appliedFalse)
             InvalidateCallSnapshots(method, receiver, records, whenTrue, whenFalse)
-            NoteCalleeEffects(method, receiver, whenTrue, whenFalse)
+            NoteCalleeEffects(method, receiver, whenTrue, whenFalse, compilerGenerated)
             effect.WhenTrue = whenTrue
             effect.WhenFalse = whenFalse
             effect.Result = CallResult(method, dependentNotNull)
@@ -2266,6 +2293,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             SetSnapshot(result)
         End Sub
 
+        Private Sub ApplyFinallyToExits(exitCount As Integer, clock As Integer)
+            Dim after = Capture()
+            For index = 0 To exitCount - 1
+                Dim wayOut = _normalExits(index)
+                If wayOut.Snapshot Is Nothing OrElse wayOut.Snapshot.Members Is Nothing Then
+                    Continue For
+                End If
+
+                For Each pair In _memberWrites
+                    Dim written As FlowNullability
+                    If pair.Value > clock AndAlso after.Members.TryGetValue(pair.Key, written) Then
+                        wayOut.Snapshot.Members(pair.Key) = written
+                    End If
+                Next
+            Next
+        End Sub
+
         Private Sub WidenJumps()
             Dim labels = _jumps.Keys.ToArray()
             For Each label In labels
@@ -2624,6 +2668,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 AssignMember(slot, value, syntaxExpr, report:=False)
             Else
                 InvalidatePropertyEffects([property], access.ReceiverOpt)
+                If IsConstructor(_method) Then
+                    ' The setter body is not inlined, so a field initializer is no longer proof.
+                    _userMayHaveMutated = True
+                End If
             End If
         End Sub
 
@@ -3742,14 +3790,103 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New HashSet(Of Symbol)()
         End Function
 
-        Private Sub NoteCalleeEffects(method As MethodSymbol, receiver As BoundExpression, ByRef whenTrue As FlowSnapshot, ByRef whenFalse As FlowSnapshot)
+        Private Shared Function HasMemberContract(method As MethodSymbol) As Boolean
+            If method Is Nothing Then
+                Return False
+            End If
+
+            Return Not method.NotNullMembers.IsDefaultOrEmpty OrElse
+                Not method.NotNullWhenTrueMembers.IsDefaultOrEmpty OrElse
+                Not method.NotNullWhenFalseMembers.IsDefaultOrEmpty
+        End Function
+
+        Private Function ContractCycle(caller As MethodSymbol, callee As MethodSymbol) As Boolean
+            If Not HasMemberContract(caller) OrElse Not HasMemberContract(callee) Then
+                Return False
+            End If
+
+            Dim seen As New HashSet(Of MethodSymbol)()
+            Dim pending As New Stack(Of MethodSymbol)()
+            pending.Push(callee)
+            While pending.Count > 0
+                Dim current = pending.Pop()
+                If Not seen.Add(current) Then
+                    Continue While
+                End If
+
+                If current.Equals(caller) Then
+                    Return True
+                End If
+
+                For Each nextMethod In MemberContractCallees(current)
+                    pending.Push(nextMethod)
+                Next
+            End While
+
+            Return False
+        End Function
+
+        Private Function MemberContractCallees(method As MethodSymbol) As ImmutableArray(Of MethodSymbol)
+            If method Is Nothing OrElse method.DeclaringCompilation Is Nothing OrElse Not TypeOf method Is SourceMethodSymbol Then
+                Return ImmutableArray(Of MethodSymbol).Empty
+            End If
+
+            Dim stored = Facts.GetOrCreateValue(method.DeclaringCompilation)
+            Dim cached As ImmutableArray(Of MethodSymbol) = Nothing
+            SyncLock stored
+                If stored.ContractCallees.TryGetValue(method, cached) Then
+                    Return cached
+                End If
+            End SyncLock
+
+            cached = ImmutableArray(Of MethodSymbol).Empty
+            Dim binding = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+            Try
+                Dim body = method.GetBoundMethodBody(Nothing, binding)
+                If body IsNot Nothing Then
+                    Dim walker As New ContractCalleeWalker()
+                    walker.Visit(body)
+                    cached = walker.Callees.Distinct().ToImmutableArray()
+                End If
+            Finally
+                binding.Free()
+            End Try
+
+            SyncLock stored
+                stored.ContractCallees(method) = cached
+            End SyncLock
+
+            Return cached
+        End Function
+
+        Private Sub NoteByRefMember(argument As BoundExpression)
+            Dim slot = TryBuildSlot(argument)
+            If slot Is Nothing Then
+                Return
+            End If
+
+            ' A ByRef argument can clear the member without an assignment in this method.
+            AssignMember(slot, FlowNullability.MaybeNull, argument, report:=False)
+            _userMayHaveMutated = True
+        End Sub
+
+        Private Sub NoteCalleeEffects(method As MethodSymbol, receiver As BoundExpression, ByRef whenTrue As FlowSnapshot, ByRef whenFalse As FlowSnapshot, compilerGenerated As Boolean)
             If method Is Nothing OrElse whenTrue Is Nothing OrElse whenFalse Is Nothing Then
                 Return
             End If
 
+            If IsConstructor(_method) AndAlso Not compilerGenerated AndAlso Not IsConstructor(method) Then
+                ' A user call can mutate members indirectly. The base or Me constructor call
+                ' is the prologue and does not by itself undo an initializer.
+                _userMayHaveMutated = True
+            End If
+
             If _method.IsShared AndAlso IsConstructor(_method) Then
                 SetSnapshot(MergeSnapshots(whenTrue, whenFalse))
-                RestoreProvenInitializers()
+                If Not _userMayHaveMutated Then
+                    RestoreProvenInitializers()
+                End If
+
                 OverlayOurMembers(whenTrue)
                 OverlayOurMembers(whenFalse)
             End If
@@ -3760,6 +3897,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 OverlayOurMembers(whenTrue)
                 OverlayOurMembers(whenFalse)
                 _initializerClock = _writeClock
+                _initializersApplied = True
                 _applyInitializersAfterBase = False
             End If
 
@@ -3778,7 +3916,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Next
             End If
 
-            If SameMethod(method, _method) OrElse Not whenTrue.Reachable Then
+            If SameMethod(method, _method) OrElse Not whenTrue.Reachable OrElse ContractCycle(_method, method) Then
                 Return
             End If
 
@@ -3880,7 +4018,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             For Each wayOut In _normalExits
-                If _method.IsShared Then
+                If _method.IsShared AndAlso Not _userMayHaveMutated Then
                     RestoreProvenInitializers(wayOut.Snapshot)
                 End If
 
@@ -3893,7 +4031,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Continue For
                     End If
 
-                    If Not WasWrittenAfterInitializer(SlotFor(member)) AndAlso SyntaxInitializerIsNotNull(member) Then
+                    If Not _userMayHaveMutated AndAlso Not WasWrittenAfterInitializer(SlotFor(member)) AndAlso SyntaxInitializerIsNotNull(member) Then
                         Continue For
                     End If
 

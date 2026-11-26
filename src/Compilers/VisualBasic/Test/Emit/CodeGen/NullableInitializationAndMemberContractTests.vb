@@ -378,6 +378,325 @@ End Module
             Assert.Contains("Missing", warnings(0).Location.SourceTree.GetText().GetSubText(New Text.TextSpan(0, warnings(0).Location.SourceSpan.End)).ToString())
         End Sub
 
+        <Fact>
+        Public Sub InitializerRestoration_DoesNotUndoIndirectMutation()
+            Dim compilation = Compile("
+Public Class ClearedByCall
+    Private _name As String = ""Customer""
+    Public Sub New()
+        ClearName()
+    End Sub
+    Private Sub ClearName()
+        _name = Nothing
+    End Sub
+End Class
+Public Class ClearedShared
+    Private Shared _name As String = ""Customer""
+    Shared Sub New()
+        ClearName()
+    End Sub
+    Private Shared Sub ClearName()
+        _name = Nothing
+    End Sub
+End Class
+Public Class ClearedDirectly
+    Private _name As String = ""Customer""
+    Public Sub New()
+        _name = Nothing
+    End Sub
+End Class
+Public Class ClearedBySetter
+    Private _name As String = ""Customer""
+    Public Property Name As String
+        Get
+            Return _name
+        End Get
+        Set(value As String)
+            _name = value
+        End Set
+    End Property
+    Public Sub New()
+        Name = Nothing
+    End Sub
+End Class
+Public Class ClearedByRef
+    Private _name As String = ""Customer""
+    Public Sub New()
+        Clear(_name)
+    End Sub
+    Private Shared Sub Clear(ByRef value As String)
+        value = Nothing
+    End Sub
+End Class
+Public Class ClearedAfterChain
+    Private _name As String = ""Customer""
+    Public Sub New(ready As Boolean)
+        Me.New()
+        ClearName()
+    End Sub
+    Public Sub New()
+    End Sub
+    Private Sub ClearName()
+        _name = Nothing
+    End Sub
+End Class
+Public Class KeptByContract
+    Private _name As String = Nothing
+    <System.Diagnostics.CodeAnalysis.MemberNotNull(""_name"")>
+    Private Sub Initialize()
+        _name = ""Customer""
+    End Sub
+    Public Sub New()
+        Initialize()
+    End Sub
+End Class
+Public Class Untouched
+    Private _kept As String = ""Customer""
+    Public Sub New()
+    End Sub
+End Class
+")
+            Dim messages = compilation.GetDiagnostics().Where(Function(diagnostic) diagnostic.Code = ERRID.WRN_UninitializedNonNullableMember).Select(Function(diagnostic) diagnostic.GetMessage()).ToArray()
+            Assert.Equal(6, messages.Where(Function(message) message.Contains("_name")).Count())
+            Assert.DoesNotContain(messages, Function(message) message.Contains("_kept"))
+        End Sub
+
+        <Fact>
+        Public Sub MemberNotNullWhen_BodyVerification()
+            Dim compilation = Compile("
+Public Class Customer
+    Private _name As String?
+    Private _title As String?
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function ValidTrue() As Boolean
+        _name = ""Customer""
+        Return True ' ok-true
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function InvalidTrue() As Boolean
+        Return True ' bad-true
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(False, ""_title"")>
+    Public Function ValidFalse() As Boolean
+        _title = ""Customer""
+        Return False ' ok-false
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(False, ""_title"")>
+    Public Function InvalidFalse() As Boolean
+        Return False ' bad-false
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Many(flag As Boolean) As Boolean
+        If flag Then
+            Return True ' many-early
+        End If
+        _name = ""Customer""
+        Return flag ' many-value
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Direct() As Boolean
+        Return _name IsNot Nothing ' direct-value
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Early() As Boolean
+        Return True ' early-return
+        _name = ""Customer""
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Stopped() As Boolean
+        Throw New System.Exception() ' stopped
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Cleared() As Boolean
+        _name = ""Customer""
+        Try
+            Return True ' cleared
+        Finally
+            _name = Nothing
+        End Try
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Aliased(other As Customer) As Boolean
+        _name = ""Customer""
+        other._name = Nothing ' aliased
+        Return True ' aliased-return
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_name"")>
+    Public Function Recursive() As Boolean
+        Return Recursive() ' recursive
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_title"")>
+    Public Function MutualA() As Boolean
+        Return MutualB() ' mutual-a
+    End Function
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""_title"")>
+    Public Function MutualB() As Boolean
+        Return MutualA() ' mutual-b
+    End Function
+End Class
+")
+            Dim lines = compilation.GetDiagnostics().Where(Function(diagnostic) diagnostic.Code = ERRID.WRN_MemberContractNotSatisfiedWhen).Select(Function(diagnostic) DiagnosticLine(diagnostic)).ToArray()
+            Assert.Contains(lines, Function(line) line.Contains("bad-true"))
+            Assert.Contains(lines, Function(line) line.Contains("bad-false"))
+            Assert.Contains(lines, Function(line) line.Contains("many-early"))
+            Assert.DoesNotContain(lines, Function(line) line.Contains("many-value"))
+            Assert.Contains(lines, Function(line) line.Contains("direct-value"))
+            Assert.Contains(lines, Function(line) line.Contains("early-return"))
+            Assert.Contains(lines, Function(line) line.Contains("cleared"))
+            Assert.Contains(lines, Function(line) line.Contains("aliased-return"))
+            Assert.Contains(lines, Function(line) line.Contains("recursive"))
+            Assert.Contains(lines, Function(line) line.Contains("mutual-a"))
+            Assert.Contains(lines, Function(line) line.Contains("mutual-b"))
+            Assert.DoesNotContain(lines, Function(line) line.Contains("ok-true"))
+            Assert.DoesNotContain(lines, Function(line) line.Contains("ok-false"))
+            Assert.DoesNotContain(lines, Function(line) line.Contains("stopped"))
+        End Sub
+
+        <Fact>
+        Public Sub RequiredMember_DoesNotReplaceNullableProof()
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class RequiredMemberAttribute
+        Inherits System.Attribute
+    End Class
+End Namespace
+Namespace System.Diagnostics.CodeAnalysis
+    Public Class SetsRequiredMembersAttribute
+        Inherits System.Attribute
+    End Class
+End Namespace
+Public Class Box
+    Public Required Property Name As String
+    Public Required Property Title As String
+    <System.Diagnostics.CodeAnalysis.SetsRequiredMembers>
+    Public Sub New()
+        Name = ""Customer""
+    End Sub
+End Class
+Public Class Program
+    Public Sub Create()
+        Dim filled = New Box() With {.Title = ""Order""}
+        Dim length = filled.Name.Length
+    End Sub
+End Class
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+            Dim uninitialized = compilation.GetDiagnostics().Where(Function(diagnostic) diagnostic.Code = ERRID.WRN_UninitializedNonNullableMember).Select(Function(diagnostic) diagnostic.GetMessage()).ToArray()
+            Assert.Contains(uninitialized, Function(message) message.Contains("Title"))
+            Assert.DoesNotContain(uninitialized, Function(message) message.Contains("Name"))
+            Assert.DoesNotContain(compilation.GetDiagnostics(), Function(diagnostic) diagnostic.Code = ERRID.ERR_RequiredMemberMustBeSet)
+
+            Dim omitted = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class RequiredMemberAttribute
+        Inherits System.Attribute
+    End Class
+End Namespace
+Public Class Box
+    Public Required Property Name As String
+    Public Sub New()
+    End Sub
+End Class
+Public Class Program
+    Public Sub Create()
+        Dim box = New Box()
+    End Sub
+End Class
+", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+            Assert.Contains(omitted.GetDiagnostics(), Function(diagnostic) diagnostic.Code = ERRID.WRN_UninitializedNonNullableMember AndAlso diagnostic.GetMessage().Contains("Name"))
+            Assert.Contains(omitted.GetDiagnostics(), Function(diagnostic) diagnostic.Code = ERRID.ERR_RequiredMemberMustBeSet)
+        End Sub
+
+        <Fact>
+        Public Sub CrossLanguage_MemberNotNullWhenChangesWarnings()
+            Dim vbLibrary = Compile("
+Public Class Box
+    Public Name As String?
+    <System.Diagnostics.CodeAnalysis.MemberNotNullWhen(True, ""Name"")>
+    Public Function TryInitialize() As Boolean
+        Name = ""Customer""
+        Return True
+    End Function
+End Class
+")
+            vbLibrary.VerifyDiagnostics()
+            Dim image = vbLibrary.EmitToImageReference()
+            Dim reimport = CreateCompilation("
+Public Module Program
+    Public Sub Missing(box As Box)
+        Dim length = box.Name.Length
+    End Sub
+    Public Sub Present(box As Box)
+        If box.TryInitialize() Then
+            Dim length = box.Name.Length
+        Else
+            Dim missing = box.Name.Length
+        End If
+    End Sub
+End Module
+", references:={image}, options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+            Dim vbWarnings = reimport.GetDiagnostics().Where(Function(diagnostic) diagnostic.Code = ERRID.WRN_PossibleNullReference).ToArray()
+            Assert.Equal(2, vbWarnings.Length)
+
+            Dim csharp = CreateCSharpCompilation("
+#nullable enable
+public class Program
+{
+    public static void Missing(Box box) { box.Name.ToString(); }
+    public static void Present(Box box)
+    {
+        if (box.TryInitialize()) box.Name.ToString();
+        else box.Name.ToString();
+    }
+}
+", parseOptions:=CSharpPreview, compilationOptions:=CSharpNullable, referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.Mscorlib40).Concat({image}).ToArray())
+            Dim csharpWarnings = csharp.GetDiagnostics().Where(Function(diagnostic) diagnostic.Id = "CS8602").ToArray()
+            Assert.Equal(2, csharpWarnings.Length)
+            Assert.Contains(csharpWarnings, Function(diagnostic) diagnostic.Location.SourceTree.ToString().Contains("Missing"))
+
+            Dim reference = CompileCSharp("
+#nullable enable
+namespace System.Diagnostics.CodeAnalysis
+{
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public sealed class MemberNotNullWhenAttribute : System.Attribute
+    {
+        public MemberNotNullWhenAttribute(bool returnValue, string member) {}
+        public MemberNotNullWhenAttribute(bool returnValue, params string[] members) {}
+    }
+}
+public class Box
+{
+    public string? Name;
+    [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(Name))]
+    public bool TryInitialize() { Name = ""Customer""; return true; }
+}
+")
+            Dim consumer = CreateCompilation("
+Public Module Program
+    Public Sub Missing(box As Box)
+        Dim length = box.Name.Length
+    End Sub
+    Public Sub Present(box As Box)
+        If box.TryInitialize() Then
+            Dim length = box.Name.Length
+        Else
+            Dim missing = box.Name.Length
+        End If
+    End Sub
+End Module
+", references:={reference}, options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
+            Assert.Equal(2, consumer.GetDiagnostics().Where(Function(diagnostic) diagnostic.Code = ERRID.WRN_PossibleNullReference).Count())
+        End Sub
+
+        Private Shared Function DiagnosticLine(diagnostic As Diagnostic) As String
+            Dim tree = diagnostic.Location.SourceTree
+            If tree Is Nothing OrElse Not diagnostic.Location.IsInSource Then
+                Return ""
+            End If
+
+            Return tree.GetText().Lines.GetLineFromPosition(diagnostic.Location.SourceSpan.Start).ToString()
+        End Function
+
         Private Function Compile(source As String, Optional nullable As NullableContextOptions = NullableContextOptions.Enable) As VisualBasicCompilation
             Return CreateCompilation({Attributes, source}, options:=TestOptions.ReleaseDll.WithNullableContext(nullable), parseOptions:=VbNext)
         End Function
