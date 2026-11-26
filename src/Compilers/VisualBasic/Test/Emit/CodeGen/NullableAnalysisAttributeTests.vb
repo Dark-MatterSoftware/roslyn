@@ -154,7 +154,8 @@ End Class
 Public Delegate Function Parser(<NotNullIfNotNull(""text"")> text As String) As <NotNull> String
 ", NullableContextOptions.Enable)
 
-            compilation.VerifyDiagnostics()
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_PossibleNullAssignment, "text").WithArguments("matched").WithLocation(25, 19))
             Dim box = compilation.GetMember(Of NamedTypeSymbol)("Box")
             Assert.Equal(FlowAnalysisAnnotations.AllowNull, box.GetMember(Of FieldSymbol)("Item").FlowAnalysisAnnotations)
             Assert.Equal(FlowAnalysisAnnotations.DisallowNull, box.GetMember(Of FieldSymbol)("Required").FlowAnalysisAnnotations)
@@ -516,7 +517,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub ConditionalContracts_DoNotChangeCurrentFlowWarnings()
+        Public Sub ConditionalContracts_ApplyOnTheCaller()
             Dim compilation = Compile("
 Imports System.Diagnostics.CodeAnalysis
 Public Class Box
@@ -529,6 +530,7 @@ Public Class Box
     End Sub
     Sub Use()
         Dim found As String? = Nothing
+        Dim before = found.Length
         If TryFind(found) Then
             Dim length = found.Length
         End If
@@ -538,9 +540,8 @@ Public Class Box
 End Class
 ", NullableContextOptions.Enable)
 
-            Assert.Contains(CInt(ERRID.WRN_PossibleNullReference), compilation.GetDiagnostics().Select(Function(diagnostic) diagnostic.Code))
-            Assert.Contains(CInt(ERRID.WRN_PossibleNullAssignment), compilation.GetDiagnostics().Select(Function(diagnostic) diagnostic.Code))
-            Assert.DoesNotContain(compilation.GetDiagnostics(), Function(diagnostic) diagnostic.Severity = DiagnosticSeverity.Error)
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_PossibleNullReference, "found").WithArguments("found").WithLocation(13, 22))
         End Sub
 
         <Fact>

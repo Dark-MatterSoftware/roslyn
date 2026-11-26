@@ -755,23 +755,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 If ordinary AndAlso (op = BinaryOperatorKind.And OrElse op = BinaryOperatorKind.Or) Then
-                    ' Both operands run. A fact from the left is not reapplied when the right writes that slot.
-                    Evaluate(binary.Left)
+                    ' Both operands run. A fact from the left is kept only when the right does not write that slot.
+                    Dim left = SplitCondition(binary.Left)
+                    SetSnapshot(MergeSnapshots(left.WhenTrue, left.WhenFalse))
                     Dim leftWrites = New Dictionary(Of Symbol, Integer)(_writes)
-                    Evaluate(binary.Right)
-                    Dim after = Capture()
-                    split.WhenTrue = CloneSnapshot(after)
-                    split.WhenFalse = CloneSnapshot(after)
+                    Dim right = SplitCondition(binary.Right)
+                    Dim after = MergeSnapshots(right.WhenTrue, right.WhenFalse)
+                    Dim strengthenLeft = If(op = BinaryOperatorKind.And, left.WhenTrue, left.WhenFalse)
+                    Dim strengthenRight = If(op = BinaryOperatorKind.And, right.WhenTrue, right.WhenFalse)
+                    Dim otherRight = If(op = BinaryOperatorKind.And, right.WhenFalse, right.WhenTrue)
+                    Dim strengthened = OverlayStable(after, strengthenLeft, leftWrites)
+                    strengthened = ApplyBranchDelta(strengthened, strengthenRight, otherRight)
                     If op = BinaryOperatorKind.And Then
-                        SetSnapshot(split.WhenTrue)
-                        ApplyFacts(binary.Left, True, leftWrites)
-                        ApplyFacts(binary.Right, True, Nothing)
-                        split.WhenTrue = Capture()
+                        split.WhenTrue = strengthened
+                        split.WhenFalse = CloneSnapshot(after)
                     Else
-                        SetSnapshot(split.WhenFalse)
-                        ApplyFacts(binary.Left, False, leftWrites)
-                        ApplyFacts(binary.Right, False, Nothing)
-                        split.WhenFalse = Capture()
+                        split.WhenTrue = CloneSnapshot(after)
+                        split.WhenFalse = strengthened
                     End If
 
                     SetSnapshot(after)
@@ -787,6 +787,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim typeOfDeclaration = TryCast(expr, BoundTypeOfDeclaration)
             If typeOfDeclaration IsNot Nothing Then
                 Return SplitTypeOf(typeOfDeclaration.Operand, isNotExpression:=False, typeOfDeclaration.Local)
+            End If
+
+            Dim callNode = TryCast(expr, BoundCall)
+            If callNode IsNot Nothing Then
+                Return SplitCall(callNode)
             End If
 
             Evaluate(expr)
@@ -938,9 +943,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function EvaluateCall(node As BoundCall) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
-            CheckArguments(node.Method, node.Arguments)
-            AfterInvocation()
-            Return CallResult(node.Method)
+            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments)
+            SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
+            Return effect.Result
         End Function
 
         Private Function EvaluateProperty(node As BoundPropertyAccess) As FlowNullability
@@ -962,12 +967,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function EvaluateObjectCreation(node As BoundObjectCreationExpression) As FlowNullability
-            CheckArguments(node.ConstructorOpt, node.Arguments)
-            If node.InitializerOpt IsNot Nothing Then
+            Dim effect = AnalyzeInvocation(node.ConstructorOpt, node.Arguments, node.DefaultArguments)
+            SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
+            If _reachable AndAlso node.InitializerOpt IsNot Nothing Then
                 Visit(node.InitializerOpt)
             End If
 
-            AfterInvocation()
             Return FlowNullability.NotNull
         End Function
 
@@ -1063,53 +1068,324 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Warn(ERRID.WRN_PossibleNullReference, receiver.Syntax, name)
         End Sub
 
-        Private Sub CheckArguments(method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression))
-            If arguments.IsDefault Then
-                Return
+        Private Structure InvocationEffect
+            Friend Result As FlowNullability
+            Friend WhenTrue As FlowSnapshot
+            Friend WhenFalse As FlowSnapshot
+        End Structure
+
+        Private Structure ArgumentRecord
+            Friend Parameter As ParameterSymbol
+            Friend Slot As Symbol
+            Friend Value As FlowNullability
+            Friend Stamp As Integer
+            Friend HasSlot As Boolean
+            Friend Syntax As SyntaxNode
+        End Structure
+
+        Private Function SplitCall(node As BoundCall) As ConditionSplit
+            EvaluateReceiver(node.ReceiverOpt)
+            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments)
+            Dim split As New ConditionSplit()
+            split.WhenTrue = effect.WhenTrue
+            split.WhenFalse = effect.WhenFalse
+            Return split
+        End Function
+
+        ''' <summary>
+        ''' Evaluates arguments in bound order, which is the order the rewriter emits.
+        ''' Successful-return postconditions are applied only when a later argument has not
+        ''' written the slot. They are not copied into exceptional snapshots.
+        ''' </summary>
+        Private Function AnalyzeInvocation(method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression), defaultArguments As BitVector) As InvocationEffect
+            Dim effect As InvocationEffect
+            If Not _reachable Then
+                effect.Result = FlowNullability.NotNull
+                effect.WhenTrue = Unreachable()
+                effect.WhenFalse = Unreachable()
+                Return effect
             End If
 
-            Dim count = 0
-            If method IsNot Nothing Then
-                count = Math.Min(arguments.Length, method.ParameterCount)
-            End If
+            Dim records As New List(Of ArgumentRecord)()
+            Dim survivors As New List(Of FlowSnapshot)()
+            Dim survivorWrites As New List(Of Dictionary(Of Symbol, Integer))()
+            Dim dependentNotNull = False
+            Dim booleanReturn = method IsNot Nothing AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.SpecialType = SpecialType.System_Boolean
+            Dim dependencyNames = If(method Is Nothing, Nothing, method.ReturnNotNullIfParameterNotNull)
+            Dim argumentCount = If(arguments.IsDefault, 0, arguments.Length)
 
-            For i = 0 To arguments.Length - 1
+            For i = 0 To argumentCount - 1
                 Dim parameter As ParameterSymbol = Nothing
-                If method IsNot Nothing AndAlso i < count AndAlso Not method.Parameters(i).IsParamArray Then
+                If method IsNot Nothing AndAlso i < method.ParameterCount Then
                     parameter = method.Parameters(i)
                 End If
 
-                Dim value = Evaluate(ArgumentValue(arguments(i)))
-                If parameter IsNot Nothing AndAlso value = FlowNullability.MaybeNull AndAlso ArgumentDisallowsNull(parameter) Then
-                    Warn(ERRID.WRN_PossibleNullArgument, arguments(i).Syntax, parameter.Name)
+                Dim argument = arguments(i)
+                Dim annotations = If(parameter Is Nothing, FlowAnalysisAnnotations.None, EffectiveAnnotations(parameter, booleanReturn))
+                Dim value As FlowNullability
+                If parameter IsNot Nothing AndAlso Not parameter.IsByRef AndAlso HasConditionalNonReturn(annotations) Then
+                    ' Later arguments still run. The filtered snapshot is the successful return.
+                    Dim split = SplitCondition(ArgumentValue(argument))
+                    Dim survivor As FlowSnapshot
+                    If (annotations And FlowAnalysisAnnotations.DoesNotReturn) = FlowAnalysisAnnotations.DoesNotReturn Then
+                        survivor = Unreachable()
+                    ElseIf HasContract(annotations, FlowAnalysisAnnotations.DoesNotReturnIfTrue) Then
+                        survivor = split.WhenFalse
+                    Else
+                        survivor = split.WhenTrue
+                    End If
+
+                    survivors.Add(survivor)
+                    survivorWrites.Add(New Dictionary(Of Symbol, Integer)(_writes))
+                    SetSnapshot(MergeSnapshots(split.WhenTrue, split.WhenFalse))
+                    value = FlowNullability.NotNull
+                Else
+                    value = Evaluate(ArgumentValue(argument))
+                End If
+
+                If Not _reachable Then
+                    effect.Result = FlowNullability.NotNull
+                    effect.WhenTrue = Unreachable()
+                    effect.WhenFalse = Unreachable()
+                    Return effect
+                End If
+
+                Dim isDefault = Not defaultArguments.IsNull AndAlso defaultArguments(i)
+                If parameter IsNot Nothing AndAlso Not isDefault AndAlso value = FlowNullability.MaybeNull AndAlso ArgumentDisallowsNull(parameter) Then
+                    Warn(ERRID.WRN_PossibleNullArgument, argument.Syntax, parameter.Name)
+                End If
+
+                If dependencyNames IsNot Nothing AndAlso parameter IsNot Nothing AndAlso dependencyNames.Contains(parameter.Name) AndAlso value = FlowNullability.NotNull Then
+                    dependentNotNull = True
+                End If
+
+                Dim record As ArgumentRecord
+                record.Parameter = parameter
+                record.Value = value
+                record.Syntax = argument.Syntax
+                record.Slot = DirectArgumentSlot(argument)
+                record.HasSlot = record.Slot IsNot Nothing
+                record.Stamp = 0
+                If record.HasSlot Then
+                    _writes.TryGetValue(record.Slot, record.Stamp)
+                End If
+
+                records.Add(record)
+            Next
+
+            For index = 0 To survivors.Count - 1
+                Dim survivor = survivors(index)
+                If survivor Is Nothing OrElse Not survivor.Reachable Then
+                    effect.Result = FlowNullability.NotNull
+                    effect.WhenTrue = Unreachable()
+                    effect.WhenFalse = Unreachable()
+                    SetSnapshot(effect.WhenTrue)
+                    Return effect
+                End If
+
+                Dim overlaid = OverlayStable(Capture(), survivor, survivorWrites(index))
+                SetSnapshot(overlaid)
+            Next
+
+            If method IsNot Nothing AndAlso HasContract(method.FlowAnalysisAnnotations, FlowAnalysisAnnotations.DoesNotReturn) Then
+                effect.Result = FlowNullability.NotNull
+                effect.WhenTrue = Unreachable()
+                effect.WhenFalse = Unreachable()
+                SetSnapshot(effect.WhenTrue)
+                Return effect
+            End If
+
+            For Each record In records
+                If record.HasSlot AndAlso record.Parameter IsNot Nothing AndAlso record.Parameter.IsByRef Then
+                    WeakenExceptionSlot(record.Slot)
                 End If
             Next
 
-            If method Is Nothing Then
+            Dim whenTrue = Capture()
+            Dim whenFalse = CloneSnapshot(whenTrue)
+            Dim appliedTrue As New Dictionary(Of Symbol, FlowNullability)()
+            Dim appliedFalse As New Dictionary(Of Symbol, FlowNullability)()
+            Dim stamped As New HashSet(Of Symbol)()
+            For Each record In records
+                If record.Parameter Is Nothing OrElse Not record.HasSlot Then
+                    Continue For
+                End If
+
+                Dim now = 0
+                If _writes.TryGetValue(record.Slot, now) AndAlso now <> record.Stamp Then
+                    Continue For
+                End If
+
+                Dim annotations = EffectiveAnnotations(record.Parameter, booleanReturn)
+                ApplyOutput(whenTrue, appliedTrue, record, annotations, sense:=True)
+                ApplyOutput(whenFalse, appliedFalse, record, annotations, sense:=False)
+                If appliedTrue.ContainsKey(record.Slot) OrElse appliedFalse.ContainsKey(record.Slot) Then
+                    stamped.Add(record.Slot)
+                End If
+            Next
+
+            For Each symbol In stamped
+                ' Successful-return writes invalidate earlier Boolean facts without entering exceptional states.
+                _writeClock += 1
+                _writes(symbol) = _writeClock
+            Next
+
+            InvalidateCaptured(whenTrue, appliedTrue)
+            InvalidateCaptured(whenFalse, appliedFalse)
+            effect.WhenTrue = whenTrue
+            effect.WhenFalse = whenFalse
+            effect.Result = CallResult(method, dependentNotNull)
+            SetSnapshot(MergeSnapshots(whenTrue, whenFalse))
+            Return effect
+        End Function
+
+        Private Sub ApplyOutput(snapshot As FlowSnapshot, applied As Dictionary(Of Symbol, FlowNullability), record As ArgumentRecord, annotations As FlowAnalysisAnnotations, sense As Boolean)
+            Dim state As FlowNullability
+            If Not TryOutputState(record.Parameter, annotations, sense, state) Then
                 Return
             End If
 
-            For i = 0 To count - 1
-                Dim parameter = method.Parameters(i)
-                If parameter.IsParamArray OrElse Not parameter.IsByRef Then
-                    Continue For
+            Dim previous As FlowNullability
+            If applied.TryGetValue(record.Slot, previous) Then
+                state = MergeNull(previous, state)
+            End If
+
+            applied(record.Slot) = state
+            snapshot.Slots(record.Slot) = state
+            If sense AndAlso state = FlowNullability.MaybeNull AndAlso AnnotationOf(record.Slot) = NullableAnnotation.NotAnnotated AndAlso record.Parameter.IsByRef Then
+                Warn(ERRID.WRN_PossibleNullAssignment, record.Syntax, record.Slot.Name)
+            End If
+        End Sub
+
+        Private Shared Function TryOutputState(parameter As ParameterSymbol, annotations As FlowAnalysisAnnotations, sense As Boolean, ByRef state As FlowNullability) As Boolean
+            Dim notNullWhen = If(sense, HasContract(annotations, FlowAnalysisAnnotations.NotNullWhenTrue), HasContract(annotations, FlowAnalysisAnnotations.NotNullWhenFalse))
+            Dim maybeWhen = If(sense, HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenTrue), HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenFalse))
+            Dim maybeOther = If(sense, HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenFalse), HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenTrue))
+            If parameter.IsByRef Then
+                If maybeWhen AndAlso Not (maybeOther AndAlso notNullWhen) Then
+                    state = FlowNullability.MaybeNull
+                    Return True
                 End If
 
-                Dim target = TrackedSymbol(ArgumentValue(arguments(i)))
-                If target Is Nothing OrElse Not IsTrackedReference(target) Then
-                    Continue For
+                If notNullWhen Then
+                    state = FlowNullability.NotNull
+                    Return True
                 End If
 
-                ' NotNull ByRef keeps a non-null result. Annotated or oblivious ByRef does not.
                 If AnnotationOf(parameter) = NullableAnnotation.NotAnnotated Then
-                    _state(target) = FlowNullability.NotNull
+                    state = FlowNullability.NotNull
                 Else
-                    _state(target) = FlowNullability.MaybeNull
+                    state = FlowNullability.MaybeNull
                 End If
 
-                NoteWrite(target)
+                Return True
+            End If
+
+            If maybeWhen Then
+                state = FlowNullability.MaybeNull
+                Return True
+            End If
+
+            If notNullWhen Then
+                state = FlowNullability.NotNull
+                Return True
+            End If
+
+            Return False
+        End Function
+
+        Private Shared Function EffectiveAnnotations(parameter As ParameterSymbol, booleanReturn As Boolean) As FlowAnalysisAnnotations
+            Dim annotations = parameter.FlowAnalysisAnnotations
+            If booleanReturn Then
+                Return annotations
+            End If
+
+            Dim notNull = annotations And FlowAnalysisAnnotations.NotNull
+            If notNull <> FlowAnalysisAnnotations.None AndAlso notNull <> FlowAnalysisAnnotations.NotNull Then
+                annotations = annotations And Not FlowAnalysisAnnotations.NotNull
+            End If
+
+            Dim maybeNull = annotations And FlowAnalysisAnnotations.MaybeNull
+            If maybeNull <> FlowAnalysisAnnotations.None AndAlso maybeNull <> FlowAnalysisAnnotations.MaybeNull Then
+                annotations = annotations And Not FlowAnalysisAnnotations.MaybeNull
+            End If
+
+            Return annotations
+        End Function
+
+        Private Shared Function HasConditionalNonReturn(annotations As FlowAnalysisAnnotations) As Boolean
+            Return (annotations And FlowAnalysisAnnotations.DoesNotReturn) <> FlowAnalysisAnnotations.None
+        End Function
+
+        Private Sub InvalidateCaptured(snapshot As FlowSnapshot, applied As Dictionary(Of Symbol, FlowNullability))
+            If snapshot Is Nothing OrElse Not snapshot.Reachable Then
+                Return
+            End If
+
+            For Each symbol In _captured
+                If IsTrackedReference(symbol) AndAlso Not applied.ContainsKey(symbol) Then
+                    snapshot.Slots(symbol) = FlowNullability.MaybeNull
+                End If
             Next
         End Sub
+
+        Private Sub WeakenExceptionSlot(symbol As Symbol)
+            For index = 0 To _exceptionStates.Count - 1
+                Dim snapshot = _exceptionStates(index)
+                If snapshot Is Nothing OrElse Not snapshot.Reachable Then
+                    Continue For
+                End If
+
+                Dim copy = CloneSnapshot(snapshot)
+                copy.Slots(symbol) = FlowNullability.MaybeNull
+                _exceptionStates(index) = copy
+            Next
+        End Sub
+
+        Private Function OverlayStable(base As FlowSnapshot, overlay As FlowSnapshot, baseline As Dictionary(Of Symbol, Integer)) As FlowSnapshot
+            Dim result = CloneSnapshot(base)
+            If overlay Is Nothing OrElse Not overlay.Reachable OrElse Not result.Reachable Then
+                Return result
+            End If
+
+            For Each pair In overlay.Slots
+                Dim thenStamp = 0
+                baseline.TryGetValue(pair.Key, thenStamp)
+                Dim nowStamp = 0
+                _writes.TryGetValue(pair.Key, nowStamp)
+                If nowStamp = thenStamp Then
+                    result.Slots(pair.Key) = pair.Value
+                End If
+            Next
+
+            Return result
+        End Function
+
+        Private Shared Function ApplyBranchDelta(base As FlowSnapshot, branch As FlowSnapshot, other As FlowSnapshot) As FlowSnapshot
+            Dim result = CloneSnapshot(base)
+            If branch Is Nothing OrElse Not branch.Reachable OrElse Not result.Reachable Then
+                Return result
+            End If
+
+            For Each pair In branch.Slots
+                Dim otherState As FlowNullability
+                Dim differs = other Is Nothing OrElse Not other.Reachable OrElse Not other.Slots.TryGetValue(pair.Key, otherState) OrElse otherState <> pair.Value
+                If differs Then
+                    result.Slots(pair.Key) = pair.Value
+                End If
+            Next
+
+            Return result
+        End Function
+
+        Private Shared Function DirectArgumentSlot(argument As BoundExpression) As Symbol
+            Dim current = argument
+            If current IsNot Nothing AndAlso current.Kind = BoundKind.ByRefArgumentWithCopyBack Then
+                current = DirectCast(current, BoundByRefArgumentWithCopyBack).OriginalArgument
+            End If
+
+            Return TrackedSymbol(current)
+        End Function
 
         Private Shared Function ArgumentValue(argument As BoundExpression) As BoundExpression
             If argument IsNot Nothing AndAlso argument.Kind = BoundKind.ByRefArgumentWithCopyBack Then
@@ -1256,6 +1532,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function InitialNullability(symbol As Symbol) As FlowNullability
+            Dim parameter = TryCast(symbol, ParameterSymbol)
+            If parameter IsNot Nothing Then
+                Dim annotations = parameter.FlowAnalysisAnnotations
+                ' AllowNull is the entry state when both input attributes are present.
+                If HasContract(annotations, FlowAnalysisAnnotations.AllowNull) Then
+                    Return FlowNullability.MaybeNull
+                End If
+
+                If HasContract(annotations, FlowAnalysisAnnotations.DisallowNull) Then
+                    Return FlowNullability.NotNull
+                End If
+            End If
+
             Return FromAnnotation(AnnotationOf(symbol))
         End Function
 
@@ -1270,10 +1559,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Select
         End Function
 
-        Private Shared Function CallResult(method As MethodSymbol) As FlowNullability
-            If method Is Nothing OrElse AnnotationOf(method) = NullableAnnotation.None Then
-                ' Unconditional contracts on an oblivious declaration stay deferred to LC-1F.2.
+        Private Shared Function CallResult(method As MethodSymbol, dependentNotNull As Boolean) As FlowNullability
+            If method Is Nothing Then
                 Return FlowNullability.Unknown
+            End If
+
+            If method.ReturnType IsNot Nothing AndAlso Not method.ReturnType.IsReferenceType Then
+                Return FlowNullability.NotNull
+            End If
+
+            If dependentNotNull Then
+                Return FlowNullability.NotNull
             End If
 
             Dim annotations = method.ReturnTypeFlowAnalysisAnnotations
@@ -1289,20 +1585,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function ReturnDisallowsNull() As Boolean
-            If AnnotationOf(_method) = NullableAnnotation.None Then
-                Return False
-            End If
-
             Return DisallowsNull(AnnotationOf(_method) = NullableAnnotation.NotAnnotated, _method.ReturnTypeFlowAnalysisAnnotations, outputContract:=True)
         End Function
 
         Private Function ArgumentDisallowsNull(parameter As ParameterSymbol) As Boolean
-            Dim declared = AnnotationOf(parameter)
-            If declared = NullableAnnotation.None Then
-                Return False
-            End If
-
-            Return DisallowsNull(declared = NullableAnnotation.NotAnnotated, parameter.FlowAnalysisAnnotations, outputContract:=False)
+            Return DisallowsNull(AnnotationOf(parameter) = NullableAnnotation.NotAnnotated, parameter.FlowAnalysisAnnotations, outputContract:=False)
         End Function
 
         Private Shared Function DisallowsNull(declaredNotNull As Boolean, annotations As FlowAnalysisAnnotations, outputContract As Boolean) As Boolean
@@ -1525,7 +1812,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function EvaluateUserDefinedConversion(node As BoundUserDefinedConversion) As FlowNullability
-            Evaluate(node.UnderlyingExpression)
+            Dim result = Evaluate(node.UnderlyingExpression)
             Dim method = ConversionOperator(node.UnderlyingExpression)
             If method Is Nothing Then
                 Return FlowNullability.Unknown
@@ -1535,8 +1822,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return FlowNullability.NotNull
             End If
 
-            ' The operator's declared return contract, not the null state of its input.
-            Return CallResult(method)
+            ' The operator call already applied its return contract, including NotNullIfNotNull.
+            If node.UnderlyingExpression IsNot Nothing AndAlso node.UnderlyingExpression.Kind = BoundKind.Call Then
+                Return result
+            End If
+
+            Return CallResult(method, dependentNotNull:=False)
         End Function
 
         Private Shared Function ConversionOperator(expr As BoundExpression) As MethodSymbol
