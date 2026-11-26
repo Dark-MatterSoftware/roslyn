@@ -10,8 +10,20 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Namespace Microsoft.CodeAnalysis.VisualBasic
 
     ''' <summary>
-    ''' Nullable flow state for locals and parameters. Declared annotations stay on the symbols.
+    ''' Nullable flow state for locals, parameters, and stable member storage.
+    ''' Declared annotations stay on the symbols.
     ''' This walker does not change definite assignment, reachability diagnostics, or generated IL.
+    '''
+    ''' Member slots are (receiver, path), not the field or property symbol alone.
+    ''' Me, MyClass, and MyBase share the current instance. Shared members use one slot.
+    ''' A local or parameter receiver is stable storage for that variable.
+    ''' Nested paths hang off that receiver and are dropped when a parent is replaced.
+    ''' Reference assignments between locals link aliases; a write through one alias
+    ''' drops non-null facts on the others. Calls, awaits, and lambdas drop facts only
+    ''' for receivers they can reach. Auto-properties are field-like. Other getters are
+    ''' calls and do not keep a fact across reads. Array indices and parameterized
+    ''' properties are not stable slots; their element contracts come from the
+    ''' substituted annotation or accessor.
     ''' </summary>
     Friend NotInheritable Class NullableFlowAnalysis
         Inherits BoundTreeWalkerWithStackGuard
@@ -22,13 +34,96 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             MaybeNull
         End Enum
 
+        Private NotInheritable Class MemberSlot
+            Implements IEquatable(Of MemberSlot)
+
+            Friend ReadOnly Receiver As Symbol
+            Friend ReadOnly IsShared As Boolean
+            Private ReadOnly _path As Symbol()
+            Private ReadOnly _hash As Integer
+
+            Friend Sub New(receiver As Symbol, isShared As Boolean, path As Symbol())
+                Me.Receiver = receiver
+                Me.IsShared = isShared
+                _path = path
+                Dim hash = If(isShared, 17, 23)
+                If receiver IsNot Nothing Then
+                    hash = (hash * 31) Xor receiver.GetHashCode()
+                End If
+
+                For Each item In path
+                    hash = (hash * 31) Xor If(item Is Nothing, 0, item.GetHashCode())
+                Next
+
+                _hash = hash
+            End Sub
+
+            Friend ReadOnly Property LeafSymbol As Symbol
+                Get
+                    Return _path(_path.Length - 1)
+                End Get
+            End Property
+
+            Friend ReadOnly Property Depth As Integer
+                Get
+                    Return _path.Length
+                End Get
+            End Property
+
+            Friend Function WithReceiver(receiver As Symbol) As MemberSlot
+                Return New MemberSlot(receiver, IsShared, _path)
+            End Function
+
+            Friend Function StartsWith(prefix As MemberSlot) As Boolean
+                If IsShared <> prefix.IsShared OrElse Not SameSymbol(Receiver, prefix.Receiver) OrElse prefix._path.Length > _path.Length Then
+                    Return False
+                End If
+
+                For index = 0 To prefix._path.Length - 1
+                    If Not SameSymbol(_path(index), prefix._path(index)) Then
+                        Return False
+                    End If
+                Next
+
+                Return True
+            End Function
+
+            Public Overloads Function Equals(other As MemberSlot) As Boolean Implements IEquatable(Of MemberSlot).Equals
+                If other Is Nothing OrElse IsShared <> other.IsShared OrElse _path.Length <> other._path.Length OrElse Not SameSymbol(Receiver, other.Receiver) Then
+                    Return False
+                End If
+
+                For index = 0 To _path.Length - 1
+                    If Not SameSymbol(_path(index), other._path(index)) Then
+                        Return False
+                    End If
+                Next
+
+                Return True
+            End Function
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return Equals(TryCast(obj, MemberSlot))
+            End Function
+
+            Public Overrides Function GetHashCode() As Integer
+                Return _hash
+            End Function
+
+            Private Shared Function SameSymbol(left As Symbol, right As Symbol) As Boolean
+                Return left Is right
+            End Function
+        End Class
+
         Private NotInheritable Class FlowSnapshot
             Friend ReadOnly Reachable As Boolean
             Friend ReadOnly Slots As Dictionary(Of Symbol, FlowNullability)
+            Friend ReadOnly Members As Dictionary(Of MemberSlot, FlowNullability)
 
-            Friend Sub New(reachable As Boolean, slots As Dictionary(Of Symbol, FlowNullability))
+            Friend Sub New(reachable As Boolean, slots As Dictionary(Of Symbol, FlowNullability), members As Dictionary(Of MemberSlot, FlowNullability))
                 Me.Reachable = reachable
                 Me.Slots = slots
+                Me.Members = members
             End Sub
         End Class
 
@@ -45,6 +140,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private ReadOnly _project As NullableContextOptions
         Private _reachable As Boolean
         Private _state As Dictionary(Of Symbol, FlowNullability)
+        Private _members As Dictionary(Of MemberSlot, FlowNullability)
+        Private ReadOnly _aliases As Dictionary(Of Symbol, Symbol)
+        Private ReadOnly _memberWrites As Dictionary(Of MemberSlot, Integer)
         Private ReadOnly _jumps As Dictionary(Of LabelSymbol, FlowSnapshot)
         Private ReadOnly _captured As HashSet(Of Symbol)
         Private ReadOnly _visitedLabels As HashSet(Of LabelSymbol)
@@ -60,6 +158,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _diagnostics = diagnostics
             _project = project
             _state = New Dictionary(Of Symbol, FlowNullability)()
+            _members = New Dictionary(Of MemberSlot, FlowNullability)()
+            _aliases = New Dictionary(Of Symbol, Symbol)()
+            _memberWrites = New Dictionary(Of MemberSlot, Integer)()
             _jumps = New Dictionary(Of LabelSymbol, FlowSnapshot)()
             _captured = New HashSet(Of Symbol)()
             _visitedLabels = New HashSet(Of LabelSymbol)()
@@ -108,6 +209,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub BeginPass()
             _reachable = True
             _state = New Dictionary(Of Symbol, FlowNullability)()
+            _members = New Dictionary(Of MemberSlot, FlowNullability)()
+            _aliases.Clear()
+            _memberWrites.Clear()
             _captured.Clear()
             _visitedLabels.Clear()
             _writes.Clear()
@@ -241,10 +345,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim elementState = FlowNullability.NotNull
             If control IsNot Nothing AndAlso IsTrackedReference(control) Then
-                elementState = InitialNullability(control)
-                If elementState = FlowNullability.Unknown Then
-                    elementState = FlowNullability.MaybeNull
-                End If
+                elementState = ElementFlow(node, control)
             Else
                 control = Nothing
             End If
@@ -402,8 +503,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 _captured.Add(node.LocalSymbol)
             End If
 
-            If node.DeclarationInitializerOpt IsNot Nothing Then
+                If node.DeclarationInitializerOpt IsNot Nothing Then
                 Dim value = Evaluate(node.DeclarationInitializerOpt)
+                NoteReceiverIdentity(node.LocalSymbol, node.DeclarationInitializerOpt)
                 Assign(node.LocalSymbol, value, node.DeclarationInitializerOpt)
             ElseIf node.IdentifierInitializerOpt IsNot Nothing Then
                 Evaluate(node.IdentifierInitializerOpt)
@@ -447,8 +549,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             If target IsNot Nothing Then
+                NoteReceiverIdentity(target, node.Right)
                 Assign(target, value, node.Right)
-            Else
+            ElseIf Not AssignStorage(node.Left, value, node.Right) Then
                 AfterInvocation()
             End If
 
@@ -477,6 +580,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Overrides Function VisitLambda(node As BoundLambda) As BoundNode
             VisitIsolated(node.Body, node.LambdaSymbol.Parameters)
+            InvalidateCapturedReceivers()
             Return Nothing
         End Function
 
@@ -490,6 +594,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             AssumeCapturedMayBeNull()
             Evaluate(node.Expression)
             SetSnapshot(saved)
+            InvalidateCapturedReceivers()
             Return Nothing
         End Function
 
@@ -737,6 +842,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim trueWhenNull = False
                     Evaluate(binary.Left)
                     Evaluate(binary.Right)
+                    Dim memberTest As MemberSlot = Nothing
                     If TryGetNullTest(binary, tested, trueWhenNull) Then
                         Dim baseState = Capture()
                         SetSnapshot(CloneSnapshot(baseState))
@@ -744,6 +850,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         split.WhenTrue = Capture()
                         SetSnapshot(CloneSnapshot(baseState))
                         Learn(tested, Not trueWhenNull)
+                        split.WhenFalse = Capture()
+                        Return split
+                    End If
+
+                    If TryGetMemberNullTest(binary, memberTest, trueWhenNull) Then
+                        Dim baseState = Capture()
+                        SetSnapshot(CloneSnapshot(baseState))
+                        LearnMember(memberTest, trueWhenNull)
+                        split.WhenTrue = Capture()
+                        SetSnapshot(CloneSnapshot(baseState))
+                        LearnMember(memberTest, Not trueWhenNull)
                         split.WhenFalse = Capture()
                         Return split
                     End If
@@ -864,6 +981,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return EvaluateProperty(DirectCast(expr, BoundPropertyAccess))
                 Case BoundKind.FieldAccess
                     Return EvaluateField(DirectCast(expr, BoundFieldAccess))
+                Case BoundKind.ArrayAccess
+                    Return EvaluateArray(DirectCast(expr, BoundArrayAccess))
+                Case BoundKind.AwaitOperator
+                    Return EvaluateAwait(DirectCast(expr, BoundAwaitOperator))
                 Case BoundKind.ObjectCreationExpression
                     Return EvaluateObjectCreation(DirectCast(expr, BoundObjectCreationExpression))
                 Case BoundKind.BinaryOperator
@@ -943,7 +1064,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function EvaluateCall(node As BoundCall) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
-            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments)
+            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt)
             SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
             Return effect.Result
         End Function
@@ -956,18 +1077,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Next
             End If
 
-            AfterInvocation()
-            Return FromAnnotation(node.PropertySymbol.GetNullableAnnotation())
+            Dim slot = TryBuildSlot(node)
+            Dim result = If(slot Is Nothing, PropertyResult(node.PropertySymbol), StateOfMember(slot))
+            If slot Is Nothing Then
+                InvalidatePropertyEffects(node.PropertySymbol, node.ReceiverOpt)
+            End If
+
+            Return result
         End Function
 
         Private Function EvaluateField(node As BoundFieldAccess) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
-            ' Field assignment state is LC-1F.3. A read uses the declared annotation only.
-            Return FromAnnotation(node.FieldSymbol.GetNullableAnnotation())
+            Dim slot = TryBuildSlot(node)
+            If slot Is Nothing Then
+                Return FromAnnotation(node.FieldSymbol.GetNullableAnnotation())
+            End If
+
+            Return StateOfMember(slot)
         End Function
 
         Private Function EvaluateObjectCreation(node As BoundObjectCreationExpression) As FlowNullability
-            Dim effect = AnalyzeInvocation(node.ConstructorOpt, node.Arguments, node.DefaultArguments)
+            Dim effect = AnalyzeInvocation(node.ConstructorOpt, node.Arguments, node.DefaultArguments, receiver:=Nothing)
             SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
             If _reachable AndAlso node.InitializerOpt IsNot Nothing Then
                 Visit(node.InitializerOpt)
@@ -1063,9 +1193,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Sub WarnReceiverSyntax(receiver As BoundExpression)
-            Dim symbol = TrackedSymbol(receiver)
-            Dim name = If(symbol Is Nothing, "expression", symbol.Name)
-            Warn(ERRID.WRN_PossibleNullReference, receiver.Syntax, name)
+            Warn(ERRID.WRN_PossibleNullReference, receiver.Syntax, DisplayName(receiver))
         End Sub
 
         Private Structure InvocationEffect
@@ -1085,7 +1213,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function SplitCall(node As BoundCall) As ConditionSplit
             EvaluateReceiver(node.ReceiverOpt)
-            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments)
+            Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt)
             Dim split As New ConditionSplit()
             split.WhenTrue = effect.WhenTrue
             split.WhenFalse = effect.WhenFalse
@@ -1097,7 +1225,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' Successful-return postconditions are applied only when a later argument has not
         ''' written the slot. They are not copied into exceptional snapshots.
         ''' </summary>
-        Private Function AnalyzeInvocation(method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression), defaultArguments As BitVector) As InvocationEffect
+        Private Function AnalyzeInvocation(method As MethodSymbol, arguments As ImmutableArray(Of BoundExpression), defaultArguments As BitVector, receiver As BoundExpression) As InvocationEffect
             Dim effect As InvocationEffect
             If Not _reachable Then
                 effect.Result = FlowNullability.NotNull
@@ -1232,6 +1360,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             InvalidateCaptured(whenTrue, appliedTrue)
             InvalidateCaptured(whenFalse, appliedFalse)
+            InvalidateCallSnapshots(method, receiver, records, whenTrue, whenFalse)
             effect.WhenTrue = whenTrue
             effect.WhenFalse = whenFalse
             effect.Result = CallResult(method, dependentNotNull)
@@ -1358,6 +1487,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             Next
 
+            If overlay.Members IsNot Nothing Then
+                For Each pair In overlay.Members
+                    result.Members(pair.Key) = pair.Value
+                Next
+            End If
+
             Return result
         End Function
 
@@ -1374,6 +1509,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     result.Slots(pair.Key) = pair.Value
                 End If
             Next
+
+            If branch.Members IsNot Nothing Then
+                For Each pair In branch.Members
+                    Dim otherState As FlowNullability
+                    Dim differs = other Is Nothing OrElse Not other.Reachable OrElse other.Members Is Nothing OrElse Not other.Members.TryGetValue(pair.Key, otherState) OrElse otherState <> pair.Value
+                    If differs Then
+                        result.Members(pair.Key) = pair.Value
+                    End If
+                Next
+            End If
 
             Return result
         End Function
@@ -1465,8 +1610,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Dim tested As Symbol = Nothing
                 Dim trueWhenNull = False
+                Dim memberTest As MemberSlot = Nothing
                 If TryGetNullTest(binary, tested, trueWhenNull) Then
                     LearnIfStable(tested, If(sense, trueWhenNull, Not trueWhenNull), baseline)
+                ElseIf TryGetMemberNullTest(binary, memberTest, trueWhenNull) Then
+                    LearnMemberIfStable(memberTest, If(sense, trueWhenNull, Not trueWhenNull), baseline)
                 End If
 
                 Return
@@ -1695,6 +1843,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return True
         End Function
 
+        Private Shared Function StripFlow(expr As BoundExpression) As BoundExpression
+            Dim current = Unwrap(expr)
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Conversion, BoundKind.DirectCast, BoundKind.TryCast
+                        current = Unwrap(DirectCast(current, BoundConversionOrCast).Operand)
+                    Case Else
+                        Return current
+                End Select
+            End While
+
+            Return current
+        End Function
+
         Private Shared Function Unwrap(expr As BoundExpression) As BoundExpression
             Dim current = expr
             While current IsNot Nothing AndAlso current.Kind = BoundKind.Parenthesized
@@ -1741,7 +1903,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function Capture() As FlowSnapshot
-            Return New FlowSnapshot(_reachable, New Dictionary(Of Symbol, FlowNullability)(_state))
+            Return New FlowSnapshot(_reachable, New Dictionary(Of Symbol, FlowNullability)(_state), New Dictionary(Of MemberSlot, FlowNullability)(_members))
         End Function
 
         Private Shared Function CloneSnapshot(snapshot As FlowSnapshot) As FlowSnapshot
@@ -1749,11 +1911,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Unreachable()
             End If
 
-            Return New FlowSnapshot(snapshot.Reachable, New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots))
+            Return New FlowSnapshot(snapshot.Reachable, New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots), New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members))
         End Function
 
         Private Shared Function Unreachable() As FlowSnapshot
-            Return New FlowSnapshot(False, New Dictionary(Of Symbol, FlowNullability)())
+            Return New FlowSnapshot(False, New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of MemberSlot, FlowNullability)())
         End Function
 
         Private Sub SetSnapshot(snapshot As FlowSnapshot)
@@ -1764,6 +1926,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             _reachable = True
             _state = New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots)
+            _members = New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members)
         End Sub
 
         Private Shared Function MergeSnapshots(left As FlowSnapshot, right As FlowSnapshot) As FlowSnapshot
@@ -1796,7 +1959,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             Next
 
-            Return New FlowSnapshot(True, slots)
+            Dim members = MergeMembers(left.Members, right.Members)
+            Return New FlowSnapshot(True, slots, members)
+        End Function
+
+        Private Shared Function MergeMembers(left As Dictionary(Of MemberSlot, FlowNullability), right As Dictionary(Of MemberSlot, FlowNullability)) As Dictionary(Of MemberSlot, FlowNullability)
+            Dim members As New Dictionary(Of MemberSlot, FlowNullability)()
+            If left IsNot Nothing Then
+                For Each pair In left
+                    Dim other As FlowNullability
+                    If right IsNot Nothing AndAlso right.TryGetValue(pair.Key, other) Then
+                        members(pair.Key) = MergeNull(pair.Value, other)
+                    ElseIf pair.Value = FlowNullability.MaybeNull Then
+                        members(pair.Key) = FlowNullability.MaybeNull
+                    End If
+                Next
+            End If
+
+            If right IsNot Nothing Then
+                For Each pair In right
+                    If pair.Value = FlowNullability.MaybeNull AndAlso Not members.ContainsKey(pair.Key) Then
+                        members(pair.Key) = FlowNullability.MaybeNull
+                    End If
+                Next
+            End If
+
+            Return members
         End Function
 
         Private Shared Function MergeNull(left As FlowNullability, right As FlowNullability) As FlowNullability
@@ -1881,6 +2069,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             Next
 
+            For Each pair In _memberWrites
+                Dim written As FlowNullability
+                If pair.Value > clock AndAlso after.Members.TryGetValue(pair.Key, written) Then
+                    result.Members(pair.Key) = written
+                End If
+            Next
+
             SetSnapshot(result)
         End Sub
 
@@ -1898,7 +2093,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 slots(key) = FlowNullability.MaybeNull
             Next
 
-            Return New FlowSnapshot(snapshot.Reachable, slots)
+            Dim members = New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members)
+            Dim memberKeys = members.Keys.ToArray()
+            For Each key In memberKeys
+                members(key) = FlowNullability.MaybeNull
+            Next
+
+            Return New FlowSnapshot(snapshot.Reachable, slots, members)
         End Function
 
         Private Shared Function Same(left As FlowSnapshot, right As FlowSnapshot) As Boolean
@@ -1914,13 +2115,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return True
             End If
 
-            If left.Slots.Count <> right.Slots.Count Then
+            If left.Slots.Count <> right.Slots.Count OrElse left.Members.Count <> right.Members.Count Then
                 Return False
             End If
 
             For Each pair In left.Slots
                 Dim other As FlowNullability
                 If Not right.Slots.TryGetValue(pair.Key, other) OrElse other <> pair.Value Then
+                    Return False
+                End If
+            Next
+
+            For Each pair In left.Members
+                Dim other As FlowNullability
+                If Not right.Members.TryGetValue(pair.Key, other) OrElse other <> pair.Value Then
                     Return False
                 End If
             Next
@@ -1957,6 +2165,691 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return Unreachable()
+        End Function
+
+        Private Function ElementFlow(node As BoundForEachStatement, control As Symbol) As FlowNullability
+            Dim produced = CollectionElementState(node)
+            Dim declared = InitialNullability(control)
+            Dim local = TryCast(control, LocalSymbol)
+            Dim inferred = local IsNot Nothing AndAlso local.HasInferredType
+            If inferred Then
+                If produced = FlowNullability.Unknown Then
+                    produced = declared
+                End If
+
+                If produced = FlowNullability.Unknown Then
+                    Return FlowNullability.MaybeNull
+                End If
+
+                Return produced
+            End If
+
+            If produced = FlowNullability.MaybeNull AndAlso AnnotationOf(control) = NullableAnnotation.NotAnnotated Then
+                Warn(ERRID.WRN_PossibleNullAssignment, node.Collection.Syntax, control.Name)
+                Return FlowNullability.MaybeNull
+            End If
+
+            If declared = FlowNullability.Unknown Then
+                Return If(produced = FlowNullability.Unknown, FlowNullability.MaybeNull, produced)
+            End If
+
+            Return declared
+        End Function
+
+        Private Function CollectionElementState(node As BoundForEachStatement) As FlowNullability
+            Dim collectionType = If(node.Collection Is Nothing, Nothing, node.Collection.Type)
+            Dim arrayType = TryCast(collectionType, ArrayTypeSymbol)
+            If arrayType IsNot Nothing Then
+                Return AnnotatedReferenceState(arrayType.ElementType, arrayType.ElementNullableAnnotation)
+            End If
+
+            Dim info = node.EnumeratorInfo
+            Dim currentState = FlowNullability.Unknown
+            If info IsNot Nothing AndAlso info.Current IsNot Nothing Then
+                Dim current = info.Current
+                If current.Kind = BoundKind.PropertyAccess Then
+                    currentState = PropertyResult(DirectCast(current, BoundPropertyAccess).PropertySymbol)
+                ElseIf current.Kind = BoundKind.Call Then
+                    currentState = CallResult(DirectCast(current, BoundCall).Method, dependentNotNull:=False)
+                End If
+            End If
+
+            Dim elementType = If(info Is Nothing, Nothing, info.ElementType)
+            Dim argumentState = TypeArgumentState(collectionType, elementType)
+            If currentState = FlowNullability.Unknown Then
+                Return argumentState
+            End If
+
+            If argumentState = FlowNullability.Unknown Then
+                Return currentState
+            End If
+
+            Return MergeNull(currentState, argumentState)
+        End Function
+
+        Private Function EvaluateArray(node As BoundArrayAccess) As FlowNullability
+            Dim receiver = Evaluate(node.Expression)
+            If receiver = FlowNullability.MaybeNull Then
+                WarnReceiverSyntax(node.Expression)
+            End If
+
+            If Not node.Indices.IsDefault Then
+                For Each index In node.Indices
+                    Evaluate(index)
+                Next
+            End If
+
+            Dim arrayType = TryCast(If(node.Expression Is Nothing, Nothing, node.Expression.Type), ArrayTypeSymbol)
+            If arrayType Is Nothing Then
+                Return FlowNullability.Unknown
+            End If
+
+            Return AnnotatedReferenceState(arrayType.ElementType, arrayType.ElementNullableAnnotation)
+        End Function
+
+        Private Function EvaluateAwait(node As BoundAwaitOperator) As FlowNullability
+            Dim operand = Evaluate(node.Operand)
+            InvalidateOurMembers()
+            Dim result = AwaitResult(node)
+            If result = FlowNullability.Unknown Then
+                result = TypeArgumentState(If(node.Operand Is Nothing, Nothing, node.Operand.Type), node.Type)
+            End If
+
+            If operand = FlowNullability.MaybeNull AndAlso result = FlowNullability.NotNull Then
+                Return FlowNullability.MaybeNull
+            End If
+
+            Return result
+        End Function
+
+        Private Shared Function TypeArgumentState(container As TypeSymbol, resultType As TypeSymbol) As FlowNullability
+            Dim named = TryCast(container, NamedTypeSymbol)
+            If named Is Nothing OrElse resultType Is Nothing Then
+                Return FlowNullability.Unknown
+            End If
+
+            Dim arguments = named.TypeArgumentsNoUseSiteDiagnostics
+            Dim annotations = named.GetTypeArgumentNullableAnnotations()
+            If arguments.IsDefault OrElse annotations.IsDefault Then
+                Return FlowNullability.Unknown
+            End If
+
+            For index = 0 To Math.Min(arguments.Length, annotations.Length) - 1
+                If annotations(index) <> NullableAnnotation.None AndAlso resultType.IsSameTypeIgnoringAll(arguments(index)) Then
+                    Return FromAnnotation(annotations(index))
+                End If
+            Next
+
+            Return FlowNullability.Unknown
+        End Function
+
+        Private Shared Function AwaitResult(node As BoundAwaitOperator) As FlowNullability
+            Dim current = node.GetResult
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Call
+                        Return CallResult(DirectCast(current, BoundCall).Method, dependentNotNull:=False)
+                    Case BoundKind.Parenthesized
+                        current = DirectCast(current, BoundParenthesized).Expression
+                    Case BoundKind.Conversion, BoundKind.DirectCast
+                        current = DirectCast(current, BoundConversionOrCast).Operand
+                    Case Else
+                        Exit While
+                End Select
+            End While
+
+            If node.Type IsNot Nothing AndAlso Not node.Type.IsReferenceType Then
+                Return FlowNullability.NotNull
+            End If
+
+            Return FlowNullability.Unknown
+        End Function
+
+        Private Function AssignStorage(target As BoundExpression, value As FlowNullability, syntaxExpr As BoundExpression) As Boolean
+            target = Unwrap(target)
+            Dim arrayAccess = TryCast(target, BoundArrayAccess)
+            If arrayAccess IsNot Nothing Then
+                AssignArrayElement(arrayAccess, value, syntaxExpr)
+                Return True
+            End If
+
+            Dim propertyAccess = TryCast(target, BoundPropertyAccess)
+            If propertyAccess IsNot Nothing Then
+                AssignProperty(propertyAccess, value, syntaxExpr)
+                Return True
+            End If
+
+            Dim slot = TryBuildSlot(target)
+            If slot Is Nothing Then
+                Return False
+            End If
+
+            AssignMember(slot, value, syntaxExpr, report:=True)
+            Return True
+        End Function
+
+        Private Sub AssignArrayElement(access As BoundArrayAccess, value As FlowNullability, syntaxExpr As BoundExpression)
+            Dim arrayType = TryCast(If(access.Expression Is Nothing, Nothing, access.Expression.Type), ArrayTypeSymbol)
+            If arrayType Is Nothing Then
+                Return
+            End If
+
+            If value = FlowNullability.MaybeNull AndAlso DisallowsAnnotatedElement(arrayType.ElementType, arrayType.ElementNullableAnnotation) AndAlso IsSourceExpression(syntaxExpr) Then
+                Warn(ERRID.WRN_PossibleNullAssignment, syntaxExpr.Syntax, DisplayName(access))
+            End If
+        End Sub
+
+        Private Sub AssignProperty(access As BoundPropertyAccess, value As FlowNullability, syntaxExpr As BoundExpression)
+            Dim [property] = access.PropertySymbol
+            Dim setter = If([property] Is Nothing, Nothing, [property].SetMethod)
+            If setter IsNot Nothing AndAlso setter.ParameterCount > 0 Then
+                Dim parameter = setter.Parameters(setter.ParameterCount - 1)
+                If value = FlowNullability.MaybeNull AndAlso ArgumentDisallowsNull(parameter) AndAlso IsSourceExpression(syntaxExpr) Then
+                    Warn(ERRID.WRN_PossibleNullAssignment, syntaxExpr.Syntax, [property].Name)
+                End If
+            End If
+
+            Dim slot = TryBuildSlot(access)
+            If slot IsNot Nothing Then
+                AssignMember(slot, value, syntaxExpr, report:=False)
+            Else
+                InvalidatePropertyEffects([property], access.ReceiverOpt)
+            End If
+        End Sub
+
+        Private Sub AssignMember(slot As MemberSlot, value As FlowNullability, syntaxExpr As BoundExpression, report As Boolean)
+            Dim annotation = MemberAnnotation(slot)
+            If value = FlowNullability.Unknown AndAlso annotation = NullableAnnotation.Annotated Then
+                value = FlowNullability.MaybeNull
+            End If
+
+            If report AndAlso value = FlowNullability.MaybeNull AndAlso annotation = NullableAnnotation.NotAnnotated AndAlso IsSourceExpression(syntaxExpr) Then
+                Warn(ERRID.WRN_PossibleNullAssignment, syntaxExpr.Syntax, slot.LeafSymbol.Name)
+            End If
+
+            RemoveDescendants(slot)
+            _members(slot) = value
+            NoteMemberWrite(slot)
+            If value = FlowNullability.NotNull Then
+                InvalidateAliasMembers(slot)
+            Else
+                CopyAliasMembers(slot, value)
+            End If
+        End Sub
+
+        Private Sub NoteReceiverIdentity(target As Symbol, value As BoundExpression)
+            If target Is Nothing OrElse Not IsReceiverSymbol(target) Then
+                Return
+            End If
+
+            ClearReceiverMembers(target)
+            Unlink(target)
+            Dim source = TrackedSymbol(value)
+            If source IsNot Nothing AndAlso source IsNot target AndAlso IsReceiverSymbol(source) AndAlso IsReferenceSymbol(source) AndAlso IsReferenceSymbol(target) Then
+                Link(target, source)
+            End If
+        End Sub
+
+        Private Sub LearnMember(slot As MemberSlot, isNull As Boolean)
+            If slot Is Nothing Then
+                Return
+            End If
+
+            _members(slot) = If(isNull, FlowNullability.MaybeNull, FlowNullability.NotNull)
+            If isNull Then
+                CopyAliasMembers(slot, FlowNullability.MaybeNull)
+            End If
+        End Sub
+
+        Private Sub LearnMemberIfStable(slot As MemberSlot, isNull As Boolean, baseline As Dictionary(Of Symbol, Integer))
+            If slot Is Nothing Then
+                Return
+            End If
+
+            If slot.Receiver IsNot Nothing AndAlso baseline IsNot Nothing Then
+                Dim thenStamp = 0
+                baseline.TryGetValue(slot.Receiver, thenStamp)
+                Dim nowStamp = 0
+                _writes.TryGetValue(slot.Receiver, nowStamp)
+                If nowStamp <> thenStamp Then
+                    Return
+                End If
+            End If
+
+            LearnMember(slot, isNull)
+        End Sub
+
+        Private Function StateOfMember(slot As MemberSlot) As FlowNullability
+            Dim state As FlowNullability
+            If slot IsNot Nothing AndAlso _members.TryGetValue(slot, state) AndAlso state <> FlowNullability.Unknown Then
+                Return state
+            End If
+
+            Return FromAnnotation(MemberAnnotation(slot))
+        End Function
+
+        Private Shared Function MemberAnnotation(slot As MemberSlot) As NullableAnnotation
+            If slot Is Nothing OrElse slot.LeafSymbol Is Nothing Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim field = TryCast(slot.LeafSymbol, FieldSymbol)
+            If field IsNot Nothing Then
+                Return field.GetNullableAnnotation()
+            End If
+
+            Dim [property] = TryCast(slot.LeafSymbol, PropertySymbol)
+            If [property] IsNot Nothing Then
+                Return [property].GetNullableAnnotation()
+            End If
+
+            Return NullableAnnotation.None
+        End Function
+
+        Private Shared Function PropertyResult([property] As PropertySymbol) As FlowNullability
+            If [property] Is Nothing Then
+                Return FlowNullability.Unknown
+            End If
+
+            Dim getter = [property].GetMethod
+            If getter IsNot Nothing Then
+                Return CallResult(getter, dependentNotNull:=False)
+            End If
+
+            Return FromAnnotation([property].GetNullableAnnotation())
+        End Function
+
+        Private Shared Function AnnotatedReferenceState(elementType As TypeSymbol, annotation As NullableAnnotation) As FlowNullability
+            If elementType IsNot Nothing AndAlso Not elementType.IsReferenceType Then
+                Return FlowNullability.NotNull
+            End If
+
+            Dim state = FromAnnotation(annotation)
+            If state = FlowNullability.Unknown Then
+                Return FlowNullability.NotNull
+            End If
+
+            Return state
+        End Function
+
+        Private Shared Function DisallowsAnnotatedElement(elementType As TypeSymbol, annotation As NullableAnnotation) As Boolean
+            Return elementType IsNot Nothing AndAlso elementType.IsReferenceType AndAlso annotation = NullableAnnotation.NotAnnotated
+        End Function
+
+        Private Function TryBuildSlot(expr As BoundExpression) As MemberSlot
+            Dim path As New List(Of Symbol)()
+            Dim current = StripFlow(expr)
+            Dim isShared = False
+            While current IsNot Nothing
+                If current.Kind = BoundKind.FieldAccess Then
+                    Dim field = DirectCast(current, BoundFieldAccess)
+                    If field.FieldSymbol Is Nothing Then
+                        Return Nothing
+                    End If
+
+                    path.Insert(0, field.FieldSymbol)
+                    isShared = field.FieldSymbol.IsShared
+                    current = If(isShared, Nothing, StripFlow(field.ReceiverOpt))
+                ElseIf current.Kind = BoundKind.PropertyAccess Then
+                    Dim access = DirectCast(current, BoundPropertyAccess)
+                    If Not IsStableProperty(access.PropertySymbol) Then
+                        Return Nothing
+                    End If
+
+                    path.Insert(0, access.PropertySymbol)
+                    isShared = access.PropertySymbol.IsShared
+                    current = If(isShared, Nothing, StripFlow(access.ReceiverOpt))
+                Else
+                    Exit While
+                End If
+            End While
+
+            If path.Count = 0 Then
+                Return Nothing
+            End If
+
+            Dim receiver As Symbol = Nothing
+            If Not isShared Then
+                If current Is Nothing Then
+                    Return Nothing
+                End If
+
+                Select Case current.Kind
+                    Case BoundKind.MeReference, BoundKind.MyClassReference, BoundKind.MyBaseReference
+                        receiver = Nothing
+                    Case Else
+                        receiver = TrackedSymbol(current)
+                        If Not IsReceiverSymbol(receiver) Then
+                            Return Nothing
+                        End If
+                End Select
+            End If
+
+            Return New MemberSlot(receiver, isShared, path.ToArray())
+        End Function
+
+        Private Shared Function IsStableProperty([property] As PropertySymbol) As Boolean
+            If [property] Is Nothing OrElse [property].ParameterCount <> 0 OrElse [property].IsOverridable OrElse [property].IsMustOverride Then
+                Return False
+            End If
+
+            Dim source = TryCast([property].OriginalDefinition, SourcePropertySymbol)
+            Return source IsNot Nothing AndAlso source.IsAutoProperty
+        End Function
+
+        Private Shared Function IsReceiverSymbol(symbol As Symbol) As Boolean
+            Dim local = TryCast(symbol, LocalSymbol)
+            If local IsNot Nothing Then
+                Return Not local.IsConst
+            End If
+
+            Return TypeOf symbol Is ParameterSymbol
+        End Function
+
+        Private Shared Function IsReferenceSymbol(symbol As Symbol) As Boolean
+            Dim local = TryCast(symbol, LocalSymbol)
+            If local IsNot Nothing Then
+                Return local.Type IsNot Nothing AndAlso local.Type.IsReferenceType
+            End If
+
+            Dim parameter = TryCast(symbol, ParameterSymbol)
+            Return parameter IsNot Nothing AndAlso parameter.Type IsNot Nothing AndAlso parameter.Type.IsReferenceType
+        End Function
+
+        Private Sub Link(left As Symbol, right As Symbol)
+            Dim leftRoot = AliasRoot(left)
+            Dim rightRoot = AliasRoot(right)
+            If leftRoot IsNot rightRoot Then
+                _aliases(leftRoot) = rightRoot
+            End If
+        End Sub
+
+        Private Sub Unlink(symbol As Symbol)
+            If symbol Is Nothing OrElse Not _aliases.ContainsKey(symbol) Then
+                Dim stale = _aliases.Where(Function(pair) pair.Value Is symbol).Select(Function(pair) pair.Key).ToArray()
+                For Each key In stale
+                    _aliases.Remove(key)
+                Next
+
+                Return
+            End If
+
+            Dim parent = _aliases(symbol)
+            _aliases.Remove(symbol)
+            Dim children = _aliases.Where(Function(pair) pair.Value Is symbol).Select(Function(pair) pair.Key).ToArray()
+            For Each child In children
+                _aliases(child) = parent
+            Next
+        End Sub
+
+        Private Function AliasRoot(symbol As Symbol) As Symbol
+            Dim current = symbol
+            While current IsNot Nothing AndAlso _aliases.ContainsKey(current)
+                current = _aliases(current)
+            End While
+
+            Return current
+        End Function
+
+        Private Function AliasGroup(symbol As Symbol) As List(Of Symbol)
+            Dim root = AliasRoot(symbol)
+            Dim group As New List(Of Symbol)()
+            group.Add(root)
+            For Each pair In _aliases
+                If AliasRoot(pair.Key) Is root Then
+                    group.Add(pair.Key)
+                End If
+            Next
+
+            Return group
+        End Function
+
+        Private Sub InvalidateAliasMembers(slot As MemberSlot)
+            If slot Is Nothing OrElse slot.IsShared OrElse slot.Receiver Is Nothing Then
+                Return
+            End If
+
+            For Each other In AliasGroup(slot.Receiver)
+                If other Is slot.Receiver Then
+                    Continue For
+                End If
+
+                Dim aliased = slot.WithReceiver(other)
+                RemoveDescendants(aliased)
+                _members(aliased) = FlowNullability.MaybeNull
+            Next
+        End Sub
+
+        Private Sub CopyAliasMembers(slot As MemberSlot, value As FlowNullability)
+            If slot Is Nothing OrElse slot.IsShared OrElse slot.Receiver Is Nothing Then
+                Return
+            End If
+
+            For Each other In AliasGroup(slot.Receiver)
+                If other Is slot.Receiver Then
+                    Continue For
+                End If
+
+                Dim aliased = slot.WithReceiver(other)
+                RemoveDescendants(aliased)
+                _members(aliased) = value
+            Next
+        End Sub
+
+        Private Sub ClearReceiverMembers(receiver As Symbol)
+            Dim keys = _members.Keys.ToArray()
+            For Each key In keys
+                If key.Receiver Is receiver Then
+                    _members.Remove(key)
+                End If
+            Next
+        End Sub
+
+        Private Sub RemoveDescendants(slot As MemberSlot)
+            Dim keys = _members.Keys.ToArray()
+            For Each key In keys
+                If key.StartsWith(slot) AndAlso key.Depth > slot.Depth Then
+                    _members.Remove(key)
+                End If
+            Next
+        End Sub
+
+        Private Sub InvalidateReceiverMembers(receiver As Symbol)
+            If receiver Is Nothing Then
+                Return
+            End If
+
+            For Each symbol In AliasGroup(receiver)
+                Dim keys = _members.Keys.ToArray()
+                For Each key In keys
+                    If key.Receiver Is symbol Then
+                        _members.Remove(key)
+                    End If
+                Next
+            Next
+        End Sub
+
+        Private Sub InvalidateOurMembers()
+            Dim keys = _members.Keys.ToArray()
+            For Each key In keys
+                If key.IsShared OrElse key.Receiver Is Nothing Then
+                    _members.Remove(key)
+                End If
+            Next
+        End Sub
+
+        Private Sub InvalidateCapturedReceivers()
+            InvalidateOurMembers()
+            For Each symbol In _captured
+                InvalidateReceiverMembers(symbol)
+            Next
+        End Sub
+
+        Private Sub InvalidateCallSnapshots(method As MethodSymbol, receiver As BoundExpression, records As List(Of ArgumentRecord), whenTrue As FlowSnapshot, whenFalse As FlowSnapshot)
+            Dim touched As New List(Of Symbol)()
+            Dim touchOurs = ReceiverIsInstance(receiver) OrElse MethodCanTouchOurState(method, receiver) OrElse (method IsNot Nothing AndAlso method.MethodKind = MethodKind.DelegateInvoke)
+            Dim receiverSymbol = TrackedSymbol(receiver)
+            If receiverSymbol IsNot Nothing Then
+                touched.AddRange(AliasGroup(receiverSymbol))
+            End If
+
+            If records IsNot Nothing Then
+                For Each record In records
+                    If record.HasSlot AndAlso IsReferenceSymbol(record.Slot) Then
+                        touched.AddRange(AliasGroup(record.Slot))
+                    End If
+                Next
+            End If
+
+            If method IsNot Nothing AndAlso method.MethodKind = MethodKind.DelegateInvoke Then
+                touched.AddRange(_captured)
+            End If
+
+            StripMembers(whenTrue, touchOurs, touched)
+            StripMembers(whenFalse, touchOurs, touched)
+        End Sub
+
+        Private Shared Sub StripMembers(snapshot As FlowSnapshot, touchOurs As Boolean, touched As List(Of Symbol))
+            If snapshot Is Nothing OrElse Not snapshot.Reachable Then
+                Return
+            End If
+
+            Dim keys = snapshot.Members.Keys.ToArray()
+            For Each key In keys
+                Dim drop = (touchOurs AndAlso (key.IsShared OrElse key.Receiver Is Nothing)) OrElse Touches(key.Receiver, touched)
+                If drop Then
+                    snapshot.Members.Remove(key)
+                End If
+            Next
+        End Sub
+
+        Private Shared Function Touches(receiver As Symbol, touched As List(Of Symbol)) As Boolean
+            If receiver Is Nothing Then
+                Return False
+            End If
+
+            For Each symbol In touched
+                If symbol Is receiver Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        Private Sub InvalidatePropertyEffects([property] As PropertySymbol, receiver As BoundExpression)
+            If [property] IsNot Nothing AndAlso [property].IsShared AndAlso [property].ContainingType Is _method.ContainingType Then
+                InvalidateOurMembers()
+            End If
+
+            If ReceiverIsInstance(receiver) Then
+                InvalidateOurMembers()
+                Return
+            End If
+
+            Dim receiverSymbol = TrackedSymbol(receiver)
+            If receiverSymbol IsNot Nothing Then
+                InvalidateReceiverMembers(receiverSymbol)
+            End If
+        End Sub
+
+        Private Function MethodCanTouchOurState(method As MethodSymbol, receiver As BoundExpression) As Boolean
+            If method Is Nothing Then
+                Return ReceiverIsInstance(receiver)
+            End If
+
+            If method.MethodKind = MethodKind.DelegateInvoke Then
+                Return True
+            End If
+
+            If Not method.IsShared Then
+                Return False
+            End If
+
+            Dim container = method.ContainingType
+            Return container IsNot Nothing AndAlso (container Is _method.ContainingType OrElse container.Equals(_method.ContainingType))
+        End Function
+
+        Private Shared Function ReceiverIsInstance(receiver As BoundExpression) As Boolean
+            receiver = Unwrap(receiver)
+            If receiver Is Nothing Then
+                Return False
+            End If
+
+            Select Case receiver.Kind
+                Case BoundKind.MeReference, BoundKind.MyClassReference, BoundKind.MyBaseReference
+                    Return True
+                Case Else
+                    Return False
+            End Select
+        End Function
+
+        Private Sub NoteMemberWrite(slot As MemberSlot)
+            _writeClock += 1
+            _memberWrites(slot) = _writeClock
+            ObserveException()
+        End Sub
+
+        Private Function TryGetMemberNullTest(condition As BoundExpression, ByRef slot As MemberSlot, ByRef trueWhenNull As Boolean) As Boolean
+            slot = Nothing
+            Dim binary = TryCast(Unwrap(condition), BoundBinaryOperator)
+            If binary Is Nothing Then
+                Return False
+            End If
+
+            Dim kind = binary.OperatorKind
+            If (kind And (BinaryOperatorKind.Lifted Or BinaryOperatorKind.UserDefined)) <> 0 Then
+                Return False
+            End If
+
+            Dim op = kind And BinaryOperatorKind.OpMask
+            If op <> BinaryOperatorKind.Is AndAlso op <> BinaryOperatorKind.IsNot Then
+                Return False
+            End If
+
+            Dim tested As BoundExpression = Nothing
+            If IsNothing(binary.Right) Then
+                tested = binary.Left
+            ElseIf IsNothing(binary.Left) Then
+                tested = binary.Right
+            End If
+
+            slot = TryBuildSlot(tested)
+            If slot Is Nothing Then
+                Return False
+            End If
+
+            trueWhenNull = op = BinaryOperatorKind.Is
+            Return True
+        End Function
+
+        Private Shared Function IsSourceExpression(expr As BoundExpression) As Boolean
+            Return expr IsNot Nothing AndAlso Not expr.WasCompilerGenerated AndAlso expr.Syntax IsNot Nothing AndAlso expr.Syntax.Span.Length > 0
+        End Function
+
+        Private Function DisplayName(expr As BoundExpression) As String
+            Dim symbol = TrackedSymbol(expr)
+            If symbol IsNot Nothing Then
+                Return symbol.Name
+            End If
+
+            expr = Unwrap(expr)
+            Dim field = TryCast(expr, BoundFieldAccess)
+            If field IsNot Nothing Then
+                Return field.FieldSymbol.Name
+            End If
+
+            Dim [property] = TryCast(expr, BoundPropertyAccess)
+            If [property] IsNot Nothing Then
+                Return [property].PropertySymbol.Name
+            End If
+
+            Dim arrayAccess = TryCast(expr, BoundArrayAccess)
+            If arrayAccess IsNot Nothing AndAlso arrayAccess.Syntax IsNot Nothing Then
+                Return arrayAccess.Syntax.ToString()
+            End If
+
+            Return "expression"
         End Function
 
         Private NotInheritable Class CaptureWalker

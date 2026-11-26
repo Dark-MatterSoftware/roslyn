@@ -357,7 +357,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
-            Return NullableAnnotationSubstitution.AdjustTopLevel(OriginalDefinition.ReturnType, ReturnType, OriginalDefinition.GetReturnNullableAnnotation())
+            Return NullableAnnotationSubstitution.SubstituteMemberAnnotation(OriginalDefinition.ReturnType, ReturnType, OriginalDefinition.GetReturnNullableAnnotation(), ContainingType)
         End Function
 
         Public Overrides ReadOnly Property ReturnTypeCustomModifiers As ImmutableArray(Of CustomModifier)

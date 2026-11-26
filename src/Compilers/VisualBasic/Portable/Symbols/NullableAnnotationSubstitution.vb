@@ -82,6 +82,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return annotation
         End Function
 
+        Friend Function SubstituteMemberAnnotation(originalType As TypeSymbol, substitutedType As TypeSymbol, annotation As NullableAnnotation, containingType As NamedTypeSymbol) As NullableAnnotation
+            Dim adjusted = AdjustTopLevel(originalType, substitutedType, annotation)
+            If annotation = NullableAnnotation.Annotated AndAlso adjusted <> NullableAnnotation.None Then
+                Return NullableAnnotation.Annotated
+            End If
+
+            Dim parameter = TryCast(originalType, TypeParameterSymbol)
+            Dim owner = TryCast(If(parameter Is Nothing, Nothing, parameter.ContainingSymbol), NamedTypeSymbol)
+            Dim current = containingType
+            While parameter IsNot Nothing AndAlso owner IsNot Nothing AndAlso current IsNot Nothing
+                If current.OriginalDefinition Is owner Then
+                    Dim annotations = current.GetTypeArgumentNullableAnnotations()
+                    If parameter.Ordinal >= 0 AndAlso parameter.Ordinal < annotations.Length AndAlso annotations(parameter.Ordinal) <> NullableAnnotation.None Then
+                        Return annotations(parameter.Ordinal)
+                    End If
+
+                    Exit While
+                End If
+
+                current = current.ContainingType
+            End While
+
+            Return adjusted
+        End Function
+
     End Module
 
 End Namespace
