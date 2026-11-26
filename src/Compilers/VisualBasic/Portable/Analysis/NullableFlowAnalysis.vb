@@ -100,6 +100,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return True
             End Function
 
+            Friend Function Prefix(count As Integer) As MemberSlot
+                If count <= 0 OrElse count > _path.Length Then
+                    Return Nothing
+                End If
+
+                Dim path(count - 1) As Symbol
+                Array.Copy(_path, path, count)
+                Return New MemberSlot(Receiver, IsShared, path)
+            End Function
+
+            Friend Function Suffix(skip As Integer) As Symbol()
+                Dim length = _path.Length - skip
+                If length <= 0 Then
+                    Return Array.Empty(Of Symbol)()
+                End If
+
+                Dim path(length - 1) As Symbol
+                Array.Copy(_path, skip, path, 0, length)
+                Return path
+            End Function
+
             Friend Function StartsWith(prefix As MemberSlot) As Boolean
                 If IsShared <> prefix.IsShared OrElse Not SameSymbol(Receiver, prefix.Receiver) OrElse prefix._path.Length > _path.Length Then
                     Return False
@@ -157,8 +178,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend ReadOnly Published As HashSet(Of Symbol)
             Friend ReadOnly Original As Dictionary(Of Symbol, FlowNullability)
             Friend ReadOnly Carriers As Dictionary(Of Symbol, Symbol)
+            Friend ReadOnly Stores As Dictionary(Of MemberSlot, Symbol)
 
-            Friend Sub New(reachable As Boolean, slots As Dictionary(Of Symbol, FlowNullability), members As Dictionary(Of MemberSlot, FlowNullability), escaped As HashSet(Of Symbol), published As HashSet(Of Symbol), original As Dictionary(Of Symbol, FlowNullability), carriers As Dictionary(Of Symbol, Symbol))
+            Friend Sub New(reachable As Boolean, slots As Dictionary(Of Symbol, FlowNullability), members As Dictionary(Of MemberSlot, FlowNullability), escaped As HashSet(Of Symbol), published As HashSet(Of Symbol), original As Dictionary(Of Symbol, FlowNullability), carriers As Dictionary(Of Symbol, Symbol), stores As Dictionary(Of MemberSlot, Symbol))
                 Me.Reachable = reachable
                 Me.Slots = slots
                 Me.Members = members
@@ -166,6 +188,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Me.Published = published
                 Me.Original = If(original, New Dictionary(Of Symbol, FlowNullability)())
                 Me.Carriers = If(carriers, New Dictionary(Of Symbol, Symbol)())
+                Me.Stores = If(stores, New Dictionary(Of MemberSlot, Symbol)())
             End Sub
         End Class
 
@@ -194,6 +217,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private ReadOnly _writes As Dictionary(Of Symbol, Integer)
         Private _original As Dictionary(Of Symbol, FlowNullability)
         Private _carriers As Dictionary(Of Symbol, Symbol)
+        Private _stores As Dictionary(Of MemberSlot, Symbol)
         Private _returnPreserved As HashSet(Of Symbol)
         Private _hasReturnPreserved As Boolean
         Private _sawCycle As Boolean
@@ -281,6 +305,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _writes = New Dictionary(Of Symbol, Integer)()
             _original = New Dictionary(Of Symbol, FlowNullability)()
             _carriers = New Dictionary(Of Symbol, Symbol)()
+            _stores = New Dictionary(Of MemberSlot, Symbol)()
             _exceptionStates = New List(Of FlowSnapshot)()
         End Sub
 
@@ -353,6 +378,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _writes.Clear()
             _original = New Dictionary(Of Symbol, FlowNullability)()
             _carriers = New Dictionary(Of Symbol, Symbol)()
+            _stores = New Dictionary(Of MemberSlot, Symbol)()
             _sawCycle = False
             _hasReturnPreserved = False
             _exceptionStates.Clear()
@@ -776,6 +802,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Function VisitCall(node As BoundCall) As BoundNode
+            Evaluate(node)
+            Return Nothing
+        End Function
+
+        Public Overrides Function VisitAwaitOperator(node As BoundAwaitOperator) As BoundNode
             Evaluate(node)
             Return Nothing
         End Function
@@ -1475,6 +1506,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend Stamp As Integer
             Friend HasSlot As Boolean
             Friend Syntax As SyntaxNode
+            Friend Member As MemberSlot
         End Structure
 
         Private Function SplitCall(node As BoundCall) As ConditionSplit
@@ -1487,7 +1519,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ''' <summary>
-        ''' Evaluates arguments in bound order, which is the order the rewriter emits.
+        ''' Evaluates arguments in bound formal order. Runtime execution of reordered named
+        ''' arguments follows that order, and copy-back of ByRef temps is emitted last formal first.
         ''' Successful-return postconditions are applied only when a later argument has not
         ''' written the slot. They are not copied into exceptional snapshots.
         ''' </summary>
@@ -1563,6 +1596,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If record.HasSlot Then
                     _writes.TryGetValue(record.Slot, record.Stamp)
                 End If
+
+                record.Member = TryBuildSlot(ArgumentValue(argument))
 
                 records.Add(record)
                 If parameter IsNot Nothing AndAlso parameter.IsByRef AndAlso IsConstructor(_method) Then
@@ -1646,6 +1681,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             InvalidateCaptured(whenFalse, appliedFalse)
             InvalidateCallSnapshots(method, receiver, records, whenTrue, whenFalse)
             NoteCalleeEffects(method, receiver, whenTrue, whenFalse, compilerGenerated)
+            ApplyByRefMembers(records, booleanReturn, whenTrue, whenFalse)
             effect.WhenTrue = whenTrue
             effect.WhenFalse = whenFalse
             effect.Result = CallResult(method, dependentNotNull)
@@ -1674,6 +1710,54 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If sense AndAlso state = FlowNullability.MaybeNull AndAlso AnnotationOf(record.Slot) = NullableAnnotation.NotAnnotated AndAlso record.Parameter.IsByRef Then
                 Warn(ERRID.WRN_PossibleNullAssignment, record.Syntax, record.Slot.Name)
             End If
+        End Sub
+
+        Private Sub ApplyByRefMembers(records As List(Of ArgumentRecord), booleanReturn As Boolean, whenTrue As FlowSnapshot, whenFalse As FlowSnapshot)
+            If records Is Nothing Then
+                Return
+            End If
+
+            For Each record In records
+                If record.Parameter Is Nothing OrElse Not record.Parameter.IsByRef OrElse record.Member Is Nothing Then
+                    Continue For
+                End If
+
+                Dim annotations = EffectiveAnnotations(record.Parameter, booleanReturn)
+                Dim trueState As FlowNullability
+                If Not TryOutputState(record.Parameter, annotations, sense:=True, trueState) Then
+                    trueState = FlowNullability.MaybeNull
+                End If
+
+                Dim falseState As FlowNullability
+                If Not TryOutputState(record.Parameter, annotations, sense:=False, falseState) Then
+                    falseState = trueState
+                End If
+
+                WriteMember(whenTrue, record.Member, trueState)
+                WriteMember(whenFalse, record.Member, falseState)
+                WeakenExceptionMember(record.Member)
+            Next
+        End Sub
+
+        Private Sub WriteMember(snapshot As FlowSnapshot, slot As MemberSlot, value As FlowNullability)
+            If snapshot Is Nothing OrElse Not snapshot.Reachable OrElse slot Is Nothing OrElse snapshot.Members Is Nothing Then
+                Return
+            End If
+
+            For Each receiver In AliasReceivers(slot.Receiver)
+                Dim aliased = If(receiver Is slot.Receiver, slot, slot.WithReceiver(receiver))
+                snapshot.Members(aliased) = value
+            Next
+        End Sub
+
+        Private Sub WeakenExceptionMember(slot As MemberSlot)
+            If slot Is Nothing Then
+                Return
+            End If
+
+            For index = 0 To _exceptionStates.Count - 1
+                WriteMember(_exceptionStates(index), slot, FlowNullability.MaybeNull)
+            Next
         End Sub
 
         Private Shared Function TryOutputState(parameter As ParameterSymbol, annotations As FlowAnalysisAnnotations, sense As Boolean, ByRef state As FlowNullability) As Boolean
@@ -2169,6 +2253,68 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return New Dictionary(Of Symbol, Symbol)(source)
         End Function
 
+        Private Shared Function CopyStores(source As Dictionary(Of MemberSlot, Symbol)) As Dictionary(Of MemberSlot, Symbol)
+            If source Is Nothing Then
+                Return New Dictionary(Of MemberSlot, Symbol)()
+            End If
+
+            Return New Dictionary(Of MemberSlot, Symbol)(source)
+        End Function
+
+        Private Shared Function StoreCount(snapshot As FlowSnapshot) As Integer
+            If snapshot Is Nothing OrElse snapshot.Stores Is Nothing Then
+                Return 0
+            End If
+
+            Return snapshot.Stores.Count
+        End Function
+
+        Private Shared Function MergeStores(left As Dictionary(Of MemberSlot, Symbol), right As Dictionary(Of MemberSlot, Symbol), members As Dictionary(Of MemberSlot, FlowNullability)) As Dictionary(Of MemberSlot, Symbol)
+            Dim result As New Dictionary(Of MemberSlot, Symbol)()
+            Dim uncertain As New HashSet(Of Symbol)()
+            Dim keys As New HashSet(Of MemberSlot)()
+            If left IsNot Nothing Then
+                For Each key In left.Keys
+                    keys.Add(key)
+                Next
+            End If
+
+            If right IsNot Nothing Then
+                For Each key In right.Keys
+                    keys.Add(key)
+                Next
+            End If
+
+            For Each key In keys
+                Dim leftSymbol As Symbol = Nothing
+                Dim rightSymbol As Symbol = Nothing
+                Dim hasLeft = left IsNot Nothing AndAlso left.TryGetValue(key, leftSymbol)
+                Dim hasRight = right IsNot Nothing AndAlso right.TryGetValue(key, rightSymbol)
+                If hasLeft AndAlso hasRight AndAlso leftSymbol IsNot Nothing AndAlso leftSymbol.Equals(rightSymbol) Then
+                    result(key) = leftSymbol
+                Else
+                    If hasLeft AndAlso leftSymbol IsNot Nothing Then
+                        uncertain.Add(leftSymbol)
+                    End If
+
+                    If hasRight AndAlso rightSymbol IsNot Nothing Then
+                        uncertain.Add(rightSymbol)
+                    End If
+                End If
+            Next
+
+            If members IsNot Nothing AndAlso uncertain.Count > 0 Then
+                Dim memberKeys = members.Keys.ToArray()
+                For Each member In memberKeys
+                    If member.Receiver IsNot Nothing AndAlso uncertain.Contains(member.Receiver) Then
+                        members.Remove(member)
+                    End If
+                Next
+            End If
+
+            Return result
+        End Function
+
         Private Shared Function MergeOriginal(left As Dictionary(Of Symbol, FlowNullability), right As Dictionary(Of Symbol, FlowNullability)) As Dictionary(Of Symbol, FlowNullability)
             Dim result As New Dictionary(Of Symbol, FlowNullability)()
             If left IsNot Nothing Then
@@ -2494,7 +2640,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function Capture() As FlowSnapshot
-            Return New FlowSnapshot(_reachable, New Dictionary(Of Symbol, FlowNullability)(_state), New Dictionary(Of MemberSlot, FlowNullability)(_members), New HashSet(Of Symbol)(_escaped), New HashSet(Of Symbol)(_published), CopyStates(_original), CopyCarriers(_carriers))
+            Return New FlowSnapshot(_reachable, New Dictionary(Of Symbol, FlowNullability)(_state), New Dictionary(Of MemberSlot, FlowNullability)(_members), New HashSet(Of Symbol)(_escaped), New HashSet(Of Symbol)(_published), CopyStates(_original), CopyCarriers(_carriers), CopyStores(_stores))
         End Function
 
         Private Shared Function CloneSnapshot(snapshot As FlowSnapshot) As FlowSnapshot
@@ -2502,11 +2648,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Unreachable()
             End If
 
-            Return New FlowSnapshot(snapshot.Reachable, New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots), New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members), New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published), CopyStates(snapshot.Original), CopyCarriers(snapshot.Carriers))
+            Return New FlowSnapshot(snapshot.Reachable, New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots), New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members), New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published), CopyStates(snapshot.Original), CopyCarriers(snapshot.Carriers), CopyStores(snapshot.Stores))
         End Function
 
         Private Shared Function Unreachable() As FlowSnapshot
-            Return New FlowSnapshot(False, New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of MemberSlot, FlowNullability)(), New HashSet(Of Symbol)(), New HashSet(Of Symbol)(), New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of Symbol, Symbol)())
+            Return New FlowSnapshot(False, New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of MemberSlot, FlowNullability)(), New HashSet(Of Symbol)(), New HashSet(Of Symbol)(), New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of Symbol, Symbol)(), New Dictionary(Of MemberSlot, Symbol)())
         End Function
 
         Private Sub SetSnapshot(snapshot As FlowSnapshot)
@@ -2522,6 +2668,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _published = New HashSet(Of Symbol)(snapshot.Published)
             _original = CopyStates(snapshot.Original)
             _carriers = CopyCarriers(snapshot.Carriers)
+            _stores = CopyStores(snapshot.Stores)
         End Sub
 
         Private Shared Function MergeSnapshots(left As FlowSnapshot, right As FlowSnapshot) As FlowSnapshot
@@ -2559,7 +2706,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             escaped.UnionWith(right.Escaped)
             Dim published As New HashSet(Of Symbol)(left.Published)
             published.UnionWith(right.Published)
-            Return New FlowSnapshot(True, slots, members, escaped, published, MergeOriginal(left.Original, right.Original), MergeCarriers(left.Carriers, right.Carriers))
+            Return New FlowSnapshot(True, slots, members, escaped, published, MergeOriginal(left.Original, right.Original), MergeCarriers(left.Carriers, right.Carriers), MergeStores(left.Stores, right.Stores, members))
         End Function
 
         Private Shared Function MergeMembers(left As Dictionary(Of MemberSlot, FlowNullability), right As Dictionary(Of MemberSlot, FlowNullability)) As Dictionary(Of MemberSlot, FlowNullability)
@@ -2730,7 +2877,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 original(key) = FlowNullability.MaybeNull
             Next
 
-            Return New FlowSnapshot(snapshot.Reachable, slots, members, New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published), original, New Dictionary(Of Symbol, Symbol)())
+            Return New FlowSnapshot(snapshot.Reachable, slots, members, New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published), original, New Dictionary(Of Symbol, Symbol)(), New Dictionary(Of MemberSlot, Symbol)())
         End Function
 
         Private Shared Function Same(left As FlowSnapshot, right As FlowSnapshot) As Boolean
@@ -2746,7 +2893,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return True
             End If
 
-            If left.Slots.Count <> right.Slots.Count OrElse left.Members.Count <> right.Members.Count OrElse left.Escaped.Count <> right.Escaped.Count OrElse left.Published.Count <> right.Published.Count OrElse left.Original.Count <> right.Original.Count OrElse left.Carriers.Count <> right.Carriers.Count Then
+            If left.Slots.Count <> right.Slots.Count OrElse left.Members.Count <> right.Members.Count OrElse left.Escaped.Count <> right.Escaped.Count OrElse left.Published.Count <> right.Published.Count OrElse left.Original.Count <> right.Original.Count OrElse left.Carriers.Count <> right.Carriers.Count OrElse StoreCount(left) <> StoreCount(right) Then
                 Return False
             End If
 
@@ -2789,6 +2936,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return False
                 End If
             Next
+
+            If left.Stores IsNot Nothing Then
+                For Each pair In left.Stores
+                    Dim other As Symbol = Nothing
+                    If right.Stores Is Nothing OrElse Not right.Stores.TryGetValue(pair.Key, other) OrElse Not pair.Value.Equals(other) Then
+                        Return False
+                    End If
+                Next
+            End If
 
             Return True
         End Function
@@ -2907,6 +3063,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function EvaluateAwait(node As BoundAwaitOperator) As FlowNullability
             Dim operand = Evaluate(node.Operand)
             InvalidateOurMembers()
+            InvalidateParameterMembers()
             Dim result = AwaitResult(node)
             InvalidateEscapedMembers()
 
@@ -3081,6 +3238,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If slot IsNot Nothing Then
                 AssignMember(slot, value, syntaxExpr, report:=False)
             Else
+                Dim stored = TrackedSymbol(syntaxExpr)
+                If stored IsNot Nothing AndAlso IsReferenceSymbol(stored) Then
+                    _published.Add(stored)
+                    _escaped.Add(stored)
+                    InvalidateReceiverMembers(stored)
+                End If
+
                 InvalidatePropertyEffects([property], access.ReceiverOpt)
                 If IsConstructor(_method) Then
                     ' The setter body is not inlined, so a field initializer is no longer proof.
@@ -3106,17 +3270,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If slot.Depth > 1 Then
                 ' A nested reference can be shared even when the root locals are distinct.
                 WeakenSamePath(slot)
-            ElseIf value = FlowNullability.NotNull Then
-                InvalidateAliasMembers(slot)
+            End If
+
+            If value = FlowNullability.NotNull Then
+                CopyProvenAliasMembers(slot, value)
             Else
                 CopyAliasMembers(slot, value)
             End If
 
             Dim stored = TrackedSymbol(syntaxExpr)
             If stored IsNot Nothing AndAlso IsReferenceSymbol(stored) Then
+                _stores(slot) = stored
                 _published.Add(stored)
                 _escaped.Add(stored)
+            ElseIf _stores.ContainsKey(slot) Then
+                _stores.Remove(slot)
             End If
+
+            PropagateStoredWrite(slot, If(_members.ContainsKey(slot), _members(slot), value))
         End Sub
 
         Private Sub NoteReceiverIdentity(target As Symbol, value As BoundExpression)
@@ -3140,6 +3311,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim source = TrackedSymbol(value)
             If source IsNot Nothing AndAlso source IsNot target AndAlso IsReferenceSymbol(source) Then
                 Link(target, source)
+                CopyReceiverMembers(source, target)
                 If _escaped.Contains(source) Then
                     _escaped.Add(target)
                 Else
@@ -3527,6 +3699,89 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If key.StartsWith(slot) AndAlso key.Depth > slot.Depth Then
                     _members.Remove(key)
                 End If
+            Next
+
+            If _stores Is Nothing OrElse slot Is Nothing Then
+                Return
+            End If
+
+            Dim storeKeys = _stores.Keys.ToArray()
+            For Each key In storeKeys
+                If key.StartsWith(slot) AndAlso key.Depth > slot.Depth Then
+                    _stores.Remove(key)
+                End If
+            Next
+        End Sub
+
+        Private Sub PropagateStoredWrite(slot As MemberSlot, value As FlowNullability)
+            If slot Is Nothing OrElse slot.Depth < 2 OrElse _stores Is Nothing Then
+                Return
+            End If
+
+            For length = slot.Depth - 1 To 1 Step -1
+                Dim prefix = slot.Prefix(length)
+                Dim stored As Symbol = Nothing
+                If prefix IsNot Nothing AndAlso _stores.TryGetValue(prefix, stored) AndAlso stored IsNot Nothing Then
+                    AssignStoredMember(New MemberSlot(stored, False, slot.Suffix(length)), value)
+                    Return
+                End If
+            Next
+        End Sub
+
+        Private Sub AssignStoredMember(slot As MemberSlot, value As FlowNullability)
+            If slot Is Nothing Then
+                Return
+            End If
+
+            RemoveDescendants(slot)
+            _members(slot) = value
+            If value = FlowNullability.NotNull Then
+                CopyProvenAliasMembers(slot, value)
+            Else
+                CopyAliasMembers(slot, value)
+            End If
+        End Sub
+
+        Private Sub CopyReceiverMembers(source As Symbol, target As Symbol)
+            If source Is Nothing OrElse target Is Nothing Then
+                Return
+            End If
+
+            Dim keys = _members.Keys.ToArray()
+            For Each key In keys
+                If key.Receiver Is source Then
+                    _members(key.WithReceiver(target)) = _members(key)
+                End If
+            Next
+        End Sub
+
+        Private Sub CopyProvenAliasMembers(slot As MemberSlot, value As FlowNullability)
+            If slot Is Nothing OrElse slot.Receiver Is Nothing Then
+                Return
+            End If
+
+            For Each other In AliasGroup(slot.Receiver)
+                If other Is slot.Receiver Then
+                    Continue For
+                End If
+
+                Dim aliased = slot.WithReceiver(other)
+                RemoveDescendants(aliased)
+                _members(aliased) = value
+            Next
+        End Sub
+
+        Private Sub InvalidateParameterMembers()
+            If _method Is Nothing Then
+                Return
+            End If
+
+            For Each parameter In _method.Parameters
+                If parameter Is Nothing OrElse parameter.IsMe Then
+                    Continue For
+                End If
+
+                InvalidateReceiverMembers(parameter)
             Next
         End Sub
 
@@ -4583,7 +4838,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each name In names
                 Dim found = False
                 For Each parameter In _method.Parameters
-                    If Not parameter.IsMe AndAlso String.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase) Then
+                    If Not parameter.IsMe AndAlso String.Equals(parameter.Name, name, StringComparison.Ordinal) Then
                         found = True
                         Exit For
                     End If
@@ -4601,7 +4856,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             For Each name In names
-                If String.Equals(name, parameterName, StringComparison.OrdinalIgnoreCase) Then
+                If String.Equals(name, parameterName, StringComparison.Ordinal) Then
                     Return True
                 End If
             Next

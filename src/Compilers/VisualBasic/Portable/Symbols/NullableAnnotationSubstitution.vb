@@ -13,16 +13,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' </summary>
     Friend Module NullableAnnotationSubstitution
 
-        Friend Function Preserve(original As TypeSymbol, substituted As TypeSymbol) As TypeSymbol
+        Friend Function Preserve(original As TypeSymbol, substituted As TypeSymbol, Optional containing As NamedTypeSymbol = Nothing) As TypeSymbol
             If original Is Nothing OrElse substituted Is Nothing OrElse original Is substituted Then
                 Return substituted
             End If
 
-            PreserveCore(original, substituted)
+            PreserveCore(original, substituted, containing)
             Return substituted
         End Function
 
-        Private Sub PreserveCore(original As TypeSymbol, substituted As TypeSymbol)
+        Private Sub PreserveCore(original As TypeSymbol, substituted As TypeSymbol, containing As NamedTypeSymbol)
             If original Is Nothing OrElse substituted Is Nothing OrElse original Is substituted Then
                 Return
             End If
@@ -30,8 +30,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim originalArray = TryCast(original, ArrayTypeSymbol)
             Dim substitutedArray = TryCast(substituted, ArrayTypeSymbol)
             If originalArray IsNot Nothing AndAlso substitutedArray IsNot Nothing Then
-                substitutedArray.SetElementNullableAnnotation(AdjustTopLevel(originalArray.ElementType, substitutedArray.ElementType, originalArray.ElementNullableAnnotation))
-                PreserveCore(originalArray.ElementType, substitutedArray.ElementType)
+                substitutedArray.SetElementNullableAnnotation(SubstituteMemberAnnotation(originalArray.ElementType, substitutedArray.ElementType, originalArray.ElementNullableAnnotation, containing))
+                PreserveCore(originalArray.ElementType, substitutedArray.ElementType, containing)
                 Return
             End If
 
@@ -44,7 +44,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If originalNamed.ContainingType IsNot Nothing AndAlso
                substitutedNamed.ContainingType IsNot Nothing AndAlso
                substitutedNamed.ContainingType IsNot originalNamed.ContainingType Then
-                PreserveCore(originalNamed.ContainingType, substitutedNamed.ContainingType)
+                PreserveCore(originalNamed.ContainingType, substitutedNamed.ContainingType, containing)
             End If
 
             If originalNamed.Arity = 0 OrElse substitutedNamed.Arity <> originalNamed.Arity OrElse substitutedNamed.IsDefinition Then
@@ -62,8 +62,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Dim adjusted(substitutedArguments.Length - 1) As NullableAnnotation
             For i = 0 To substitutedArguments.Length - 1
-                adjusted(i) = AdjustTopLevel(originalArguments(i), substitutedArguments(i), originalAnnotations(i))
-                PreserveCore(originalArguments(i), substitutedArguments(i))
+                adjusted(i) = SubstituteMemberAnnotation(originalArguments(i), substitutedArguments(i), originalAnnotations(i), containing)
+                PreserveCore(originalArguments(i), substitutedArguments(i), containing)
             Next
 
             substitutedNamed.SetTypeArgumentNullableAnnotations(adjusted.AsImmutableOrNull())

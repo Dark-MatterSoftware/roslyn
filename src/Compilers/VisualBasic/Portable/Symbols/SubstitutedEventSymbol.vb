@@ -67,7 +67,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Get
                 If Me._lazyType Is Nothing Then
                     Dim original = _originalDefinition.Type
-                    Dim substituted = NullableAnnotationSubstitution.Preserve(original, original.InternalSubstituteTypeParameters(TypeSubstitution).AsTypeSymbolOnly())
+                    Dim substituted = NullableAnnotationSubstitution.Preserve(original, original.InternalSubstituteTypeParameters(TypeSubstitution).AsTypeSymbolOnly(), _containingType)
                     Interlocked.CompareExchange(Me._lazyType, substituted, Nothing)
                 End If
 

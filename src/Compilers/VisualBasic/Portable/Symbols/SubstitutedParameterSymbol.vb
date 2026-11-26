@@ -107,11 +107,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private Function ContainingNamedType() As NamedTypeSymbol
+            Dim method = TryCast(ContainingSymbol, MethodSymbol)
+            If method IsNot Nothing Then
+                Return method.ContainingType
+            End If
+
+            Dim [property] = TryCast(ContainingSymbol, PropertySymbol)
+            If [property] IsNot Nothing Then
+                Return [property].ContainingType
+            End If
+
+            Return TryCast(ContainingSymbol, NamedTypeSymbol)
+        End Function
+
         Public Overrides ReadOnly Property Type As TypeSymbol
             Get
                 Dim original = _originalDefinition.Type
                 Dim substituted = original.InternalSubstituteTypeParameters(TypeSubstitution).Type
-                Return NullableAnnotationSubstitution.Preserve(original, substituted)
+                Return NullableAnnotationSubstitution.Preserve(original, substituted, ContainingNamedType())
             End Get
         End Property
 

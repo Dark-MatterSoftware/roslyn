@@ -169,7 +169,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Get
                 Dim original = _originalDefinition.Type
                 Dim substituted = original.InternalSubstituteTypeParameters(_containingType.TypeSubstitution).Type
-                Return NullableAnnotationSubstitution.Preserve(original, substituted)
+                Return NullableAnnotationSubstitution.Preserve(original, substituted, _containingType)
             End Get
         End Property
 
