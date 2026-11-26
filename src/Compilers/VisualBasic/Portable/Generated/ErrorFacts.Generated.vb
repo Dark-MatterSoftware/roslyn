@@ -183,6 +183,10 @@
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,
                      ERRID.WRN_PossibleNullArgument,
+                     ERRID.WRN_UninitializedNonNullableMember,
+                     ERRID.WRN_MemberContractNotSatisfied,
+                     ERRID.WRN_MemberContractNotSatisfiedWhen,
+                     ERRID.WRN_BadNullableMemberName,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_UnreadRecordParameter

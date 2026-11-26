@@ -127,17 +127,18 @@ namespace System.Diagnostics.CodeAnalysis
 Imports System.Diagnostics.CodeAnalysis
 Public Class Box
     <AllowNull>
-    Public Item As String
+    Public Item As String = """"
     <DisallowNull>
-    Public Required As String
+    Public Required As String = """"
     <MaybeNull>
-    Public Cached As String
+    Public Cached As String = """"
     <NotNull>
-    Public Ready As String
+    Public Ready As String = """"
     <AllowNull>
-    Public Property Name As String
+    Public Property Name As String = """"
     <MemberNotNull(""Item"")>
     Public Sub Initialize()
+        Item = """"
     End Sub
     <MemberNotNullWhen(True, ""Ready"")>
     Public Function TryInitialize() As Boolean
@@ -155,7 +156,7 @@ Public Delegate Function Parser(<NotNullIfNotNull(""text"")> text As String) As 
 ", NullableContextOptions.Enable)
 
             compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.WRN_PossibleNullAssignment, "text").WithArguments("matched").WithLocation(25, 19))
+                Diagnostic(ERRID.WRN_PossibleNullAssignment, "text").WithArguments("matched").WithLocation(26, 19))
             Dim box = compilation.GetMember(Of NamedTypeSymbol)("Box")
             Assert.Equal(FlowAnalysisAnnotations.AllowNull, box.GetMember(Of FieldSymbol)("Item").FlowAnalysisAnnotations)
             Assert.Equal(FlowAnalysisAnnotations.DisallowNull, box.GetMember(Of FieldSymbol)("Required").FlowAnalysisAnnotations)
@@ -716,7 +717,7 @@ Public Class Api
     End Sub
 End Class
 Public Class Box
-    Public Name As String
+    Public Name As String = """"
     <MemberNotNull(""Name"")>
     Public Sub Initialize()
         Name = """"

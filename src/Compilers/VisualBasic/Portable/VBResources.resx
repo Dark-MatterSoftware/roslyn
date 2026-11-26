@@ -5718,6 +5718,30 @@
   <data name="WRN_PossibleNullArgument_Title" xml:space="preserve">
     <value>Possible Nothing argument for '{0}'.</value>
   </data>
+  <data name="WRN_UninitializedNonNullableMember" xml:space="preserve">
+    <value>Non-nullable member '{0}' is not assigned a non-null value on every path out of this constructor.</value>
+  </data>
+  <data name="WRN_UninitializedNonNullableMember_Title" xml:space="preserve">
+    <value>Non-nullable member '{0}' is not assigned a non-null value on every path out of this constructor.</value>
+  </data>
+  <data name="WRN_MemberContractNotSatisfied" xml:space="preserve">
+    <value>Member '{0}' is not non-null on every path that returns from this method.</value>
+  </data>
+  <data name="WRN_MemberContractNotSatisfied_Title" xml:space="preserve">
+    <value>Member '{0}' is not non-null on every path that returns from this method.</value>
+  </data>
+  <data name="WRN_MemberContractNotSatisfiedWhen" xml:space="preserve">
+    <value>Member '{0}' is not non-null on every path that returns {1}.</value>
+  </data>
+  <data name="WRN_MemberContractNotSatisfiedWhen_Title" xml:space="preserve">
+    <value>Member '{0}' is not non-null on every path that returns {1}.</value>
+  </data>
+  <data name="WRN_BadNullableMemberName" xml:space="preserve">
+    <value>'{0}' is not an accessible field or property for this member contract.</value>
+  </data>
+  <data name="WRN_BadNullableMemberName_Title" xml:space="preserve">
+    <value>'{0}' is not an accessible field or property for this member contract.</value>
+  </data>
   <data name="WRN_ConvertingLock_Title" xml:space="preserve">
     <value>A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in SyncLock statement.</value>
   </data>

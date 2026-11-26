@@ -1638,7 +1638,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.WRN_PossibleNullAssignment,
                      ERRID.WRN_PossibleNullReturn,
                      ERRID.WRN_PossibleNullReference,
-                     ERRID.WRN_PossibleNullArgument
+                     ERRID.WRN_PossibleNullArgument,
+                     ERRID.WRN_UninitializedNonNullableMember,
+                     ERRID.WRN_MemberContractNotSatisfied,
+                     ERRID.WRN_MemberContractNotSatisfiedWhen,
+                     ERRID.WRN_BadNullableMemberName
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

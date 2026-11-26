@@ -1236,6 +1236,16 @@
         <target state="translated">分析程式組件無法使用，因為其參考編譯器的版本比目前執行的版本還要新。</target>
         <note />
       </trans-unit>
+      <trans-unit id="WRN_BadNullableMemberName">
+        <source>'{0}' is not an accessible field or property for this member contract.</source>
+        <target state="new">'{0}' is not an accessible field or property for this member contract.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_BadNullableMemberName_Title">
+        <source>'{0}' is not an accessible field or property for this member contract.</source>
+        <target state="new">'{0}' is not an accessible field or property for this member contract.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WRN_CallerArgumentExpressionAttributeHasInvalidParameterName">
         <source>The CallerArgumentExpressionAttribute applied to parameter '{0}' will have no effect. It is applied with an invalid parameter name.</source>
         <target state="translated">套用到參數 '{0}' 的 CallerArgumentExpressionAttribute 將沒有效果。它套用了不正確的參數名稱。</target>
@@ -1316,6 +1326,26 @@
         <target state="translated">產生器無法初始化。</target>
         <note />
       </trans-unit>
+      <trans-unit id="WRN_MemberContractNotSatisfied">
+        <source>Member '{0}' is not non-null on every path that returns from this method.</source>
+        <target state="new">Member '{0}' is not non-null on every path that returns from this method.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_MemberContractNotSatisfiedWhen">
+        <source>Member '{0}' is not non-null on every path that returns {1}.</source>
+        <target state="new">Member '{0}' is not non-null on every path that returns {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_MemberContractNotSatisfiedWhen_Title">
+        <source>Member '{0}' is not non-null on every path that returns {1}.</source>
+        <target state="new">Member '{0}' is not non-null on every path that returns {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_MemberContractNotSatisfied_Title">
+        <source>Member '{0}' is not non-null on every path that returns from this method.</source>
+        <target state="new">Member '{0}' is not non-null on every path that returns from this method.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WRN_PossibleNullArgument">
         <source>Possible Nothing argument for '{0}'.</source>
         <target state="new">Possible Nothing argument for '{0}'.</target>
@@ -1374,6 +1404,16 @@
       <trans-unit id="WRN_UndecoratedCancellationTokenParameter_Title">
         <source>'Async Iterator' function has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation'.</source>
         <target state="new">'Async Iterator' function has a 'CancellationToken' parameter, but none is marked with 'EnumeratorCancellation'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UninitializedNonNullableMember">
+        <source>Non-nullable member '{0}' is not assigned a non-null value on every path out of this constructor.</source>
+        <target state="new">Non-nullable member '{0}' is not assigned a non-null value on every path out of this constructor.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_UninitializedNonNullableMember_Title">
+        <source>Non-nullable member '{0}' is not assigned a non-null value on every path out of this constructor.</source>
+        <target state="new">Non-nullable member '{0}' is not assigned a non-null value on every path out of this constructor.</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_UnreadRecordParameter">

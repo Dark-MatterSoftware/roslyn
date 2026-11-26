@@ -155,6 +155,7 @@ Public Module Program
         End If
     End Sub
 End Module").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "Child").WithArguments("Child").WithLocation(3, 12),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "left.Child.Name").WithArguments("Name").WithLocation(10, 26))
         End Sub
 

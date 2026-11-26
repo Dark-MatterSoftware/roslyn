@@ -104,6 +104,7 @@ Class Holder
         Dim length = Ready.Length
     End Sub
 End Class").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "Ready").WithArguments("Ready").WithLocation(3, 12),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "value").WithArguments("Ready").WithLocation(5, 17),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "Ready").WithArguments("Ready").WithLocation(6, 22))
         End Sub
@@ -248,6 +249,7 @@ Module Program
         Dim length = box.Inner.Value.Length
     End Sub
 End Module").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "Inner").WithArguments("Inner").WithLocation(6, 12),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "box.Inner.Value").WithArguments("Value").WithLocation(14, 22))
         End Sub
 
@@ -317,6 +319,7 @@ Class Holder(Of T As Class)
         Slot = value
     End Sub
 End Class").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "End Sub").WithArguments("Slot").WithLocation(7, 5),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "value").WithArguments("Slot").WithLocation(12, 16))
         End Sub
 
@@ -412,6 +415,7 @@ Class Customer
         Title = Nothing
     End Sub
 End Class").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "_name").WithArguments("_name").WithLocation(23, 13),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "value").WithArguments("Title").WithLocation(42, 17),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "Nothing").WithArguments("Title").WithLocation(43, 17))
         End Sub
@@ -426,6 +430,7 @@ Class Customer
         Name = value
     End Sub
 End Class").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "Public Property Name As String").WithArguments("Name").WithLocation(3, 5),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "Nothing").WithArguments("Name").WithLocation(5, 16),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "value").WithArguments("Name").WithLocation(6, 16))
         End Sub
@@ -455,6 +460,7 @@ Class Holder
         End Try
     End Sub
 End Class").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "_value").WithArguments("_value").WithLocation(3, 13),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "Nothing").WithArguments("_value").WithLocation(6, 22),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "_value").WithArguments("_value").WithLocation(8, 26))
         End Sub
@@ -562,6 +568,7 @@ Module Program
         End If
     End Sub
 End Module").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "Name").WithArguments("Name").WithLocation(4, 12),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "customer").WithArguments("customer").WithLocation(9, 20),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "item").WithArguments("item").WithLocation(13, 26))
         End Sub
@@ -599,6 +606,7 @@ Module Program
         Next
     End Sub
 End Module").VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_UninitializedNonNullableMember, "Name").WithArguments("Name").WithLocation(4, 12),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "item").WithArguments("item").WithLocation(12, 26),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "customer").WithArguments("customer").WithLocation(17, 24),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "items").WithArguments("customer").WithLocation(19, 42),
