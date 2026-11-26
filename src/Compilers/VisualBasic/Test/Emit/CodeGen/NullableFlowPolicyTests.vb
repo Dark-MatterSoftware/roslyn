@@ -138,7 +138,7 @@ Module Program
 End Module
 ")
             Dim seen = Picture(compilation)
-            Assert.True(Not seen.Contains("42512:fromCurrent"), seen)
+            Assert.True(seen.Contains("42512:fromCurrent"), seen)
             Assert.True(seen.Contains("42512:fromCleared"), seen)
             Assert.True(seen.Contains("42512:mixed"), seen)
             Assert.True(seen.Contains("42512:reversed"), seen)
@@ -146,14 +146,12 @@ End Module
             Assert.True(Not seen.Contains("42512:first"), seen)
             Assert.True(seen.Contains("42512:nested.Item"), seen)
             Assert.True(seen.Contains("42512:methodArg"), seen)
-            ' An inferred extension receiver is not one of the reduced method's inference arguments.
-            ' Explicit extension type arguments are covered by NullableGenericMethodAnnotationTests.
-            Assert.True(Not seen.Contains("42512:extended"), seen)
+            Assert.True(seen.Contains("42512:extended"), seen)
             Assert.True(seen.Contains("42512:through"), seen)
             Assert.True(seen.Contains("42512:explicitNull"), seen)
             Assert.True(seen.Contains("42512:again"), seen)
             Assert.True(Not seen.Contains("42512:fromReady"), seen)
-            Assert.True(Not seen.Contains("42512:narrowed"), seen)
+            Assert.True(seen.Contains("42512:narrowed"), seen)
             Assert.True(Not seen.Contains("42512:explicitReady"), seen)
             Assert.True(Not seen.Contains("42512:optionalReady"), seen)
         End Sub

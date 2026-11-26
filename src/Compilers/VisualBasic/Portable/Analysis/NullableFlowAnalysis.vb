@@ -224,9 +224,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private _cycleMembers As HashSet(Of MethodSymbol)
         Private _activeHandler As LabelSymbol
         Private _resumeNext As Boolean
-        Private _refineInferredReturn As Boolean
         Private ReadOnly _handlerNulls As New HashSet(Of Symbol)()
         Private ReadOnly _handlerNullNames As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+        Private ReadOnly _handlerMutated As New HashSet(Of Symbol)()
         Private ReadOnly _handlersWithResume As New HashSet(Of LabelSymbol)()
         Private ReadOnly _exceptionStates As List(Of FlowSnapshot)
         Private _writeClock As Integer
@@ -1314,6 +1314,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return FlowNullability.NotNull
                 Case BoundKind.Call
                     Return EvaluateCall(DirectCast(expr, BoundCall))
+                Case BoundKind.BadExpression
+                    Return EvaluateBadExpression(DirectCast(expr, BoundBadExpression))
                 Case BoundKind.PropertyAccess
                     Return EvaluateProperty(DirectCast(expr, BoundPropertyAccess))
                 Case BoundKind.FieldAccess
@@ -1401,70 +1403,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function EvaluateCall(node As BoundCall) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
-            StampExtensionReceiver(node)
-            _refineInferredReturn = UsesInferredMethodTypeArguments(node)
-            Dim inferred = _refineInferredReturn
             Dim effect = AnalyzeInvocation(node.Method, node.Arguments, node.DefaultArguments, node.ReceiverOpt, node.WasCompilerGenerated)
-            _refineInferredReturn = False
             SetSnapshot(MergeSnapshots(effect.WhenTrue, effect.WhenFalse))
-            Dim result = effect.Result
-            Dim typeArguments = If(node.MethodGroupOpt Is Nothing, Nothing, node.MethodGroupOpt.TypeArgumentsOpt)
-            Dim explicitArguments = typeArguments IsNot Nothing AndAlso Not typeArguments.Arguments.IsDefault AndAlso typeArguments.Arguments.Length > 0
-            Dim receiverIsInstance = node.ReceiverOpt IsNot Nothing AndAlso node.ReceiverOpt.Kind <> BoundKind.MeReference AndAlso node.ReceiverOpt.Kind <> BoundKind.MyClassReference AndAlso node.ReceiverOpt.Kind <> BoundKind.MyBaseReference
-            If Not explicitArguments AndAlso receiverIsInstance AndAlso node.Method IsNot Nothing AndAlso node.Method.Arity > 0 AndAlso result <> FlowNullability.MaybeNull AndAlso ReceiverAnnotation(node.ReceiverOpt) = NullableAnnotation.Annotated AndAlso ReturnIsMethodTypeParameter(node.Method) Then
-                result = FlowNullability.MaybeNull
-            End If
-
-            Return result
+            Return ApplyExtensionReceiverAnnotation(effect.Result, ExtensionReturnAnnotation(node.Method, node.ReceiverOpt, node.Arguments), node.Method)
         End Function
-
-        Private Shared Function ReturnIsMethodTypeParameter(method As MethodSymbol) As Boolean
-            If method Is Nothing Then
-                Return False
-            End If
-
-            Dim typeParameter = TryCast(method.OriginalDefinition.ReturnType, TypeParameterSymbol)
-            Dim owner = TryCast(If(typeParameter Is Nothing, Nothing, typeParameter.ContainingSymbol), MethodSymbol)
-            Return owner IsNot Nothing
-        End Function
-
-        Private Shared Sub StampExtensionReceiver(node As BoundCall)
-            Dim method = node.Method
-            If method Is Nothing OrElse node.ReceiverOpt Is Nothing OrElse method.Arity = 0 OrElse Not method.IsReducedExtensionMethod Then
-                Return
-            End If
-
-            Dim reducedFrom = method.ReducedFrom
-            If reducedFrom Is Nothing OrElse reducedFrom.OriginalDefinition.Parameters.IsEmpty Then
-                Return
-            End If
-
-            Dim typeParameter = TryCast(reducedFrom.OriginalDefinition.Parameters(0).Type, TypeParameterSymbol)
-            If typeParameter Is Nothing OrElse typeParameter.Ordinal < 0 OrElse typeParameter.Ordinal >= method.Arity Then
-                Return
-            End If
-
-            Dim incoming = ReceiverAnnotation(node.ReceiverOpt)
-            If incoming = NullableAnnotation.None Then
-                Return
-            End If
-
-            Dim existing = method.GetTypeArgumentNullableAnnotations()
-            Dim annotations(method.Arity - 1) As NullableAnnotation
-            If Not existing.IsDefault AndAlso existing.Length = method.Arity Then
-                existing.CopyTo(annotations)
-            End If
-
-            If annotations(typeParameter.Ordinal) = NullableAnnotation.Annotated Then
-                Return
-            End If
-
-            If annotations(typeParameter.Ordinal) = NullableAnnotation.None OrElse incoming = NullableAnnotation.Annotated Then
-                annotations(typeParameter.Ordinal) = incoming
-            End If
-
-            method.SetTypeArgumentNullableAnnotations(ImmutableArray.Create(annotations))
-        End Sub
 
         Private Shared Function ReceiverAnnotation(expr As BoundExpression) As NullableAnnotation
             Dim current = expr
@@ -1486,14 +1428,192 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return NullableAnnotation.None
         End Function
 
-        Private Shared Function UsesInferredMethodTypeArguments(node As BoundCall) As Boolean
-            If node Is Nothing OrElse node.Method Is Nothing OrElse node.Method.Arity = 0 OrElse node.MethodGroupOpt Is Nothing Then
-                Return False
+        Private Shared Function ApplyExtensionReceiverAnnotation(result As FlowNullability, contributed As NullableAnnotation, method As MethodSymbol) As FlowNullability
+            ' A declared NotNull postcondition still wins. Any other result follows the receiver contribution.
+            If contributed = NullableAnnotation.Annotated AndAlso result <> FlowNullability.NotNull AndAlso Not DeclaredReturnIsNotNull(method) Then
+                Return FlowNullability.MaybeNull
             End If
 
-            Dim typeArguments = node.MethodGroupOpt.TypeArgumentsOpt
-            Return typeArguments Is Nothing OrElse typeArguments.Arguments.IsDefault OrElse typeArguments.Arguments.Length = 0
+            Return result
         End Function
+
+        Private Shared Function DeclaredReturnIsNotNull(method As MethodSymbol) As Boolean
+            Dim current = method
+            Dim guard = 0
+            While current IsNot Nothing AndAlso guard < 6
+                guard += 1
+                If HasContract(current.ReturnTypeFlowAnalysisAnnotations, FlowAnalysisAnnotations.NotNull) OrElse
+                   current.GetReturnNullableAnnotation() = NullableAnnotation.NotAnnotated Then
+                    Return True
+                End If
+
+                If current.ReducedFrom IsNot Nothing AndAlso current.ReducedFrom IsNot current Then
+                    current = current.ReducedFrom
+                ElseIf current.OriginalDefinition IsNot Nothing AndAlso current.OriginalDefinition IsNot current Then
+                    current = current.OriginalDefinition
+                Else
+                    current = Nothing
+                End If
+            End While
+
+            Return False
+        End Function
+
+        Private Function EvaluateBadExpression(node As BoundBadExpression) As FlowNullability
+            Dim receiver As BoundExpression = Nothing
+            Dim arguments = ImmutableArray(Of BoundExpression).Empty
+            If Not node.ChildBoundNodes.IsDefault Then
+                Dim extra As New List(Of BoundExpression)()
+                For Each child In node.ChildBoundNodes
+                    Dim group = TryCast(child, BoundMethodGroup)
+                    If group IsNot Nothing Then
+                        receiver = group.ReceiverOpt
+                        Continue For
+                    End If
+
+                    Dim expression = TryCast(child, BoundExpression)
+                    If expression IsNot Nothing Then
+                        extra.Add(expression)
+                        Evaluate(expression)
+                    End If
+                Next
+
+                arguments = extra.ToImmutableArray()
+            End If
+
+            Dim method As MethodSymbol = Nothing
+            If Not node.Symbols.IsDefault Then
+                For Each symbol In node.Symbols
+                    Dim candidate = TryCast(symbol, MethodSymbol)
+                    If candidate IsNot Nothing Then
+                        method = candidate
+                        Exit For
+                    End If
+                Next
+            End If
+
+            Dim contributed = ExtensionReturnAnnotation(method, receiver, arguments)
+            Dim result = FlowNullability.Unknown
+            If node.Type Is Nothing OrElse Not node.Type.IsReferenceType Then
+                result = FlowNullability.NotNull
+            End If
+
+            Return ApplyExtensionReceiverAnnotation(result, contributed, method)
+        End Function
+
+        Private Shared Function ExtensionReturnAnnotation(method As MethodSymbol, receiver As BoundExpression, arguments As ImmutableArray(Of BoundExpression)) As NullableAnnotation
+            Dim reduced = method
+            If reduced IsNot Nothing AndAlso Not reduced.IsReducedExtensionMethod Then
+                reduced = reduced.OriginalDefinition
+            End If
+
+            If reduced Is Nothing OrElse Not reduced.IsReducedExtensionMethod OrElse reduced.ReducedFrom Is Nothing Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim source = reduced.ReducedFrom.OriginalDefinition
+            If source Is Nothing OrElse source.ParameterCount = 0 OrElse source.Arity = 0 Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim annotations(source.Arity - 1) As NullableAnnotation
+            Dim seen(source.Arity - 1) As Boolean
+            If receiver IsNot Nothing Then
+                ContributeExtensionAnnotation(source.Parameters(0).Type, ReceiverAnnotation(receiver), source, annotations, seen)
+                ContributeConstructedAnnotations(source.Parameters(0).Type, receiver.Type, source, annotations, seen)
+            End If
+
+            If Not arguments.IsDefault Then
+                For index = 0 To arguments.Length - 1
+                    Dim parameterIndex = index + 1
+                    If parameterIndex >= source.ParameterCount Then
+                        Exit For
+                    End If
+
+                    Dim argument = arguments(index)
+                    If argument Is Nothing OrElse argument.Kind = BoundKind.OmittedArgument Then
+                        Continue For
+                    End If
+
+                    ContributeExtensionAnnotation(source.Parameters(parameterIndex).Type, ReceiverAnnotation(argument), source, annotations, seen)
+                    ContributeConstructedAnnotations(source.Parameters(parameterIndex).Type, argument.Type, source, annotations, seen)
+                Next
+            End If
+
+            Dim returnParameter = TryCast(source.ReturnType, TypeParameterSymbol)
+            Dim returnOwner = TryCast(If(returnParameter Is Nothing, Nothing, returnParameter.ContainingSymbol), MethodSymbol)
+            If returnParameter Is Nothing OrElse returnOwner Is Nothing OrElse returnOwner.OriginalDefinition IsNot source.OriginalDefinition Then
+                Return NullableAnnotation.None
+            End If
+
+            If returnParameter.Ordinal < 0 OrElse returnParameter.Ordinal >= annotations.Length OrElse Not seen(returnParameter.Ordinal) Then
+                Return NullableAnnotation.None
+            End If
+
+            Return annotations(returnParameter.Ordinal)
+        End Function
+
+        Private Shared Sub ContributeExtensionAnnotation(parameterType As TypeSymbol, annotation As NullableAnnotation, source As MethodSymbol, annotations As NullableAnnotation(), seen As Boolean())
+            Dim typeParameter = TryCast(parameterType, TypeParameterSymbol)
+            If typeParameter Is Nothing Then
+                Return
+            End If
+
+            Dim owner = TryCast(typeParameter.ContainingSymbol, MethodSymbol)
+            If owner Is Nothing OrElse owner.OriginalDefinition IsNot source.OriginalDefinition Then
+                Return
+            End If
+
+            If typeParameter.Ordinal < 0 OrElse typeParameter.Ordinal >= annotations.Length Then
+                Return
+            End If
+
+            CombineExtensionAnnotation(annotations, seen, typeParameter.Ordinal, annotation)
+        End Sub
+
+        Private Shared Sub ContributeConstructedAnnotations(parameterType As TypeSymbol, argumentType As TypeSymbol, source As MethodSymbol, annotations As NullableAnnotation(), seen As Boolean())
+            Dim parameterNamed = TryCast(parameterType, NamedTypeSymbol)
+            Dim argumentNamed = TryCast(argumentType, NamedTypeSymbol)
+            If parameterNamed IsNot Nothing AndAlso argumentNamed IsNot Nothing AndAlso
+               parameterNamed.Arity > 0 AndAlso parameterNamed.Arity = argumentNamed.Arity AndAlso
+               parameterNamed.OriginalDefinition Is argumentNamed.OriginalDefinition Then
+                Dim parameterArguments = parameterNamed.TypeArgumentsNoUseSiteDiagnostics
+                Dim argumentAnnotations = argumentNamed.GetTypeArgumentNullableAnnotations()
+                For index = 0 To parameterNamed.Arity - 1
+                    Dim inner = NullableAnnotation.None
+                    If Not argumentAnnotations.IsDefault AndAlso index < argumentAnnotations.Length Then
+                        inner = argumentAnnotations(index)
+                    End If
+
+                    ContributeExtensionAnnotation(parameterArguments(index), inner, source, annotations, seen)
+                    Dim argumentArguments = argumentNamed.TypeArgumentsNoUseSiteDiagnostics
+                    ContributeConstructedAnnotations(parameterArguments(index), argumentArguments(index), source, annotations, seen)
+                Next
+            End If
+
+            Dim parameterArray = TryCast(parameterType, ArrayTypeSymbol)
+            Dim argumentArray = TryCast(argumentType, ArrayTypeSymbol)
+            If parameterArray IsNot Nothing AndAlso argumentArray IsNot Nothing Then
+                ContributeExtensionAnnotation(parameterArray.ElementType, argumentArray.ElementNullableAnnotation, source, annotations, seen)
+                ContributeConstructedAnnotations(parameterArray.ElementType, argumentArray.ElementType, source, annotations, seen)
+            End If
+        End Sub
+
+        Private Shared Sub CombineExtensionAnnotation(annotations As NullableAnnotation(), seen As Boolean(), ordinal As Integer, incoming As NullableAnnotation)
+            If Not seen(ordinal) Then
+                annotations(ordinal) = incoming
+                seen(ordinal) = True
+                Return
+            End If
+
+            If annotations(ordinal) = NullableAnnotation.Annotated OrElse incoming = NullableAnnotation.Annotated Then
+                annotations(ordinal) = NullableAnnotation.Annotated
+            ElseIf annotations(ordinal) = NullableAnnotation.NotAnnotated AndAlso incoming = NullableAnnotation.NotAnnotated Then
+                annotations(ordinal) = NullableAnnotation.NotAnnotated
+            Else
+                annotations(ordinal) = NullableAnnotation.None
+            End If
+        End Sub
 
         Private Function EvaluateProperty(node As BoundPropertyAccess) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
@@ -1505,7 +1625,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim slot = TryBuildSlot(node)
             Dim result = If(slot Is Nothing, PropertyResult(node.PropertySymbol), StateOfMember(slot))
-            If HandlerTaints(node.PropertySymbol) Then
+            If HandlerTaints(node.PropertySymbol) OrElse HandlerMutates(TrackedSymbol(node.ReceiverOpt)) Then
                 result = FlowNullability.MaybeNull
             End If
             If slot Is Nothing Then
@@ -1523,6 +1643,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Function EvaluateField(node As BoundFieldAccess) As FlowNullability
             EvaluateReceiver(node.ReceiverOpt)
             If HandlerTaints(node.FieldSymbol) Then
+                Return FlowNullability.MaybeNull
+            End If
+
+            If HandlerMutates(TrackedSymbol(node.ReceiverOpt)) Then
                 Return FlowNullability.MaybeNull
             End If
 
@@ -1839,11 +1963,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 effect.Result = FlowNullability.MaybeNull
             ElseIf observed IsNot Nothing AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.IsReferenceType AndAlso Not dependentNotNull Then
                 effect.Result = If(observed.ReturnNotNull, FlowNullability.NotNull, FlowNullability.MaybeNull)
-            ElseIf _refineInferredReturn AndAlso effect.Result = FlowNullability.MaybeNull Then
-                effect.Result = RefineInferredReturn(method, records)
             End If
 
-            If HandlerResumes() AndAlso effect.Result = FlowNullability.NotNull AndAlso method IsNot Nothing AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.IsReferenceType Then
+            If (HandlerResumes() OrElse _resumeNext) AndAlso effect.Result = FlowNullability.NotNull AndAlso method IsNot Nothing AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.IsReferenceType Then
                 ' A resume can continue after a call that never completed, so a postcondition
                 ' that applies only to normal completion is not consumed on that path.
                 effect.Result = FlowNullability.MaybeNull
@@ -2680,43 +2802,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
         End Sub
 
-        Private Function RefineInferredReturn(method As MethodSymbol, records As List(Of ArgumentRecord)) As FlowNullability
-            If method Is Nothing Then
-                Return FlowNullability.MaybeNull
-            End If
-
-            Dim original = method.OriginalDefinition
-            Dim returnParameter = TryCast(original.ReturnType, TypeParameterSymbol)
-            Dim owner = TryCast(If(returnParameter Is Nothing, Nothing, returnParameter.ContainingSymbol), MethodSymbol)
-            If returnParameter Is Nothing OrElse owner Is Nothing OrElse owner.OriginalDefinition IsNot original Then
-                Return FlowNullability.MaybeNull
-            End If
-
-            Dim sawContributor = False
-            For Each record In records
-                If record.Parameter Is Nothing Then
-                    Continue For
-                End If
-
-                Dim parameterType = TryCast(record.Parameter.OriginalDefinition.Type, TypeParameterSymbol)
-                Dim parameterOwner = TryCast(If(parameterType Is Nothing, Nothing, parameterType.ContainingSymbol), MethodSymbol)
-                If parameterType Is Nothing OrElse parameterOwner Is Nothing OrElse parameterOwner.OriginalDefinition IsNot original OrElse parameterType.Ordinal <> returnParameter.Ordinal Then
-                    Continue For
-                End If
-
-                sawContributor = True
-                If record.Value <> FlowNullability.NotNull Then
-                    Return FlowNullability.MaybeNull
-                End If
-            Next
-
-            If sawContributor Then
-                Return FlowNullability.NotNull
-            End If
-
-            Return FlowNullability.MaybeNull
-        End Function
-
         Private Function HandlerTaints(symbol As Symbol) As Boolean
             If symbol Is Nothing Then
                 Return False
@@ -2734,11 +2819,40 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return _activeHandler IsNot Nothing AndAlso _handlersWithResume.Contains(_activeHandler)
         End Function
 
+        Private Sub NoteHandlerTarget(symbol As Symbol)
+            If symbol Is Nothing Then
+                Return
+            End If
+
+            _handlerNulls.Add(symbol)
+            Dim local = TryCast(symbol, LocalSymbol)
+            If local IsNot Nothing AndAlso local.Name IsNot Nothing Then
+                _handlerNullNames.Add(local.Name)
+            End If
+        End Sub
+
+        Private Function HandlerMutates(symbol As Symbol) As Boolean
+            If symbol Is Nothing OrElse _handlerMutated.Count = 0 Then
+                Return False
+            End If
+
+            If _handlerMutated.Contains(symbol) Then
+                Return True
+            End If
+
+            Dim root = AliasRoot(symbol)
+            Return root IsNot Nothing AndAlso _handlerMutated.Contains(root)
+        End Function
+
         Private Sub CollectHandlerNulls(body As BoundBlock)
             If body Is Nothing Then
                 Return
             End If
 
+            _handlerNulls.Clear()
+            _handlerNullNames.Clear()
+            _handlerMutated.Clear()
+            _handlersWithResume.Clear()
             Dim collector As New HandlerNullCollector()
             collector.Visit(body)
             collector.Finish()
@@ -2747,14 +2861,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             For Each symbol In collector.AssignedNulls
-                _handlerNulls.Add(symbol)
+                NoteHandlerTarget(symbol)
             Next
 
             For Each label In collector.HandlerLabels
                 Dim symbols As HashSet(Of Symbol) = Nothing
                 If collector.NullsByLabel.TryGetValue(label, symbols) Then
                     For Each symbol In symbols
-                        _handlerNulls.Add(symbol)
+                        NoteHandlerTarget(symbol)
+                    Next
+                End If
+
+                Dim mutated As HashSet(Of Symbol) = Nothing
+                If collector.MutatedByLabel.TryGetValue(label, mutated) Then
+                    For Each symbol In mutated
+                        _handlerMutated.Add(symbol)
                     Next
                 End If
 
@@ -2811,15 +2932,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend ReadOnly NullsByLabel As New Dictionary(Of LabelSymbol, HashSet(Of Symbol))()
             Friend ReadOnly ResumeLabels As New HashSet(Of LabelSymbol)()
             Friend ReadOnly AssignedNulls As New HashSet(Of Symbol)()
+            Friend ReadOnly MutatedByLabel As New Dictionary(Of LabelSymbol, HashSet(Of Symbol))()
             Friend SawResume As Boolean
             Private _label As LabelSymbol
             Private _region As HashSet(Of Symbol)
+            Private _mutated As HashSet(Of Symbol)
             Private _regionHasResume As Boolean
 
             Public Overrides Function VisitLabelStatement(node As BoundLabelStatement) As BoundNode
                 FinishRegion()
                 _label = node.Label
                 _region = New HashSet(Of Symbol)()
+                _mutated = New HashSet(Of Symbol)()
                 _regionHasResume = False
                 Return Nothing
             End Function
@@ -2839,7 +2963,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Function
 
             Public Overrides Function VisitAssignmentOperator(node As BoundAssignmentOperator) As BoundNode
-                If AssignedNothing(node.Right) Then
+                Dim nullableWrite = AssignedNothing(node.Right) OrElse (_region IsNot Nothing AndAlso Not ProvenNonNull(node.Right))
+                If nullableWrite Then
                     Dim symbol = TrackedSymbol(node.Left)
                     If symbol Is Nothing Then
                         symbol = AssignedSymbol(node.Left)
@@ -2851,9 +2976,50 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             _region.Add(symbol)
                         End If
                     End If
+
+                    Dim receiver = AssignedSymbol(ReceiverOf(node.Left))
+                    If receiver IsNot Nothing AndAlso _mutated IsNot Nothing Then
+                        _mutated.Add(receiver)
+                    End If
                 End If
 
                 Return MyBase.VisitAssignmentOperator(node)
+            End Function
+
+            Public Overrides Function VisitCall(node As BoundCall) As BoundNode
+                If _region IsNot Nothing AndAlso _mutated IsNot Nothing Then
+                    Dim receiver = AssignedSymbol(node.ReceiverOpt)
+                    If receiver Is Nothing Then
+                        receiver = TrackedSymbol(node.ReceiverOpt)
+                    End If
+
+                    If receiver IsNot Nothing Then
+                        _mutated.Add(receiver)
+                    End If
+
+                    If Not node.Arguments.IsDefault AndAlso node.Method IsNot Nothing Then
+                        For index = 0 To node.Arguments.Length - 1
+                            Dim argument = UnwrapArgument(node.Arguments(index))
+                            Dim symbol = AssignedSymbol(argument)
+                            If symbol Is Nothing Then
+                                symbol = TrackedSymbol(argument)
+                            End If
+
+                            If symbol Is Nothing Then
+                                Continue For
+                            End If
+
+                            If index < node.Method.ParameterCount AndAlso node.Method.Parameters(index).IsByRef Then
+                                AssignedNulls.Add(symbol)
+                                _region.Add(symbol)
+                            Else
+                                _mutated.Add(symbol)
+                            End If
+                        Next
+                    End If
+                End If
+
+                Return MyBase.VisitCall(node)
             End Function
 
             Friend Sub Finish()
@@ -2866,13 +3032,64 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 NullsByLabel(_label) = _region
+                MutatedByLabel(_label) = If(_mutated, New HashSet(Of Symbol)())
                 If _regionHasResume Then
                     ResumeLabels.Add(_label)
                 End If
 
                 _label = Nothing
                 _region = Nothing
+                _mutated = Nothing
             End Sub
+
+            Private Shared Function ReceiverOf(expr As BoundExpression) As BoundExpression
+                Dim field = TryCast(expr, BoundFieldAccess)
+                If field IsNot Nothing Then
+                    Return field.ReceiverOpt
+                End If
+
+                Dim [property] = TryCast(expr, BoundPropertyAccess)
+                If [property] IsNot Nothing Then
+                    Return [property].ReceiverOpt
+                End If
+
+                Return Nothing
+            End Function
+
+            Private Shared Function UnwrapArgument(expr As BoundExpression) As BoundExpression
+                Dim copyBack = TryCast(expr, BoundByRefArgumentWithCopyBack)
+                If copyBack IsNot Nothing Then
+                    Return copyBack.OriginalArgument
+                End If
+
+                Return expr
+            End Function
+
+            Private Shared Function ProvenNonNull(expr As BoundExpression) As Boolean
+                Dim current = expr
+                While current IsNot Nothing
+                    Select Case current.Kind
+                        Case BoundKind.Parenthesized
+                            current = DirectCast(current, BoundParenthesized).Expression
+                        Case BoundKind.Conversion, BoundKind.DirectCast
+                            current = DirectCast(current, BoundConversionOrCast).Operand
+                        Case BoundKind.Literal
+                            Return current.ConstantValueOpt Is Nothing OrElse Not current.ConstantValueOpt.IsNothing
+                        Case BoundKind.ObjectCreationExpression
+                            Return True
+                        Case BoundKind.MeReference, BoundKind.MyClassReference, BoundKind.MyBaseReference
+                            Return True
+                        Case BoundKind.Local
+                            Return DirectCast(DirectCast(current, BoundLocal).LocalSymbol, ILocalSymbol).NullableAnnotation = NullableAnnotation.NotAnnotated
+                        Case BoundKind.Parameter
+                            Return DirectCast(DirectCast(current, BoundParameter).ParameterSymbol, IParameterSymbol).NullableAnnotation = NullableAnnotation.NotAnnotated
+                        Case Else
+                            Return False
+                    End Select
+                End While
+
+                Return False
+            End Function
 
             Private Shared Function AssignedSymbol(expr As BoundExpression) As Symbol
                 Dim current = expr
@@ -3585,6 +3802,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Dim carried = CarriedAwaitAnnotation(node, method)
+                If carried = NullableAnnotation.None Then
+                    carried = InferredAwaitAnnotation(node)
+                End If
+
                 If carried <> NullableAnnotation.None Then
                     Return FromAnnotation(carried)
                 End If
@@ -3647,6 +3868,56 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return annotations(source.Ordinal)
+        End Function
+
+        Private Shared Function InferredAwaitAnnotation(node As BoundAwaitOperator) As NullableAnnotation
+            Dim current = node.Operand
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Parenthesized
+                        current = DirectCast(current, BoundParenthesized).Expression
+                    Case BoundKind.Conversion, BoundKind.DirectCast
+                        current = DirectCast(current, BoundConversionOrCast).Operand
+                    Case Else
+                        Exit While
+                End Select
+            End While
+
+            Dim invocation = TryCast(current, BoundCall)
+            If invocation Is Nothing OrElse invocation.Method Is Nothing OrElse node.Type Is Nothing Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim originalReturn = TryCast(invocation.Method.OriginalDefinition.ReturnType, NamedTypeSymbol)
+            Dim annotations = invocation.Method.GetTypeArgumentNullableAnnotations()
+            If originalReturn Is Nothing OrElse annotations.IsDefault Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim arguments = originalReturn.TypeArgumentsNoUseSiteDiagnostics
+            For index = 0 To Math.Min(originalReturn.Arity, arguments.Length) - 1
+                Dim typeParameter = TryCast(arguments(index), TypeParameterSymbol)
+                Dim owner = TryCast(If(typeParameter Is Nothing, Nothing, typeParameter.ContainingSymbol), MethodSymbol)
+                If typeParameter Is Nothing OrElse owner Is Nothing OrElse owner.OriginalDefinition IsNot invocation.Method.OriginalDefinition Then
+                    Continue For
+                End If
+
+                If typeParameter.Ordinal < 0 OrElse typeParameter.Ordinal >= annotations.Length Then
+                    Continue For
+                End If
+
+                Dim substituted = invocation.Method.ReturnType
+                Dim substitutedNamed = TryCast(substituted, NamedTypeSymbol)
+                If substitutedNamed Is Nothing OrElse index >= substitutedNamed.TypeArgumentsNoUseSiteDiagnostics.Length Then
+                    Continue For
+                End If
+
+                If node.Type.IsSameTypeIgnoringAll(substitutedNamed.TypeArgumentsNoUseSiteDiagnostics(index)) Then
+                    Return annotations(typeParameter.Ordinal)
+                End If
+            Next
+
+            Return NullableAnnotation.None
         End Function
 
         Private Shared Function AwaiterMethod(expr As BoundExpression) As MethodSymbol
@@ -3836,6 +4107,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Private Function StateOfMember(slot As MemberSlot) As FlowNullability
+            If slot IsNot Nothing AndAlso (HandlerMutates(slot.Receiver) OrElse HandlerTaints(slot.LeafSymbol)) Then
+                Return FlowNullability.MaybeNull
+            End If
+
             Dim state As FlowNullability
             If slot IsNot Nothing AndAlso _members.TryGetValue(slot, state) AndAlso state <> FlowNullability.Unknown Then
                 Return state
