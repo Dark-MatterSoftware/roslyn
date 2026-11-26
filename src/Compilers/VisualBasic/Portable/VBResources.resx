@@ -5808,6 +5808,12 @@
   <data name="WRN_BadNullableParameterName_Title" xml:space="preserve">
     <value>'{0}' is not a parameter of this method.</value>
   </data>
+  <data name="WRN_ShouldNotReturn" xml:space="preserve">
+    <value>Method marked with 'DoesNotReturn' should not return.</value>
+  </data>
+  <data name="WRN_ShouldNotReturn_Title" xml:space="preserve">
+    <value>Method marked with 'DoesNotReturn' should not return.</value>
+  </data>
   <data name="WRN_ConvertingLock_Title" xml:space="preserve">
     <value>A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in SyncLock statement.</value>
   </data>

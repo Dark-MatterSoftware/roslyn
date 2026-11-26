@@ -2136,6 +2136,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_ReturnNotNullIfNotNull = 42529
         WRN_ParameterNotNullIfNotNull = 42530
         WRN_BadNullableParameterName = 42531
+        WRN_ShouldNotReturn = 42532
         WRN_UndecoratedCancellationTokenParameter = 42514
         WRN_UnconsumedEnumeratorCancellationAttributeUsage = 42515
         WRN_UnreadRecordParameter = 42516

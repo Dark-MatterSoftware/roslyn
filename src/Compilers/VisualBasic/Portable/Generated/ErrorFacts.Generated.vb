@@ -198,6 +198,7 @@
                      ERRID.WRN_ReturnNotNullIfNotNull,
                      ERRID.WRN_ParameterNotNullIfNotNull,
                      ERRID.WRN_BadNullableParameterName,
+                     ERRID.WRN_ShouldNotReturn,
                      ERRID.WRN_UndecoratedCancellationTokenParameter,
                      ERRID.WRN_UnconsumedEnumeratorCancellationAttributeUsage,
                      ERRID.WRN_UnreadRecordParameter

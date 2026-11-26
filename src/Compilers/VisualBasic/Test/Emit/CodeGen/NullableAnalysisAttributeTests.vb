@@ -156,6 +156,7 @@ Public Delegate Function Parser(<NotNullIfNotNull(""text"")> text As String) As 
 ", NullableContextOptions.Enable)
 
             compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_ShouldNotReturn, "End Sub").WithLocation(24, 5),
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "text").WithArguments("matched").WithLocation(26, 19))
             Dim box = compilation.GetMember(Of NamedTypeSymbol)("Box")
             Assert.Equal(FlowAnalysisAnnotations.AllowNull, box.GetMember(Of FieldSymbol)("Item").FlowAnalysisAnnotations)
@@ -542,6 +543,7 @@ End Class
 ", NullableContextOptions.Enable)
 
             compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_ShouldNotReturn, "End Sub").WithLocation(10, 5),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "found").WithArguments("found").WithLocation(13, 22))
         End Sub
 

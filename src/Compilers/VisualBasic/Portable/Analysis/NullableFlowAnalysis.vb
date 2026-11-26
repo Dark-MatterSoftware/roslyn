@@ -155,13 +155,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend ReadOnly Members As Dictionary(Of MemberSlot, FlowNullability)
             Friend ReadOnly Escaped As HashSet(Of Symbol)
             Friend ReadOnly Published As HashSet(Of Symbol)
+            Friend ReadOnly Original As Dictionary(Of Symbol, FlowNullability)
+            Friend ReadOnly Carriers As Dictionary(Of Symbol, Symbol)
 
-            Friend Sub New(reachable As Boolean, slots As Dictionary(Of Symbol, FlowNullability), members As Dictionary(Of MemberSlot, FlowNullability), escaped As HashSet(Of Symbol), published As HashSet(Of Symbol))
+            Friend Sub New(reachable As Boolean, slots As Dictionary(Of Symbol, FlowNullability), members As Dictionary(Of MemberSlot, FlowNullability), escaped As HashSet(Of Symbol), published As HashSet(Of Symbol), original As Dictionary(Of Symbol, FlowNullability), carriers As Dictionary(Of Symbol, Symbol))
                 Me.Reachable = reachable
                 Me.Slots = slots
                 Me.Members = members
                 Me.Escaped = escaped
                 Me.Published = published
+                Me.Original = If(original, New Dictionary(Of Symbol, FlowNullability)())
+                Me.Carriers = If(carriers, New Dictionary(Of Symbol, Symbol)())
             End Sub
         End Class
 
@@ -188,11 +192,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private ReadOnly _visitedLabels As HashSet(Of LabelSymbol)
         Private ReadOnly _reported As HashSet(Of String)
         Private ReadOnly _writes As Dictionary(Of Symbol, Integer)
+        Private _original As Dictionary(Of Symbol, FlowNullability)
+        Private _carriers As Dictionary(Of Symbol, Symbol)
+        Private _returnPreserved As HashSet(Of Symbol)
+        Private _hasReturnPreserved As Boolean
+        Private _sawCycle As Boolean
         Private ReadOnly _exceptionStates As List(Of FlowSnapshot)
         Private _writeClock As Integer
         Private _isolation As Integer
         Private _needsRewalk As Boolean
         Private _summaryOnly As Boolean
+        Private _bodyProof As Boolean
         Private _initializerPass As Boolean
         Private _applyInitializersAfterBase As Boolean
         Private _initializerClock As Integer
@@ -208,6 +218,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend Sense As ExitSense
             Friend HasReturn As Boolean
             Friend ReturnState As FlowNullability
+            Friend Preserved As HashSet(Of Symbol)
+            Friend Unwritten As HashSet(Of Symbol)
         End Structure
 
         Private Enum ExitSense
@@ -224,6 +236,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend ReadOnly Initializers As New Dictionary(Of Symbol, Dictionary(Of MemberSlot, FlowNullability))()
             Friend ReadOnly InitializersBound As New Dictionary(Of Symbol, ImmutableArray(Of BoundInitializer))()
             Friend ReadOnly ContractCallees As New Dictionary(Of MethodSymbol, ImmutableArray(Of MethodSymbol))()
+            Friend ReadOnly BodyProofs As New Dictionary(Of MethodSymbol, BodyProof)()
+            Friend ReadOnly BodyInProgress As New HashSet(Of MethodSymbol)()
+        End Class
+
+        Private NotInheritable Class BodyProof
+            Friend Shared ReadOnly Cyclic As New BodyProof() With {.ReachesCycle = True}
+            Friend NoNormalExit As Boolean
+            Friend ReturnNotNull As Boolean
+            Friend ReachesCycle As Boolean
+            Friend NotNullParameters As HashSet(Of Integer)
         End Class
 
         Private NotInheritable Class ContractCalleeWalker
@@ -257,6 +279,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _visitedLabels = New HashSet(Of LabelSymbol)()
             _reported = New HashSet(Of String)()
             _writes = New Dictionary(Of Symbol, Integer)()
+            _original = New Dictionary(Of Symbol, FlowNullability)()
+            _carriers = New Dictionary(Of Symbol, Symbol)()
             _exceptionStates = New List(Of FlowSnapshot)()
         End Sub
 
@@ -282,26 +306,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return
             End If
 
-            walker.BeginPass()
-            walker.Visit(body)
-            Dim pass = 1
-            While walker._needsRewalk AndAlso pass < MaxGotoPasses
-                walker._needsRewalk = False
+            Dim proofKey = method.OriginalDefinition
+            Dim stored = Facts.GetOrCreateValue(compilation)
+            SyncLock stored
+                stored.BodyInProgress.Add(proofKey)
+            End SyncLock
+
+            Try
                 walker.BeginPass()
                 walker.Visit(body)
-                pass += 1
-            End While
+                Dim pass = 1
+                While walker._needsRewalk AndAlso pass < MaxGotoPasses
+                    walker._needsRewalk = False
+                    walker.BeginPass()
+                    walker.Visit(body)
+                    pass += 1
+                End While
 
-            If walker._needsRewalk Then
-                ' The backward edges did not converge. Drop non-null facts carried by those
-                ' jumps and visit once more so the widened state is actually diagnosed.
-                walker.WidenJumps()
-                walker._needsRewalk = False
-                walker.BeginPass()
-                walker.Visit(body)
-            End If
+                If walker._needsRewalk Then
+                    ' The backward edges did not converge. Drop non-null facts carried by those
+                    ' jumps and visit once more so the widened state is actually diagnosed.
+                    walker.WidenJumps()
+                    walker._needsRewalk = False
+                    walker.BeginPass()
+                    walker.Visit(body)
+                End If
 
-            walker.FinishPass()
+                walker.FinishPass()
+            Finally
+                SyncLock stored
+                    stored.BodyInProgress.Remove(proofKey)
+                End SyncLock
+            End Try
         End Sub
 
         Private Sub BeginPass()
@@ -315,6 +351,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _captured.Clear()
             _visitedLabels.Clear()
             _writes.Clear()
+            _original = New Dictionary(Of Symbol, FlowNullability)()
+            _carriers = New Dictionary(Of Symbol, Symbol)()
+            _sawCycle = False
+            _hasReturnPreserved = False
             _exceptionStates.Clear()
             _isolation = 0
             _normalExits.Clear()
@@ -350,7 +390,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 If IsTrackedReference(parameter) Then
-                    _state(parameter) = InitialNullability(parameter)
+                    Dim initial = InitialNullability(parameter)
+                    _state(parameter) = initial
+                    ' Unknown means the original argument was proven null. A maybe-null
+                    ' parameter still imposes a NotNullIfNotNull obligation until a test proves otherwise.
+                    _original(parameter) = If(initial = FlowNullability.NotNull, FlowNullability.NotNull, FlowNullability.MaybeNull)
                 End If
 
                 If IsReferenceSymbol(parameter) Then
@@ -513,6 +557,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim entry = Capture()
+            Dim exitsAtTry = _normalExits.Count
             _exceptionStates.Add(Unreachable())
             ObserveException()
             Visit(node.TryBlock)
@@ -552,13 +597,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim exitsBeforeFinally = _normalExits.Count
                 SetSnapshot(MergeSnapshots(handlerState, leaving))
                 Visit(node.FinallyBlockOpt)
-                If leaving.Reachable AndAlso _reachable Then
+                Dim finallyCompleted = _reachable
+                If leaving.Reachable AndAlso finallyCompleted Then
                     ApplyFinallyWrites(leaving, clock)
                 Else
                     _reachable = False
                 End If
 
-                ApplyFinallyToExits(exitsBeforeFinally, clock)
+                If Not finallyCompleted Then
+                    ' A Finally that does not complete cancels exits recorded in this Try.
+                    While _normalExits.Count > exitsAtTry
+                        _normalExits.RemoveAt(_normalExits.Count - 1)
+                    End While
+
+                    ApplyFinallyToExits(_normalExits.Count, clock)
+                Else
+                    ApplyFinallyToExits(exitsBeforeFinally, clock)
+                End If
             Else
                 SetSnapshot(leaving)
             End If
@@ -579,7 +634,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 sense = ReturnSense(node.ExpressionOpt)
+                _hasReturnPreserved = True
+                _returnPreserved = PreservedBy(node.ExpressionOpt)
                 NoteNormalExit(node.Syntax, sense, hasReturn:=True, returnState:=result)
+                _hasReturnPreserved = False
             Else
                 NoteNormalExit(node.Syntax, sense)
             End If
@@ -1526,7 +1584,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SetSnapshot(overlaid)
             Next
 
-            If method IsNot Nothing AndAlso Not SameMethod(method, _method) AndAlso HasContract(method.FlowAnalysisAnnotations, FlowAnalysisAnnotations.DoesNotReturn) Then
+            Dim observed = If(SameMethod(method, _method), Nothing, ObservedProof(method))
+            Dim doesNotReturn = If(observed IsNot Nothing, observed.NoNormalExit, method IsNot Nothing AndAlso Not SameMethod(method, _method) AndAlso HasContract(method.FlowAnalysisAnnotations, FlowAnalysisAnnotations.DoesNotReturn))
+            If doesNotReturn Then
                 effect.Result = FlowNullability.NotNull
                 effect.WhenTrue = Unreachable()
                 effect.WhenFalse = Unreachable()
@@ -1560,8 +1620,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Continue For
                 End If
 
-                ApplyOutput(whenTrue, appliedTrue, record, annotations, sense:=True)
-                ApplyOutput(whenFalse, appliedFalse, record, annotations, sense:=False)
+                If observed IsNot Nothing Then
+                    If observed.NotNullParameters IsNot Nothing AndAlso observed.NotNullParameters.Contains(record.Parameter.Ordinal) Then
+                        appliedTrue(record.Slot) = FlowNullability.NotNull
+                        appliedFalse(record.Slot) = FlowNullability.NotNull
+                        whenTrue.Slots(record.Slot) = FlowNullability.NotNull
+                        whenFalse.Slots(record.Slot) = FlowNullability.NotNull
+                    End If
+                Else
+                    ApplyOutput(whenTrue, appliedTrue, record, annotations, sense:=True)
+                    ApplyOutput(whenFalse, appliedFalse, record, annotations, sense:=False)
+                End If
                 If appliedTrue.ContainsKey(record.Slot) OrElse appliedFalse.ContainsKey(record.Slot) Then
                     stamped.Add(record.Slot)
                 End If
@@ -1582,6 +1651,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             effect.Result = CallResult(method, dependentNotNull)
             If SameMethod(method, _method) AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.IsReferenceType Then
                 effect.Result = FlowNullability.MaybeNull
+            ElseIf observed IsNot Nothing AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.IsReferenceType AndAlso Not dependentNotNull Then
+                effect.Result = If(observed.ReturnNotNull, FlowNullability.NotNull, FlowNullability.MaybeNull)
             End If
             SetSnapshot(MergeSnapshots(whenTrue, whenFalse))
             Return effect
@@ -1865,6 +1936,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             _state(symbol) = If(isNull, FlowNullability.MaybeNull, FlowNullability.NotNull)
+            Dim parameter = TryCast(symbol, ParameterSymbol)
+            If parameter IsNot Nothing AndAlso Not _writes.ContainsKey(parameter) Then
+                ' A later assignment must not erase whether the original argument was null.
+                _original(parameter) = If(isNull, FlowNullability.Unknown, FlowNullability.NotNull)
+            End If
         End Sub
 
         Private Sub Assign(target As Symbol, value As FlowNullability, syntaxExpr As BoundExpression)
@@ -1883,6 +1959,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             _state(target) = effective
             NoteWrite(target)
+            UpdateCarrier(target, TrackedSymbol(syntaxExpr))
         End Sub
 
         Private Function StateOf(symbol As Symbol) As FlowNullability
@@ -2076,6 +2153,301 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return current
         End Function
 
+        Private Shared Function CopyStates(source As Dictionary(Of Symbol, FlowNullability)) As Dictionary(Of Symbol, FlowNullability)
+            If source Is Nothing Then
+                Return New Dictionary(Of Symbol, FlowNullability)()
+            End If
+
+            Return New Dictionary(Of Symbol, FlowNullability)(source)
+        End Function
+
+        Private Shared Function CopyCarriers(source As Dictionary(Of Symbol, Symbol)) As Dictionary(Of Symbol, Symbol)
+            If source Is Nothing Then
+                Return New Dictionary(Of Symbol, Symbol)()
+            End If
+
+            Return New Dictionary(Of Symbol, Symbol)(source)
+        End Function
+
+        Private Shared Function MergeOriginal(left As Dictionary(Of Symbol, FlowNullability), right As Dictionary(Of Symbol, FlowNullability)) As Dictionary(Of Symbol, FlowNullability)
+            Dim result As New Dictionary(Of Symbol, FlowNullability)()
+            If left IsNot Nothing Then
+                For Each pair In left
+                    Dim other As FlowNullability
+                    If right IsNot Nothing AndAlso right.TryGetValue(pair.Key, other) Then
+                        result(pair.Key) = If(pair.Value = other, pair.Value, FlowNullability.MaybeNull)
+                    Else
+                        result(pair.Key) = FlowNullability.MaybeNull
+                    End If
+                Next
+            End If
+
+            If right IsNot Nothing Then
+                For Each pair In right
+                    If Not result.ContainsKey(pair.Key) Then
+                        result(pair.Key) = FlowNullability.MaybeNull
+                    End If
+                Next
+            End If
+
+            Return result
+        End Function
+
+        Private Shared Function MergeCarriers(left As Dictionary(Of Symbol, Symbol), right As Dictionary(Of Symbol, Symbol)) As Dictionary(Of Symbol, Symbol)
+            Dim result As New Dictionary(Of Symbol, Symbol)()
+            If left Is Nothing OrElse right Is Nothing Then
+                Return result
+            End If
+
+            For Each pair In left
+                Dim other As Symbol = Nothing
+                If right.TryGetValue(pair.Key, other) AndAlso other IsNot Nothing AndAlso other.Equals(pair.Value) Then
+                    result(pair.Key) = pair.Value
+                End If
+            Next
+
+            Return result
+        End Function
+
+        Private Sub UpdateCarrier(target As Symbol, source As Symbol)
+            If target Is Nothing Then
+                Return
+            End If
+
+            Dim carried As Symbol = Nothing
+            Dim parameter = TryCast(source, ParameterSymbol)
+            If parameter IsNot Nothing AndAlso Not _writes.ContainsKey(parameter) Then
+                _carriers(target) = parameter
+            ElseIf source IsNot Nothing AndAlso _carriers.TryGetValue(source, carried) Then
+                _carriers(target) = carried
+            Else
+                _carriers.Remove(target)
+            End If
+        End Sub
+
+        Private Function PreservedFunctionValue() As HashSet(Of Symbol)
+            Dim result As New HashSet(Of Symbol)()
+            For Each pair In _carriers
+                Dim local = TryCast(pair.Key, LocalSymbol)
+                If local IsNot Nothing AndAlso local.IsFunctionValue AndAlso pair.Value IsNot Nothing Then
+                    result.Add(pair.Value)
+                End If
+            Next
+
+            Return result
+        End Function
+
+        Private Function UnwrittenParameters() As HashSet(Of Symbol)
+            Dim result As New HashSet(Of Symbol)()
+            If _method Is Nothing Then
+                Return result
+            End If
+
+            For Each parameter In _method.Parameters
+                If Not parameter.IsMe AndAlso Not _writes.ContainsKey(parameter) Then
+                    result.Add(parameter)
+                End If
+            Next
+
+            Return result
+        End Function
+
+        Private Function PreservedBy(expr As BoundExpression) As HashSet(Of Symbol)
+            Dim result As New HashSet(Of Symbol)()
+            If expr Is Nothing Then
+                Return result
+            End If
+
+            AddPreservedSymbol(result, TrackedSymbol(expr))
+            Dim conditional = TryCast(Unwrap(expr), BoundBinaryConditionalExpression)
+            If conditional IsNot Nothing Then
+                ' If(left, right) returns the first non-null operand, so each original input remains a valid result.
+                AddPreservedSymbol(result, TrackedSymbol(conditional.TestExpression))
+                AddPreservedSymbol(result, TrackedSymbol(conditional.ElseExpression))
+            End If
+
+            Dim invocation = TryCast(Unwrap(expr), BoundCall)
+            If invocation Is Nothing OrElse invocation.Method Is Nothing OrElse SameMethod(invocation.Method, _method) Then
+                Return result
+            End If
+
+            If ObservedProof(invocation.Method) IsNot Nothing OrElse invocation.Method.ReturnNotNullIfParameterNotNull.IsEmpty Then
+                Return result
+            End If
+
+            For index = 0 To invocation.Arguments.Length - 1
+                If index >= invocation.Method.ParameterCount Then
+                    Exit For
+                End If
+
+                Dim parameter = invocation.Method.Parameters(index)
+                If parameter IsNot Nothing AndAlso NamesMatch(invocation.Method.ReturnNotNullIfParameterNotNull, parameter.Name) Then
+                    AddPreservedSymbol(result, TrackedSymbol(invocation.Arguments(index)))
+                End If
+            Next
+
+            Return result
+        End Function
+
+        Private Sub AddPreservedSymbol(result As HashSet(Of Symbol), symbol As Symbol)
+            Dim parameter = TryCast(symbol, ParameterSymbol)
+            If parameter IsNot Nothing AndAlso Not _writes.ContainsKey(parameter) Then
+                result.Add(parameter)
+                Return
+            End If
+
+            Dim carried As Symbol = Nothing
+            If symbol IsNot Nothing AndAlso _carriers.TryGetValue(symbol, carried) AndAlso carried IsNot Nothing Then
+                result.Add(carried)
+            End If
+        End Sub
+
+        Private Shared Function OriginalObligates(wayOut As NormalExit, input As Symbol) As Boolean
+            Dim state As FlowNullability
+            If wayOut.Snapshot IsNot Nothing AndAlso wayOut.Snapshot.Original IsNot Nothing AndAlso wayOut.Snapshot.Original.TryGetValue(input, state) Then
+                Return state <> FlowNullability.Unknown
+            End If
+
+            Return True
+        End Function
+
+        Private Shared Function OutputPreserves(wayOut As NormalExit, output As Symbol, input As Symbol) As Boolean
+            If wayOut.Unwritten IsNot Nothing AndAlso wayOut.Unwritten.Contains(output) AndAlso output.Equals(input) Then
+                Return True
+            End If
+
+            Dim carried As Symbol = Nothing
+            Return wayOut.Snapshot IsNot Nothing AndAlso wayOut.Snapshot.Carriers IsNot Nothing AndAlso wayOut.Snapshot.Carriers.TryGetValue(output, carried) AndAlso carried IsNot Nothing AndAlso carried.Equals(input)
+        End Function
+
+        Private Function ObservedProof(method As MethodSymbol) As BodyProof
+            If method Is Nothing OrElse SameMethod(method, _method) Then
+                Return Nothing
+            End If
+
+            Dim proof = ReadBodyProof(method)
+            If proof Is Nothing OrElse Not proof.ReachesCycle Then
+                Return Nothing
+            End If
+
+            _sawCycle = True
+            Return proof
+        End Function
+
+        Private Function ReadBodyProof(method As MethodSymbol) As BodyProof
+            If method Is Nothing OrElse method.DeclaringCompilation Is Nothing OrElse Not TypeOf method.OriginalDefinition Is SourceMethodSymbol Then
+                Return Nothing
+            End If
+
+            Dim key = method.OriginalDefinition
+            Dim stored = Facts.GetOrCreateValue(key.DeclaringCompilation)
+            SyncLock stored
+                Dim cached As BodyProof = Nothing
+                If stored.BodyProofs.TryGetValue(key, cached) Then
+                    Return cached
+                End If
+
+                If Not stored.BodyInProgress.Add(key) Then
+                    _sawCycle = True
+                    Return BodyProof.Cyclic
+                End If
+            End SyncLock
+
+            Dim binding = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+            Dim diagnostics = DiagnosticBag.GetInstance()
+            Try
+                Dim sourceMethod = TryCast(key, SourceMethodSymbol)
+                If sourceMethod IsNot Nothing AndAlso sourceMethod.BlockSyntax IsNot Nothing Then
+                    Dim body = key.GetBoundMethodBody(Nothing, binding)
+                    If body IsNot Nothing Then
+                        Dim walker = New NullableFlowAnalysis(key, diagnostics, _project)
+                        walker._summaryOnly = True
+                        walker._bodyProof = True
+                        walker.Prepare(body)
+                        walker.BeginPass()
+                        walker.Visit(body)
+                        walker.FinishPass()
+                    End If
+                End If
+            Finally
+                SyncLock stored
+                    stored.BodyInProgress.Remove(key)
+                    If Not stored.BodyProofs.ContainsKey(key) Then
+                        stored.BodyProofs(key) = New BodyProof()
+                    End If
+                End SyncLock
+
+                diagnostics.Free()
+                binding.Free()
+            End Try
+
+            SyncLock stored
+                Dim cached As BodyProof = Nothing
+                stored.BodyProofs.TryGetValue(key, cached)
+                Return cached
+            End SyncLock
+        End Function
+
+        Private Sub PublishBodyProof()
+            If _method Is Nothing OrElse _method.DeclaringCompilation Is Nothing Then
+                Return
+            End If
+
+            Dim proof As New BodyProof With {
+                .NoNormalExit = _normalExits.Count = 0,
+                .ReturnNotNull = ExitsProveReturnNotNull(),
+                .ReachesCycle = _sawCycle,
+                .NotNullParameters = ParametersProvenNotNull()
+            }
+            Dim stored = Facts.GetOrCreateValue(_method.DeclaringCompilation)
+            SyncLock stored
+                stored.BodyProofs(_method.OriginalDefinition) = proof
+            End SyncLock
+        End Sub
+
+        Private Function ExitsProveReturnNotNull() As Boolean
+            Dim sawReturn = False
+            For Each wayOut In _normalExits
+                If Not wayOut.HasReturn Then
+                    Continue For
+                End If
+
+                sawReturn = True
+                If wayOut.ReturnState <> FlowNullability.NotNull Then
+                    Return False
+                End If
+            Next
+
+            Return sawReturn
+        End Function
+
+        Private Function ParametersProvenNotNull() As HashSet(Of Integer)
+            Dim result As New HashSet(Of Integer)()
+            If _method Is Nothing OrElse _normalExits.Count = 0 Then
+                Return result
+            End If
+
+            For Each parameter In _method.Parameters
+                If parameter.IsMe OrElse Not parameter.IsByRef OrElse Not IsTrackedReference(parameter) Then
+                    Continue For
+                End If
+
+                Dim proven = True
+                For Each wayOut In _normalExits
+                    If SnapshotState(wayOut.Snapshot, parameter) <> FlowNullability.NotNull Then
+                        proven = False
+                        Exit For
+                    End If
+                Next
+
+                If proven Then
+                    result.Add(parameter.Ordinal)
+                End If
+            Next
+
+            Return result
+        End Function
+
         Private Shared Function Unwrap(expr As BoundExpression) As BoundExpression
             Dim current = expr
             While current IsNot Nothing AndAlso current.Kind = BoundKind.Parenthesized
@@ -2122,7 +2494,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function Capture() As FlowSnapshot
-            Return New FlowSnapshot(_reachable, New Dictionary(Of Symbol, FlowNullability)(_state), New Dictionary(Of MemberSlot, FlowNullability)(_members), New HashSet(Of Symbol)(_escaped), New HashSet(Of Symbol)(_published))
+            Return New FlowSnapshot(_reachable, New Dictionary(Of Symbol, FlowNullability)(_state), New Dictionary(Of MemberSlot, FlowNullability)(_members), New HashSet(Of Symbol)(_escaped), New HashSet(Of Symbol)(_published), CopyStates(_original), CopyCarriers(_carriers))
         End Function
 
         Private Shared Function CloneSnapshot(snapshot As FlowSnapshot) As FlowSnapshot
@@ -2130,11 +2502,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return Unreachable()
             End If
 
-            Return New FlowSnapshot(snapshot.Reachable, New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots), New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members), New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published))
+            Return New FlowSnapshot(snapshot.Reachable, New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots), New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members), New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published), CopyStates(snapshot.Original), CopyCarriers(snapshot.Carriers))
         End Function
 
         Private Shared Function Unreachable() As FlowSnapshot
-            Return New FlowSnapshot(False, New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of MemberSlot, FlowNullability)(), New HashSet(Of Symbol)(), New HashSet(Of Symbol)())
+            Return New FlowSnapshot(False, New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of MemberSlot, FlowNullability)(), New HashSet(Of Symbol)(), New HashSet(Of Symbol)(), New Dictionary(Of Symbol, FlowNullability)(), New Dictionary(Of Symbol, Symbol)())
         End Function
 
         Private Sub SetSnapshot(snapshot As FlowSnapshot)
@@ -2148,6 +2520,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _members = New Dictionary(Of MemberSlot, FlowNullability)(snapshot.Members)
             _escaped = New HashSet(Of Symbol)(snapshot.Escaped)
             _published = New HashSet(Of Symbol)(snapshot.Published)
+            _original = CopyStates(snapshot.Original)
+            _carriers = CopyCarriers(snapshot.Carriers)
         End Sub
 
         Private Shared Function MergeSnapshots(left As FlowSnapshot, right As FlowSnapshot) As FlowSnapshot
@@ -2185,7 +2559,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             escaped.UnionWith(right.Escaped)
             Dim published As New HashSet(Of Symbol)(left.Published)
             published.UnionWith(right.Published)
-            Return New FlowSnapshot(True, slots, members, escaped, published)
+            Return New FlowSnapshot(True, slots, members, escaped, published, MergeOriginal(left.Original, right.Original), MergeCarriers(left.Carriers, right.Carriers))
         End Function
 
         Private Shared Function MergeMembers(left As Dictionary(Of MemberSlot, FlowNullability), right As Dictionary(Of MemberSlot, FlowNullability)) As Dictionary(Of MemberSlot, FlowNullability)
@@ -2350,7 +2724,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 members(key) = FlowNullability.MaybeNull
             Next
 
-            Return New FlowSnapshot(snapshot.Reachable, slots, members, New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published))
+            Dim original = CopyStates(snapshot.Original)
+            Dim originalKeys = original.Keys.ToArray()
+            For Each key In originalKeys
+                original(key) = FlowNullability.MaybeNull
+            Next
+
+            Return New FlowSnapshot(snapshot.Reachable, slots, members, New HashSet(Of Symbol)(snapshot.Escaped), New HashSet(Of Symbol)(snapshot.Published), original, New Dictionary(Of Symbol, Symbol)())
         End Function
 
         Private Shared Function Same(left As FlowSnapshot, right As FlowSnapshot) As Boolean
@@ -2366,7 +2746,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return True
             End If
 
-            If left.Slots.Count <> right.Slots.Count OrElse left.Members.Count <> right.Members.Count OrElse left.Escaped.Count <> right.Escaped.Count OrElse left.Published.Count <> right.Published.Count Then
+            If left.Slots.Count <> right.Slots.Count OrElse left.Members.Count <> right.Members.Count OrElse left.Escaped.Count <> right.Escaped.Count OrElse left.Published.Count <> right.Published.Count OrElse left.Original.Count <> right.Original.Count OrElse left.Carriers.Count <> right.Carriers.Count Then
                 Return False
             End If
 
@@ -2392,6 +2772,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             For Each symbol In left.Published
                 If Not right.Published.Contains(symbol) Then
+                    Return False
+                End If
+            Next
+
+            For Each pair In left.Original
+                Dim other As FlowNullability
+                If Not right.Original.TryGetValue(pair.Key, other) OrElse other <> pair.Value Then
+                    Return False
+                End If
+            Next
+
+            For Each pair In left.Carriers
+                Dim other As Symbol = Nothing
+                If Not right.Carriers.TryGetValue(pair.Key, other) OrElse Not other.Equals(pair.Value) Then
                     Return False
                 End If
             Next
@@ -3364,7 +3758,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub Prepare(body As BoundBlock)
             _body = body
             _initializerPass = IsInitializerOnly(body)
-            If IsConstructor(_method) AndAlso Not _initializerPass AndAlso _method.DeclaringCompilation IsNot Nothing Then
+            If IsConstructor(_method) AndAlso Not _initializerPass AndAlso Not _bodyProof AndAlso _method.DeclaringCompilation IsNot Nothing Then
                 Dim stored = Facts.GetOrCreateValue(_method.DeclaringCompilation)
                 SyncLock stored
                     stored.InProgress.Add(_method)
@@ -3390,7 +3784,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 NoteNormalExit(If(_body Is Nothing, Nothing, _body.Syntax), ExitSense.Any, hasReturn, If(hasReturn, FunctionReturnState(Capture()), FlowNullability.NotNull))
             End If
 
-            If IsConstructor(_method) Then
+            If _summaryOnly Then
+                PublishBodyProof()
+            End If
+
+            If IsConstructor(_method) AndAlso Not _bodyProof Then
                 CheckConstructorExits()
                 PublishSummary()
             End If
@@ -3406,7 +3804,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return
             End If
 
-            _normalExits.Add(New NormalExit With {.Snapshot = Capture(), .Syntax = syntax, .Sense = sense, .HasReturn = hasReturn, .ReturnState = returnState})
+            Dim preserved = If(_hasReturnPreserved, If(_returnPreserved, New HashSet(Of Symbol)()), PreservedFunctionValue())
+            _normalExits.Add(New NormalExit With {
+                .Snapshot = Capture(),
+                .Syntax = syntax,
+                .Sense = sense,
+                .HasReturn = hasReturn,
+                .ReturnState = returnState,
+                .Preserved = preserved,
+                .Unwritten = UnwrittenParameters()
+            })
         End Sub
 
         Private Function ReturnSense(expr As BoundExpression) As ExitSense
@@ -4069,6 +4476,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return
             End If
 
+            If HasContract(_method.FlowAnalysisAnnotations, FlowAnalysisAnnotations.DoesNotReturn) Then
+                For Each wayOut In _normalExits
+                    Report(ERRID.WRN_ShouldNotReturn, If(wayOut.Syntax, If(_body Is Nothing, Nothing, _body.Syntax)))
+                Next
+            End If
+
             For Each wayOut In _normalExits
                 For Each parameter In _method.Parameters
                     If parameter.IsMe OrElse Not IsTrackedReference(parameter) Then
@@ -4123,9 +4536,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Continue For
                 End If
 
-                If SnapshotState(wayOut.Snapshot, input) = FlowNullability.NotNull Then
-                    Report(ERRID.WRN_ParameterNotNullIfNotNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, input.Name)
+                If Not OriginalObligates(wayOut, input) OrElse OutputPreserves(wayOut, parameter, input) Then
+                    Continue For
                 End If
+
+                Report(ERRID.WRN_ParameterNotNullIfNotNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, input.Name)
             Next
         End Sub
 
@@ -4139,9 +4554,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Continue For
                 End If
 
-                If SnapshotState(wayOut.Snapshot, input) = FlowNullability.NotNull Then
-                    Report(ERRID.WRN_ReturnNotNullIfNotNull, If(wayOut.Syntax, _body.Syntax), input.Name)
+                If Not OriginalObligates(wayOut, input) OrElse (wayOut.Preserved IsNot Nothing AndAlso wayOut.Preserved.Contains(input)) Then
+                    Continue For
                 End If
+
+                Report(ERRID.WRN_ReturnNotNullIfNotNull, If(wayOut.Syntax, _body.Syntax), input.Name)
             Next
         End Sub
 

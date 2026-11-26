@@ -312,7 +312,8 @@ Public Class Api
 End Class
 ")
 
-            compilation.VerifyDiagnostics()
+            compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_ShouldNotReturn, "End Sub").WithLocation(53, 5))
         End Sub
 
         <Fact>
@@ -375,6 +376,7 @@ End Class
 
             compilation.VerifyDiagnostics(
                 Diagnostic(ERRID.WRN_ParameterDisallowsNull, "End Sub").WithArguments("value").WithLocation(52, 5),
+                Diagnostic(ERRID.WRN_ShouldNotReturn, "End Sub").WithLocation(56, 5),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "value").WithArguments("value").WithLocation(64, 26),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "value").WithArguments("value").WithLocation(66, 29))
         End Sub

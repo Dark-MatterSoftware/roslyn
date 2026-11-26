@@ -121,6 +121,7 @@ Public Class Api
 End Class
 ")
             Assert.False(compilation.GetDiagnostics().Any(Function(d) d.Code = ERRID.WRN_ParameterDisallowsNull))
+            Assert.Equal(2, compilation.GetDiagnostics().Count(Function(d) CInt(d.Code) = 42532))
         End Sub
 
         <Fact>

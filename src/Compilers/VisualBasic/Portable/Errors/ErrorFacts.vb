@@ -1653,7 +1653,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.WRN_ParameterConditionallyDisallowsNull,
                      ERRID.WRN_ReturnNotNullIfNotNull,
                      ERRID.WRN_ParameterNotNullIfNotNull,
-                     ERRID.WRN_BadNullableParameterName
+                     ERRID.WRN_BadNullableParameterName,
+                     ERRID.WRN_ShouldNotReturn
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

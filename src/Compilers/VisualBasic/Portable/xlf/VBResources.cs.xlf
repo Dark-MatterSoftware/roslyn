@@ -1496,6 +1496,16 @@
         <target state="new">This function may return Nothing.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn">
+        <source>Method marked with 'DoesNotReturn' should not return.</source>
+        <target state="new">Method marked with 'DoesNotReturn' should not return.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn_Title">
+        <source>Method marked with 'DoesNotReturn' should not return.</source>
+        <target state="new">Method marked with 'DoesNotReturn' should not return.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WRN_UnconsumedEnumeratorCancellationAttributeUsage">
         <source>'EnumeratorCancellation' on parameter '{0}' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.</source>
         <target state="new">'EnumeratorCancellation' on parameter '{0}' has no effect. It applies only to a 'CancellationToken' parameter of an 'Async Iterator' function that returns 'IAsyncEnumerable(Of T)'.</target>
