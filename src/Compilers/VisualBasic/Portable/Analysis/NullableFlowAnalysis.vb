@@ -49,6 +49,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private ReadOnly _captured As HashSet(Of Symbol)
         Private ReadOnly _visitedLabels As HashSet(Of LabelSymbol)
         Private ReadOnly _reported As HashSet(Of String)
+        Private ReadOnly _writes As Dictionary(Of Symbol, Integer)
+        Private ReadOnly _exceptionStates As List(Of FlowSnapshot)
+        Private _writeClock As Integer
+        Private _isolation As Integer
         Private _needsRewalk As Boolean
 
         Private Sub New(method As MethodSymbol, diagnostics As DiagnosticBag, project As NullableContextOptions)
@@ -60,6 +64,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _captured = New HashSet(Of Symbol)()
             _visitedLabels = New HashSet(Of LabelSymbol)()
             _reported = New HashSet(Of String)()
+            _writes = New Dictionary(Of Symbol, Integer)()
+            _exceptionStates = New List(Of FlowSnapshot)()
         End Sub
 
         Public Shared Sub Analyze(method As MethodSymbol, body As BoundBlock, diagnostics As DiagnosticBag)
@@ -88,6 +94,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 walker.Visit(body)
                 pass += 1
             End While
+
+            If walker._needsRewalk Then
+                ' The backward edges did not converge. Drop non-null facts carried by those
+                ' jumps and visit once more so the widened state is actually diagnosed.
+                walker.WidenJumps()
+                walker._needsRewalk = False
+                walker.BeginPass()
+                walker.Visit(body)
+            End If
         End Sub
 
         Private Sub BeginPass()
@@ -95,6 +110,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _state = New Dictionary(Of Symbol, FlowNullability)()
             _captured.Clear()
             _visitedLabels.Clear()
+            _writes.Clear()
+            _exceptionStates.Clear()
+            _isolation = 0
             For Each parameter In _method.Parameters
                 If Not parameter.IsMe AndAlso IsTrackedReference(parameter) Then
                     _state(parameter) = InitialNullability(parameter)
@@ -235,6 +253,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Nothing
         End Function
 
+        Public Overrides Function VisitBlock(node As BoundBlock) As BoundNode
+            For Each statement In node.Statements
+                If _reachable Then
+                    ObserveException()
+                End If
+
+                Visit(statement)
+            Next
+
+            Return Nothing
+        End Function
+
         Public Overrides Function VisitTryStatement(node As BoundTryStatement) As BoundNode
             If Not _reachable Then
                 Visit(node.TryBlock)
@@ -246,14 +276,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim entry = Capture()
+            _exceptionStates.Add(Unreachable())
+            ObserveException()
             Visit(node.TryBlock)
+            If _reachable Then
+                ObserveException()
+            End If
+
+            Dim exceptional = _exceptionStates(_exceptionStates.Count - 1)
+            _exceptionStates.RemoveAt(_exceptionStates.Count - 1)
             Dim tryEnd = Capture()
             Dim tryExits = If(node.ExitLabelOpt Is Nothing, Unreachable(), JumpSnapshot(node.ExitLabelOpt))
             Dim catchJoin = Unreachable()
+            Dim handlerState = If(exceptional.Reachable, exceptional, entry)
             For Each catchBlock In node.CatchBlocks
-                ' An exception can be raised before or after assignments in the try, so the catch
-                ' cannot keep a non-null state that the try only established on the normal path.
-                SetSnapshot(MergeSnapshots(entry, tryEnd))
+                ' Every reachable state in the try can reach the handler, including a null
+                ' assignment that a later statement overwrites on the normal path.
+                SetSnapshot(CloneSnapshot(handlerState))
                 If catchBlock.LocalOpt IsNot Nothing AndAlso IsTrackedReference(catchBlock.LocalOpt) Then
                     _state(catchBlock.LocalOpt) = FlowNullability.NotNull
                 End If
@@ -272,10 +311,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             If node.FinallyBlockOpt IsNot Nothing Then
-                SetSnapshot(MergeSnapshots(entry, leaving))
+                Dim clock = _writeClock
+                SetSnapshot(MergeSnapshots(handlerState, leaving))
                 Visit(node.FinallyBlockOpt)
-                If leaving.Reachable Then
-                    ' Finally assignments apply to every path that continues after the statement.
+                If leaving.Reachable AndAlso _reachable Then
+                    ApplyFinallyWrites(leaving, clock)
                 Else
                     _reachable = False
                 End If
@@ -457,67 +497,97 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim entry = Capture()
             Dim head = CloneSnapshot(entry)
             Dim exitState = Unreachable()
+            Dim stable = False
             For iteration = 1 To MaxLoopIterations
-                SetSnapshot(CloneSnapshot(head))
-                Dim split = SplitCondition(condition)
-                Dim enter = If(untilCondition, split.WhenFalse, split.WhenTrue)
-                Dim leave = If(untilCondition, split.WhenTrue, split.WhenFalse)
-                exitState = MergeSnapshots(exitState, leave)
-                SetSnapshot(enter)
-                Visit(body)
-                Dim back = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
-                Dim newHead = MergeSnapshots(entry, back)
+                Dim newHead = StepPretested(entry, head, condition, body, continueLabel, untilCondition, exitState)
                 If Same(newHead, head) Then
+                    stable = True
                     Exit For
                 End If
 
-                head = If(iteration = MaxLoopIterations, Widen(newHead), newHead)
+                head = newHead
             Next
+
+            If Not stable Then
+                StepPretested(entry, Widen(head), condition, body, continueLabel, untilCondition, exitState)
+            End If
 
             SetSnapshot(MergeSnapshots(exitState, JumpSnapshot(exitLabel)))
         End Sub
+
+        Private Function StepPretested(entry As FlowSnapshot, head As FlowSnapshot, condition As BoundExpression, body As BoundStatement, continueLabel As LabelSymbol, untilCondition As Boolean, ByRef exitState As FlowSnapshot) As FlowSnapshot
+            SetSnapshot(CloneSnapshot(head))
+            Dim split = SplitCondition(condition)
+            Dim enter = If(untilCondition, split.WhenFalse, split.WhenTrue)
+            Dim leave = If(untilCondition, split.WhenTrue, split.WhenFalse)
+            exitState = MergeSnapshots(exitState, leave)
+            SetSnapshot(enter)
+            Visit(body)
+            Dim back = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
+            Return MergeSnapshots(entry, back)
+        End Function
 
         Private Sub VisitPosttestedLoop(condition As BoundExpression, body As BoundStatement, continueLabel As LabelSymbol, exitLabel As LabelSymbol, untilCondition As Boolean)
             Dim entry = Capture()
             Dim head = CloneSnapshot(entry)
             Dim exitState = Unreachable()
+            Dim stable = False
             For iteration = 1 To MaxLoopIterations
-                SetSnapshot(CloneSnapshot(head))
-                Visit(body)
-                Dim afterBody = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
-                SetSnapshot(afterBody)
-                Dim split = SplitCondition(condition)
-                Dim back = If(untilCondition, split.WhenFalse, split.WhenTrue)
-                Dim leave = If(untilCondition, split.WhenTrue, split.WhenFalse)
-                exitState = MergeSnapshots(exitState, leave)
-                Dim newHead = MergeSnapshots(entry, back)
+                Dim newHead = StepPosttested(entry, head, condition, body, continueLabel, untilCondition, exitState)
                 If Same(newHead, head) Then
+                    stable = True
                     Exit For
                 End If
 
-                head = If(iteration = MaxLoopIterations, Widen(newHead), newHead)
+                head = newHead
             Next
+
+            If Not stable Then
+                StepPosttested(entry, Widen(head), condition, body, continueLabel, untilCondition, exitState)
+            End If
 
             SetSnapshot(MergeSnapshots(exitState, JumpSnapshot(exitLabel)))
         End Sub
 
+        Private Function StepPosttested(entry As FlowSnapshot, head As FlowSnapshot, condition As BoundExpression, body As BoundStatement, continueLabel As LabelSymbol, untilCondition As Boolean, ByRef exitState As FlowSnapshot) As FlowSnapshot
+            SetSnapshot(CloneSnapshot(head))
+            Visit(body)
+            Dim afterBody = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
+            SetSnapshot(afterBody)
+            Dim split = SplitCondition(condition)
+            Dim back = If(untilCondition, split.WhenFalse, split.WhenTrue)
+            Dim leave = If(untilCondition, split.WhenTrue, split.WhenFalse)
+            exitState = MergeSnapshots(exitState, leave)
+            Return MergeSnapshots(entry, back)
+        End Function
+
         Private Sub VisitOpenLoop(body As BoundStatement, continueLabel As LabelSymbol, exitLabel As LabelSymbol)
             Dim entry = Capture()
             Dim head = CloneSnapshot(entry)
+            Dim stable = False
             For iteration = 1 To MaxLoopIterations
-                SetSnapshot(CloneSnapshot(head))
-                Visit(body)
-                Dim back = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
-                Dim newHead = MergeSnapshots(entry, back)
+                Dim newHead = StepOpen(entry, head, body, continueLabel)
                 If Same(newHead, head) Then
+                    stable = True
                     Exit For
                 End If
 
-                head = If(iteration = MaxLoopIterations, Widen(newHead), newHead)
+                head = newHead
             Next
+
+            If Not stable Then
+                StepOpen(entry, Widen(head), body, continueLabel)
+            End If
 
             SetSnapshot(JumpSnapshot(exitLabel))
         End Sub
+
+        Private Function StepOpen(entry As FlowSnapshot, head As FlowSnapshot, body As BoundStatement, continueLabel As LabelSymbol) As FlowSnapshot
+            SetSnapshot(CloneSnapshot(head))
+            Visit(body)
+            Dim back = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
+            Return MergeSnapshots(entry, back)
+        End Function
 
         ''' <summary>
         ''' A For or For Each may execute zero times. The body state is merged with the entry state,
@@ -528,22 +598,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim entry = Capture()
             Dim head = CloneSnapshot(entry)
             Dim exitState = Unreachable()
+            Dim stable = False
             For iteration = 1 To MaxLoopIterations
-                SetSnapshot(CloneSnapshot(head))
-                If control IsNot Nothing Then
-                    _state(control) = elementState
-                End If
-
-                Visit(body)
-                Dim afterBody = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
-                exitState = MergeSnapshots(exitState, afterBody)
-                Dim newHead = MergeSnapshots(entry, afterBody)
+                Dim newHead = StepRepeatable(entry, head, body, continueLabel, control, elementState, exitState)
                 If Same(newHead, head) Then
+                    stable = True
                     Exit For
                 End If
 
-                head = If(iteration = MaxLoopIterations, Widen(newHead), newHead)
+                head = newHead
             Next
+
+            If Not stable Then
+                StepRepeatable(entry, Widen(head), body, continueLabel, control, elementState, exitState)
+            End If
 
             exitState = MergeSnapshots(exitState, entry)
             exitState = MergeSnapshots(exitState, JumpSnapshot(exitLabel))
@@ -555,6 +623,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             SetSnapshot(exitState)
         End Sub
 
+        Private Function StepRepeatable(entry As FlowSnapshot, head As FlowSnapshot, body As BoundStatement, continueLabel As LabelSymbol, control As Symbol, elementState As FlowNullability, ByRef exitState As FlowSnapshot) As FlowSnapshot
+            SetSnapshot(CloneSnapshot(head))
+            If control IsNot Nothing Then
+                _state(control) = elementState
+            End If
+
+            Visit(body)
+            Dim afterBody = MergeSnapshots(Capture(), JumpSnapshot(continueLabel))
+            exitState = MergeSnapshots(exitState, afterBody)
+            Return MergeSnapshots(entry, afterBody)
+        End Function
+
         Private Sub VisitIsolated(body As BoundNode, parameters As ImmutableArray(Of ParameterSymbol))
             If Not _reachable OrElse body Is Nothing Then
                 Return
@@ -562,6 +642,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim saved = Capture()
             NoteCaptured(body)
+            _isolation += 1
             For Each parameter In parameters
                 If IsTrackedReference(parameter) Then
                     _state(parameter) = InitialNullability(parameter)
@@ -570,6 +651,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             AssumeCapturedMayBeNull()
             Visit(body)
+            _isolation -= 1
             SetSnapshot(saved)
         End Sub
 
@@ -673,21 +755,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 If ordinary AndAlso (op = BinaryOperatorKind.And OrElse op = BinaryOperatorKind.Or) Then
-                    ' Both operands run. Facts apply only to the result, not to the right-hand operand.
+                    ' Both operands run. A fact from the left is not reapplied when the right writes that slot.
                     Evaluate(binary.Left)
+                    Dim leftWrites = New Dictionary(Of Symbol, Integer)(_writes)
                     Evaluate(binary.Right)
                     Dim after = Capture()
                     split.WhenTrue = CloneSnapshot(after)
                     split.WhenFalse = CloneSnapshot(after)
                     If op = BinaryOperatorKind.And Then
                         SetSnapshot(split.WhenTrue)
-                        ApplyFacts(binary.Left, True)
-                        ApplyFacts(binary.Right, True)
+                        ApplyFacts(binary.Left, True, leftWrites)
+                        ApplyFacts(binary.Right, True, Nothing)
                         split.WhenTrue = Capture()
                     Else
                         SetSnapshot(split.WhenFalse)
-                        ApplyFacts(binary.Left, False)
-                        ApplyFacts(binary.Right, False)
+                        ApplyFacts(binary.Left, False, leftWrites)
+                        ApplyFacts(binary.Right, False, Nothing)
                         split.WhenFalse = Capture()
                     End If
 
@@ -761,6 +844,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                     Return inner
+                Case BoundKind.UserDefinedConversion
+                    Return EvaluateUserDefinedConversion(DirectCast(expr, BoundUserDefinedConversion))
                 Case BoundKind.TryCast
                     Evaluate(DirectCast(expr, BoundTryCast).Operand)
                     If expr.Type IsNot Nothing AndAlso expr.Type.IsReferenceType Then
@@ -1021,6 +1106,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Else
                     _state(target) = FlowNullability.MaybeNull
                 End If
+
+                NoteWrite(target)
             Next
         End Sub
 
@@ -1040,6 +1127,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each symbol In _captured
                 If IsTrackedReference(symbol) Then
                     _state(symbol) = FlowNullability.MaybeNull
+                    NoteWrite(symbol)
                 End If
             Next
         End Sub
@@ -1061,7 +1149,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             walker.Visit(node)
         End Sub
 
-        Private Sub ApplyFacts(expr As BoundExpression, sense As Boolean)
+        Private Sub ApplyFacts(expr As BoundExpression, sense As Boolean, baseline As Dictionary(Of Symbol, Integer))
             expr = Unwrap(expr)
             If expr Is Nothing Then
                 Return
@@ -1069,7 +1157,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim unary = TryCast(expr, BoundUnaryOperator)
             If unary IsNot Nothing AndAlso IsBuiltInNot(unary) Then
-                ApplyFacts(unary.Operand, Not sense)
+                ApplyFacts(unary.Operand, Not sense, baseline)
                 Return
             End If
 
@@ -1083,8 +1171,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim op = kind And BinaryOperatorKind.OpMask
                 If op = BinaryOperatorKind.And OrElse op = BinaryOperatorKind.AndAlso Then
                     If sense Then
-                        ApplyFacts(binary.Left, True)
-                        ApplyFacts(binary.Right, True)
+                        ApplyFacts(binary.Left, True, baseline)
+                        ApplyFacts(binary.Right, True, baseline)
                     End If
 
                     Return
@@ -1092,8 +1180,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 If op = BinaryOperatorKind.Or OrElse op = BinaryOperatorKind.OrElse Then
                     If Not sense Then
-                        ApplyFacts(binary.Left, False)
-                        ApplyFacts(binary.Right, False)
+                        ApplyFacts(binary.Left, False, baseline)
+                        ApplyFacts(binary.Right, False, baseline)
                     End If
 
                     Return
@@ -1102,7 +1190,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim tested As Symbol = Nothing
                 Dim trueWhenNull = False
                 If TryGetNullTest(binary, tested, trueWhenNull) Then
-                    Learn(tested, If(sense, trueWhenNull, Not trueWhenNull))
+                    LearnIfStable(tested, If(sense, trueWhenNull, Not trueWhenNull), baseline)
                 End If
 
                 Return
@@ -1110,8 +1198,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Dim typeOfNode = TryCast(expr, BoundTypeOf)
             If typeOfNode IsNot Nothing AndAlso sense <> typeOfNode.IsTypeOfIsNotExpression Then
-                Learn(TrackedSymbol(typeOfNode.Operand), isNull:=False)
+                LearnIfStable(TrackedSymbol(typeOfNode.Operand), isNull:=False, baseline)
             End If
+        End Sub
+
+        Private Sub LearnIfStable(symbol As Symbol, isNull As Boolean, baseline As Dictionary(Of Symbol, Integer))
+            If symbol IsNot Nothing AndAlso baseline IsNot Nothing Then
+                Dim thenStamp = 0
+                baseline.TryGetValue(symbol, thenStamp)
+                Dim nowStamp = 0
+                _writes.TryGetValue(symbol, nowStamp)
+                If nowStamp <> thenStamp Then
+                    Return
+                End If
+            End If
+
+            Learn(symbol, isNull)
         End Sub
 
         Private Sub Learn(symbol As Symbol, isNull As Boolean)
@@ -1137,6 +1239,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             _state(target) = effective
+            NoteWrite(target)
         End Sub
 
         Private Function StateOf(symbol As Symbol) As FlowNullability
@@ -1420,6 +1523,82 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return FlowNullability.NotNull
         End Function
+
+        Private Function EvaluateUserDefinedConversion(node As BoundUserDefinedConversion) As FlowNullability
+            Evaluate(node.UnderlyingExpression)
+            Dim method = ConversionOperator(node.UnderlyingExpression)
+            If method Is Nothing Then
+                Return FlowNullability.Unknown
+            End If
+
+            If method.ReturnType IsNot Nothing AndAlso Not method.ReturnType.IsReferenceType Then
+                Return FlowNullability.NotNull
+            End If
+
+            ' The operator's declared return contract, not the null state of its input.
+            Return CallResult(method)
+        End Function
+
+        Private Shared Function ConversionOperator(expr As BoundExpression) As MethodSymbol
+            Dim current = expr
+            While current IsNot Nothing
+                Select Case current.Kind
+                    Case BoundKind.Call
+                        Return DirectCast(current, BoundCall).Method
+                    Case BoundKind.Parenthesized
+                        current = DirectCast(current, BoundParenthesized).Expression
+                    Case BoundKind.Conversion, BoundKind.DirectCast, BoundKind.TryCast
+                        current = DirectCast(current, BoundConversionOrCast).Operand
+                    Case BoundKind.UserDefinedConversion
+                        current = DirectCast(current, BoundUserDefinedConversion).UnderlyingExpression
+                    Case Else
+                        Return Nothing
+                End Select
+            End While
+
+            Return Nothing
+        End Function
+
+        Private Sub NoteWrite(symbol As Symbol)
+            If symbol Is Nothing OrElse Not IsTrackedReference(symbol) Then
+                Return
+            End If
+
+            _writeClock += 1
+            _writes(symbol) = _writeClock
+            ObserveException()
+        End Sub
+
+        Private Sub ObserveException()
+            If _isolation > 0 OrElse Not _reachable OrElse _exceptionStates.Count = 0 Then
+                Return
+            End If
+
+            Dim current = Capture()
+            For index = 0 To _exceptionStates.Count - 1
+                _exceptionStates(index) = MergeSnapshots(_exceptionStates(index), current)
+            Next
+        End Sub
+
+        Private Sub ApplyFinallyWrites(leaving As FlowSnapshot, clock As Integer)
+            Dim after = Capture()
+            Dim result = CloneSnapshot(leaving)
+            For Each pair In _writes
+                Dim written As FlowNullability
+                If pair.Value > clock AndAlso after.Slots.TryGetValue(pair.Key, written) Then
+                    result.Slots(pair.Key) = written
+                End If
+            Next
+
+            SetSnapshot(result)
+        End Sub
+
+        Private Sub WidenJumps()
+            Dim labels = _jumps.Keys.ToArray()
+            For Each label In labels
+                _jumps(label) = Widen(_jumps(label))
+            Next
+        End Sub
 
         Private Shared Function Widen(snapshot As FlowSnapshot) As FlowSnapshot
             Dim slots = New Dictionary(Of Symbol, FlowNullability)(snapshot.Slots)
