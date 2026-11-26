@@ -5482,6 +5482,43 @@ ContinueCandidatesLoop:
             Return arrayType.ElementType
         End Function
 
+        Private Shared Sub ContributeReducedReceiverAnnotation(parameterType As TypeSymbol, argument As BoundExpression, annotations() As NullableAnnotation, method As MethodSymbol)
+            ContributeNullableAnnotation(parameterType, argument, annotations, method)
+            ContributeReducedArrayAnnotations(parameterType, If(argument Is Nothing, Nothing, ArgumentType(argument)), annotations, method)
+        End Sub
+
+        Private Shared Sub ContributeReducedArrayAnnotations(parameterType As TypeSymbol, argumentType As TypeSymbol, annotations() As NullableAnnotation, method As MethodSymbol)
+            Dim parameterArray = TryCast(parameterType, ArrayTypeSymbol)
+            Dim argumentArray = TryCast(argumentType, ArrayTypeSymbol)
+            If parameterArray Is Nothing OrElse argumentArray Is Nothing Then
+                Return
+            End If
+
+            ContributeTypeParameter(TryCast(parameterArray.ElementType, TypeParameterSymbol), argumentArray.ElementNullableAnnotation, annotations, method)
+            ContributeReducedArrayAnnotations(parameterArray.ElementType, argumentArray.ElementType, annotations, method)
+
+            Dim parameterNamed = TryCast(parameterArray.ElementType, NamedTypeSymbol)
+            Dim argumentNamed = TryCast(argumentArray.ElementType, NamedTypeSymbol)
+            If parameterNamed Is Nothing OrElse argumentNamed Is Nothing OrElse parameterNamed.OriginalDefinition IsNot argumentNamed.OriginalDefinition Then
+                Return
+            End If
+
+            Dim parameterArguments = parameterNamed.TypeArgumentsNoUseSiteDiagnostics
+            Dim argumentArguments = argumentNamed.TypeArgumentsNoUseSiteDiagnostics
+            Dim argumentAnnotations = argumentNamed.GetTypeArgumentNullableAnnotations()
+            For index = 0 To parameterArguments.Length - 1
+                Dim incoming = NullableAnnotation.None
+                If Not argumentAnnotations.IsDefault AndAlso index < argumentAnnotations.Length Then
+                    incoming = argumentAnnotations(index)
+                End If
+
+                ContributeTypeParameter(TryCast(parameterArguments(index), TypeParameterSymbol), incoming, annotations, method)
+                If index < argumentArguments.Length Then
+                    ContributeReducedArrayAnnotations(parameterArguments(index), argumentArguments(index), annotations, method)
+                End If
+            Next
+        End Sub
+
         Private Shared Sub ContributeNullableAnnotation(parameterType As TypeSymbol, argument As BoundExpression, annotations() As NullableAnnotation, method As MethodSymbol)
             If parameterType Is Nothing OrElse argument Is Nothing Then
                 Return
@@ -5560,6 +5597,63 @@ ContinueCandidatesLoop:
 
             Return NullableAnnotation.NotAnnotated
         End Function
+
+        Friend Shared Sub StampReducedExtensionCall(method As MethodSymbol, receiver As BoundExpression, arguments As ImmutableArray(Of BoundExpression))
+            If method Is Nothing OrElse Not method.IsReducedExtensionMethod OrElse method.ReducedFrom Is Nothing Then
+                Return
+            End If
+
+            Dim reduced = method
+            If reduced.OriginalDefinition IsNot reduced Then
+                reduced = reduced.OriginalDefinition
+            End If
+
+            If reduced Is Nothing OrElse Not reduced.IsReducedExtensionMethod OrElse reduced.ReducedFrom Is Nothing Then
+                Return
+            End If
+
+            Dim source = reduced.ReducedFrom.OriginalDefinition
+            If source Is Nothing OrElse source.Arity = 0 OrElse source.ParameterCount = 0 Then
+                Return
+            End If
+
+            Dim annotations(source.Arity - 1) As NullableAnnotation
+            ContributeReducedReceiverAnnotation(source.Parameters(0).Type, receiver, annotations, source)
+            If Not arguments.IsDefault Then
+                For index = 0 To arguments.Length - 1
+                    Dim parameterIndex = index + 1
+                    If parameterIndex >= source.ParameterCount Then
+                        Exit For
+                    End If
+
+                    Dim argument = arguments(index)
+                    If argument Is Nothing OrElse argument.Kind = BoundKind.OmittedArgument Then
+                        Continue For
+                    End If
+
+                    ContributeReducedReceiverAnnotation(source.Parameters(parameterIndex).Type, argument, annotations, source)
+                Next
+            End If
+
+            If method IsNot reduced Then
+                Dim constructed = method.GetTypeArgumentNullableAnnotations()
+                Dim reducedParameters = reduced.TypeParameters
+                For index = 0 To reducedParameters.Length - 1
+                    If constructed.IsDefault OrElse index >= constructed.Length OrElse constructed(index) = NullableAnnotation.None Then
+                        Continue For
+                    End If
+
+                    Dim originalParameter = reducedParameters(index).ReducedFrom
+                    If originalParameter Is Nothing OrElse originalParameter.Ordinal < 0 OrElse originalParameter.Ordinal >= annotations.Length Then
+                        Continue For
+                    End If
+
+                    annotations(originalParameter.Ordinal) = CombineNullableAnnotation(annotations(originalParameter.Ordinal), constructed(index))
+                Next
+            End If
+
+            reduced.SetTypeArgumentNullableAnnotations(ImmutableArray.Create(annotations))
+        End Sub
 
         Private Shared Function AnnotationOfArgument(argument As BoundExpression) As NullableAnnotation
             Dim current = argument

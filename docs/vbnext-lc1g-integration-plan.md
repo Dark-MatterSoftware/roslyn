@@ -1,6 +1,6 @@
 # LC-1G nullable integration plan
 
-Proposed on November 26, 2026. This plan is not an authorization to change the compiler. LC-1G implementation has not started.
+The owner approved this plan on November 26, 2026 and authorized LC-1G.1 only. LC-1G.2 through LC-1G.7 remain unauthorized. LC-1G.1 is implemented and is awaiting owner acceptance. That implementation does not accept the slice and does not complete VB-030.
 
 The owner accepted the LC-1F flow implementation the same day. The acceptance record, the locked flow policies, and the accepted conservative limitations are in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). Slice 10f in [vbnext-phases.md](vbnext-phases.md) points here. This plan does not reopen LC-1F and does not reconcile LC-4.
 
@@ -194,6 +194,8 @@ Dependencies: none. This slice blocks the others.
 Escalation: a need to change `Equals` for all symbols, to change overload ranking, or to add a public API. A missing warning in the accepted flow fixtures.
 
 Acceptance: reduced, retargeted, and constructed symbols preserve the annotation flow already warns about. The accepted LC-1F.6d extension and handler tests still pass. IL for the representative methods matches Visual Basic 17.13.
+
+LC-1G.1 implementation, awaiting owner acceptance: a reduced extension method stores an original-arity annotation array. Type parameters fixed by the receiver stay at their original ordinals and are not free parameters of the reduced method. Remaining free parameters stay on the reduced method, and a later construction merges those annotations back by `ReducedFrom`. The call stamps the array from the receiver and the ordinary arguments. The accepted flow derivation remains. Retargeting copies constructed type-argument annotations, array element annotations, and a tuple facade when a new underlying type is created. Retargeted methods, parameters, fields, properties, and type-parameter constraint annotations forward the underlying values. Events still have no annotation field, and event type binding does not capture declaration annotations, so there is nothing stored to retarget. Long-tuple `Rest` and tuple metadata emission stay LC-1G.2. Constructed and substituted symbols already kept distinct annotations; equality and hashing were not changed, and no annotation cache collision was reproduced. A declared non-null return, including `As <NotNull> T` and a class-constrained `T`, is not replaced by a nullable receiver. Public `IMethodSymbol.TypeArgumentNullableAnnotations` still returns `None`. Existing public return and parameter getters follow the friend getters, so a reduced or retargeted symbol can now report an annotation those getters previously returned as `None`. No public signature was added.
 
 Exclusions: public API exposure, metadata byte changes, IDE, EnC, and every accepted flow limitation.
 

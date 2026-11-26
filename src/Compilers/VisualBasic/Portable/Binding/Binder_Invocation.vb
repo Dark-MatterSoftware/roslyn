@@ -1111,6 +1111,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' We are calling an extension method, prepare the receiver to be 
                     ' passed as the first parameter.
                     receiver = UpdateReceiverForExtensionMethodOrPropertyGroup(receiver, method.ReceiverType, reducedFrom.Parameters(0), diagnostics)
+                    OverloadResolution.StampReducedExtensionCall(method, receiver, boundArguments)
+                    returnType = method.ReturnType
 
                 End If
 

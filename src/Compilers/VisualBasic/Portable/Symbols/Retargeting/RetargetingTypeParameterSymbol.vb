@@ -80,6 +80,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
+        Friend Overrides Function GetReferenceTypeConstraintNullableAnnotation() As NullableAnnotation
+            Return _underlyingTypeParameter.GetReferenceTypeConstraintNullableAnnotation()
+        End Function
+
+        Friend Overrides Function GetConstraintNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Return _underlyingTypeParameter.GetConstraintNullableAnnotations()
+        End Function
+
         Friend Overrides ReadOnly Property HasUnmanagedTypeConstraint As Boolean
             Get
                 Return _underlyingTypeParameter.HasUnmanagedTypeConstraint

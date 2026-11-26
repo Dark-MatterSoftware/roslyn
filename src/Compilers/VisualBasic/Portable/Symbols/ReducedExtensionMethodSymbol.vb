@@ -25,6 +25,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _proximity As Integer
         Private ReadOnly _curryTypeSubstitution As TypeSubstitution
         Private ReadOnly _curriedTypeParameters As ImmutableArray(Of ReducedTypeParameterSymbol)
+        Private _originalTypeArgumentAnnotations As ImmutableArray(Of NullableAnnotation)
         Private _lazyReturnType As TypeSymbol
         Private _lazyParameters As ImmutableArray(Of ReducedParameterSymbol)
 
@@ -213,6 +214,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _receiverType = receiverType
             _fixedTypeParameters = fixedTypeParameters
             _proximity = proximity
+            If curriedFromMethod.Arity = 0 Then
+                _originalTypeArgumentAnnotations = ImmutableArray(Of NullableAnnotation).Empty
+            Else
+                Dim blanks(curriedFromMethod.Arity - 1) As NullableAnnotation
+                _originalTypeArgumentAnnotations = blanks.AsImmutableOrNull()
+            End If
 
             If _curriedFromMethod.Arity = 0 Then
                 _curryTypeSubstitution = Nothing
@@ -272,6 +279,107 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return _fixedTypeParameters
             End Get
         End Property
+
+        Friend Overrides Sub SetTypeArgumentNullableAnnotations(annotations As ImmutableArray(Of NullableAnnotation))
+            If annotations.IsDefault OrElse annotations.Length <> _curriedFromMethod.Arity Then
+                Return
+            End If
+
+            _originalTypeArgumentAnnotations = annotations
+            _lazyReturnType = Nothing
+            _lazyParameters = Nothing
+        End Sub
+
+        Friend Overrides Function GetTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Return _originalTypeArgumentAnnotations
+        End Function
+
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            Dim declared = _curriedFromMethod.GetReturnNullableAnnotation()
+            ' A declared non-null return, including Class-constrained T and a NotNull contract,
+            ' stays non-null. Receiver inference fills only an absent declaration annotation.
+            If declared = NullableAnnotation.NotAnnotated OrElse
+               (_curriedFromMethod.ReturnTypeFlowAnalysisAnnotations And FlowAnalysisAnnotations.NotNull) = FlowAnalysisAnnotations.NotNull Then
+                Return declared
+            End If
+
+            Dim carried = AnnotationOfMethodType(_curriedFromMethod.ReturnType)
+            If carried = NullableAnnotation.None Then
+                Return declared
+            End If
+
+            Return carried
+        End Function
+
+        Private Function AnnotationOfMethodType(type As TypeSymbol) As NullableAnnotation
+            Dim typeParameter = TryCast(type, TypeParameterSymbol)
+            If typeParameter Is Nothing Then
+                Return NullableAnnotation.None
+            End If
+
+            Dim original = If(typeParameter.ReducedFrom, typeParameter)
+            Dim owner = TryCast(original.ContainingSymbol, MethodSymbol)
+            If owner Is Nothing OrElse owner.OriginalDefinition IsNot _curriedFromMethod.OriginalDefinition Then
+                Return NullableAnnotation.None
+            End If
+
+            If original.Ordinal < 0 OrElse original.Ordinal >= _originalTypeArgumentAnnotations.Length Then
+                Return NullableAnnotation.None
+            End If
+
+            Return _originalTypeArgumentAnnotations(original.Ordinal)
+        End Function
+
+        Private Sub ApplyStoredAnnotations(original As TypeSymbol, substituted As TypeSymbol)
+            If substituted Is Nothing OrElse substituted.IsDefinition Then
+                Return
+            End If
+
+            If original Is Nothing Then
+                original = substituted
+            End If
+
+            Dim originalNamed = TryCast(original, NamedTypeSymbol)
+            Dim named = TryCast(substituted, NamedTypeSymbol)
+            If originalNamed IsNot Nothing AndAlso named IsNot Nothing AndAlso named.Arity > 0 AndAlso Not named.IsDefinition AndAlso originalNamed.Arity = named.Arity Then
+                Dim originalArguments = originalNamed.TypeArgumentsNoUseSiteDiagnostics
+                Dim arguments = named.TypeArgumentsNoUseSiteDiagnostics
+                Dim current = named.GetTypeArgumentNullableAnnotations()
+                Dim updated(arguments.Length - 1) As NullableAnnotation
+                Dim changed = False
+                For index = 0 To arguments.Length - 1
+                    Dim sourceArgument = If(index < originalArguments.Length, originalArguments(index), arguments(index))
+                    Dim carried = AnnotationOfMethodType(sourceArgument)
+                    Dim existing = NullableAnnotation.None
+                    If Not current.IsDefault AndAlso index < current.Length Then
+                        existing = current(index)
+                    End If
+
+                    updated(index) = If(carried <> NullableAnnotation.None, carried, existing)
+                    If updated(index) <> existing Then
+                        changed = True
+                    End If
+
+                    Dim substitutedArgument = If(index < arguments.Length, arguments(index), Nothing)
+                    ApplyStoredAnnotations(sourceArgument, substitutedArgument)
+                Next
+
+                If changed Then
+                    named.SetTypeArgumentNullableAnnotations(updated.AsImmutableOrNull())
+                End If
+            End If
+
+            Dim originalArray = TryCast(original, ArrayTypeSymbol)
+            Dim arrayType = TryCast(substituted, ArrayTypeSymbol)
+            If originalArray IsNot Nothing AndAlso arrayType IsNot Nothing Then
+                Dim carried = AnnotationOfMethodType(originalArray.ElementType)
+                If carried <> NullableAnnotation.None AndAlso arrayType.ElementNullableAnnotation <> carried Then
+                    arrayType.SetElementNullableAnnotation(carried)
+                End If
+
+                ApplyStoredAnnotations(originalArray.ElementType, arrayType.ElementType)
+            End If
+        End Sub
 
         Public Overrides Function GetTypeInferredDuringReduction(reducedFromTypeParameter As TypeParameterSymbol) As TypeSymbol
             If reducedFromTypeParameter Is Nothing Then
@@ -389,12 +497,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property ReturnType As TypeSymbol
             Get
                 If _lazyReturnType Is Nothing Then
-                    Dim type As TypeSymbol = _curriedFromMethod.ReturnType
+                    Dim originalType As TypeSymbol = _curriedFromMethod.ReturnType
+                    Dim type = originalType
 
                     If _curryTypeSubstitution IsNot Nothing Then
                         type = type.InternalSubstituteTypeParameters(_curryTypeSubstitution).Type
                     End If
 
+                    ApplyStoredAnnotations(originalType, type)
                     Interlocked.CompareExchange(_lazyReturnType, type, Nothing)
                 End If
 
@@ -854,16 +964,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End Get
             End Property
 
+            Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+                Dim declared = m_CurriedFromParameter.GetDeclaredNullableAnnotation()
+                If declared <> NullableAnnotation.None Then
+                    Return declared
+                End If
+
+                Return _curriedMethod.AnnotationOfMethodType(m_CurriedFromParameter.Type)
+            End Function
+
             Public Overrides ReadOnly Property Type As TypeSymbol
                 Get
                     If _lazyType Is Nothing Then
 
-                        Dim paramType As TypeSymbol = m_CurriedFromParameter.Type
+                        Dim originalType As TypeSymbol = m_CurriedFromParameter.Type
+                        Dim paramType = originalType
 
                         If _curriedMethod._curryTypeSubstitution IsNot Nothing Then
                             paramType = paramType.InternalSubstituteTypeParameters(_curriedMethod._curryTypeSubstitution).Type
                         End If
 
+                        _curriedMethod.ApplyStoredAnnotations(originalType, paramType)
                         Interlocked.CompareExchange(_lazyType, paramType, Nothing)
                     End If
 

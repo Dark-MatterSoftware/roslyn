@@ -152,7 +152,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
                     Dim newUnderlyingType = Retarget(type.TupleUnderlyingType, options)
 
                     If newUnderlyingType.IsTupleOrCompatibleWithTupleOfCardinality(type.TupleElementTypes.Length) Then
-                        Return DirectCast(type, TupleTypeSymbol).WithUnderlyingType(newUnderlyingType)
+                        Dim created = DirectCast(type, TupleTypeSymbol).WithUnderlyingType(newUnderlyingType)
+                        If created IsNot type Then
+                            NullableAnnotationSubstitution.Preserve(type, created)
+                        End If
+
+                        Return created
                     Else
                         Return newUnderlyingType
                     End If
@@ -490,6 +495,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
                     Dim substitution As TypeSubstitution = TypeSubstitution.Create(newDefinition, newParameters.ToImmutableAndFree(), newArguments.ToImmutable())
 
                     constructedType = newDefinition.Construct(substitution)
+                    If constructedType IsNot type Then
+                        NullableAnnotationSubstitution.Preserve(type, constructedType)
+                    End If
                 End If
 
                 newArguments.Free()
@@ -594,10 +602,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
                 End If
 
                 If type.IsSZArray Then
-                    Return ArrayTypeSymbol.CreateSZArray(newElement, newModifiers, RetargetingAssembly)
+                    Dim created = ArrayTypeSymbol.CreateSZArray(newElement, newModifiers, RetargetingAssembly)
+                    created.SetElementNullableAnnotation(type.ElementNullableAnnotation)
+                    Return created
                 End If
 
-                Return ArrayTypeSymbol.CreateMDArray(newElement, newModifiers, type.Rank, type.Sizes, type.LowerBounds, RetargetingAssembly)
+                Dim createdArray = ArrayTypeSymbol.CreateMDArray(newElement, newModifiers, type.Rank, type.Sizes, type.LowerBounds, RetargetingAssembly)
+                createdArray.SetElementNullableAnnotation(type.ElementNullableAnnotation)
+                Return createdArray
             End Function
 
             Friend Function RetargetModifiers(oldModifiers As ImmutableArray(Of CustomModifier), ByRef modifiersHaveChanged As Boolean) As ImmutableArray(Of CustomModifier)

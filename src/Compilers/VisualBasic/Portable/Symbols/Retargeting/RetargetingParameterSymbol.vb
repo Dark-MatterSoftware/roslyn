@@ -75,6 +75,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
+        Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+            Return _underlyingParameter.GetDeclaredNullableAnnotation()
+        End Function
+
         Public Overrides ReadOnly Property CustomModifiers As ImmutableArray(Of CustomModifier)
             Get
                 Return CustomModifiersTuple.TypeCustomModifiers
