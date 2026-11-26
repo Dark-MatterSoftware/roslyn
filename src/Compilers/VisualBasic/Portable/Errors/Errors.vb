@@ -2125,6 +2125,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_MemberContractNotSatisfied = 42518
         WRN_MemberContractNotSatisfiedWhen = 42519
         WRN_BadNullableMemberName = 42520
+        WRN_NullabilityMismatchInReturnTypeOnOverride = 42521
+        WRN_NullabilityMismatchInParameterTypeOnOverride = 42522
+        WRN_NullabilityMismatchInReturnTypeOnImplementation = 42523
+        WRN_NullabilityMismatchInParameterTypeOnImplementation = 42524
+        WRN_DoesNotReturnMismatch = 42525
+        WRN_NullableSetterAnnotationMismatch = 42526
+        WRN_ParameterDisallowsNull = 42527
+        WRN_ParameterConditionallyDisallowsNull = 42528
+        WRN_ReturnNotNullIfNotNull = 42529
+        WRN_ParameterNotNullIfNotNull = 42530
+        WRN_BadNullableParameterName = 42531
         WRN_UndecoratedCancellationTokenParameter = 42514
         WRN_UnconsumedEnumeratorCancellationAttributeUsage = 42515
         WRN_UnreadRecordParameter = 42516

@@ -206,6 +206,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Friend Snapshot As FlowSnapshot
             Friend Syntax As SyntaxNode
             Friend Sense As ExitSense
+            Friend HasReturn As Boolean
+            Friend ReturnState As FlowNullability
         End Structure
 
         Private Enum ExitSense
@@ -577,9 +579,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 sense = ReturnSense(node.ExpressionOpt)
+                NoteNormalExit(node.Syntax, sense, hasReturn:=True, returnState:=result)
+            Else
+                NoteNormalExit(node.Syntax, sense)
             End If
-
-            NoteNormalExit(node.Syntax, sense)
             _reachable = False
             Return Nothing
         End Function
@@ -597,7 +600,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Function VisitExitStatement(node As BoundExitStatement) As BoundNode
             If _reachable Then
                 If IsMethodExit(node) Then
-                    NoteNormalExit(node.Syntax, ExitSense.Any)
+                    Dim hasReturn = _method IsNot Nothing AndAlso _method.MethodKind = MethodKind.Ordinary AndAlso _method.ReturnType IsNot Nothing AndAlso _method.ReturnType.SpecialType <> SpecialType.System_Void
+                    NoteNormalExit(node.Syntax, ExitSense.Any, hasReturn, If(hasReturn, FunctionReturnState(Capture()), FlowNullability.NotNull))
                 End If
 
                 AddJump(node.Label, Capture())
@@ -1522,7 +1526,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 SetSnapshot(overlaid)
             Next
 
-            If method IsNot Nothing AndAlso HasContract(method.FlowAnalysisAnnotations, FlowAnalysisAnnotations.DoesNotReturn) Then
+            If method IsNot Nothing AndAlso Not SameMethod(method, _method) AndAlso HasContract(method.FlowAnalysisAnnotations, FlowAnalysisAnnotations.DoesNotReturn) Then
                 effect.Result = FlowNullability.NotNull
                 effect.WhenTrue = Unreachable()
                 effect.WhenFalse = Unreachable()
@@ -1552,6 +1556,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Dim annotations = EffectiveAnnotations(record.Parameter, booleanReturn)
+                If SameMethod(method, _method) AndAlso HasConditionalOutput(annotations) Then
+                    Continue For
+                End If
+
                 ApplyOutput(whenTrue, appliedTrue, record, annotations, sense:=True)
                 ApplyOutput(whenFalse, appliedFalse, record, annotations, sense:=False)
                 If appliedTrue.ContainsKey(record.Slot) OrElse appliedFalse.ContainsKey(record.Slot) Then
@@ -1572,6 +1580,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             effect.WhenTrue = whenTrue
             effect.WhenFalse = whenFalse
             effect.Result = CallResult(method, dependentNotNull)
+            If SameMethod(method, _method) AndAlso method.ReturnType IsNot Nothing AndAlso method.ReturnType.IsReferenceType Then
+                effect.Result = FlowNullability.MaybeNull
+            End If
             SetSnapshot(MergeSnapshots(whenTrue, whenFalse))
             Return effect
         End Function
@@ -2307,6 +2318,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         wayOut.Snapshot.Members(pair.Key) = written
                     End If
                 Next
+
+                If wayOut.Snapshot.Slots IsNot Nothing Then
+                    For Each pair In _writes
+                        Dim written As FlowNullability
+                        If pair.Value > clock AndAlso after.Slots.TryGetValue(pair.Key, written) Then
+                            wayOut.Snapshot.Slots(pair.Key) = written
+                        End If
+                    Next
+                End If
             Next
         End Sub
 
@@ -3366,7 +3386,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             If _reachable Then
-                NoteNormalExit(If(_body Is Nothing, Nothing, _body.Syntax), ExitSense.Any)
+                Dim hasReturn = _method IsNot Nothing AndAlso _method.ReturnType IsNot Nothing AndAlso _method.ReturnType.IsReferenceType AndAlso _method.ReturnType.SpecialType <> SpecialType.System_Void
+                NoteNormalExit(If(_body Is Nothing, Nothing, _body.Syntax), ExitSense.Any, hasReturn, If(hasReturn, FunctionReturnState(Capture()), FlowNullability.NotNull))
             End If
 
             If IsConstructor(_method) Then
@@ -3375,15 +3396,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             CheckMemberContracts()
+            CheckValuePostconditions()
             ValidateMemberNames()
+            ValidateParameterContractNames()
         End Sub
 
-        Private Sub NoteNormalExit(syntax As SyntaxNode, sense As ExitSense)
+        Private Sub NoteNormalExit(syntax As SyntaxNode, sense As ExitSense, Optional hasReturn As Boolean = False, Optional returnState As FlowNullability = FlowNullability.Unknown)
             If Not _reachable Then
                 Return
             End If
 
-            _normalExits.Add(New NormalExit With {.Snapshot = Capture(), .Syntax = syntax, .Sense = sense})
+            _normalExits.Add(New NormalExit With {.Snapshot = Capture(), .Syntax = syntax, .Sense = sense, .HasReturn = hasReturn, .ReturnState = returnState})
         End Sub
 
         Private Function ReturnSense(expr As BoundExpression) As ExitSense
@@ -4040,6 +4063,163 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Next
             Next
         End Sub
+
+        Private Sub CheckValuePostconditions()
+            If _summaryOnly OrElse _initializerPass OrElse _method Is Nothing Then
+                Return
+            End If
+
+            For Each wayOut In _normalExits
+                For Each parameter In _method.Parameters
+                    If parameter.IsMe OrElse Not IsTrackedReference(parameter) Then
+                        Continue For
+                    End If
+
+                    Dim state = SnapshotState(wayOut.Snapshot, parameter)
+                    If HasContract(parameter.FlowAnalysisAnnotations, FlowAnalysisAnnotations.NotNull) AndAlso state <> FlowNullability.NotNull Then
+                        Report(ERRID.WRN_ParameterDisallowsNull, If(wayOut.Syntax, _body.Syntax), parameter.Name)
+                    End If
+
+                    If parameter.IsByRef Then
+                        ReportConditionalParameter(parameter, wayOut, state)
+                    End If
+
+                    ReportParameterRelation(parameter, wayOut, state)
+                Next
+
+                ReportReturnRelation(wayOut)
+            Next
+        End Sub
+
+        Private Sub ReportConditionalParameter(parameter As ParameterSymbol, wayOut As NormalExit, state As FlowNullability)
+            Dim annotations = parameter.FlowAnalysisAnnotations
+            Dim trueRequired = wayOut.Sense = ExitSense.WhenTrue OrElse wayOut.Sense = ExitSense.UnknownBoolean
+            Dim falseRequired = wayOut.Sense = ExitSense.WhenFalse OrElse wayOut.Sense = ExitSense.UnknownBoolean
+            Dim declaredNotNull = AnnotationOf(parameter) = NullableAnnotation.NotAnnotated
+            If trueRequired AndAlso HasContract(annotations, FlowAnalysisAnnotations.NotNullWhenTrue) AndAlso state <> FlowNullability.NotNull Then
+                Report(ERRID.WRN_ParameterConditionallyDisallowsNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, "True")
+            End If
+
+            If falseRequired AndAlso HasContract(annotations, FlowAnalysisAnnotations.NotNullWhenFalse) AndAlso state <> FlowNullability.NotNull Then
+                Report(ERRID.WRN_ParameterConditionallyDisallowsNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, "False")
+            End If
+
+            If trueRequired AndAlso HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenFalse) AndAlso declaredNotNull AndAlso state <> FlowNullability.NotNull Then
+                Report(ERRID.WRN_ParameterConditionallyDisallowsNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, "True")
+            End If
+
+            If falseRequired AndAlso HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenTrue) AndAlso declaredNotNull AndAlso state <> FlowNullability.NotNull Then
+                Report(ERRID.WRN_ParameterConditionallyDisallowsNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, "False")
+            End If
+        End Sub
+
+        Private Sub ReportParameterRelation(parameter As ParameterSymbol, wayOut As NormalExit, state As FlowNullability)
+            If parameter.NotNullIfParameterNotNull.IsEmpty OrElse state = FlowNullability.NotNull Then
+                Return
+            End If
+
+            For Each input In _method.Parameters
+                If input.IsMe OrElse Not NamesMatch(parameter.NotNullIfParameterNotNull, input.Name) Then
+                    Continue For
+                End If
+
+                If SnapshotState(wayOut.Snapshot, input) = FlowNullability.NotNull Then
+                    Report(ERRID.WRN_ParameterNotNullIfNotNull, If(wayOut.Syntax, _body.Syntax), parameter.Name, input.Name)
+                End If
+            Next
+        End Sub
+
+        Private Sub ReportReturnRelation(wayOut As NormalExit)
+            If Not wayOut.HasReturn OrElse wayOut.ReturnState = FlowNullability.NotNull OrElse _method.ReturnNotNullIfParameterNotNull.IsEmpty Then
+                Return
+            End If
+
+            For Each input In _method.Parameters
+                If input.IsMe OrElse Not NamesMatch(_method.ReturnNotNullIfParameterNotNull, input.Name) Then
+                    Continue For
+                End If
+
+                If SnapshotState(wayOut.Snapshot, input) = FlowNullability.NotNull Then
+                    Report(ERRID.WRN_ReturnNotNullIfNotNull, If(wayOut.Syntax, _body.Syntax), input.Name)
+                End If
+            Next
+        End Sub
+
+        Private Sub ValidateParameterContractNames()
+            If _summaryOnly OrElse _initializerPass OrElse _method Is Nothing OrElse _method.IsImplicitlyDeclared Then
+                Return
+            End If
+
+            Dim names = _method.ReturnNotNullIfParameterNotNull
+            If Not names.IsEmpty Then
+                ReportUnknownParameterNames(names, If(_body Is Nothing, Nothing, _body.Syntax))
+            End If
+
+            For Each parameter In _method.Parameters
+                If Not parameter.NotNullIfParameterNotNull.IsEmpty Then
+                    ReportUnknownParameterNames(parameter.NotNullIfParameterNotNull, If(_body Is Nothing, Nothing, _body.Syntax))
+                End If
+            Next
+        End Sub
+
+        Private Sub ReportUnknownParameterNames(names As ImmutableHashSet(Of String), syntax As SyntaxNode)
+            For Each name In names
+                Dim found = False
+                For Each parameter In _method.Parameters
+                    If Not parameter.IsMe AndAlso String.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase) Then
+                        found = True
+                        Exit For
+                    End If
+                Next
+
+                If Not found Then
+                    Report(ERRID.WRN_BadNullableParameterName, syntax, name)
+                End If
+            Next
+        End Sub
+
+        Private Shared Function NamesMatch(names As ImmutableHashSet(Of String), parameterName As String) As Boolean
+            If names.IsEmpty OrElse parameterName Is Nothing Then
+                Return False
+            End If
+
+            For Each name In names
+                If String.Equals(name, parameterName, StringComparison.OrdinalIgnoreCase) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        Private Shared Function SnapshotState(snapshot As FlowSnapshot, symbol As Symbol) As FlowNullability
+            Dim state As FlowNullability
+            If snapshot IsNot Nothing AndAlso snapshot.Slots IsNot Nothing AndAlso snapshot.Slots.TryGetValue(symbol, state) Then
+                Return state
+            End If
+
+            Return FlowNullability.MaybeNull
+        End Function
+
+        Private Function FunctionReturnState(snapshot As FlowSnapshot) As FlowNullability
+            If snapshot IsNot Nothing AndAlso snapshot.Slots IsNot Nothing Then
+                For Each pair In snapshot.Slots
+                    Dim local = TryCast(pair.Key, LocalSymbol)
+                    If local IsNot Nothing AndAlso local.IsFunctionValue Then
+                        Return pair.Value
+                    End If
+                Next
+            End If
+
+            Return FlowNullability.MaybeNull
+        End Function
+
+        Private Shared Function HasConditionalOutput(annotations As FlowAnalysisAnnotations) As Boolean
+            Return HasContract(annotations, FlowAnalysisAnnotations.NotNullWhenTrue) OrElse
+                HasContract(annotations, FlowAnalysisAnnotations.NotNullWhenFalse) OrElse
+                HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenTrue) OrElse
+                HasContract(annotations, FlowAnalysisAnnotations.MaybeNullWhenFalse)
+        End Function
 
         Private Sub CheckMemberContracts()
             If _summaryOnly OrElse _initializerPass Then

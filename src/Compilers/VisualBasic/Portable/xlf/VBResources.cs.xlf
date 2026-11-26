@@ -1246,6 +1246,116 @@
         <target state="new">'{0}' is not an accessible field or property for this member contract.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInReturnTypeOnOverride">
+        <source>'{0}' returns a weaker nullable contract than the member it overrides.</source>
+        <target state="new">'{0}' returns a weaker nullable contract than the member it overrides.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInReturnTypeOnOverride_Title">
+        <source>'{0}' returns a weaker nullable contract than the member it overrides.</source>
+        <target state="new">'{0}' returns a weaker nullable contract than the member it overrides.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInParameterTypeOnOverride">
+        <source>Parameter '{0}' does not match the nullable contract of the overridden parameter.</source>
+        <target state="new">Parameter '{0}' does not match the nullable contract of the overridden parameter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInParameterTypeOnOverride_Title">
+        <source>Parameter '{0}' does not match the nullable contract of the overridden parameter.</source>
+        <target state="new">Parameter '{0}' does not match the nullable contract of the overridden parameter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInReturnTypeOnImplementation">
+        <source>'{0}' returns a weaker nullable contract than the interface member it implements.</source>
+        <target state="new">'{0}' returns a weaker nullable contract than the interface member it implements.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInReturnTypeOnImplementation_Title">
+        <source>'{0}' returns a weaker nullable contract than the interface member it implements.</source>
+        <target state="new">'{0}' returns a weaker nullable contract than the interface member it implements.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInParameterTypeOnImplementation">
+        <source>Parameter '{0}' does not match the nullable contract of the implemented parameter.</source>
+        <target state="new">Parameter '{0}' does not match the nullable contract of the implemented parameter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullabilityMismatchInParameterTypeOnImplementation_Title">
+        <source>Parameter '{0}' does not match the nullable contract of the implemented parameter.</source>
+        <target state="new">Parameter '{0}' does not match the nullable contract of the implemented parameter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_DoesNotReturnMismatch">
+        <source>'{0}' does not promise to never return, unlike the member it overrides or implements.</source>
+        <target state="new">'{0}' does not promise to never return, unlike the member it overrides or implements.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_DoesNotReturnMismatch_Title">
+        <source>'{0}' does not promise to never return, unlike the member it overrides or implements.</source>
+        <target state="new">'{0}' does not promise to never return, unlike the member it overrides or implements.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullableSetterAnnotationMismatch">
+        <source>Setter parameter '{0}' has a different nullable annotation from property '{1}'.</source>
+        <target state="new">Setter parameter '{0}' has a different nullable annotation from property '{1}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_NullableSetterAnnotationMismatch_Title">
+        <source>Setter parameter '{0}' has a different nullable annotation from property '{1}'.</source>
+        <target state="new">Setter parameter '{0}' has a different nullable annotation from property '{1}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterDisallowsNull">
+        <source>Parameter '{0}' must be non-null when this method returns.</source>
+        <target state="new">Parameter '{0}' must be non-null when this method returns.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterDisallowsNull_Title">
+        <source>Parameter '{0}' must be non-null when this method returns.</source>
+        <target state="new">Parameter '{0}' must be non-null when this method returns.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull">
+        <source>Parameter '{0}' must be non-null when this method returns {1}.</source>
+        <target state="new">Parameter '{0}' must be non-null when this method returns {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull_Title">
+        <source>Parameter '{0}' must be non-null when this method returns {1}.</source>
+        <target state="new">Parameter '{0}' must be non-null when this method returns {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ReturnNotNullIfNotNull">
+        <source>The result must be non-null when parameter '{0}' is non-null.</source>
+        <target state="new">The result must be non-null when parameter '{0}' is non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ReturnNotNullIfNotNull_Title">
+        <source>The result must be non-null when parameter '{0}' is non-null.</source>
+        <target state="new">The result must be non-null when parameter '{0}' is non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterNotNullIfNotNull">
+        <source>Parameter '{0}' must be non-null when parameter '{1}' is non-null.</source>
+        <target state="new">Parameter '{0}' must be non-null when parameter '{1}' is non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterNotNullIfNotNull_Title">
+        <source>Parameter '{0}' must be non-null when parameter '{1}' is non-null.</source>
+        <target state="new">Parameter '{0}' must be non-null when parameter '{1}' is non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_BadNullableParameterName">
+        <source>'{0}' is not a parameter of this method.</source>
+        <target state="new">'{0}' is not a parameter of this method.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_BadNullableParameterName_Title">
+        <source>'{0}' is not a parameter of this method.</source>
+        <target state="new">'{0}' is not a parameter of this method.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WRN_CallerArgumentExpressionAttributeHasInvalidParameterName">
         <source>The CallerArgumentExpressionAttribute applied to parameter '{0}' will have no effect. It is applied with an invalid parameter name.</source>
         <target state="translated">Atribut CallerArgumentExpressionAttribute použitý u parametru {0} nebude mít žádný účinek. Argument je použitý s neplatným názvem parametru.</target>

@@ -186,6 +186,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     CheckShadowing(container, member, diagnostics)
                 End If
             Next
+
+            ' Nullable contract mismatches are diagnostics over an already accepted
+            ' override or Implements relationship. They do not change binding.
+            For Each member In container.GetMembers()
+                Dim method = TryCast(member, MethodSymbol)
+                If method IsNot Nothing Then
+                    NullableContractCompatibility.CheckMethod(method, diagnostics)
+                End If
+
+                Dim propertyMember = TryCast(member, PropertySymbol)
+                If propertyMember IsNot Nothing Then
+                    NullableContractCompatibility.CheckProperty(propertyMember, diagnostics)
+                End If
+            Next
         End Sub
 
         ''' <summary>

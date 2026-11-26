@@ -1642,7 +1642,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      ERRID.WRN_UninitializedNonNullableMember,
                      ERRID.WRN_MemberContractNotSatisfied,
                      ERRID.WRN_MemberContractNotSatisfiedWhen,
-                     ERRID.WRN_BadNullableMemberName
+                     ERRID.WRN_BadNullableMemberName,
+                     ERRID.WRN_NullabilityMismatchInReturnTypeOnOverride,
+                     ERRID.WRN_NullabilityMismatchInParameterTypeOnOverride,
+                     ERRID.WRN_NullabilityMismatchInReturnTypeOnImplementation,
+                     ERRID.WRN_NullabilityMismatchInParameterTypeOnImplementation,
+                     ERRID.WRN_DoesNotReturnMismatch,
+                     ERRID.WRN_NullableSetterAnnotationMismatch,
+                     ERRID.WRN_ParameterDisallowsNull,
+                     ERRID.WRN_ParameterConditionallyDisallowsNull,
+                     ERRID.WRN_ReturnNotNullIfNotNull,
+                     ERRID.WRN_ParameterNotNullIfNotNull,
+                     ERRID.WRN_BadNullableParameterName
                     Return False
                 Case Else
                     ' NOTE: All error codes must be explicitly handled in the below select case statement

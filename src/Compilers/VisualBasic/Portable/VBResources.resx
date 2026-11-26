@@ -5742,6 +5742,72 @@
   <data name="WRN_BadNullableMemberName_Title" xml:space="preserve">
     <value>'{0}' is not an accessible field or property for this member contract.</value>
   </data>
+  <data name="WRN_NullabilityMismatchInReturnTypeOnOverride" xml:space="preserve">
+    <value>'{0}' returns a weaker nullable contract than the member it overrides.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInReturnTypeOnOverride_Title" xml:space="preserve">
+    <value>'{0}' returns a weaker nullable contract than the member it overrides.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInParameterTypeOnOverride" xml:space="preserve">
+    <value>Parameter '{0}' does not match the nullable contract of the overridden parameter.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInParameterTypeOnOverride_Title" xml:space="preserve">
+    <value>Parameter '{0}' does not match the nullable contract of the overridden parameter.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInReturnTypeOnImplementation" xml:space="preserve">
+    <value>'{0}' returns a weaker nullable contract than the interface member it implements.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInReturnTypeOnImplementation_Title" xml:space="preserve">
+    <value>'{0}' returns a weaker nullable contract than the interface member it implements.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInParameterTypeOnImplementation" xml:space="preserve">
+    <value>Parameter '{0}' does not match the nullable contract of the implemented parameter.</value>
+  </data>
+  <data name="WRN_NullabilityMismatchInParameterTypeOnImplementation_Title" xml:space="preserve">
+    <value>Parameter '{0}' does not match the nullable contract of the implemented parameter.</value>
+  </data>
+  <data name="WRN_DoesNotReturnMismatch" xml:space="preserve">
+    <value>'{0}' does not promise to never return, unlike the member it overrides or implements.</value>
+  </data>
+  <data name="WRN_DoesNotReturnMismatch_Title" xml:space="preserve">
+    <value>'{0}' does not promise to never return, unlike the member it overrides or implements.</value>
+  </data>
+  <data name="WRN_NullableSetterAnnotationMismatch" xml:space="preserve">
+    <value>Setter parameter '{0}' has a different nullable annotation from property '{1}'.</value>
+  </data>
+  <data name="WRN_NullableSetterAnnotationMismatch_Title" xml:space="preserve">
+    <value>Setter parameter '{0}' has a different nullable annotation from property '{1}'.</value>
+  </data>
+  <data name="WRN_ParameterDisallowsNull" xml:space="preserve">
+    <value>Parameter '{0}' must be non-null when this method returns.</value>
+  </data>
+  <data name="WRN_ParameterDisallowsNull_Title" xml:space="preserve">
+    <value>Parameter '{0}' must be non-null when this method returns.</value>
+  </data>
+  <data name="WRN_ParameterConditionallyDisallowsNull" xml:space="preserve">
+    <value>Parameter '{0}' must be non-null when this method returns {1}.</value>
+  </data>
+  <data name="WRN_ParameterConditionallyDisallowsNull_Title" xml:space="preserve">
+    <value>Parameter '{0}' must be non-null when this method returns {1}.</value>
+  </data>
+  <data name="WRN_ReturnNotNullIfNotNull" xml:space="preserve">
+    <value>The result must be non-null when parameter '{0}' is non-null.</value>
+  </data>
+  <data name="WRN_ReturnNotNullIfNotNull_Title" xml:space="preserve">
+    <value>The result must be non-null when parameter '{0}' is non-null.</value>
+  </data>
+  <data name="WRN_ParameterNotNullIfNotNull" xml:space="preserve">
+    <value>Parameter '{0}' must be non-null when parameter '{1}' is non-null.</value>
+  </data>
+  <data name="WRN_ParameterNotNullIfNotNull_Title" xml:space="preserve">
+    <value>Parameter '{0}' must be non-null when parameter '{1}' is non-null.</value>
+  </data>
+  <data name="WRN_BadNullableParameterName" xml:space="preserve">
+    <value>'{0}' is not a parameter of this method.</value>
+  </data>
+  <data name="WRN_BadNullableParameterName_Title" xml:space="preserve">
+    <value>'{0}' is not a parameter of this method.</value>
+  </data>
   <data name="WRN_ConvertingLock_Title" xml:space="preserve">
     <value>A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in SyncLock statement.</value>
   </data>

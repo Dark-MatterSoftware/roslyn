@@ -285,6 +285,7 @@ End Class
 ")
 
             compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_BadNullableParameterName, "Public Function Unknown(<NotNullIfNotNull(""missing"")> value As String?) As String?" & vbCrLf & "        Return value" & vbCrLf & "    End Function").WithArguments("missing").WithLocation(59, 5),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "fromMaybe").WithArguments("fromMaybe").WithLocation(67, 23),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "fromUnknown").WithArguments("fromUnknown").WithLocation(71, 29))
         End Sub
@@ -373,6 +374,7 @@ End Class
 ")
 
             compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_ParameterDisallowsNull, "End Sub").WithArguments("value").WithLocation(52, 5),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "value").WithArguments("value").WithLocation(64, 26),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "value").WithArguments("value").WithLocation(66, 29))
         End Sub
@@ -392,6 +394,7 @@ End Class
 ")
 
             compilation.VerifyDiagnostics(
+                Diagnostic(ERRID.WRN_ParameterDisallowsNull, "End Sub").WithArguments("first").WithLocation(52, 5),
                 Diagnostic(ERRID.WRN_PossibleNullReference, "value").WithArguments("value").WithLocation(56, 22))
         End Sub
 
