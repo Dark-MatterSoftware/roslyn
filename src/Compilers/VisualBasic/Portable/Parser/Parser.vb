@@ -3518,9 +3518,19 @@ checkNullable:
                 allowEmptyGenericArguments:=allowEmptyGenericArguments,
                 allowedEmptyGenericArguments:=allowedEmptyGenericArguments)
 
-            If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
+            result = ParseArrayTypes(result, allowedEmptyGenericArguments)
 
-                Dim elementType = result
+            Return result
+        End Function
+
+        ' Array ranks stay on one ArrayType when they are adjacent. A ? after a rank group
+        ' annotates that array reference and starts a new array level for a following rank:
+        ' String?() annotates the element, String()? annotates the array, and String()?()
+        ' annotates the inner array. The suffix is vbnext syntax. ?. and ?= are left alone.
+        Private Function ParseArrayTypes(elementType As TypeSyntax, allowedEmptyGenericArguments As Boolean) As TypeSyntax
+            Dim result = elementType
+
+            Do While CurrentToken.Kind = SyntaxKind.OpenParenToken
                 Dim rankSpecifiers As CoreInternalSyntax.SyntaxList(Of ArrayRankSpecifierSyntax) = ParseArrayRankSpecifiers()
 
                 If allowedEmptyGenericArguments Then
@@ -3533,10 +3543,29 @@ checkNullable:
                     rankSpecifiers = New CoreInternalSyntax.SyntaxList(Of ArrayRankSpecifierSyntax)(ReportSyntaxError(rankSpecifiers.Node, ERRID.ERR_ArrayOfRawGenericInvalid))
                 End If
 
-                result = SyntaxFactory.ArrayType(elementType, rankSpecifiers)
-            End If
+                result = SyntaxFactory.ArrayType(result, rankSpecifiers)
+
+                If CanTakeNullableArraySuffix() Then
+                    Dim questionMark = DirectCast(CurrentToken, PunctuationSyntax)
+                    GetNextToken()
+                    result = SyntaxFactory.NullableType(result, questionMark)
+                End If
+            Loop
 
             Return result
+        End Function
+
+        Private Function CanTakeNullableArraySuffix() As Boolean
+            If _scanner.Options.LanguageVersion < LanguageVersion.VbNext OrElse _evaluatingConditionCompilationExpression Then
+                Return False
+            End If
+
+            If CurrentToken.Kind <> SyntaxKind.QuestionToken Then
+                Return False
+            End If
+
+            Dim nextKind = PeekToken(1).Kind
+            Return nextKind <> SyntaxKind.DotToken AndAlso nextKind <> SyntaxKind.EqualsToken
         End Function
 
         ' [in] the start token of the statement or expression containing the generic arguments
@@ -5445,7 +5474,7 @@ checkNullable:
                             End If
 
                             If CurrentToken.Kind = SyntaxKind.OpenParenToken Then
-                                type = SyntaxFactory.ArrayType(type, ParseArrayRankSpecifiers())
+                                type = ParseArrayTypes(type, allowedEmptyGenericArguments:=False)
                             End If
 
                             importsClause = SyntaxFactory.TypeAliasImportsClause(SyntaxFactory.ImportAliasClause(aliasIdentifier, equalsToken), type)

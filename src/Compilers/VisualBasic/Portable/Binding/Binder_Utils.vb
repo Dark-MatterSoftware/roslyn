@@ -544,8 +544,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                 ElseIf Not baseType.IsValueType Then
-                    ' Trying to make a nullable reference type.
-                    ReportDiagnostic(diagBag, modifiedIdentifier, ERRID.ERR_BadTypeArgForStructConstraintNull, baseType)
+                    If AllowsReferenceAnnotation(decoderContext) AndAlso
+                       ReferenceAnnotationsEnabled(modifiedIdentifier) AndAlso
+                       IsExplicitNullableAnnotationTarget(baseType) Then
+                        ' Dim value? As String, or Dim value?() As String. The ? annotates the declared
+                        ' type. Array ranks applied below wrap that type, so they stay on the element.
+                        _identifierDeclaresNullable = True
+                    Else
+                        ' Trying to make a nullable reference type.
+                        ReportDiagnostic(diagBag, modifiedIdentifier, ERRID.ERR_BadTypeArgForStructConstraintNull, baseType)
+                    End If
                 Else
                     baseType = CreateNullableOf(baseType,
                                                 modifiedIdentifier,
@@ -578,6 +586,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private _captureNullableAnnotations As Boolean
         Private _capturedNullableAnnotation As NullableAnnotation
+        Private _identifierDeclaresNullable As Boolean
 
         Private Function ReferenceAnnotationsEnabled(node As SyntaxNode) As Boolean
             Return (NullableContextAt(node) And NullableContextOptions.Annotations) <> 0
@@ -598,9 +607,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             ' A class-constrained type parameter is a reference annotation. A structure-constrained
-            ' or unconstrained type parameter stays on the Nullable(Of T) path.
+            ' or unconstrained type parameter written without ? stays oblivious, so existing
+            ' generic signatures do not gain new flow warnings.
             If type.TypeKind = TypeKind.TypeParameter Then
                 Return type.IsReferenceType
+            End If
+
+            Return type.IsReferenceType
+        End Function
+
+        Private Function IsExplicitNullableAnnotationTarget(type As TypeSymbol) As Boolean
+            If type Is Nothing OrElse type.IsErrorType() Then
+                Return False
+            End If
+
+            ' Structure-constrained T? remains Nullable(Of T). Class-constrained T? and
+            ' unconstrained T? are nullable annotations on T. Reference types, including
+            ' arrays, take the same explicit-? path.
+            If type.TypeKind = TypeKind.TypeParameter Then
+                Return Not type.IsValueType
             End If
 
             Return type.IsReferenceType
@@ -675,7 +700,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Private Shared Function AllowsReferenceAnnotation(decoderContext As ModifiedIdentifierTypeDecoderContext) As Boolean
-            Return (decoderContext And (ModifiedIdentifierTypeDecoderContext.LocalType Or ModifiedIdentifierTypeDecoderContext.ParameterType)) <> 0
+            Return (decoderContext And (ModifiedIdentifierTypeDecoderContext.LocalType Or
+                                        ModifiedIdentifierTypeDecoderContext.ParameterType Or
+                                        ModifiedIdentifierTypeDecoderContext.FieldType)) <> 0
         End Function
 
         ''' <summary>
@@ -739,11 +766,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                      getRequireTypeDiagnosticInfoFunc As Func(Of DiagnosticInfo),
                                                      diagBag As BindingDiagnosticBag,
                                                      decoderContext As ModifiedIdentifierTypeDecoderContext,
-                                                     ByRef nullableAnnotation As NullableAnnotation
+                                                     ByRef nullableAnnotation As NullableAnnotation,
+                                                     Optional typeDiagnostics As BindingDiagnosticBag = Nothing
         ) As TypeSymbol
 
             Dim asClauseType As TypeSymbol = Nothing
-            Return DecodeModifiedIdentifierType(modifiedIdentifier, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, asClauseType, diagBag, decoderContext, nullableAnnotation)
+            Return DecodeModifiedIdentifierType(modifiedIdentifier, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, asClauseType, diagBag, decoderContext, nullableAnnotation, typeDiagnostics)
         End Function
 
         Public Function DecodeModifiedIdentifierType(modifiedIdentifier As ModifiedIdentifierSyntax,
@@ -753,25 +781,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                      <Out()> ByRef asClauseType As TypeSymbol,
                                                      diagBag As BindingDiagnosticBag,
                                                      decoderContext As ModifiedIdentifierTypeDecoderContext,
-                                                     ByRef nullableAnnotation As NullableAnnotation
+                                                     ByRef nullableAnnotation As NullableAnnotation,
+                                                     Optional typeDiagnostics As BindingDiagnosticBag = Nothing
         ) As TypeSymbol
 
             nullableAnnotation = NullableAnnotation.None
+            Dim savedIdentifierNullable = _identifierDeclaresNullable
+            _identifierDeclaresNullable = False
+            Dim typeBag = If(typeDiagnostics, diagBag)
 
             If asClauseOpt IsNot Nothing Then
                 Debug.Assert(asClauseOpt.Kind <> SyntaxKind.AsNewClause OrElse
                              DirectCast(asClauseOpt, AsNewClauseSyntax).NewExpression.Kind <> SyntaxKind.AnonymousObjectCreationExpression)
 
                 If AllowsReferenceAnnotation(decoderContext) Then
-                    asClauseType = BindDeclarationType(asClauseOpt.Type, diagBag, nullableAnnotation)
+                    asClauseType = BindDeclarationType(asClauseOpt.Type, typeBag, nullableAnnotation)
                 Else
-                    asClauseType = BindTypeSyntax(asClauseOpt.Type, diagBag)
+                    asClauseType = BindTypeSyntax(asClauseOpt.Type, typeBag)
                 End If
             Else
                 asClauseType = Nothing
             End If
 
             Dim result = DecodeModifiedIdentifierType(modifiedIdentifier, asClauseType, asClauseOpt, initializerSyntaxOpt, getRequireTypeDiagnosticInfoFunc, diagBag, decoderContext)
+            If _identifierDeclaresNullable Then
+                nullableAnnotation = NullableAnnotation.Annotated
+            End If
+
+            _identifierDeclaresNullable = savedIdentifierNullable
 
             ' Dim values() As String?  — the ? annotates the element, and the array itself is not annotated.
             If AllowsReferenceAnnotation(decoderContext) AndAlso

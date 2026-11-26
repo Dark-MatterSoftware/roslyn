@@ -863,9 +863,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                        diagBag As BindingDiagnosticBag,
                                                        suppressUseSiteError As Boolean) As SingleLookupResult
                 Dim elementType As TypeSymbol = binder.BindTypeSyntax(nullableTypeSyntax.ElementType, diagBag, suppressUseSiteError)
-                If binder._captureNullableAnnotations AndAlso binder.IsNullableAnnotationTarget(elementType) Then
-                    ' String? and a class-constrained T? stay the element type and record the annotation.
-                    ' Structure-constrained T? and Integer? still become Nullable(Of T).
+                If binder._captureNullableAnnotations AndAlso binder.IsExplicitNullableAnnotationTarget(elementType) Then
+                    ' String?, a class-constrained T?, and unconstrained T? stay the element type and
+                    ' record the annotation. Structure-constrained T? and Integer? still become Nullable(Of T).
+                    ' A ? around an array annotates that array reference.
                     binder._capturedNullableAnnotation = NullableAnnotation.Annotated
                     Return SingleLookupResult.Good(elementType)
                 End If

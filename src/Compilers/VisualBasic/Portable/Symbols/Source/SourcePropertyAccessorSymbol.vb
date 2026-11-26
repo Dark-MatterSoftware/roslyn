@@ -267,6 +267,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            If MethodKind = MethodKind.PropertyGet Then
+                Return m_property.GetNullableAnnotation()
+            End If
+
+            Return NullableAnnotation.None
+        End Function
+
         Private Function GetReturnType(sourceModule As SourceModuleSymbol,
                                        ByRef errorLocation As SyntaxNodeOrToken,
                                        diagBag As BindingDiagnosticBag) As TypeSymbol

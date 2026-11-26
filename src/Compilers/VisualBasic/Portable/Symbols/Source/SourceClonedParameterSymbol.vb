@@ -45,6 +45,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+            Return _originalParam.GetDeclaredNullableAnnotation()
+        End Function
+
         Friend Overrides ReadOnly Property IsMetadataIn As Boolean
             Get
                 Return _originalParam.IsMetadataIn

@@ -25,19 +25,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         ' Return type. Void for a Sub.
         Private ReadOnly _returnType As TypeSymbol
+        Private ReadOnly _returnNullableAnnotation As NullableAnnotation
 
         Protected Sub New(delegateType As NamedTypeSymbol,
                           syntax As VisualBasicSyntaxNode,
                           binder As Binder,
                           flags As SourceMemberFlags,
-                          returnType As TypeSymbol)
+                          returnType As TypeSymbol,
+                          Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None)
             MyBase.New(delegateType, flags, binder.GetSyntaxReference(syntax), delegateType.Locations)
 
             Debug.Assert(TypeOf syntax Is DelegateStatementSyntax OrElse
                          TypeOf syntax Is EventStatementSyntax)
             Debug.Assert(returnType IsNot Nothing)
             _returnType = returnType
+            _returnNullableAnnotation = returnNullableAnnotation
+            NullableMetadataEncoder.NoteRequired(Me, returnType, returnNullableAnnotation)
         End Sub
+
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            Return _returnNullableAnnotation
+        End Function
 
         Protected Sub InitializeParameters(parameters As ImmutableArray(Of ParameterSymbol))
             Debug.Assert(_parameters.IsDefault)
@@ -76,7 +84,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Debug.Assert(TypeOf syntax Is DelegateStatementSyntax OrElse
                          TypeOf syntax Is EventStatementSyntax)
 
-            Dim returnType As TypeSymbol = BindReturnType(syntax, binder, diagnostics)
+            Dim returnNullableAnnotation As NullableAnnotation
+            Dim returnType As TypeSymbol = BindReturnType(syntax, binder, diagnostics, returnNullableAnnotation)
 
             ' reuse types to avoid reporting duplicate errors if missing:
             Dim voidType = binder.GetSpecialType(SpecialType.System_Void, syntax, diagnostics)
@@ -87,7 +96,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             ' A delegate has the following members: (see CLI spec 13.6)
             ' (1) a method named Invoke with the specified signature
-            Dim invokeMethod = New InvokeMethod(delegateType, returnType, syntax, binder, parameterListOpt, diagnostics)
+            Dim invokeMethod = New InvokeMethod(delegateType, returnType, returnNullableAnnotation, syntax, binder, parameterListOpt, diagnostics)
             invoke = invokeMethod
 
             ' (2) a constructor with argument types (object, System.IntPtr)
@@ -102,11 +111,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 beginInvoke = New BeginInvokeMethod(invokeMethod, iAsyncResultType, objectType, asyncCallbackType, syntax, binder)
 
                 ' and (4) EndInvoke methods
-                endInvoke = New EndInvokeMethod(invokeMethod, iAsyncResultType, syntax, binder)
+                endInvoke = New EndInvokeMethod(invokeMethod, iAsyncResultType, returnNullableAnnotation, syntax, binder)
             End If
         End Sub
 
-        Private Shared Function BindReturnType(syntax As VisualBasicSyntaxNode, binder As Binder, diagnostics As BindingDiagnosticBag) As TypeSymbol
+        Private Shared Function BindReturnType(syntax As VisualBasicSyntaxNode,
+                                               binder As Binder,
+                                               diagnostics As BindingDiagnosticBag,
+                                               ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
+            nullableAnnotation = NullableAnnotation.None
             If syntax.Kind = SyntaxKind.DelegateFunctionStatement Then
                 Dim delegateSyntax = DirectCast(syntax, DelegateStatementSyntax)
 
@@ -119,7 +132,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
 
                 Dim asClause = DirectCast(delegateSyntax.AsClause, SimpleAsClauseSyntax)
-                Return binder.DecodeIdentifierType(delegateSyntax.Identifier, asClause, getErrorInfo, diagnostics)
+                Return binder.DecodeIdentifierType(delegateSyntax.Identifier, asClause, getErrorInfo, diagnostics, nullableAnnotation)
             Else
                 Return binder.GetSpecialType(SpecialType.System_Void, syntax, diagnostics)
             End If
@@ -247,6 +260,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Public Sub New(delegateType As NamedTypeSymbol,
                     returnType As TypeSymbol,
+                    returnNullableAnnotation As NullableAnnotation,
                     syntax As VisualBasicSyntaxNode,
                     binder As Binder,
                     parameterListOpt As ParameterListSyntax,
@@ -257,7 +271,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                            binder,
                            flags:=SourceMemberFlags.MethodKindDelegateInvoke Or SourceMemberFlags.AccessibilityPublic Or SourceMemberFlags.Overridable Or
                                   If(returnType.SpecialType = SpecialType.System_Void, SourceMemberFlags.MethodIsSub, Nothing),
-                           returnType:=returnType)
+                           returnType:=returnType,
+                           returnNullableAnnotation:=returnNullableAnnotation)
 
                 InitializeParameters(binder.DecodeParameterListOfDelegateDeclaration(Me, parameterListOpt, diagnostics))
             End Sub
@@ -322,6 +337,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Public Sub New(invoke As InvokeMethod,
                     iAsyncResultType As TypeSymbol,
+                    returnNullableAnnotation As NullableAnnotation,
                     syntax As VisualBasicSyntaxNode,
                     binder As Binder)
 
@@ -330,7 +346,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                            binder,
                            flags:=SourceMemberFlags.MethodKindOrdinary Or SourceMemberFlags.AccessibilityPublic Or SourceMemberFlags.Overridable Or
                                   If(invoke.ReturnType.SpecialType = SpecialType.System_Void, SourceMemberFlags.MethodIsSub, Nothing),
-                           returnType:=invoke.ReturnType)
+                           returnType:=invoke.ReturnType,
+                           returnNullableAnnotation:=returnNullableAnnotation)
 
                 Dim parameters = ArrayBuilder(Of ParameterSymbol).GetInstance()
 

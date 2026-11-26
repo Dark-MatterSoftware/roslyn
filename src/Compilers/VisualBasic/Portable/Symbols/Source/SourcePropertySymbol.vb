@@ -33,6 +33,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private _staticExtensionType As TypeSymbol
         Private _isRequired As Boolean
         Private _lazyType As TypeSymbol
+        Private _lazyNullableAnnotation As NullableAnnotation
         Private _lazyParameters As ImmutableArray(Of ParameterSymbol)
         Private _getMethod As MethodSymbol
         Private _setMethod As MethodSymbol
@@ -411,18 +412,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides Function GetNullableAnnotation() As NullableAnnotation
+            Dim unused = Me.Type
+            Return _lazyNullableAnnotation
+        End Function
+
         Private Function ComputeType(diagnostics As BindingDiagnosticBag) As TypeSymbol
             Dim binder = BinderBuilder.CreateBinderForType(DirectCast(ContainingModule, SourceModuleSymbol), _syntaxRef.SyntaxTree, _containingType)
             binder = New LocationSpecificBinder(BindingLocation.PropertyType, Me, binder)
 
             If IsWithEvents Then
                 Dim syntax = DirectCast(_syntaxRef.GetSyntax(), ModifiedIdentifierSyntax)
-                Return SourceMemberFieldSymbol.ComputeWithEventsFieldType(
+                Dim nullableAnnotation As NullableAnnotation
+                Dim withEventsType = SourceMemberFieldSymbol.ComputeWithEventsFieldType(
                     Me,
                     syntax,
                     binder,
                     ignoreTypeSyntaxDiagnostics:=(_flags And SourceMemberFlags.FirstFieldDeclarationOfType) = 0,
-                    diagnostics:=diagnostics)
+                    diagnostics:=diagnostics,
+                    nullableAnnotation:=nullableAnnotation)
+                _lazyNullableAnnotation = nullableAnnotation
+                NullableMetadataEncoder.NoteRequired(Me, withEventsType, nullableAnnotation)
+                Return withEventsType
 
             Else
                 Dim syntax = DirectCast(_syntaxRef.GetSyntax(), PropertyStatementSyntax)
@@ -445,7 +456,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     End If
 
                     Dim identifier = syntax.Identifier
-                    Dim type = binder.DecodeIdentifierType(identifier, asClause, getErrorInfo, diagnostics)
+                    Dim nullableAnnotation As NullableAnnotation
+                    Dim type = binder.DecodeIdentifierType(identifier, asClause, getErrorInfo, diagnostics, nullableAnnotation)
+                    _lazyNullableAnnotation = nullableAnnotation
+                    NullableMetadataEncoder.NoteRequired(Me, type, nullableAnnotation)
 
                     Debug.Assert(type IsNot Nothing)
                     If Not type.IsErrorType() Then
@@ -1624,6 +1638,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             If Me.Type.ContainsTupleNames() Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.SynthesizeTupleNamesAttribute(Type))
             End If
+
+            moduleBuilder.AddNullableMetadataAttribute(Me, attributes, Type, GetNullableAnnotation())
 
             If _isRequired Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_RequiredMemberAttribute__ctor))

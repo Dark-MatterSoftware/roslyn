@@ -104,7 +104,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
-            Return _originalDefinition.GetDeclaredNullableAnnotation()
+            Return NullableAnnotationSubstitution.AdjustTopLevel(_originalDefinition.Type, Type, _originalDefinition.GetDeclaredNullableAnnotation())
         End Function
 
         Public Overrides ReadOnly Property IsByRef As Boolean

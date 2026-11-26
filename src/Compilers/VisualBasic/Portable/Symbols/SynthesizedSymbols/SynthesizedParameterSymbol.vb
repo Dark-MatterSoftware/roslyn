@@ -21,6 +21,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Protected ReadOnly _type As TypeSymbol
         Protected ReadOnly _ordinal As Integer
         Protected ReadOnly _name As String
+        Private _nullableAnnotation As NullableAnnotation
+        Private _nullableProperty As PropertySymbol
 
         ''' <summary>
         ''' Initializes a new instance of the <see cref="SynthesizedParameterSymbol" /> class.
@@ -35,6 +37,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Me._ordinal = ordinal
             Me._name = name
         End Sub
+
+        Friend Sub UsePropertyNullableAnnotation(propertySymbol As PropertySymbol)
+            _nullableProperty = propertySymbol
+        End Sub
+
+        Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+            If _nullableProperty IsNot Nothing Then
+                Return _nullableProperty.GetNullableAnnotation()
+            End If
+
+            Return _nullableAnnotation
+        End Function
 
         ''' <summary>
         ''' Gets the containing symbol.
@@ -321,20 +335,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
             End If
 
+            Dim valueParameter As SynthesizedParameterSimpleSymbol
             If valueParameterCustomModifiers.IsEmpty Then
-                Return New SynthesizedParameterSimpleSymbol(setter,
-                                                            valueParameterType,
-                                                            propertySymbol.ParameterCount,
-                                                            parameterName)
+                valueParameter = New SynthesizedParameterSimpleSymbol(setter,
+                                                                      valueParameterType,
+                                                                      propertySymbol.ParameterCount,
+                                                                      parameterName)
+            Else
+                valueParameter = New SynthesizedParameterSymbolWithCustomModifiers(setter,
+                                                                                   valueParameterType,
+                                                                                   propertySymbol.ParameterCount,
+                                                                                   False,
+                                                                                   parameterName,
+                                                                                   valueParameterCustomModifiers,
+                                                                                   ImmutableArray(Of CustomModifier).Empty) ' Never ByRef
             End If
 
-            Return New SynthesizedParameterSymbolWithCustomModifiers(setter,
-                                                                     valueParameterType,
-                                                                     propertySymbol.ParameterCount,
-                                                                     False,
-                                                                     parameterName,
-                                                                     valueParameterCustomModifiers,
-                                                                     ImmutableArray(Of CustomModifier).Empty) ' Never ByRef
+            valueParameter.UsePropertyNullableAnnotation(propertySymbol)
+            Return valueParameter
         End Function
 
         ''' <summary>

@@ -677,6 +677,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
 
             ' Other compilers read a ref field marked IsReadOnly as ref readonly.
+            moduleBuilder.AddNullableMetadataAttribute(Me, attributes, Type, GetNullableAnnotation())
+
             If Me.FieldRefKind = RefKind.RefReadOnly Then
                 AddSynthesizedAttribute(attributes, Me.DeclaringCompilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_IsReadOnlyAttribute__ctor))
             End If

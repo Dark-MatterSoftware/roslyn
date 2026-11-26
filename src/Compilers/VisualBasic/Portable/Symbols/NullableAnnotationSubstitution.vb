@@ -2,6 +2,8 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Immutable
+
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
     ''' <summary>
@@ -28,7 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim originalArray = TryCast(original, ArrayTypeSymbol)
             Dim substitutedArray = TryCast(substituted, ArrayTypeSymbol)
             If originalArray IsNot Nothing AndAlso substitutedArray IsNot Nothing Then
-                substitutedArray.SetElementNullableAnnotation(originalArray.ElementNullableAnnotation)
+                substitutedArray.SetElementNullableAnnotation(AdjustTopLevel(originalArray.ElementType, substitutedArray.ElementType, originalArray.ElementNullableAnnotation))
                 PreserveCore(originalArray.ElementType, substitutedArray.ElementType)
                 Return
             End If
@@ -49,18 +51,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return
             End If
 
-            substitutedNamed.SetTypeArgumentNullableAnnotations(originalNamed.GetTypeArgumentNullableAnnotations())
-
             Dim originalArguments = originalNamed.TypeArgumentsNoUseSiteDiagnostics
             Dim substitutedArguments = substitutedNamed.TypeArgumentsNoUseSiteDiagnostics
-            If originalArguments.Length <> substitutedArguments.Length Then
+            Dim originalAnnotations = originalNamed.GetTypeArgumentNullableAnnotations()
+            If originalArguments.Length <> substitutedArguments.Length OrElse
+               originalAnnotations.IsDefault OrElse
+               originalAnnotations.Length <> substitutedArguments.Length Then
                 Return
             End If
 
-            For i = 0 To originalArguments.Length - 1
+            Dim adjusted(substitutedArguments.Length - 1) As NullableAnnotation
+            For i = 0 To substitutedArguments.Length - 1
+                adjusted(i) = AdjustTopLevel(originalArguments(i), substitutedArguments(i), originalAnnotations(i))
                 PreserveCore(originalArguments(i), substitutedArguments(i))
             Next
+
+            substitutedNamed.SetTypeArgumentNullableAnnotations(adjusted.AsImmutableOrNull())
         End Sub
+
+        Friend Function AdjustTopLevel(originalType As TypeSymbol, substitutedType As TypeSymbol, annotation As NullableAnnotation) As NullableAnnotation
+            ' T? is an annotation on T. Substituting a value type, including Nullable(Of T),
+            ' drops that annotation and does not produce another Nullable(Of T).
+            If originalType IsNot Nothing AndAlso
+               originalType.TypeKind = TypeKind.TypeParameter AndAlso
+               substitutedType IsNot Nothing AndAlso
+               substitutedType.IsValueType Then
+                Return NullableAnnotation.None
+            End If
+
+            Return annotation
+        End Function
 
     End Module
 

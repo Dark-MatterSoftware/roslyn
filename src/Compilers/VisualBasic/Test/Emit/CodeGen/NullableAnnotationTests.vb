@@ -375,10 +375,15 @@ Class Box
 End Class
 ", options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
 
-            compilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_BadTypeArgForStructConstraintNull, "F").WithArguments("String").WithLocation(3, 12),
-                Diagnostic(ERRID.ERR_BadTypeArgForStructConstraintNull, "value").WithArguments("T").WithLocation(4, 30),
-                Diagnostic(ERRID.ERR_BadTypeArgForStructConstraintNull, "T?").WithArguments("T").WithLocation(4, 46))
+            compilation.VerifyDiagnostics()
+            Dim box = compilation.GetTypeByMetadataName("Box")
+            Dim field = DirectCast(box.GetMembers("F").Single(), IFieldSymbol)
+            Dim id = DirectCast(box.GetMembers("Id").Single(), IMethodSymbol)
+            Assert.Equal(SpecialType.System_String, field.Type.SpecialType)
+            Assert.Equal(NullableAnnotation.Annotated, field.NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, id.Parameters(0).NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, id.ReturnNullableAnnotation)
+            Assert.Equal(TypeKind.TypeParameter, id.ReturnType.TypeKind)
         End Sub
 
         <Fact>

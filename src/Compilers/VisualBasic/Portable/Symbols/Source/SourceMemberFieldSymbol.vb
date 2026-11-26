@@ -19,6 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         ' The type of the field. Set to Nothing if not computed yet.
         Private _lazyType As TypeSymbol
+        Private _lazyNullableAnnotation As NullableAnnotation
 
         Private _lazyMeParameter As ParameterSymbol
 
@@ -110,10 +111,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides Function GetNullableAnnotation() As NullableAnnotation
+            Dim unused = Me.Type
+            Return _lazyNullableAnnotation
+        End Function
+
         Private Function ComputeType(diagBag As BindingDiagnosticBag) As TypeSymbol
             Dim declaredType = GetDeclaredType(diagBag)  ' needed for diagnostic creation in all cases
 
             If Not HasDeclaredType Then
+                _lazyNullableAnnotation = NullableAnnotation.None
                 Return GetInferredType(ConstantFieldsInProgress.Empty)
             Else
                 Return declaredType
@@ -132,10 +139,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             binder = New LocationSpecificBinder(BindingLocation.FieldType, Me, binder)
 
             ' Ignore type syntax errors for all but the first field of a given type.
+            Dim nullableAnnotation As NullableAnnotation
             Dim varType = ComputeFieldType(modifiedIdentifier, binder, diagBag,
                                            isConst:=Me.IsConst,
                                            isWithEvents:=False,
-                                           ignoreTypeSyntaxDiagnostics:=(m_memberFlags And SourceMemberFlags.FirstFieldDeclarationOfType) = 0)
+                                           ignoreTypeSyntaxDiagnostics:=(m_memberFlags And SourceMemberFlags.FirstFieldDeclarationOfType) = 0,
+                                           nullableAnnotation:=nullableAnnotation)
+            _lazyNullableAnnotation = nullableAnnotation
+            NullableMetadataEncoder.NoteRequired(Me, varType, nullableAnnotation)
 
             If Not varType.IsErrorType() Then
                 If Me.IsConst Then
@@ -183,20 +194,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                  diagnostics As BindingDiagnosticBag,
                                                  isConst As Boolean,
                                                  isWithEvents As Boolean,
-                                                 ignoreTypeSyntaxDiagnostics As Boolean) As TypeSymbol
+                                                 ignoreTypeSyntaxDiagnostics As Boolean,
+                                                 ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
             Dim declarator = DirectCast(modifiedIdentifierSyntax.Parent, VariableDeclaratorSyntax)
 
             Dim asClauseOpt = declarator.AsClause
-            Dim asClauseType As TypeSymbol = Nothing
             Dim initializerSyntax As VisualBasicSyntaxNode = declarator.Initializer
+            nullableAnnotation = NullableAnnotation.None
 
-            If asClauseOpt IsNot Nothing Then
-                If (asClauseOpt.Kind <> SyntaxKind.AsNewClause OrElse (DirectCast(asClauseOpt, AsNewClauseSyntax).NewExpression.Kind <> SyntaxKind.AnonymousObjectCreationExpression)) Then
-                    asClauseType = binder.BindTypeSyntax(asClauseOpt.Type, If(ignoreTypeSyntaxDiagnostics, BindingDiagnosticBag.Discarded, diagnostics))
-                End If
-                If asClauseOpt.Kind = SyntaxKind.AsNewClause Then
-                    initializerSyntax = asClauseOpt
-                End If
+            If asClauseOpt IsNot Nothing AndAlso asClauseOpt.Kind = SyntaxKind.AsNewClause Then
+                initializerSyntax = asClauseOpt
             End If
 
             Dim omitFurtherDiagnostics As Boolean = String.IsNullOrEmpty(modifiedIdentifierSyntax.Identifier.ValueText)
@@ -222,10 +229,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     End If
                 End If
 
-                varType = binder.DecodeModifiedIdentifierType(modifiedIdentifierSyntax, asClauseType, asClauseOpt, initializerSyntax,
+                Dim typeDiagnostics = If(ignoreTypeSyntaxDiagnostics, BindingDiagnosticBag.Discarded, diagnostics)
+                varType = binder.DecodeModifiedIdentifierType(modifiedIdentifierSyntax, asClauseOpt, initializerSyntax,
                                                                   getErrorInfo,
                                                                   diagnostics,
-                                                                  VisualBasic.Binder.ModifiedIdentifierTypeDecoderContext.FieldType)
+                                                                  VisualBasic.Binder.ModifiedIdentifierTypeDecoderContext.FieldType,
+                                                                  nullableAnnotation,
+                                                                  typeDiagnostics)
             End If
 
             Debug.Assert(varType IsNot Nothing)
@@ -236,9 +246,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                           modifiedIdentifier As ModifiedIdentifierSyntax,
                                                           binder As Binder,
                                                           ignoreTypeSyntaxDiagnostics As Boolean,
-                                                          diagnostics As BindingDiagnosticBag) As TypeSymbol
+                                                          diagnostics As BindingDiagnosticBag,
+                                                          ByRef nullableAnnotation As NullableAnnotation) As TypeSymbol
 
-            Dim varType = ComputeFieldType(modifiedIdentifier, binder, diagnostics, isConst:=False, isWithEvents:=True, ignoreTypeSyntaxDiagnostics:=ignoreTypeSyntaxDiagnostics)
+            Dim varType = ComputeFieldType(modifiedIdentifier, binder, diagnostics, isConst:=False, isWithEvents:=True, ignoreTypeSyntaxDiagnostics:=ignoreTypeSyntaxDiagnostics, nullableAnnotation:=nullableAnnotation)
 
             If Not varType.IsErrorType() Then
                 Dim declarator = DirectCast(modifiedIdentifier.Parent, VariableDeclaratorSyntax)
