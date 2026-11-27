@@ -102,7 +102,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Return Nothing
             End If
 
-            Return ParameterGenerator.GenerateParameterList([property].Parameters, options)
+            Return ParameterGenerator.GenerateParameterList([property].Parameters, options, SignatureCompilationOf([property]))
         End Function
 
         Private Function GenerateAccessorList([property] As IPropertySymbol,
@@ -138,7 +138,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     SyntaxFactory.SetAccessorStatement() _
                           .WithModifiers(GenerateAccessorModifiers([property], accessor, destination, options)) _
                           .WithParameterList(SyntaxFactory.ParameterList(parameters:=SyntaxFactory.SingletonSeparatedList(
-                            SyntaxFactory.Parameter(identifier:=SyntaxFactory.ModifiedIdentifier("value")).WithAsClause(SyntaxFactory.SimpleAsClause(type:=[property].Type.GenerateTypeSyntax()))))),
+                            SyntaxFactory.Parameter(identifier:=SyntaxFactory.ModifiedIdentifier("value")).WithAsClause(SyntaxFactory.SimpleAsClause(type:=[property].Type.GenerateTypeSyntax(compilation:=SignatureCompilationOf([property]))))))),
                     GenerateAccessorStatements(accessor),
                     SyntaxFactory.EndSetStatement())
             End If
@@ -251,7 +251,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Dim attributes = If([property].GetMethod IsNot Nothing,
                                 AttributeGenerator.GenerateAttributeBlocks([property].GetMethod.GetReturnTypeAttributes(), options),
                                 Nothing)
-            Return SyntaxFactory.SimpleAsClause(attributes, [property].Type.GenerateTypeSyntax())
+            Return SyntaxFactory.SimpleAsClause(attributes, [property].Type.GenerateTypeSyntax(compilation:=SignatureCompilationOf([property])))
         End Function
     End Module
 End Namespace

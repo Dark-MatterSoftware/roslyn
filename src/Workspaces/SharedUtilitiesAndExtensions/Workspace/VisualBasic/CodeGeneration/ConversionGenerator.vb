@@ -51,8 +51,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 AttributeGenerator.GenerateAttributeBlocks(method.GetAttributes(), options),
                 SyntaxFactory.TokenList(modifiers),
                 SyntaxFactory.Token(SyntaxKind.CTypeKeyword),
-                ParameterGenerator.GenerateParameterList(method.Parameters, options),
-                SyntaxFactory.SimpleAsClause(method.ReturnType.GenerateTypeSyntax()))
+                ParameterGenerator.GenerateParameterList(method.Parameters, options, SignatureCompilationOf(method)),
+                SyntaxFactory.SimpleAsClause(method.ReturnType.GenerateTypeSyntax(compilation:=SignatureCompilationOf(method))))
 
             Dim hasNoBody = Not options.Context.GenerateMethodBodies OrElse
                             method.IsExtern

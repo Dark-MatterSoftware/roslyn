@@ -146,7 +146,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     attributeLists:=GenerateAttributeBlocks([event].GetAttributes(), options),
                     modifiers:=GenerateModifiers([event], destination, options),
                     identifier:=[event].Name.ToIdentifierToken,
-                    parameterList:=ParameterGenerator.GenerateParameterList(eventType.DelegateInvokeMethod.Parameters.Select(Function(p) RemoveOptionalOrParamArray(p)).ToList(), options),
+                    parameterList:=ParameterGenerator.GenerateParameterList(eventType.DelegateInvokeMethod.Parameters.Select(Function(p) RemoveOptionalOrParamArray(p)).ToList(), options, SignatureCompilationOf(eventType.DelegateInvokeMethod)),
                     asClause:=Nothing,
                     implementsClause:=GenerateImplementsClause([event].ExplicitInterfaceImplementations.FirstOrDefault()))
             End If
@@ -184,7 +184,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
         Private Function GenerateAsClause([event] As IEventSymbol) As SimpleAsClauseSyntax
             ' TODO: Someday support events without as clauses (with parameter lists instead)
-            Return SyntaxFactory.SimpleAsClause([event].Type.GenerateTypeSyntax())
+            Return SyntaxFactory.SimpleAsClause([event].Type.GenerateTypeSyntax(compilation:=SignatureCompilationOf([event])))
         End Function
 
         Private Function RemoveOptionalOrParamArray(parameter As IParameterSymbol) As IParameterSymbol

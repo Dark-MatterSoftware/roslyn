@@ -57,6 +57,8 @@ public static partial class VisualBasicCodeRefactoringVerifier<TCodeRefactoring>
         /// </summary>
         public LanguageVersion LanguageVersion { get; set; } = LanguageVersion.VisualBasic16;
 
+        public NullableContextOptions NullableContext { get; set; } = NullableContextOptions.Disable;
+
         /// <inheritdoc cref="SharedVerifierState.Options"/>
         internal OptionsCollection Options => _sharedState.Options;
 
@@ -95,6 +97,12 @@ public static partial class VisualBasicCodeRefactoringVerifier<TCodeRefactoring>
         {
             var parseOptions = (VisualBasicParseOptions)base.CreateParseOptions();
             return parseOptions.WithLanguageVersion(LanguageVersion);
+        }
+
+        protected override CompilationOptions CreateCompilationOptions()
+        {
+            var options = (VisualBasicCompilationOptions)base.CreateCompilationOptions();
+            return options.WithNullableContext(NullableContext);
         }
 
 #if !CODE_STYLE

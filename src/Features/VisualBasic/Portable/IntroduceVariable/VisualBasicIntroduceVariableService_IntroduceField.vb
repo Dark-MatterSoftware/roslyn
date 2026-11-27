@@ -209,7 +209,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.IntroduceVariable
                     SyntaxFactory.SingletonSeparatedList(
                         SyntaxFactory.VariableDeclarator(
                             SyntaxFactory.SingletonSeparatedList(SyntaxFactory.ModifiedIdentifier(newNameToken.WithAdditionalAnnotations(RenameAnnotation.Create()))),
-                            asClause:=SyntaxFactory.SimpleAsClause(GetTypeSymbol(document, expression, cancellationToken).GenerateTypeSyntax()),
+                            asClause:=SyntaxFactory.SimpleAsClause(GetTypeSymbol(document, expression, cancellationToken).GenerateTypeSyntax(compilation:=document.SemanticModel.Compilation)),
                             initializer:=SyntaxFactory.EqualsValue(value:=trimmedExpression)))) _
                     .WithAppendedTrailingTrivia(SyntaxFactory.ElasticMarker) _
                     .WithAdditionalAnnotations(Formatter.Annotation)

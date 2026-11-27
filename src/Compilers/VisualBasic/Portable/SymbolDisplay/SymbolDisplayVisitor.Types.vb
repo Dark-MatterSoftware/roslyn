@@ -8,6 +8,8 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend Class SymbolDisplayVisitor
         Public Overrides Sub VisitArrayType(symbol As IArrayTypeSymbol)
+            CaptureNullableDisplayContext(symbol)
+
             'See spec section 12.1 for the order of rank specifiers
             'e.g. int[][,][,,] is stored as
             '     ArrayType
@@ -17,29 +19,38 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             '             ElementType = ArrayType
             '                 Rank = 3
             '                 ElementType = int
+            '
+            ' A nullable reference between ranks is a barrier: String?() annotates the
+            ' element, String()? annotates the array, and String()?() annotates the inner array.
 
             If Format.CompilerInternalOptions.IncludesOption(SymbolDisplayCompilerInternalOptions.ReverseArrayRankSpecifiers) Then
                 ' Ironically, reverse order is simpler - we just have to recurse on the element type and then add a rank specifier.
                 symbol.ElementType.Accept(Me)
                 AddCustomModifiersIfRequired(symbol.CustomModifiers, trailingSpace:=True)
                 AddArrayRank(symbol)
+                AddNullableReferenceMarker(symbol)
                 Return
             End If
 
-            Dim underlyingNonArrayType As ITypeSymbol = symbol.ElementType
-            While underlyingNonArrayType.Kind = SymbolKind.ArrayType
-                underlyingNonArrayType = DirectCast(underlyingNonArrayType, IArrayTypeSymbol).ElementType
+            Dim layers = 1
+            Dim underlying As ITypeSymbol = symbol.ElementType
+            While underlying.Kind = SymbolKind.ArrayType AndAlso Not ShouldAddNullableReferenceMarker(underlying)
+                underlying = DirectCast(underlying, IArrayTypeSymbol).ElementType
+                layers += 1
             End While
 
-            underlyingNonArrayType.Accept(Me.NotFirstVisitor())
+            underlying.Accept(Me.NotFirstVisitor())
 
             Dim arrayType As IArrayTypeSymbol = symbol
-            While arrayType IsNot Nothing
+            For index = 1 To layers
                 AddCustomModifiersIfRequired(arrayType.CustomModifiers, trailingSpace:=True)
-
                 AddArrayRank(arrayType)
-                arrayType = TryCast(arrayType.ElementType, IArrayTypeSymbol)
-            End While
+                If index < layers Then
+                    arrayType = DirectCast(arrayType.ElementType, IArrayTypeSymbol)
+                End If
+            Next
+
+            AddNullableReferenceMarker(symbol)
         End Sub
 
         Private Sub AddArrayRank(symbol As IArrayTypeSymbol)
@@ -70,23 +81,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitDynamicType(symbol As IDynamicTypeSymbol)
+            CaptureNullableDisplayContext(symbol)
             AddKeyword(SyntaxKind.ObjectKeyword)
+            AddNullableReferenceMarker(symbol)
         End Sub
 
         Public Overrides Sub VisitPointerType(symbol As IPointerTypeSymbol)
+            CaptureNullableDisplayContext(symbol)
             symbol.PointedAtType.Accept(Me.NotFirstVisitor())
             AddPunctuation(SyntaxKind.AsteriskToken)
+            AddNullableReferenceMarker(symbol)
         End Sub
 
         Public Overrides Sub VisitTypeParameter(symbol As ITypeParameterSymbol)
+            CaptureNullableDisplayContext(symbol)
             If IsFirstSymbolVisited Then
                 AddTypeParameterVarianceIfRequired(symbol)
             End If
 
             Builder.Add(CreatePart(SymbolDisplayPartKind.TypeParameterName, symbol, symbol.Name, False))
+            AddNullableReferenceMarker(symbol)
         End Sub
 
         Public Overrides Sub VisitNamedType(symbol As INamedTypeSymbol)
+            CaptureNullableDisplayContext(symbol)
+            VisitNamedTypeWithoutNullability(symbol)
+            AddNullableReferenceMarker(symbol)
+        End Sub
+
+        Private Sub VisitNamedTypeWithoutNullability(symbol As INamedTypeSymbol)
             If Me.IsMinimizing AndAlso TryAddAlias(symbol, Builder) Then
                 Return
             End If

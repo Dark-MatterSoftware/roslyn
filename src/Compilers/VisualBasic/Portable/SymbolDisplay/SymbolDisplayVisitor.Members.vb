@@ -9,6 +9,7 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend Class SymbolDisplayVisitor
         Public Overrides Sub VisitField(symbol As IFieldSymbol)
+            CaptureNullableDisplayContext(symbol)
             ' field symbol must have a containing type
             Debug.Assert(TypeOf symbol.ContainingSymbol Is INamedTypeSymbol)
 
@@ -73,6 +74,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitProperty(symbol As IPropertySymbol)
+            CaptureNullableDisplayContext(symbol)
             AddAccessibilityIfRequired(symbol)
             AddMemberModifiersIfRequired(symbol)
 
@@ -135,6 +137,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitEvent(symbol As IEventSymbol)
+            CaptureNullableDisplayContext(symbol)
             AddAccessibilityIfRequired(symbol)
             AddMemberModifiersIfRequired(symbol)
 
@@ -174,6 +177,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitMethod(symbol As IMethodSymbol)
+            CaptureNullableDisplayContext(symbol)
             If IsDeclareMethod(symbol) Then
                 VisitDeclareMethod(symbol)
                 Return
@@ -554,6 +558,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Sub VisitParameter(symbol As IParameterSymbol)
+            CaptureNullableDisplayContext(symbol)
 
             If Format.ParameterOptions.IncludesOption(SymbolDisplayParameterOptions.IncludeOptionalBrackets) Then
                 If symbol.IsOptional Then

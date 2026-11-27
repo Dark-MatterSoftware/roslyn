@@ -538,7 +538,8 @@ public partial class TestWorkspace<TDocument, TProject, TSolution>
             compilationOptions = ((VisualBasicCompilationOptions)compilationOptions).WithRootNamespace(rootNamespace)
                                                                                     .WithGlobalImports(globalImports)
                                                                                     .WithParseOptions((VisualBasicParseOptions)parseOptions ??
-                                                                                        VisualBasicParseOptions.Default);
+                                                                                        VisualBasicParseOptions.Default)
+                                                                                    .WithNullableContext(nullable);
         }
 
         return compilationOptions;

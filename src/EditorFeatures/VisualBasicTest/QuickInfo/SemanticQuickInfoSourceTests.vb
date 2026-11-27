@@ -119,6 +119,27 @@ End Class", code, position)
             End Using
         End Function
 
+        <Fact>
+        Public Async Function TestNullableReferenceQuickInfoKeepsTheDeclaration() As Task
+            Dim code As String = Nothing
+            Dim position As Integer = Nothing
+            MarkupTestFile.GetPosition("
+Module M
+    Function Read(value As String?) As String?
+        If value IsNot Nothing Then
+            Return val$$ue
+        End If
+        Return Nothing
+    End Function
+End Module", code, position)
+
+            Dim parseOptions = VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.VbNext)
+            Dim compilationOptions = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContext(NullableContextOptions.Enable)
+            Using workspace = EditorTestWorkspace.CreateVisualBasic(code, parseOptions, compilationOptions)
+                Await TestSharedAsync(workspace, position, MainDescription($"({FeaturesResources.parameter}) value As String?"))
+            End Using
+        End Function
+
         <Theory>
         <InlineData("ByRef", "ByRef")>
         <InlineData("ByRef ReadOnly", "ByRef ReadOnly")>

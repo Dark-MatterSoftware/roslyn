@@ -37,6 +37,39 @@ end class
                 ")
         End Function
 
+        <Fact>
+        Public Function TestNullableReferenceSignatureIsPreserved() As Task
+            Dim test = New VerifyVb.Test With {
+                .LanguageVersion = LanguageVersion.VbNext,
+                .NullableContext = NullableContextOptions.Enable,
+                .TestCode = "
+interface IReader
+    function Read(value As String?) As String?
+end interface
+
+class C
+    implements {|BC30149:IReader|}
+
+    $$
+end class
+",
+                .FixedCode = "
+interface IReader
+    function Read(value As String?) As String?
+end interface
+
+class C
+    implements IReader
+
+    Public Function Read(value As String?) As String? Implements IReader.Read
+        Throw New System.NotImplementedException()
+    End Function
+end class
+"
+            }
+            Return test.RunAsync()
+        End Function
+
         <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/78294")>
         Public Function TestNotOnInterfaceInBody() As Task
             Return VerifyVb.VerifyRefactoringAsync("

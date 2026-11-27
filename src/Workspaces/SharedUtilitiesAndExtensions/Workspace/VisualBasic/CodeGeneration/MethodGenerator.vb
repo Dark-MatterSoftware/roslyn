@@ -79,7 +79,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     WithAttributeLists(AttributeGenerator.GenerateAttributeBlocks(method.GetAttributes(), options)).
                     WithModifiers(GenerateModifiers(method, destination, options)).
                     WithTypeParameterList(GenerateTypeParameterList(method)).
-                    WithParameterList(ParameterGenerator.GenerateParameterList(method.Parameters, options)).
+                    WithParameterList(ParameterGenerator.GenerateParameterList(method.Parameters, options, SignatureCompilationOf(method))).
                     WithAsClause(asClauseOpt).
                     WithImplementsClause(implementsClauseOpt).
                     WithHandlesClause(handlesClauseOpt)
@@ -107,7 +107,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             Return SyntaxFactory.SimpleAsClause(
                 AttributeGenerator.GenerateAttributeBlocks(method.GetReturnTypeAttributes(), options),
-                method.ReturnType.GenerateTypeSyntax())
+                method.ReturnType.GenerateTypeSyntax(compilation:=SignatureCompilationOf(method)))
         End Function
 
         Private Shared Function GenerateHandlesClause(expressions As IList(Of SyntaxNode)) As HandlesClauseSyntax

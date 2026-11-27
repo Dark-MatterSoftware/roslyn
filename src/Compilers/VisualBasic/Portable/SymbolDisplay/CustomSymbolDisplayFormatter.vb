@@ -34,7 +34,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                                         SymbolDisplayMemberOptions.IncludeContainingType,
                                                                         kindOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.KindOptions,
                                                                         parameterOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.ParameterOptions,
-                                                                        miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions)
+                                                                        miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions Or
+                                                                                            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier)
 
         Friend Shared ReadOnly ErrorMessageFormatNoModifiersNoReturnType As New SymbolDisplayFormat(
                                                             globalNamespaceStyle:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.GlobalNamespaceStyle,
@@ -47,7 +48,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                             propertyStyle:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.PropertyStyle,
                                                             localOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.LocalOptions,
                                                             kindOptions:=SymbolDisplayKindOptions.None,
-                                                            miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions)
+                                                            miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions Or
+                                                                                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier)
 
         Friend Shared ReadOnly ErrorNameWithKindFormat As New SymbolDisplayFormat(
                                                             globalNamespaceStyle:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.GlobalNamespaceStyle,
@@ -58,7 +60,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                             propertyStyle:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.PropertyStyle,
                                                             localOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.LocalOptions,
                                                             kindOptions:=SymbolDisplayKindOptions.IncludeTypeKeyword Or SymbolDisplayKindOptions.IncludeNamespaceKeyword,
-                                                            miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions)
+                                                            miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions Or
+                                                                                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier)
 
         ' vb error format + complete signature for delegates instead of just the name.
         Friend Shared ReadOnly DelegateSignatureFormat As New SymbolDisplayFormat(
@@ -71,7 +74,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                             localOptions:=SymbolDisplayFormat.VisualBasicShortErrorMessageFormat.LocalOptions,
                                                             kindOptions:=SymbolDisplayKindOptions.IncludeTypeKeyword Or SymbolDisplayKindOptions.IncludeNamespaceKeyword,
                                                             delegateStyle:=SymbolDisplayDelegateStyle.NameAndSignature,
-                                                            miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions)
+                                                            miscellaneousOptions:=SymbolDisplayFormat.VisualBasicErrorMessageFormat.MiscellaneousOptions Or
+                                                                                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier)
 
         ' Like Short format, but includes type arguments 
         Friend Shared ReadOnly ShortWithTypeArgsFormat As New SymbolDisplayFormat(

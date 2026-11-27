@@ -8,6 +8,7 @@ Imports System.Globalization
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Roslyn.Utilities
+Imports Display = Microsoft.CodeAnalysis.VisualBasic.SymbolDisplay
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' <summary>
@@ -651,19 +652,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Function ISymbol_ToDisplayString(Optional format As SymbolDisplayFormat = Nothing) As String Implements ISymbol.ToDisplayString
-            Return PublicType.ToDisplayString(format)
+            Return Display.ToDisplayString(Me, format)
         End Function
 
         Private Function ISymbol_ToDisplayParts(Optional format As SymbolDisplayFormat = Nothing) As ImmutableArray(Of SymbolDisplayPart) Implements ISymbol.ToDisplayParts
-            Return PublicType.ToDisplayParts(format)
+            Return Display.ToDisplayParts(Me, format)
         End Function
 
         Private Function ISymbol_ToMinimalDisplayString(semanticModel As SemanticModel, position As Integer, Optional format As SymbolDisplayFormat = Nothing) As String Implements ISymbol.ToMinimalDisplayString
-            Return PublicType.ToMinimalDisplayString(semanticModel, position, format)
+            Return Display.ToMinimalDisplayString(Me, semanticModel, position, format)
         End Function
 
         Private Function ISymbol_ToMinimalDisplayParts(semanticModel As SemanticModel, position As Integer, Optional format As SymbolDisplayFormat = Nothing) As ImmutableArray(Of SymbolDisplayPart) Implements ISymbol.ToMinimalDisplayParts
-            Return PublicType.ToMinimalDisplayParts(semanticModel, position, format)
+            Return Display.ToMinimalDisplayParts(Me, semanticModel, position, format)
         End Function
 
         Private ReadOnly Property ISymbol_HasUnsupportedMetadata As Boolean Implements ISymbol.HasUnsupportedMetadata
@@ -855,19 +856,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Function ITypeSymbol_ToDisplayString(topLevelNullability As NullableFlowState, Optional format As SymbolDisplayFormat = Nothing) As String Implements ITypeSymbol.ToDisplayString
-            Return PublicType.ToDisplayString(topLevelNullability, format)
+            Return Display.ToDisplayString(Me, format)
         End Function
 
         Private Function ITypeSymbol_ToDisplayParts(topLevelNullability As NullableFlowState, Optional format As SymbolDisplayFormat = Nothing) As ImmutableArray(Of SymbolDisplayPart) Implements ITypeSymbol.ToDisplayParts
-            Return PublicType.ToDisplayParts(topLevelNullability, format)
+            Return Display.ToDisplayParts(Me, format)
         End Function
 
         Private Function ITypeSymbol_ToMinimalDisplayString(semanticModel As SemanticModel, topLevelNullability As NullableFlowState, position As Integer, Optional format As SymbolDisplayFormat = Nothing) As String Implements ITypeSymbol.ToMinimalDisplayString
-            Return PublicType.ToMinimalDisplayString(semanticModel, topLevelNullability, position, format)
+            Return Display.ToMinimalDisplayString(Me, semanticModel, position, format)
         End Function
 
         Private Function ITypeSymbol_ToMinimalDisplayParts(semanticModel As SemanticModel, topLevelNullability As NullableFlowState, position As Integer, Optional format As SymbolDisplayFormat = Nothing) As ImmutableArray(Of SymbolDisplayPart) Implements ITypeSymbol.ToMinimalDisplayParts
-            Return PublicType.ToMinimalDisplayParts(semanticModel, topLevelNullability, position, format)
+            Return Display.ToMinimalDisplayParts(Me, semanticModel, position, format)
         End Function
 
         Private Class NamedTypeProjection

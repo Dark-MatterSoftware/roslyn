@@ -12,16 +12,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
         Inherits SymbolVisitor(Of TypeSyntax)
 
         Private ReadOnly _addGlobal As Boolean
+        Private ReadOnly _compilation As Compilation
 
         Private Shared ReadOnly AddGlobalInstance As TypeSyntaxGeneratorVisitor = New TypeSyntaxGeneratorVisitor(addGlobal:=True)
         Private Shared ReadOnly NotAddGlobalInstance As TypeSyntaxGeneratorVisitor = New TypeSyntaxGeneratorVisitor(addGlobal:=False)
 
-        Private Sub New(addGlobal As Boolean)
+        Private Sub New(addGlobal As Boolean, Optional compilation As Compilation = Nothing)
             Me._addGlobal = addGlobal
+            Me._compilation = compilation
         End Sub
 
-        Public Shared Function Create(addGlobal As Boolean) As TypeSyntaxGeneratorVisitor
-            Return If(addGlobal, AddGlobalInstance, NotAddGlobalInstance)
+        Public Shared Function Create(addGlobal As Boolean, Optional compilation As Compilation = Nothing) As TypeSyntaxGeneratorVisitor
+            If compilation Is Nothing Then
+                Return If(addGlobal, AddGlobalInstance, NotAddGlobalInstance)
+            End If
+
+            Return New TypeSyntaxGeneratorVisitor(addGlobal, compilation)
         End Function
 
         Public Overrides Function DefaultVisit(node As ISymbol) As TypeSyntax
@@ -39,22 +45,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
         End Function
 
         Public Overrides Function VisitArrayType(symbol As IArrayTypeSymbol) As TypeSyntax
-            Dim underlyingNonArrayType = symbol.ElementType
-            While underlyingNonArrayType.Kind = SymbolKind.ArrayType
-                underlyingNonArrayType = (DirectCast(underlyingNonArrayType, IArrayTypeSymbol)).ElementType
+            ' String?() annotates the element. String()? annotates the array.
+            ' String()?() stops at the annotated inner array.
+            Dim layers = 1
+            Dim underlying = symbol.ElementType
+            While underlying.Kind = SymbolKind.ArrayType AndAlso Not ShouldWriteNullableReferenceMarker(underlying)
+                underlying = DirectCast(underlying, IArrayTypeSymbol).ElementType
+                layers += 1
             End While
 
-            Dim elementTypeSyntax = underlyingNonArrayType.Accept(Me)
+            Dim elementTypeSyntax = underlying.Accept(Me)
             Dim ranks = New List(Of ArrayRankSpecifierSyntax)()
             Dim arrayType = symbol
-            While arrayType IsNot Nothing
+            For index = 1 To layers
                 Dim commaCount = Math.Max(0, arrayType.Rank - 1)
                 Dim commas = SyntaxFactory.TokenList(Enumerable.Repeat(SyntaxFactory.Token(SyntaxKind.CommaToken), commaCount))
                 ranks.Add(SyntaxFactory.ArrayRankSpecifier(SyntaxFactory.Token(SyntaxKind.OpenParenToken), commas, SyntaxFactory.Token(SyntaxKind.CloseParenToken)))
-                arrayType = TryCast(arrayType.ElementType, IArrayTypeSymbol)
-            End While
+                If index < layers Then
+                    arrayType = DirectCast(arrayType.ElementType, IArrayTypeSymbol)
+                End If
+            Next
 
-            Dim arrayTypeSyntax = SyntaxFactory.ArrayType(elementTypeSyntax, SyntaxFactory.List(ranks))
+            Dim arrayTypeSyntax As TypeSyntax = SyntaxFactory.ArrayType(elementTypeSyntax, SyntaxFactory.List(ranks))
+            arrayTypeSyntax = AddNullableReferenceMarker(arrayTypeSyntax, symbol)
             Return AddInformationTo(arrayTypeSyntax, symbol)
         End Function
 
@@ -91,7 +104,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList(symbol.TypeArguments.[Select](Function(t) t.Accept(Me)))))
         End Function
 
-        Private Shared Function TryCreateSpecializedNamedTypeSyntax(symbol As INamedTypeSymbol) As TypeSyntax
+        Private Function TryCreateSpecializedNamedTypeSyntax(symbol As INamedTypeSymbol) As TypeSyntax
             Select Case symbol.SpecialType
                 Case SpecialType.System_Object
                     Return SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName("System"), SyntaxFactory.IdentifierName("Object"))
@@ -134,7 +147,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             Return Nothing
         End Function
 
-        Private Shared Function CreateTupleTypeSyntax(symbol As INamedTypeSymbol) As TypeSyntax
+        Private Function CreateTupleTypeSyntax(symbol As INamedTypeSymbol) As TypeSyntax
             Dim elements = symbol.TupleElements
 
             Return SyntaxFactory.TupleType(SyntaxFactory.SeparatedList(
@@ -144,12 +157,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                                                                         SyntaxFactory.SimpleAsClause(
                                                                                     SyntaxFactory.Token(SyntaxKind.AsKeyword),
                                                                                     Nothing,
-                                                                                    element.Type.GenerateTypeSyntax())),
+                                                                                    element.Type.Accept(Me))),
                                                         DirectCast(SyntaxFactory.TypedTupleElement(
-                                                                        element.Type.GenerateTypeSyntax()), TupleElementSyntax)))))
+                                                                        element.Type.Accept(Me)), TupleElementSyntax)))))
         End Function
 
         Public Overrides Function VisitNamedType(symbol As INamedTypeSymbol) As TypeSyntax
+            Return AddNullableReferenceMarker(CreateNamedTypeSyntax(symbol), symbol)
+        End Function
+
+        Private Function CreateNamedTypeSyntax(symbol As INamedTypeSymbol) As TypeSyntax
             Dim typeSyntax = CreateSimpleTypeSyntax(symbol)
             If Not (TypeOf typeSyntax Is SimpleNameSyntax) Then
                 Return typeSyntax
@@ -200,7 +217,33 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
         End Function
 
         Public Overrides Function VisitTypeParameter(symbol As ITypeParameterSymbol) As TypeSyntax
-            Return AddInformationTo(symbol.Name.ToIdentifierName, symbol)
+            Return AddInformationTo(AddNullableReferenceMarker(symbol.Name.ToIdentifierName, symbol), symbol)
+        End Function
+
+        Private Function ShouldWriteNullableReferenceMarker(symbol As ITypeSymbol) As Boolean
+            If symbol Is Nothing OrElse symbol.NullableAnnotation <> NullableAnnotation.Annotated OrElse symbol.IsValueType Then
+                Return False
+            End If
+
+            Dim named = TryCast(symbol, INamedTypeSymbol)
+            If named IsNot Nothing AndAlso named.OriginalDefinition.SpecialType = SpecialType.System_Nullable_T Then
+                Return False
+            End If
+
+            Dim visualBasic = TryCast(_compilation, VisualBasicCompilation)
+            If visualBasic Is Nothing OrElse visualBasic.LanguageVersion <> LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            Return (visualBasic.Options.NullableContext And NullableContextOptions.Annotations) <> 0
+        End Function
+
+        Private Function AddNullableReferenceMarker(syntax As TypeSyntax, symbol As ITypeSymbol) As TypeSyntax
+            If syntax Is Nothing OrElse Not ShouldWriteNullableReferenceMarker(symbol) Then
+                Return syntax
+            End If
+
+            Return SyntaxFactory.NullableType(syntax)
         End Function
     End Class
 End Namespace

@@ -14,6 +14,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     ''' <seealso cref="T:Microsoft.CodeAnalysis.CSharp.SymbolDisplay"/>
 #Enable Warning CA1200 ' Avoid using cref tags with a prefix
     Public Module SymbolDisplay
+        Private ReadOnly s_errorMessageFormatWithNullableReferenceModifier As SymbolDisplayFormat =
+            SymbolDisplayFormat.VisualBasicErrorMessageFormat.AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier)
+
+        Private ReadOnly s_shortErrorMessageFormatWithNullableReferenceModifier As SymbolDisplayFormat =
+            SymbolDisplayFormat.VisualBasicShortErrorMessageFormat.AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier)
+
+        Private Function FormatWithNullableReferenceModifier(format As SymbolDisplayFormat) As SymbolDisplayFormat
+            If format Is SymbolDisplayFormat.VisualBasicErrorMessageFormat Then
+                Return s_errorMessageFormatWithNullableReferenceModifier
+            End If
+
+            If format Is SymbolDisplayFormat.VisualBasicShortErrorMessageFormat Then
+                Return s_shortErrorMessageFormatWithNullableReferenceModifier
+            End If
+
+            Return format
+        End Function
+
         ''' <summary>
         ''' Displays a symbol in the Visual Basic style, based on a <see cref="SymbolDisplayFormat"/>.
         ''' </summary>
@@ -133,7 +151,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(positionOpt < 0)
             End If
 
-            Dim visitor = SymbolDisplayVisitor.GetInstance(builder, format, semanticModelOpt, positionOpt)
+            Dim visitor = SymbolDisplayVisitor.GetInstance(builder, FormatWithNullableReferenceModifier(format), semanticModelOpt, positionOpt)
             symbol.Accept(visitor)
 
             If TypeOf symbol Is INamedTypeSymbol AndAlso

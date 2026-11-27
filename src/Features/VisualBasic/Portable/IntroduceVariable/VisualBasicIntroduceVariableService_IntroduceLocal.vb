@@ -28,7 +28,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.IntroduceVariable
             Dim modifier = If(isConstant, SyntaxFactory.Token(SyntaxKind.ConstKeyword), SyntaxFactory.Token(SyntaxKind.DimKeyword))
             Dim type = GetTypeSymbol(document, expression, cancellationToken)
             Dim asClause = If(type.ContainsAnonymousType(), Nothing,
-                               SyntaxFactory.SimpleAsClause(type.GenerateTypeSyntax()))
+                               SyntaxFactory.SimpleAsClause(type.GenerateTypeSyntax(compilation:=document.SemanticModel.Compilation)))
 
             Dim declarationStatement = SyntaxFactory.LocalDeclarationStatement(
                 modifiers:=SyntaxFactory.TokenList(modifier),

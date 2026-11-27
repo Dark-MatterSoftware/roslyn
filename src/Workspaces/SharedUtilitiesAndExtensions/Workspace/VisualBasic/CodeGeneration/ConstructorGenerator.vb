@@ -39,7 +39,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 SyntaxFactory.SubNewStatement() _
                 .WithAttributeLists(AttributeGenerator.GenerateAttributeBlocks(constructor.GetAttributes(), options)) _
                 .WithModifiers(GenerateModifiers(constructor, destination, options)) _
-                .WithParameterList(ParameterGenerator.GenerateParameterList(constructor.Parameters, options))
+                .WithParameterList(ParameterGenerator.GenerateParameterList(constructor.Parameters, options, SignatureCompilationOf(constructor)))
 
             Dim hasNoBody = Not options.Context.GenerateMethodBodies
 

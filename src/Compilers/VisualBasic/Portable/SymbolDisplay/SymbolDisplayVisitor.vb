@@ -16,6 +16,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private ReadOnly _pool As ObjectPool(Of SymbolDisplayVisitor)
         Private _escapeKeywordIdentifiers As Boolean
+        Private _nullableDisplayCompilation As VisualBasicCompilation
+        Private _nullableDisplayTree As SyntaxTree
+        Private _nullableDisplayPosition As Integer
 
         ' A Symbol in VB might be a PENamedSymbolWithEmittedNamespaceName and in that case the 
         ' casing of the contained types and namespaces might differ because of merged classes/namespaces.
@@ -56,19 +59,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Debug.Assert(format IsNot Nothing, "Format must not be null")
             MyBase.Initialize(builder, format, isFirstSymbolVisited, semanticModelOpt, positionOpt, inNamespaceOrType)
             Me._escapeKeywordIdentifiers = format.MiscellaneousOptions.IncludesOption(SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers)
+            _nullableDisplayCompilation = TryCast(semanticModelOpt?.Compilation, VisualBasicCompilation)
+            _nullableDisplayTree = Nothing
+            _nullableDisplayPosition = -1
         End Sub
 
         Public Overrides Sub Free()
             MyBase.Free()
 
             _escapeKeywordIdentifiers = False
+            _nullableDisplayCompilation = Nothing
+            _nullableDisplayTree = Nothing
+            _nullableDisplayPosition = -1
 
             _pool.Free(Me)
         End Sub
 
         ' in case the display of a symbol is different for a type that acts as a container, use this visitor
         Protected Overrides Function MakeNotFirstVisitor(Optional inNamespaceOrType As Boolean = False) As AbstractSymbolDisplayVisitor
-            Return GetInstance(
+            Dim visitor = GetInstance(
                     Me.Builder,
                     Me.Format,
                     Me.SemanticModelOpt,
@@ -76,11 +85,95 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Me._escapeKeywordIdentifiers,
                     isFirstSymbolVisited:=False,
                     inNamespaceOrType:=inNamespaceOrType)
+            visitor.AdoptNullableDisplayContext(Me)
+            Return visitor
         End Function
 
         Protected Overrides Sub FreeNotFirstVisitor(visitor As AbstractSymbolDisplayVisitor)
             Debug.Assert(visitor IsNot Me)
             visitor.Free()
+        End Sub
+
+        Private Sub AdoptNullableDisplayContext(source As SymbolDisplayVisitor)
+            If _nullableDisplayCompilation Is Nothing Then
+                _nullableDisplayCompilation = source._nullableDisplayCompilation
+            End If
+
+            If _nullableDisplayTree Is Nothing AndAlso source._nullableDisplayTree IsNot Nothing Then
+                _nullableDisplayTree = source._nullableDisplayTree
+                _nullableDisplayPosition = source._nullableDisplayPosition
+            End If
+        End Sub
+
+        Friend Sub CaptureNullableDisplayContext(symbol As ISymbol)
+            If symbol Is Nothing OrElse (_nullableDisplayCompilation IsNot Nothing AndAlso _nullableDisplayTree IsNot Nothing) Then
+                Return
+            End If
+
+            Dim current = symbol
+            While current IsNot Nothing AndAlso (_nullableDisplayCompilation Is Nothing OrElse _nullableDisplayTree Is Nothing)
+                Dim underlying = PublicTypeProjection.Unwrap(current)
+                Dim compilerSymbol = TryCast(If(underlying, current), Symbol)
+                If compilerSymbol IsNot Nothing AndAlso _nullableDisplayCompilation Is Nothing Then
+                    Dim compilation = compilerSymbol.DeclaringCompilation
+                    If compilation IsNot Nothing Then
+                        _nullableDisplayCompilation = compilation
+                    End If
+                End If
+
+                If _nullableDisplayTree Is Nothing Then
+                    For Each location In current.Locations
+                        If location.IsInSource AndAlso location.SourceTree IsNot Nothing Then
+                            _nullableDisplayTree = location.SourceTree
+                            _nullableDisplayPosition = location.SourceSpan.Start
+                            Exit For
+                        End If
+                    Next
+                End If
+
+                current = current.ContainingSymbol
+            End While
+        End Sub
+
+        Private Function NullableReferenceDisplayEnabled() As Boolean
+            Dim compilation = _nullableDisplayCompilation
+            If compilation Is Nothing OrElse compilation.LanguageVersion <> LanguageVersion.VbNext Then
+                Return False
+            End If
+
+            Dim project = compilation.Options.NullableContext
+            If (project And NullableContextOptions.Annotations) <> 0 Then
+                Return True
+            End If
+
+            If _nullableDisplayTree Is Nothing Then
+                Return False
+            End If
+
+            Dim context = NullableContextFacts.ForTree(_nullableDisplayTree, project).GetContext(Math.Max(_nullableDisplayPosition, 0))
+            Return (context And NullableContextOptions.Annotations) <> 0
+        End Function
+
+        Friend Function ShouldAddNullableReferenceMarker(type As ITypeSymbol) As Boolean
+            If type Is Nothing OrElse type.NullableAnnotation <> NullableAnnotation.Annotated Then
+                Return False
+            End If
+
+            If Not Format.MiscellaneousOptions.IncludesOption(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier) Then
+                Return False
+            End If
+
+            If type.IsValueType OrElse ITypeSymbolHelpers.IsNullableType(type) Then
+                Return False
+            End If
+
+            Return NullableReferenceDisplayEnabled()
+        End Function
+
+        Friend Sub AddNullableReferenceMarker(type As ITypeSymbol)
+            If ShouldAddNullableReferenceMarker(type) Then
+                AddPunctuation(SyntaxKind.QuestionToken)
+            End If
         End Sub
 
         Friend Function CreatePart(kind As SymbolDisplayPartKind,
@@ -270,6 +363,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Sub
 
         Public Overrides Sub VisitLocal(symbol As ILocalSymbol)
+            CaptureNullableDisplayContext(symbol)
+
             ' Locals can be synthesized by the compiler in many cases (for example the implicit 
             ' local in a function that has the same name as the containing function).  In some 
             ' cases the locals are anonymous (for example, a similar local in an operator).  

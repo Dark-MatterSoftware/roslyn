@@ -139,9 +139,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 subOrFunctionKeyword:=If(invokeMethod.ReturnsVoid, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.FunctionKeyword)),
                 identifier:=namedType.Name.ToIdentifierToken(),
                 typeParameterList:=GenerateTypeParameterList(namedType),
-                parameterList:=ParameterGenerator.GenerateParameterList(invokeMethod.Parameters, options),
+                parameterList:=ParameterGenerator.GenerateParameterList(invokeMethod.Parameters, options, SignatureCompilationOf(invokeMethod)),
                 asClause:=If(invokeMethod.ReturnsVoid, Nothing,
-                             SyntaxFactory.SimpleAsClause(invokeMethod.ReturnType.GenerateTypeSyntax())))
+                             SyntaxFactory.SimpleAsClause(invokeMethod.ReturnType.GenerateTypeSyntax(compilation:=SignatureCompilationOf(invokeMethod)))))
         End Function
 
         Private Function GenerateEnumDeclaration(namedType As INamedTypeSymbol, options As CodeGenerationContextInfo) As StatementSyntax

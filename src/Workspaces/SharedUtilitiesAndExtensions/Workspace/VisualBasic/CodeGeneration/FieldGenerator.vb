@@ -85,7 +85,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     SyntaxFactory.SingletonSeparatedList(
                         SyntaxFactory.VariableDeclarator(
                             SyntaxFactory.SingletonSeparatedList(field.Name.ToModifiedIdentifier),
-                            SyntaxFactory.SimpleAsClause(field.Type.GenerateTypeSyntax()),
+                            SyntaxFactory.SimpleAsClause(field.Type.GenerateTypeSyntax(compilation:=SignatureCompilationOf(field))),
                             initializer)))
 
             Return AddFormatterAndCodeGeneratorAnnotationsTo(ConditionallyAddDocumentationCommentTo(EnsureLastElasticTrivia(fieldDeclaration), field, options))
