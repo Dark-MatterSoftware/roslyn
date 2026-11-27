@@ -247,7 +247,7 @@ Obligations: the seven framework items.
 
 Source: the embedded attribute symbol, `PEModuleBuilder.NullableMetadata.vb`, and the existing reflection facts in `NullableDeclarationTests` and `NullableMetadataEmissionTests`.
 
-Current state: representative reflection checks exist. Exact .NET 11 reference assemblies were not part of the emit test project. The net472 `NullabilityInfoContext` test-project failure is retained and was not re-run for this plan.
+Current state: verified and not owner-accepted. `NullableFrameworkReflectionTests` compiles the representative contract against `microsoft.netframework.referenceassemblies.net47` 1.0.3 and against the installed `Microsoft.NETCore.App.Ref` 11.0.0 reference pack, whose `System.Runtime` identity is 11.0.0.0. The .NET 11 runtime 11.0.0 reads the emitted image with `NullabilityInfoContext`. The historical net472 emit-test build failure was the test project referencing `NullabilityInfoContext`, which that target does not provide. Those two facts now compile only for the modern test host, and the net472 emit test project builds. Exact .NET Framework 4.7 CLR execution was not available and is not claimed. `NullablePublicOnly` stays deferred.
 
 Production change: only if a target embeds a duplicate attribute, misses a compatible existing attribute, or fails to load metadata that LC-1G.2 emits. Do not reference `NullabilityInfoContext` from the compiler.
 

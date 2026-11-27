@@ -271,6 +271,7 @@ End Class
                 Diagnostic(ERRID.WRN_PossibleNullAssignment, "api.Find(Nothing)").WithArguments("plain").WithLocation(4, 31))
         End Sub
 
+#If NETCOREAPP Then
         <Fact>
         Public Sub Reflection_ReadsMixedNestedAndSubContracts()
             Dim compilation = CreateCompilation(ApiSource, options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
@@ -300,6 +301,7 @@ End Class
             Assert.Equal("Task`1", task.Type.Name)
             Assert.Equal(NullabilityState.Nullable, task.GenericTypeArguments.Single().ReadState)
         End Sub
+#End If
 
         <Fact>
         Public Sub OlderFramework_EmbedsNullableAttributeWithoutADuplicateOnModernTargets()

@@ -377,6 +377,7 @@ public class Use
             Assert.Equal(NullableAnnotation.Annotated, DirectCast(read.Parameters(0).Type, INamedTypeSymbol).GetMembers("Name").OfType(Of IFieldSymbol)().Single().NullableAnnotation)
         End Sub
 
+#If NETCOREAPP Then
         <Fact>
         Public Sub Reflection_ReadsFieldPropertyAndArrayContracts()
             Dim compilation = CreateCompilation("
@@ -412,6 +413,7 @@ End Class
             Dim invoke = loaded.GetType("Find").GetMethod("Invoke")
             Assert.Equal(NullabilityState.Nullable, context.Create(invoke.ReturnParameter).ReadState)
         End Sub
+#End If
 
         <Fact>
         Public Sub OlderFramework_EmbedsNullableAttributeForAField()
