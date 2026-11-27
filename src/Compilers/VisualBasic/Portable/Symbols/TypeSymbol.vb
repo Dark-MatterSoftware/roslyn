@@ -347,6 +347,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Public NotOverridable Overrides Function Equals(obj As Object) As Boolean
+            Dim projection = TryCast(obj, PublicTypeProjection)
+            If projection IsNot Nothing Then
+                Return Equals(projection.Underlying, TypeCompareKind.ConsiderEverything)
+            End If
+
             Return Equals(TryCast(obj, TypeSymbol), TypeCompareKind.ConsiderEverything)
         End Function
 
@@ -537,8 +542,9 @@ Done:
 #Region "ITypeSymbol"
 
         Private Function ITypeSymbol_FindImplementationForInterfaceMember(interfaceMember As ISymbol) As ISymbol Implements ITypeSymbol.FindImplementationForInterfaceMember
-            Return If(TypeOf interfaceMember Is Symbol,
-                FindImplementationForInterfaceMember(DirectCast(interfaceMember, Symbol)),
+            Dim candidate = PublicTypeProjection.Unwrap(interfaceMember)
+            Return If(TypeOf candidate Is Symbol,
+                FindImplementationForInterfaceMember(DirectCast(candidate, Symbol)),
                 Nothing)
         End Function
 
@@ -828,7 +834,7 @@ Done:
         End Property
 
         Private Function ITypeSymbol_WithNullability(nullableAnnotation As NullableAnnotation) As ITypeSymbol Implements ITypeSymbol.WithNullableAnnotation
-            Return Me
+            Return PublicTypeProjection.Create(Me, nullableAnnotation)
         End Function
 
         Private Function ITypeSymbolInternal_GetITypeSymbol() As ITypeSymbol Implements ITypeSymbolInternal.GetITypeSymbol

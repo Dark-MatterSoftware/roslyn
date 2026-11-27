@@ -458,7 +458,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Private Function IArrayTypeSymbol_Equals(symbol As IArrayTypeSymbol) As Boolean Implements IArrayTypeSymbol.Equals
-            Return Me.Equals(TryCast(symbol, ArrayTypeSymbol))
+            Return Me.Equals(TryCast(PublicTypeProjection.Unwrap(symbol), ArrayTypeSymbol), TypeCompareKind.ConsiderEverything)
         End Function
 
         Public Overrides Sub Accept(visitor As SymbolVisitor)

@@ -849,11 +849,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Overloads Function IEquatable_Equals(other As ISymbol) As Boolean Implements IEquatable(Of ISymbol).Equals
-            Return Me.[Equals](TryCast(other, Symbol), SymbolEqualityComparer.Default.CompareKind)
+            Return ISymbol_Equals(other, SymbolEqualityComparer.Default)
         End Function
 
         Private Overloads Function ISymbol_Equals(other As ISymbol, equalityComparer As SymbolEqualityComparer) As Boolean Implements ISymbol.Equals
-            Return Me.[Equals](TryCast(other, Symbol), equalityComparer.CompareKind)
+            If other Is Nothing Then
+                Return False
+            End If
+
+            If TypeOf other Is PublicTypeProjection Then
+                Return PublicTypeProjection.AreEqual(Me, other, equalityComparer)
+            End If
+
+            Dim otherSymbol = TryCast(other, Symbol)
+            If Not Me.Equals(otherSymbol, equalityComparer.CompareKind) Then
+                Return False
+            End If
+
+            If (equalityComparer.CompareKind And TypeCompareKind.IgnoreNullableModifiersForReferenceTypes) = 0 Then
+                Dim leftType = TryCast(Me, TypeSymbol)
+                Dim rightType = TryCast(otherSymbol, TypeSymbol)
+                If leftType IsNot Nothing AndAlso rightType IsNot Nothing AndAlso leftType IsNot rightType Then
+                    Return PublicTypeProjection.NestedAnnotationsEqual(leftType, rightType, equalityComparer.CompareKind)
+                End If
+            End If
+
+            Return True
         End Function
 
         Private Overloads Function ISymbolInternal_Equals(other As ISymbolInternal, compareKind As TypeCompareKind) As Boolean Implements ISymbolInternal.Equals

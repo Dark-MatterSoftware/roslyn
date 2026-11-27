@@ -1471,11 +1471,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Private Function INamedTypeSymbol_Construct(ParamArray typeArguments() As ITypeSymbol) As INamedTypeSymbol Implements INamedTypeSymbol.Construct
-            Return Construct(ConstructTypeArguments(typeArguments))
+            Dim result = Construct(ConstructTypeArguments(typeArguments))
+            If result Is Me Then
+                Return result
+            End If
+
+            Dim annotations = PublicTypeProjection.CaptureAnnotations(typeArguments.AsImmutableOrNull())
+            If Not annotations.IsDefault Then
+                result.SetTypeArgumentNullableAnnotations(annotations)
+            End If
+
+            Return result
         End Function
 
         Private Function INamedTypeSymbol_Construct(typeArguments As ImmutableArray(Of ITypeSymbol), typeArgumentNullableAnnotations As ImmutableArray(Of CodeAnalysis.NullableAnnotation)) As INamedTypeSymbol Implements INamedTypeSymbol.Construct
-            Return Construct(ConstructTypeArguments(typeArguments, typeArgumentNullableAnnotations))
+            Dim result = Construct(ConstructTypeArguments(typeArguments, typeArgumentNullableAnnotations))
+            If result Is Me OrElse typeArgumentNullableAnnotations.IsDefault Then
+                Return result
+            End If
+
+            result.SetTypeArgumentNullableAnnotations(typeArgumentNullableAnnotations)
+            Return result
         End Function
 
         Private Function INamedTypeSymbol_ConstructUnboundGenericType() As INamedTypeSymbol Implements INamedTypeSymbol.ConstructUnboundGenericType

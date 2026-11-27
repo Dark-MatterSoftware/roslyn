@@ -477,7 +477,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         <Extension>
         Friend Function EnsureVbSymbolOrNothing(Of TSource As ISymbol, TDestination As {Symbol, TSource})(symbol As TSource, paramName As String) As TDestination
-            Dim vbSymbol = TryCast(symbol, TDestination)
+            Dim candidate As ISymbol = symbol
+            Dim projection = TryCast(candidate, PublicTypeProjection)
+            If projection IsNot Nothing Then
+                candidate = projection.Underlying
+            End If
+
+            Dim vbSymbol = TryCast(candidate, TDestination)
 
             If vbSymbol Is Nothing AndAlso symbol IsNot Nothing Then
                 Throw New ArgumentException(VBResources.NotAVbSymbol, paramName)
