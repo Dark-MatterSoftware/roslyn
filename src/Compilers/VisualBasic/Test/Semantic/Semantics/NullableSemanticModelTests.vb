@@ -274,8 +274,13 @@ End Module
 ")
             Dim typeInfo = TypeInfoOf(compilation, "item")
             Dim parameter = DirectCast(compilation.GetSemanticModel(compilation.SyntaxTrees.Single()).GetSymbolInfo(Identifiers(compilation.SyntaxTrees.Single(), "item").Single()).Symbol, IParameterSymbol)
-            Assert.Equal(parameter.NullableAnnotation, typeInfo.Nullability.Annotation)
-            Assert.Equal(NullableFlowState.NotNull, typeInfo.Nullability.FlowState)
+            Assert.Equal("String", parameter.Type.ToDisplayString())
+            Assert.True(parameter.Type.IsReferenceType)
+            Assert.Equal(NullableAnnotation.Annotated, parameter.NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, typeInfo.Nullability.Annotation)
+            Assert.Equal(NullableFlowState.MaybeNull, typeInfo.Nullability.FlowState)
+            Assert.Equal(NullableAnnotation.Annotated, typeInfo.Type.NullableAnnotation)
+            Assert.Equal(NullableAnnotation.Annotated, typeInfo.ConvertedType.NullableAnnotation)
             AssertInvariant(typeInfo)
         End Sub
 

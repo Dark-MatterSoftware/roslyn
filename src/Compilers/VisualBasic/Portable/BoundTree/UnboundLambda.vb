@@ -134,6 +134,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Public ReadOnly ReturnsByRef As Boolean
             Public ReadOnly ParameterIsByRef As BitVector
             Public ReadOnly ParameterIsReadOnlyByRef As BitVector
+            Public ReadOnly ParameterNullableAnnotations As ImmutableArray(Of NullableAnnotation)
 
             Public Sub New(parameterTypes As ImmutableArray(Of TypeSymbol), parameterIsByRef As BitVector, returnType As TypeSymbol, returnsByRef As Boolean,
                            Optional parameterIsReadOnlyByRef As BitVector = Nothing)
@@ -143,6 +144,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Me.ParameterTypes = parameterTypes
                 Me.ParameterIsByRef = parameterIsByRef
                 Me.ParameterIsReadOnlyByRef = If(parameterIsReadOnlyByRef.IsNull, BitVector.Empty, parameterIsReadOnlyByRef)
+                Me.ParameterNullableAnnotations = NoneAnnotations(parameterTypes.Length)
                 Me.ReturnType = returnType
                 Me.ReturnsByRef = returnsByRef
             End Sub
@@ -158,10 +160,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Me.ParameterTypes = ImmutableArray(Of TypeSymbol).Empty
                 Else
                     Dim types(params.Length - 1) As TypeSymbol
+                    Dim annotations(params.Length - 1) As NullableAnnotation
                     Dim i As Integer
 
                     For i = 0 To params.Length - 1
                         types(i) = params(i).Type
+                        annotations(i) = params(i).GetDeclaredNullableAnnotation()
                         If params(i).IsByRef Then
                             isByRef(i) = True
                             If params(i).IsReadOnlyByRef Then
@@ -171,6 +175,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Next
 
                     Me.ParameterTypes = types.AsImmutableOrNull
+                    Me.ParameterNullableAnnotations = annotations.AsImmutableOrNull
+                End If
+
+                If Me.ParameterNullableAnnotations.IsDefault Then
+                    Me.ParameterNullableAnnotations = NoneAnnotations(params.Length)
                 End If
 
                 Me.ParameterIsByRef = isByRef
@@ -191,6 +200,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Next
 
                 hashVal = Hash.Combine(ReturnType, hashVal)
+                hashVal = Hash.Combine(ParameterNullableAnnotations.Length, hashVal)
+                For Each annotation In ParameterNullableAnnotations
+                    hashVal = Hash.Combine(CInt(annotation), hashVal)
+                Next
 
                 Return hashVal
             End Function
@@ -209,12 +222,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 For i As Integer = 0 To ParameterTypes.Length - 1
                     If Not TypeSymbol.Equals(Me.ParameterTypes(i), other.ParameterTypes(i), TypeCompareKind.ConsiderEverything) OrElse
                        Me.ParameterIsByRef(i) <> other.ParameterIsByRef(i) OrElse
-                       Me.ParameterIsReadOnlyByRef(i) <> other.ParameterIsReadOnlyByRef(i) Then
+                       Me.ParameterIsReadOnlyByRef(i) <> other.ParameterIsReadOnlyByRef(i) OrElse
+                       Me.ParameterNullableAnnotations(i) <> other.ParameterNullableAnnotations(i) Then
                         Return False
                     End If
                 Next
 
                 Return Me.ReturnsByRef = other.ReturnsByRef AndAlso TypeSymbol.Equals(Me.ReturnType, other.ReturnType, TypeCompareKind.ConsiderEverything)
+            End Function
+
+            Private Shared Function NoneAnnotations(length As Integer) As ImmutableArray(Of NullableAnnotation)
+                If length = 0 Then
+                    Return ImmutableArray(Of NullableAnnotation).Empty
+                End If
+
+                Dim annotations(length - 1) As NullableAnnotation
+                Return annotations.AsImmutable()
             End Function
         End Class
 

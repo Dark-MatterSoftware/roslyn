@@ -19,6 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _isByRef As Boolean
         Private ReadOnly _defaultValue As ConstantValue
         Private ReadOnly _isParamArray As Boolean
+        Private ReadOnly _nullableAnnotation As NullableAnnotation
 
         Protected Sub New(
             name As String,
@@ -27,11 +28,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             isByRef As Boolean,
             location As Location,
             Optional defaultValue As ConstantValue = Nothing,
-            Optional isParamArray As Boolean = False
+            Optional isParamArray As Boolean = False,
+            Optional nullableAnnotation As NullableAnnotation = NullableAnnotation.None
         )
             _name = name
             _ordinal = CType(ordinal, UShort)
             _type = type
+            _nullableAnnotation = nullableAnnotation
 
             If location IsNot Nothing Then
                 _location = ImmutableArray.Create(Of Location)(location)
@@ -166,6 +169,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return _type
             End Get
         End Property
+
+        Friend NotOverridable Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
+            Return _nullableAnnotation
+        End Function
 
         Public NotOverridable Overrides ReadOnly Property IsByRef As Boolean
             Get

@@ -148,7 +148,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                unboundParam.GetFirstLocation(),
                                                                isReadOnlyByRef,
                                                                unboundParam.DefaultValueOpt,
-                                                               unboundParam.IsParamArray)
+                                                               unboundParam.IsParamArray,
+                                                               ParameterAnnotation(unboundParam, targetSignature, i))
                 BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
             Next
 
@@ -176,12 +177,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                    unboundParam.Syntax,
                                                                    unboundParam.GetFirstLocation(),
                                                                    defaultValue:=unboundParam.DefaultValueOpt,
-                                                                   isParamArray:=unboundParam.IsParamArray)
+                                                                   isParamArray:=unboundParam.IsParamArray,
+                                                                   nullableAnnotation:=ParameterAnnotation(unboundParam, targetSignature, i))
                     BindLambdaParameterAttributes(unboundParam, parameters(i), diagnostics)
                 Next
             End If
 
             Return parameters.AsImmutableOrNull()
+        End Function
+
+        ''' <summary>
+        ''' An explicit lambda parameter keeps the annotation written on it. An inferred parameter takes the
+        ''' annotation of the delegate parameter that supplied its type.
+        ''' </summary>
+        Private Shared Function ParameterAnnotation(unboundParam As UnboundLambdaParameterSymbol, targetSignature As UnboundLambda.TargetSignature, index As Integer) As NullableAnnotation
+            If unboundParam.Type IsNot Nothing OrElse targetSignature.ParameterNullableAnnotations.IsDefault OrElse index >= targetSignature.ParameterNullableAnnotations.Length Then
+                Return unboundParam.GetDeclaredNullableAnnotation()
+            End If
+
+            Return targetSignature.ParameterNullableAnnotations(index)
         End Function
 
         ''' <summary>

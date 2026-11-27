@@ -29,9 +29,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             identifierSyntax As ModifiedIdentifierSyntax,
             typeSyntax As SyntaxNodeOrToken,
             defaultValue As ConstantValue,
-            isParamArray As Boolean
+            isParamArray As Boolean,
+            nullableAnnotation As NullableAnnotation
         )
-            MyBase.New(name, ordinal, type, ((flags And SourceParameterFlags.ByRef) <> 0), location, defaultValue, isParamArray)
+            MyBase.New(name, ordinal, type, ((flags And SourceParameterFlags.ByRef) <> 0), location, defaultValue, isParamArray, nullableAnnotation)
 
             _identifierSyntax = identifierSyntax
             _typeSyntax = typeSyntax
@@ -95,7 +96,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             '      BC36642: Option Strict On requires each lambda expression parameter to be declared with an 'As' clause if its type cannot be inferred.
             Dim getErrorInfo As Func(Of DiagnosticInfo) = Nothing
 
-            Dim paramType As TypeSymbol = binder.DecodeModifiedIdentifierType(syntax.Identifier, syntax.AsClause, Nothing, getErrorInfo, diagBag, Binder.ModifiedIdentifierTypeDecoderContext.LambdaParameterType)
+            Dim nullableAnnotation As NullableAnnotation = NullableAnnotation.None
+            Dim paramType As TypeSymbol = binder.DecodeModifiedIdentifierType(syntax.Identifier, syntax.AsClause, Nothing, getErrorInfo, diagBag, Binder.ModifiedIdentifierTypeDecoderContext.LambdaParameterType, nullableAnnotation)
 
             ' Preserve the fact that parameter doesn't have explicitly provided type.
             ' DecodeModifiedIdentifierType returns System.Object if there was no type character and there was no an 'As' clause.
@@ -122,7 +124,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return New UnboundLambdaParameterSymbol(name, ordinal, paramType, syntax.Identifier.Identifier.GetLocation(), flags,
                                                     syntax.Identifier,
                                                     If(syntax.AsClause Is Nothing, CType(syntax.Identifier, SyntaxNodeOrToken), syntax.AsClause.Type),
-                                                    defaultValue, isParamArray)
+                                                    defaultValue, isParamArray, nullableAnnotation)
         End Function
 
         Private Shared Function GetModifierToken(modifiers As SyntaxTokenList, tokenKind As SyntaxKind) As SyntaxToken
