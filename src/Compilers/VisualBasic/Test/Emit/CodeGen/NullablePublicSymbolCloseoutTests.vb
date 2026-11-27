@@ -79,6 +79,7 @@ End Module
             Dim definition = DirectCast(compilation.GetTypeByMetadataName("Extensions").GetMembers("Take").Single(), IMethodSymbol)
             Dim reduced = definition.ReduceExtensionMethod(receiver)
             Assert.NotNull(reduced)
+            Assert.Equal(NullableAnnotation.Annotated, DirectCast(reduced.ReceiverType, INamedTypeSymbol).TypeArgumentNullableAnnotations.Single())
             Assert.Equal(1, reduced.Arity)
             Dim constructed = reduced.Construct(ImmutableArray.Create(Of ITypeSymbol)(reduced.TypeParameters.Single()), ImmutableArray.Create(NullableAnnotation.Annotated))
             Assert.Equal(1, constructed.TypeArgumentNullableAnnotations.Length)

@@ -1140,6 +1140,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IMethodSymbol_ReceiverType As ITypeSymbol Implements IMethodSymbol.ReceiverType
             Get
+                Dim extension = TryCast(Me, ReducedExtensionMethodSymbol)
+                If extension IsNot Nothing AndAlso extension.PublicReceiver IsNot Nothing Then
+                    Return extension.PublicReceiver
+                End If
+
                 Return PublicTypeProjection.Project(Me.ReceiverType, GetReceiverNullableAnnotation())
             End Get
         End Property
@@ -1176,7 +1181,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim reduced = Me.ReduceExtensionMethod(receiverType.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(receiverType)), CompoundUseSiteInfo(Of AssemblySymbol).Discarded, LanguageVersion.Latest)
             Dim extension = TryCast(reduced, ReducedExtensionMethodSymbol)
             If extension IsNot Nothing Then
-                extension.NotePublicReceiverAnnotation(receiverType.NullableAnnotation)
+                extension.NotePublicReceiver(receiverType)
             End If
 
             Return reduced

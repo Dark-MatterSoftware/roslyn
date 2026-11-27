@@ -274,6 +274,73 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private _publicReceiver As ITypeSymbol
+
+        Friend ReadOnly Property PublicReceiver As ITypeSymbol
+            Get
+                Return _publicReceiver
+            End Get
+        End Property
+
+        Friend Sub NotePublicReceiver(receiver As ITypeSymbol)
+            If receiver Is Nothing Then
+                Return
+            End If
+
+            NotePublicReceiverAnnotation(receiver.NullableAnnotation)
+            CopyFixedArgumentAnnotations(receiver)
+            Dim named = TryCast(receiver, INamedTypeSymbol)
+            Dim keep = PublicTypeProjection.HasIndependentState(receiver)
+            If named IsNot Nothing AndAlso Not named.TypeArgumentNullableAnnotations.IsDefault Then
+                For Each annotation In named.TypeArgumentNullableAnnotations
+                    If annotation <> NullableAnnotation.None Then
+                        keep = True
+                        Exit For
+                    End If
+                Next
+            End If
+
+            If keep Then
+                _publicReceiver = receiver
+            End If
+        End Sub
+
+        Private Sub CopyFixedArgumentAnnotations(receiver As ITypeSymbol)
+            If _curriedFromMethod.Parameters.Length = 0 Then
+                Return
+            End If
+
+            Dim source = TryCast(receiver, INamedTypeSymbol)
+            Dim parameterType = TryCast(DirectCast(_curriedFromMethod.Parameters(0).Type, ITypeSymbol), INamedTypeSymbol)
+            If source Is Nothing OrElse parameterType Is Nothing OrElse source.TypeArgumentNullableAnnotations.IsDefault OrElse parameterType.TypeArguments.Length <> source.TypeArgumentNullableAnnotations.Length Then
+                Return
+            End If
+
+            For i = 0 To parameterType.TypeArguments.Length - 1
+                Dim typeParameter = TryCast(parameterType.TypeArguments(i), TypeParameterSymbol)
+                If typeParameter Is Nothing OrElse typeParameter.ContainingSymbol.OriginalDefinition IsNot _curriedFromMethod.OriginalDefinition Then
+                    Continue For
+                End If
+
+                Dim annotation = source.TypeArgumentNullableAnnotations(i)
+                If annotation = NullableAnnotation.None Then
+                    Continue For
+                End If
+
+                Dim stored = _originalTypeArgumentAnnotations
+                If stored.IsDefault OrElse typeParameter.Ordinal < 0 OrElse typeParameter.Ordinal >= stored.Length OrElse stored(typeParameter.Ordinal) <> NullableAnnotation.None Then
+                    Continue For
+                End If
+
+                Dim updated(stored.Length - 1) As NullableAnnotation
+                stored.CopyTo(updated)
+                updated(typeParameter.Ordinal) = annotation
+                _originalTypeArgumentAnnotations = updated.AsImmutableOrNull()
+                _lazyReturnType = Nothing
+                _lazyParameters = Nothing
+            Next
+        End Sub
+
         Friend Sub NotePublicReceiverAnnotation(annotation As NullableAnnotation)
             If annotation = NullableAnnotation.None OrElse _curriedFromMethod.Parameters.Length = 0 Then
                 Return
