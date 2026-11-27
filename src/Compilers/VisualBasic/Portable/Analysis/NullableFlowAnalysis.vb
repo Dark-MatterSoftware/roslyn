@@ -5,6 +5,7 @@
 Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports System.Runtime.CompilerServices
+Imports System.Threading
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -233,6 +234,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private _isolation As Integer
         Private _needsRewalk As Boolean
         Private _summaryOnly As Boolean
+        Private _captureOnly As Boolean
+        Private _expressions As Dictionary(Of BoundExpression, NullabilityInfo)
         Private _bodyProof As Boolean
         Private _initializerPass As Boolean
         Private _applyInitializersAfterBase As Boolean
@@ -376,6 +379,76 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Try
         End Sub
 
+        ''' <summary>
+        ''' Runs the same walker as <see cref="Analyze"/> and retains the final expression result.
+        ''' Diagnostics and constructor facts are not published. The last pass replaces earlier passes.
+        ''' </summary>
+        Friend Shared Function CaptureExpressions(method As MethodSymbol, body As BoundBlock, cancellationToken As CancellationToken) As Dictionary(Of BoundExpression, NullabilityInfo)
+            cancellationToken.ThrowIfCancellationRequested()
+            If method Is Nothing OrElse body Is Nothing OrElse method.DeclaringCompilation Is Nothing OrElse method.DeclaringCompilation.LanguageVersion < LanguageVersion.VbNext Then
+                Return Nothing
+            End If
+
+            If body.Syntax Is Nothing OrElse body.Syntax.SyntaxTree Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim compilation = method.DeclaringCompilation
+            Dim project = DirectCast(compilation.Options, VisualBasicCompilationOptions).NullableContext
+            Dim contexts = NullableContextFacts.ForTree(body.Syntax.SyntaxTree, project)
+            If (project And NullableContextOptions.Warnings) = 0 AndAlso Not contexts.HasDirective Then
+                Return Nothing
+            End If
+
+            Dim diagnostics = DiagnosticBag.GetInstance()
+            Try
+                Dim results = New Dictionary(Of BoundExpression, NullabilityInfo)(BoundExpressionReferenceComparer.Instance)
+                Dim walker = New NullableFlowAnalysis(method, diagnostics, project)
+                walker._captureOnly = True
+                walker._expressions = results
+                walker.Prepare(body)
+                walker.BeginPass()
+                walker.Visit(body)
+                Dim pass = 1
+                While walker._needsRewalk AndAlso pass < MaxGotoPasses
+                    walker._needsRewalk = False
+                    walker.BeginPass()
+                    walker.Visit(body)
+                    pass += 1
+                End While
+
+                If walker._needsRewalk Then
+                    walker.WidenJumps()
+                    walker._needsRewalk = False
+                    walker.BeginPass()
+                    walker.Visit(body)
+                End If
+
+                walker.FinishPass()
+                cancellationToken.ThrowIfCancellationRequested()
+                Return results
+            Finally
+                diagnostics.Free()
+            End Try
+        End Function
+
+        Private NotInheritable Class BoundExpressionReferenceComparer
+            Implements IEqualityComparer(Of BoundExpression)
+
+            Friend Shared ReadOnly Instance As New BoundExpressionReferenceComparer()
+
+            Private Sub New()
+            End Sub
+
+            Public Overloads Function Equals(x As BoundExpression, y As BoundExpression) As Boolean Implements IEqualityComparer(Of BoundExpression).Equals
+                Return x Is y
+            End Function
+
+            Public Overloads Function GetHashCode(obj As BoundExpression) As Integer Implements IEqualityComparer(Of BoundExpression).GetHashCode
+                Return RuntimeHelpers.GetHashCode(obj)
+            End Function
+        End Class
+
         Private Sub BeginPass()
             _reachable = True
             _state = New Dictionary(Of Symbol, FlowNullability)()
@@ -401,12 +474,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _applyInitializersAfterBase = False
             _initializersApplied = False
             _userMayHaveMutated = False
+            If _expressions IsNot Nothing Then
+                _expressions.Clear()
+            End If
             If IsConstructor(_method) AndAlso Not _initializerPass Then
                 SeedConstructorMembers()
                 If _method.IsShared Then
                     ' A shared constructor has no base call. Compiler-generated calls may drop
                     ' shared facts; a later user call is a possible mutation and is not restored.
-                    ApplyInitializers(publish:=Not _summaryOnly)
+                    ApplyInitializers(publish:=Not _summaryOnly AndAlso Not _captureOnly)
                     _initializerClock = _writeClock
                     _initializersApplied = True
                 Else
@@ -417,7 +493,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         ' Initializers run after the base constructor returns.
                         _applyInitializersAfterBase = True
                     Else
-                        ApplyInitializers(publish:=Not _summaryOnly)
+                        ApplyInitializers(publish:=Not _summaryOnly AndAlso Not _captureOnly)
                         _initializerClock = _writeClock
                         _initializersApplied = True
                     End If
@@ -1281,6 +1357,74 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function Evaluate(expr As BoundExpression) As FlowNullability
+            If expr Is Nothing OrElse Not _reachable Then
+                Return FlowNullability.NotNull
+            End If
+
+            Dim result = EvaluateCore(expr)
+            RecordExpression(expr, result)
+            Return result
+        End Function
+
+        Private Sub RecordExpression(expr As BoundExpression, state As FlowNullability)
+            If _expressions Is Nothing OrElse expr Is Nothing Then
+                Return
+            End If
+
+            _expressions(expr) = New NullabilityInfo(DeclaredAnnotation(expr), PublicFlow(expr, state))
+        End Sub
+
+        Private Shared Function PublicFlow(expr As BoundExpression, state As FlowNullability) As NullableFlowState
+            If state = FlowNullability.MaybeNull Then
+                Return NullableFlowState.MaybeNull
+            End If
+
+            If state = FlowNullability.NotNull Then
+                Return NullableFlowState.NotNull
+            End If
+
+            If expr.Type IsNot Nothing AndAlso expr.Type.IsReferenceType Then
+                Return NullableFlowState.MaybeNull
+            End If
+
+            Return NullableFlowState.NotNull
+        End Function
+
+        Private Function DeclaredAnnotation(expr As BoundExpression) As NullableAnnotation
+            Select Case expr.Kind
+                Case BoundKind.Local
+                    Return AnnotationOf(DirectCast(expr, BoundLocal).LocalSymbol)
+                Case BoundKind.Parameter
+                    Return AnnotationOf(DirectCast(expr, BoundParameter).ParameterSymbol)
+                Case BoundKind.Call
+                    Dim method = DirectCast(expr, BoundCall).Method
+                    If method IsNot Nothing Then
+                        Return AnnotationOf(method)
+                    End If
+                Case BoundKind.FieldAccess
+                    Return DirectCast(DirectCast(expr, BoundFieldAccess).FieldSymbol, IFieldSymbol).NullableAnnotation
+                Case BoundKind.PropertyAccess
+                    Return DirectCast(DirectCast(expr, BoundPropertyAccess).PropertySymbol, IPropertySymbol).NullableAnnotation
+                Case BoundKind.Literal
+                    If expr.ConstantValueOpt IsNot Nothing AndAlso expr.ConstantValueOpt.IsNothing Then
+                        Return NullableAnnotation.Annotated
+                    End If
+
+                    If expr.Type IsNot Nothing AndAlso expr.Type.IsReferenceType Then
+                        Return NullableAnnotation.NotAnnotated
+                    End If
+
+                    Return NullableAnnotation.None
+            End Select
+
+            If expr.Type Is Nothing OrElse Not expr.Type.IsReferenceType Then
+                Return NullableAnnotation.None
+            End If
+
+            Return NullableAnnotation.NotAnnotated
+        End Function
+
+        Private Function EvaluateCore(expr As BoundExpression) As FlowNullability
             If expr Is Nothing OrElse Not _reachable Then
                 Return FlowNullability.NotNull
             End If
@@ -3311,7 +3455,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Sub Warn(code As ERRID, syntax As SyntaxNode, ParamArray args As Object())
-            If Not _reachable OrElse _summaryOnly OrElse syntax Is Nothing OrElse Not WarningsEnabled(syntax) Then
+            If Not _reachable OrElse _summaryOnly OrElse _captureOnly OrElse syntax Is Nothing OrElse Not WarningsEnabled(syntax) Then
                 Return
             End If
 
@@ -4766,7 +4910,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _body = body
             _initializerPass = IsInitializerOnly(body)
             CollectHandlerNulls(body)
-            If IsConstructor(_method) AndAlso Not _initializerPass AndAlso Not _bodyProof AndAlso _method.DeclaringCompilation IsNot Nothing Then
+            If IsConstructor(_method) AndAlso Not _initializerPass AndAlso Not _bodyProof AndAlso Not _captureOnly AndAlso _method.DeclaringCompilation IsNot Nothing Then
                 Dim stored = Facts.GetOrCreateValue(_method.DeclaringCompilation)
                 SyncLock stored
                     stored.InProgress.Add(_method)
@@ -4779,6 +4923,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Sub FinishPass()
+            If _captureOnly Then
+                Return
+            End If
+
             If _initializerPass Then
                 If Not _summaryOnly Then
                     PublishInitializerCache()
@@ -5331,7 +5479,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If _applyInitializersAfterBase AndAlso IsConstructor(method) AndAlso Not IsSameTypeConstructor(method) Then
                 SetSnapshot(MergeSnapshots(whenTrue, whenFalse))
-                ApplyInitializers(publish:=Not _summaryOnly)
+                ApplyInitializers(publish:=Not _summaryOnly AndAlso Not _captureOnly)
                 OverlayOurMembers(whenTrue)
                 OverlayOurMembers(whenFalse)
                 _initializerClock = _writeClock
@@ -5866,7 +6014,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Sub Report(code As ERRID, syntax As SyntaxNode, ParamArray args As Object())
-            If _summaryOnly OrElse syntax Is Nothing OrElse syntax.SyntaxTree Is Nothing OrElse Not WarningsEnabled(syntax) Then
+            If _summaryOnly OrElse _captureOnly OrElse syntax Is Nothing OrElse syntax.SyntaxTree Is Nothing OrElse Not WarningsEnabled(syntax) Then
                 Return
             End If
 

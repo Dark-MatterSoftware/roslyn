@@ -925,7 +925,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return VisualBasicTypeInfo.None
             End If
 
-            Return GetTypeInfoForNode(GetBoundNodeSummary(node))
+            Return GetTypeInfoForNode(GetBoundNodeSummary(node), EnsureExpressionNullability(cancellationToken))
+        End Function
+
+        Private Function EnsureExpressionNullability(cancellationToken As CancellationToken) As Dictionary(Of BoundExpression, NullabilityInfo)
+            If _expressionNullabilityCaptured Then
+                Return _expressionNullability
+            End If
+
+            cancellationToken.ThrowIfCancellationRequested()
+            Dim captured As Dictionary(Of BoundExpression, NullabilityInfo) = Nothing
+            Dim method = TryCast(MemberSymbol, MethodSymbol)
+            Dim body = TryCast(GetBoundRoot(), BoundBlock)
+            If method IsNot Nothing AndAlso body IsNot Nothing Then
+                captured = NullableFlowAnalysis.CaptureExpressions(method, body, cancellationToken)
+            End If
+
+            cancellationToken.ThrowIfCancellationRequested()
+            _rwLock.EnterWriteLock()
+            Try
+                If Not _expressionNullabilityCaptured Then
+                    _expressionNullability = captured
+                    _expressionNullabilityCaptured = True
+                End If
+            Finally
+                _rwLock.ExitWriteLock()
+            End Try
+
+            Return _expressionNullability
         End Function
 
         Friend Overrides Function GetExpressionMemberGroup(node As ExpressionSyntax, Optional cancellationToken As CancellationToken = Nothing) As ImmutableArray(Of Symbol)
@@ -1241,6 +1268,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Property
 
         Private ReadOnly _rwLock As ReaderWriterLockSlim = New ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion)
+        Private _expressionNullability As Dictionary(Of BoundExpression, NullabilityInfo)
+        Private _expressionNullabilityCaptured As Boolean
 
         '' This class manages a cache of bound nodes and binders for all the executable code under the root SyntaxNode
         '' of this SemanticModel.

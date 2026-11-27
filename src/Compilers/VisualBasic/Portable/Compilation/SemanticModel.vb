@@ -350,14 +350,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         ' Gets the type info from a specific bound node
-        Friend Function GetTypeInfoForNode(boundNodes As BoundNodeSummary) As VisualBasicTypeInfo
+        Friend Function GetTypeInfoForNode(boundNodes As BoundNodeSummary, Optional expressionNullability As Dictionary(Of BoundExpression, NullabilityInfo) = Nothing) As VisualBasicTypeInfo
             ' Determine the type, converted type, and expression
             Dim type As TypeSymbol = Nothing
             Dim convertedType As TypeSymbol = Nothing
             Dim conversion As Conversion = Nothing
             type = GetSemanticType(boundNodes, convertedType, conversion)
 
-            Return New VisualBasicTypeInfo(type, convertedType, conversion)
+            Dim lowest = TryCast(boundNodes.LowestBoundNode, BoundExpression)
+            Dim highest = TryCast(boundNodes.HighestBoundNode, BoundExpression)
+            Dim nullability = LookupNullability(expressionNullability, lowest)
+            Dim convertedNullability = If(highest Is lowest OrElse highest Is Nothing, nullability, LookupNullability(expressionNullability, highest))
+            Return New VisualBasicTypeInfo(type, convertedType, conversion, nullability, convertedNullability)
+        End Function
+
+        Private Shared Function LookupNullability(expressionNullability As Dictionary(Of BoundExpression, NullabilityInfo), expression As BoundExpression) As NullabilityInfo
+            Dim found As NullabilityInfo = Nothing
+            If expressionNullability IsNot Nothing AndAlso expression IsNot Nothing AndAlso expressionNullability.TryGetValue(expression, found) Then
+                Return found
+            End If
+
+            Return Nothing
         End Function
 
         ''' <summary>

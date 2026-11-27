@@ -12,6 +12,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' should be best guess if there is one, or error type if none.
         Private ReadOnly _type As TypeSymbol
         Private ReadOnly _convertedType As TypeSymbol
+        Private ReadOnly _nullability As NullabilityInfo
+        Private ReadOnly _convertedNullability As NullabilityInfo
 
         Private ReadOnly _implicitConversion As Conversion
 
@@ -49,14 +51,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Property
 
         Public Shared Widening Operator CType(info As VisualBasicTypeInfo) As TypeInfo
-            Return New TypeInfo(info.Type, info.ConvertedType, nullability:=Nothing, convertedNullability:=Nothing)
+            Return New TypeInfo(Present(info._type, info._nullability), Present(info._convertedType, info._convertedNullability), info._nullability, info._convertedNullability)
         End Operator
 
-        Friend Sub New(type As TypeSymbol, convertedType As TypeSymbol, implicitConversion As Conversion)
+        Friend Sub New(type As TypeSymbol, convertedType As TypeSymbol, implicitConversion As Conversion, Optional nullability As NullabilityInfo = Nothing, Optional convertedNullability As NullabilityInfo = Nothing)
             Me._type = GetPossibleGuessForErrorType(type)
             Me._convertedType = GetPossibleGuessForErrorType(convertedType)
             Me._implicitConversion = implicitConversion
+            Me._nullability = nullability
+            Me._convertedNullability = convertedNullability
         End Sub
+
+        Private Shared Function Present(type As TypeSymbol, nullability As NullabilityInfo) As ITypeSymbol
+            If type Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim publicType As ITypeSymbol = type
+            Dim required = nullability.FlowState.ToAnnotation()
+            If publicType.NullableAnnotation = required Then
+                Return publicType
+            End If
+
+            Return publicType.WithNullableAnnotation(required)
+        End Function
 
         Public Overloads Function Equals(other As VisualBasicTypeInfo) As Boolean Implements IEquatable(Of VisualBasicTypeInfo).Equals
             Return _implicitConversion.Equals(other._implicitConversion) AndAlso
