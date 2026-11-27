@@ -14,8 +14,11 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EditAndContinue
     Friend NotInheritable Class VisualBasicEditAndContinueTestVerifier
         Inherits EditAndContinueTestVerifier
 
-        Public Sub New()
+        Private ReadOnly _parseOptions As ParseOptions
+
+        Public Sub New(Optional parseOptions As ParseOptions = Nothing)
             MyBase.New(faultInjector:=Nothing)
+            _parseOptions = parseOptions
         End Sub
 
         Public Overrides ReadOnly Property LanguageName As String
@@ -47,7 +50,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EditAndContinue
 
         Public Overrides ReadOnly Property ParseOptions As ParseOptions
             Get
-                Return VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest)
+                Return If(_parseOptions, VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest))
             End Get
         End Property
     End Class

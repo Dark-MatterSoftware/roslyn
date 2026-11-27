@@ -5,6 +5,7 @@
 Imports Microsoft.CodeAnalysis.Contracts.EditAndContinue
 Imports Microsoft.CodeAnalysis.EditAndContinue
 Imports Microsoft.CodeAnalysis.EditAndContinue.UnitTests
+Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EditAndContinue
 Imports Microsoft.CodeAnalysis.Emit
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue.UnitTests
@@ -276,6 +277,120 @@ End Class
             edits.VerifySemantics(
                 activeStatements:=GetActiveStatements(src1, src2, parseOptions:=s_vbNext),
                 semanticEdits:={SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.F"), edits.GetSyntaxMap())})
+        End Sub
+
+        Private Shared Function NullableSource(body As String) As String
+            Return "#Nullable Enable" & vbCrLf & body
+        End Function
+
+        Private Shared Sub VerifyNullableEdit(
+            edits As EditScriptDescription,
+            Optional semanticEdits As SemanticEditDescription() = Nothing,
+            Optional diagnostics As RudeEditDiagnosticDescription() = Nothing,
+            Optional capabilities As EditAndContinueCapabilities? = Nothing)
+
+            Dim description = New DocumentAnalysisResultsDescription(
+                ActiveStatementsDescription.Empty,
+                semanticEdits,
+                lineEdits:=Nothing,
+                diagnostics:=diagnostics)
+            For Each framework In {TargetFramework.NetStandard20, TargetFramework.NetCoreApp}
+                Call New VisualBasicEditAndContinueTestVerifier(s_vbNext).VerifySemantics({edits}, framework, {description}, capabilities)
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ParameterAnnotation_StringToNullable_IsMetadataUpdate()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Sub Process(value As String)" & vbCrLf & "End Sub : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Sub Process(value As String?)" & vbCrLf & "End Sub : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Process"))})
+        End Sub
+
+        <Fact>
+        Public Sub ParameterAnnotation_NullableToString_IsMetadataUpdate()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Sub Process(value As String?)" & vbCrLf & "End Sub : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Sub Process(value As String)" & vbCrLf & "End Sub : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Process"))})
+        End Sub
+
+        <Fact>
+        Public Sub ReturnAnnotation_StringToNullable_IsMetadataUpdate()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Function Read() As String" & vbCrLf & "Return ""a"" : End Function : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Function Read() As String?" & vbCrLf & "Return ""a"" : End Function : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Read"))})
+        End Sub
+
+        <Fact>
+        Public Sub ReturnAnnotation_NullableToString_IsMetadataUpdate()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Function Read() As String?" & vbCrLf & "Return ""a"" : End Function : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Function Read() As String" & vbCrLf & "Return ""a"" : End Function : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Read"))})
+        End Sub
+
+        <Fact>
+        Public Sub ReferenceTypeChange_RemainsRudeWhenAnnotationsAreIgnoredForRuntimeIdentity()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Function Read() As String" & vbCrLf & "Return Nothing : End Function : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Object" & vbCrLf & "Return Nothing : End Function : End Class")
+            Dim edits = GetTopEdits(src1, src2, parseOptions:=s_vbNext)
+            VerifyNullableEdit(
+                edits,
+                diagnostics:={Diagnostic(RudeEditKind.ChangingSignatureNotSupportedByRuntime, "Public Function Read()", FeaturesResources.method)},
+                capabilities:=EditAndContinueCapabilities.Baseline)
+            VerifyNullableEdit(
+                edits,
+                {
+                    SemanticEdit(SemanticEditKind.Delete, Function(c) c.GetMember("C.Read"), deletedSymbolContainerProvider:=Function(c) c.GetMember("C")),
+                    SemanticEdit(SemanticEditKind.Insert, Function(c) c.GetMember("C.Read"))
+                },
+                capabilities:=EditAndContinueCapabilities.AddMethodToExistingType)
+        End Sub
+
+        <Fact>
+        Public Sub NullableValueTypeChange_RemainsClrSignatureChange()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Integer" & vbCrLf & "Return 0 : End Function : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Integer?" & vbCrLf & "Return 0 : End Function : End Class")
+            VerifyNullableEdit(
+                GetTopEdits(src1, src2, parseOptions:=s_vbNext),
+                diagnostics:={Diagnostic(RudeEditKind.ChangingSignatureNotSupportedByRuntime, "Public Function Read()", FeaturesResources.method)},
+                capabilities:=EditAndContinueCapabilities.Baseline)
+        End Sub
+
+        <Fact>
+        Public Sub FieldAnnotation_StringToNullable_IsMetadataUpdate()
+            Dim src1 = NullableSource("Class C : Public value As String : End Class")
+            Dim src2 = NullableSource("Class C : Public value As String? : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.value"))})
+        End Sub
+
+        <Fact>
+        Public Sub PropertyAnnotation_StringToNullable_IsMetadataUpdate()
+            Dim src1 = NullableSource("Class C : Public Property Value As String : End Class")
+            Dim src2 = NullableSource("Class C : Public Property Value As String? : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Value"))})
+        End Sub
+
+        <Fact>
+        Public Sub LocalAnnotation_StringToNullable_UpdatesMethodBody()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Object" & vbCrLf & "Dim value As String = ""a""" & vbCrLf & "Return value : End Function : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Object" & vbCrLf & "Dim value As String? = ""a""" & vbCrLf & "Return value : End Function : End Class")
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), {SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Read"))})
+        End Sub
+
+        <Fact>
+        Public Sub LambdaParameterAnnotation_IsNotALambdaSignatureRudeEdit()
+            Dim src1 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Object" & vbCrLf & "Dim f = Function(value As String) value" & vbCrLf & "Return f(""a"") : End Function : End Class")
+            Dim src2 = NullableSource("Class C" & vbCrLf & "Public Function Read() As Object" & vbCrLf & "Dim f = Function(value As String?) value" & vbCrLf & "Return f(""a"") : End Function : End Class")
+            ' Runtime lambda identity ignores nullable annotations, so this is neither a rude edit nor a method delta.
+            VerifyNullableEdit(GetTopEdits(src1, src2, parseOptions:=s_vbNext), Array.Empty(Of SemanticEditDescription)())
+        End Sub
+
+        <Fact>
+        Public Sub LegacyMethodBodyEdit_DoesNotGainNullableRudeEdit()
+            Dim src1 = "Class C" & vbCrLf & "Public Function Read() As String" & vbCrLf & "Return ""a"" : End Function : End Class"
+            Dim src2 = "Class C" & vbCrLf & "Public Function Read() As String" & vbCrLf & "Return ""b"" : End Function : End Class"
+            Dim edits = GetTopEdits(src1, src2)
+            edits.VerifySemanticDiagnostics()
+            edits.VerifySemantics(semanticEdits:={SemanticEdit(SemanticEditKind.Update, Function(c) c.GetMember("C.Read"))})
         End Sub
     End Class
 End Namespace
