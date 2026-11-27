@@ -82,8 +82,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             If _eventType Is Nothing Then
                 Dim metadataDecoder = New MetadataDecoder(moduleSymbol, containingType)
-                Me._eventType = metadataDecoder.GetTypeOfToken(eventType)
-                _eventType = TupleTypeDecoder.DecodeTupleTypesIfApplicable(_eventType, handle, moduleSymbol)
+                Dim rawType = metadataDecoder.GetTypeOfToken(eventType)
+                Dim decoded = NullableMetadataDecoder.Transform(rawType, handle, moduleSymbol, accessSymbol:=Me, contextSymbol:=containingType)
+                Me._eventType = TupleTypeDecoder.DecodeTupleTypesIfApplicable(decoded.Type, handle, moduleSymbol)
             End If
 
             If Me._addMethod IsNot Nothing Then

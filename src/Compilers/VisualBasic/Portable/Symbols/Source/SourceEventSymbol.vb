@@ -260,6 +260,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             If Not type.IsErrorType() Then
                 AccessCheck.VerifyAccessExposureForMemberType(Me, syntax.Identifier, type, diagnostics, isDelegateFromImplements)
+                NullableMetadataEncoder.NoteRequired(Me, type, NullableAnnotation.None)
             End If
 
             Return type
@@ -850,6 +851,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
+            moduleBuilder.AddNullableMetadataAttribute(Me, attributes, Type, NullableAnnotation.None)
 
             If Me.Type.ContainsTupleNames() Then
                 AddSynthesizedAttribute(attributes, DeclaringCompilation.SynthesizeTupleNamesAttribute(Type))

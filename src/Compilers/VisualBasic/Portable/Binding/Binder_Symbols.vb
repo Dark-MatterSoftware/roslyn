@@ -654,6 +654,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim numElements As Integer = syntax.Elements.Count
                 Dim types = ArrayBuilder(Of TypeSymbol).GetInstance(numElements)
                 Dim locations = ArrayBuilder(Of Location).GetInstance(numElements)
+                Dim elementAnnotations = ArrayBuilder(Of NullableAnnotation).GetInstance(numElements)
                 Dim elementNames As ArrayBuilder(Of String) = Nothing
 
                 ' set of names already used
@@ -669,14 +670,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     If argumentSyntax.Kind = SyntaxKind.TypedTupleElement Then
                         Dim typedElement = DirectCast(argumentSyntax, TypedTupleElementSyntax)
+                        If binder._captureNullableAnnotations Then
+                            binder._capturedNullableAnnotation = NullableAnnotation.None
+                        End If
+
                         argumentType = binder.BindTypeSyntax(typedElement.Type, diagnostics, suppressUseSiteError, inGetTypeContext, resolvingBaseType)
+                        elementAnnotations.Add(If(binder._captureNullableAnnotations, binder.CapturedAnnotationOf(argumentType), NullableAnnotation.None))
 
                     Else
                         Dim namedElement = DirectCast(argumentSyntax, NamedTupleElementSyntax)
                         nameSyntax = namedElement.Identifier
                         name = nameSyntax.GetIdentifierText()
 
-                        argumentType = binder.DecodeIdentifierType(nameSyntax, namedElement.AsClause, getRequireTypeDiagnosticInfoFunc:=Nothing, diagBag:=diagnostics)
+                        Dim namedAnnotation As NullableAnnotation = NullableAnnotation.None
+                        argumentType = binder.DecodeIdentifierType(nameSyntax, namedElement.AsClause, getRequireTypeDiagnosticInfoFunc:=Nothing, diagBag:=diagnostics, nullableAnnotation:=namedAnnotation)
+                        elementAnnotations.Add(namedAnnotation)
                     End If
 
                     types.Add(argumentType)
@@ -711,10 +719,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim locationsArray As ImmutableArray(Of Location) = locations.ToImmutableAndFree()
 
                 If typesArray.Length < 2 Then
+                    elementAnnotations.Free()
                     Throw ExceptionUtilities.UnexpectedValue(typesArray.Length)
                 End If
 
-                Return TupleTypeSymbol.Create(syntax.GetLocation,
+                Dim created = TupleTypeSymbol.Create(syntax.GetLocation,
                                                 typesArray,
                                                 locationsArray,
                                                 If(elementNames Is Nothing, Nothing, elementNames.ToImmutableAndFree()),
@@ -723,6 +732,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                 errorPositions:=Nothing,
                                                 syntax:=syntax,
                                                 diagnostics:=diagnostics)
+                TupleTypeSymbol.StampLogicalElementAnnotations(created.TupleUnderlyingType, elementAnnotations.ToImmutableAndFree())
+                If binder._captureNullableAnnotations Then
+                    binder._capturedNullableAnnotation = NullableAnnotation.None
+                End If
+
+                Return created
             End Function
 
             Private Shared Sub AnalyzeLookupResultForIllegalBaseTypeReferences(lookupResult As LookupResult,

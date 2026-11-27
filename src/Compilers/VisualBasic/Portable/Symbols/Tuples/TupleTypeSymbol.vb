@@ -415,6 +415,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Debug.Assert(tupleCompatibleType.IsTupleCompatible())
 
+            Dim carried = ReadLogicalElementAnnotations(tupleCompatibleType)
             Dim elementTypes As ImmutableArray(Of TypeSymbol)
             If tupleCompatibleType.Arity = TupleTypeSymbol.RestPosition Then
                 tupleCompatibleType = TupleTypeSymbol.EnsureRestExtensionsAreTuples(tupleCompatibleType)
@@ -427,8 +428,88 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 elementTypes = tupleCompatibleType.TypeArgumentsNoUseSiteDiagnostics
             End If
 
-            Return New TupleTypeSymbol(locations, tupleCompatibleType, elementLocations, elementNames, elementTypes, errorPositions)
+            Dim created = New TupleTypeSymbol(locations, tupleCompatibleType, elementLocations, elementNames, elementTypes, errorPositions)
+            If Not carried.IsDefault Then
+                StampLogicalElementAnnotations(created.TupleUnderlyingType, carried)
+            End If
+
+            Return created
         End Function
+
+        Friend Shared Sub StampLogicalElementAnnotations(underlying As NamedTypeSymbol, annotations As ImmutableArray(Of NullableAnnotation))
+            If underlying Is Nothing OrElse annotations.IsDefaultOrEmpty Then
+                Return
+            End If
+
+            WriteChain(underlying, annotations, 0)
+        End Sub
+
+        Private Shared Function ReadLogicalElementAnnotations(underlying As NamedTypeSymbol) As ImmutableArray(Of NullableAnnotation)
+            If underlying Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim builder = ArrayBuilder(Of NullableAnnotation).GetInstance()
+            ReadChain(underlying, builder)
+            Dim result = builder.ToImmutableAndFree()
+            For Each annotation In result
+                If annotation <> NullableAnnotation.None Then
+                    Return result
+                End If
+            Next
+
+            Return Nothing
+        End Function
+
+        Private Shared Sub ReadChain(underlying As NamedTypeSymbol, builder As ArrayBuilder(Of NullableAnnotation))
+            If underlying Is Nothing Then
+                Return
+            End If
+
+            Dim shape = If(underlying.IsTupleType, underlying.TupleUnderlyingType, underlying)
+            If shape Is Nothing OrElse shape.Arity = 0 Then
+                Return
+            End If
+
+            Dim annotations = shape.GetTypeArgumentNullableAnnotations()
+            Dim arguments = shape.TypeArgumentsNoUseSiteDiagnostics
+            Dim prefix = Math.Min(arguments.Length, RestPosition - 1)
+            For i = 0 To prefix - 1
+                Dim annotation = NullableAnnotation.None
+                If Not annotations.IsDefault AndAlso i < annotations.Length Then
+                    annotation = annotations(i)
+                End If
+
+                builder.Add(annotation)
+            Next
+
+            If shape.Arity = RestPosition Then
+                Dim rest = TryCast(arguments(RestPosition - 1), NamedTypeSymbol)
+                ReadChain(rest, builder)
+            End If
+        End Sub
+
+        Private Shared Sub WriteChain(underlying As NamedTypeSymbol, annotations As ImmutableArray(Of NullableAnnotation), start As Integer)
+            Dim shape = If(underlying.IsTupleType, underlying.TupleUnderlyingType, underlying)
+            If shape Is Nothing OrElse shape.Arity = 0 OrElse start >= annotations.Length Then
+                Return
+            End If
+
+            Dim slots(shape.Arity - 1) As NullableAnnotation
+            Dim prefix = Math.Min(shape.Arity, RestPosition - 1)
+            For i = 0 To prefix - 1
+                Dim source = start + i
+                slots(i) = If(source < annotations.Length, annotations(source), NullableAnnotation.None)
+            Next
+
+            If shape.Arity = RestPosition Then
+                slots(RestPosition - 1) = NullableAnnotation.None
+                Dim rest = TryCast(shape.TypeArgumentsNoUseSiteDiagnostics(RestPosition - 1), NamedTypeSymbol)
+                WriteChain(rest, annotations, start + prefix)
+            End If
+
+            shape.SetTypeArgumentNullableAnnotations(slots.AsImmutable())
+        End Sub
 
         Private Shared Function EnsureRestExtensionsAreTuples(tupleCompatibleType As NamedTypeSymbol) As NamedTypeSymbol
             If Not tupleCompatibleType.TypeArgumentsNoUseSiteDiagnostics(TupleTypeSymbol.RestPosition - 1).IsTupleType Then

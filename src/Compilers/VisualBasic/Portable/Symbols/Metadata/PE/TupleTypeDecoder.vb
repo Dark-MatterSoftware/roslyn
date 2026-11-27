@@ -189,6 +189,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Dim containerChanged = decodedContainingType IsNot containingType
             Dim typeArgsChanged = typeArgs <> decodedArgs
             If typeArgsChanged OrElse containerChanged Then
+                Dim previousAnnotations = type.GetTypeArgumentNullableAnnotations()
                 Dim newTypeArgs = If(type.HasTypeArgumentsCustomModifiers,
                                      decodedArgs.SelectAsArray(Function(t, i, m) New TypeWithModifiers(t, m.GetTypeArgumentCustomModifiers(i)), type),
                                      decodedArgs.SelectAsArray(Function(t) New TypeWithModifiers(t, Nothing)))
@@ -199,12 +200,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                     ' not a tuple, since we know all tuple-compatible types (System.ValueTuple)
                     ' are not nested types. Thus, it is safe to return without checking if
                     ' Inner is a tuple.
-                    Return If(decodedType.TypeParameters.IsEmpty,
+                    decodedType = If(decodedType.TypeParameters.IsEmpty,
                                 decodedType,
                                 Construct(decodedType, newTypeArgs))
+                    CopyTypeArgumentAnnotations(decodedType, previousAnnotations)
+                    Return decodedType
                 End If
 
                 decodedType = Construct(type, newTypeArgs)
+                CopyTypeArgumentAnnotations(decodedType, previousAnnotations)
             End If
 
             ' Now decode into a tuple, if it is one
@@ -219,6 +223,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             Return decodedType
         End Function
+
+        Private Shared Sub CopyTypeArgumentAnnotations(type As NamedTypeSymbol, annotations As ImmutableArray(Of NullableAnnotation))
+            If type Is Nothing OrElse annotations.IsDefaultOrEmpty Then
+                Return
+            End If
+
+            For Each annotation In annotations
+                If annotation <> NullableAnnotation.None Then
+                    type.SetTypeArgumentNullableAnnotations(annotations)
+                    Return
+                End If
+            Next
+        End Sub
 
         Private Shared Function Construct(type As NamedTypeSymbol, newTypeArgs As ImmutableArray(Of TypeWithModifiers)) As NamedTypeSymbol
             Dim definition = type.OriginalDefinition

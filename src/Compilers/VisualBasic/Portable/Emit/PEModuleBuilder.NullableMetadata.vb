@@ -44,7 +44,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                 Return
             End If
 
-            Symbol.AddSynthesizedAttribute(attributes, TrySynthesizeNullableAttribute(transforms))
+            Dim synthesized = TrySynthesizeNullableAttribute(transforms)
+            If synthesized Is Nothing Then
+                Return
+            End If
+
+            Symbol.AddSynthesizedAttribute(attributes, synthesized)
         End Sub
 
         Private Function TrySynthesizeNullableAttribute(transforms As ImmutableArray(Of Byte)) As SynthesizedAttributeData
@@ -58,7 +63,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             Else
                 Dim embedded = GetOrCreateEmbeddedNullableAttribute()
                 If embedded Is Nothing Then
-                    Throw ExceptionUtilities.Unreachable
+                    ' A predefined NullableAttribute without the standard constructor is not replaced
+                    ' by an embedded definition. Emitting against it would write an invalid attribute.
+                    Return Nothing
                 End If
 
                 constructor = If(byteArray, embedded.ByteArrayConstructor, embedded.ByteConstructor)
@@ -93,7 +100,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                Binder.GetUseSiteInfoForWellKnownTypeMember(constructor, member, False).DiagnosticInfo IsNot Nothing Then
                 ' The framework type is present but does not have the standard constructor.
                 ' Embedding a second definition would change the metadata identity.
-                Throw ExceptionUtilities.Unreachable
+                Return Nothing
             End If
 
             Return constructor

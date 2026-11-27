@@ -475,7 +475,7 @@ public class Pub
         Public Sub PrebuiltContracts_DecodeAcrossFrameworks_WhenEvidenceIsPresent()
             Dim root = "D:\Development\VBNext\Evidence\LanguageCompletion\LC-1A\out"
             If Not IO.Directory.Exists(root) Then
-                Return
+                Assert.Fail("Prebuilt LC-1A contract images are absent. This is not a successful decode. Framework-matrix acceptance remains LC-1G.3.")
             End If
 
             AssertPrebuiltContract(IO.Path.Combine(root, "net47-CsContract.dll"), FrameworkPack("microsoft.netframework.referenceassemblies.net47", "v4.7"))

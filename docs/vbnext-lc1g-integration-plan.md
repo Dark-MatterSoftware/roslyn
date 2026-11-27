@@ -1,6 +1,6 @@
 # LC-1G nullable integration plan
 
-The owner approved this plan on November 26, 2026. The owner formally accepted LC-1G.1 on November 26, 2026, including its documented limitations, and authorized LC-1G.2 only. The acceptance record is in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). The accepted LC-1G.1 compiler baseline is `613f195758d5cdd19d932d244bf1254ee59b2e2b`. LC-1G.3 through LC-1G.7 remain unauthorized. Accepting LC-1G.1 does not complete VB-030 and does not accept LC-1G.2.
+The owner approved this plan on November 26, 2026. The owner formally accepted LC-1G.1 on November 26, 2026, including its documented limitations, and authorized LC-1G.2 only. The acceptance record is in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). The accepted LC-1G.1 compiler baseline is `613f195758d5cdd19d932d244bf1254ee59b2e2b`. LC-1G.2 is implemented and is not owner-accepted. LC-1G.3 through LC-1G.7 remain unauthorized. Accepting LC-1G.1 does not complete VB-030 and does not accept LC-1G.2.
 
 The owner accepted the LC-1F flow implementation the same day. The acceptance record, the locked flow policies, and the accepted conservative limitations are in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). Slice 10f in [vbnext-phases.md](vbnext-phases.md) points here. This plan does not reopen LC-1F and does not reconcile LC-4.
 
@@ -203,37 +203,37 @@ Exclusions: public API exposure, metadata byte changes, IDE, EnC, and every acce
 
 ## LC-1G.2 — Metadata import and emission
 
-Classification: metadata interoperability. Authorized on November 26, 2026. Not owner-accepted.
+Classification: metadata interoperability. Implemented. Not owner-accepted.
 
 Objective: round-trip the stored annotations through the existing nullable metadata attributes.
 
-Obligations: the ten metadata items, plus the long-tuple and imported constructed-method parts of the cross-language gap.
+Obligations: the ten metadata items, plus event type metadata and a nontrivial imported reference constraint through retargeting.
 
-Source: `NullableMetadataEncoder.vb`, `NullableMetadataDecoder.vb`, `PEModuleBuilder.NullableMetadata.vb`, `SynthesizedEmbeddedNullableAttributeSymbol.vb`, tuple symbols, and retargeting of tuple underlying types.
+Source: `NullableMetadataEncoder.vb`, `NullableMetadataDecoder.vb`, `PEModuleBuilder.NullableMetadata.vb`, `TupleTypeDecoder.vb`, `TupleTypeSymbol.vb`, `Binder_Symbols.vb` `LookupTupleType`, `SourceEventSymbol.vb`, and `PEEventSymbol.vb`.
 
-Current state: nested generics and arrays are encoded from stored annotations. Tuples are encoded from `TupleUnderlyingType`. The decoder drops a bad byte span to `None`. The conditional import test is skipped when a machine directory is missing. Netmodules and an incompatible predefined attribute do not have a nullable test in the emit suite.
+Current state: implemented and awaiting owner acceptance. Source tuple elements stamp logical annotations onto the `ValueTuple` chain, including `Rest`. Import copies those annotations when tuple reconstruction builds a new chain. An event emits and decodes `NullableAttribute` on the event, and `IEventSymbol.NullableAnnotation` stays `None`. An incompatible predefined `NullableAttribute` skips emission instead of throwing or embedding a second definition. A netmodule declaration keeps a nested annotation. `default`, `latest`, and Visual Basic 17.13 do not emit the attribute for a declaration that stores no VB.Next annotation. Representative method bodies match when only reference annotations differ.
 
-Production change: preserve tuple element annotations across `Rest` and across emission. Keep malformed metadata non-throwing. Embed or reuse `NullableAttribute` under the rules LC-1B already established. Do not invent a second metadata format.
+Production change: capture tuple element annotations while binding, carry them across `Rest` reconstruction, decode event metadata with the existing transform, and refuse an unusable predefined `NullableAttribute` constructor without changing its identity. No new metadata format, diagnostic, syntax, or public signature.
 
-Tests: `NullableMetadataImportTests` and `NullableMetadataEmissionTests`, plus new tuple, malformed, netmodule, embedded-identity, and incompatible-attribute facts. Replace the machine-directory conditional test with a portable compilation. Failing-before evidence is a new test that fails on the post-LC-1G.1 tree before the encoder or decoder change. Compare emitted IL, not only attributes, for one method whose body is unchanged.
+Tests: `NullableMetadataRoundTripTests`, `NullableMetadataImportTests`, and `NullableMetadataEmissionTests`. The prebuilt framework-image test fails closed when its evidence directory is absent. Exact framework-matrix acceptance remains LC-1G.3.
 
-Legacy: Visual Basic 17.13 emits no new nullable attributes. `NullablePublicOnly` stays deferred.
+Legacy: Visual Basic 17.13, `default`, and `latest` emit no new nullable attributes. `NullablePublicOnly` stays deferred.
 
-Cross-language: VB to C#, C# to VB, and VB to VB for a nested generic and a long tuple. A `NotNull`/`MaybeNull` warning difference stays the accepted policy and is not "fixed" by changing metadata.
+Cross-language: VB to VB, VB to C#, and C# to VB for a nested generic, an eight-element tuple, and an event. A `NotNull` postcondition stays independent of a substituted annotated return.
 
-Framework: emit against the existing older-target reference sets used by the nullable emit tests. Exact .NET 11 references belong to LC-1G.3 if this slice's test project still lacks them.
+Framework: older-target embedding remains the existing `Mscorlib40` emit tests. Exact .NET Framework 4.7, modern .NET, and .NET 11 reference acceptance remains LC-1G.3.
 
-Public API: imported `ReturnNullableAnnotation` and named type-argument annotations must match the bytes. The public method type-argument array remains LC-1G.4.
+Public API: no signature was added. Imported named type-argument annotations and return annotations use the existing getters. `IEventSymbol.NullableAnnotation` and `IMethodSymbol.TypeArgumentNullableAnnotations` stay `None`. A tuple facade still has arity 0, so its public type-argument array stays empty; the logical element annotations live on the underlying chain.
 
-Resources: emit tests on `net10.0`. No full solution build.
+Resources: emit, symbol, and semantic tests on `net10.0`. No full solution build.
 
-Dependencies: LC-1G.1.
+Dependencies: LC-1G.1, accepted on November 26, 2026.
 
-Escalation: a new attribute shape, a Core metadata-reader change that would affect C#, or a proposal to throw on malformed metadata.
+Escalation: none taken. A new attribute shape, a C# metadata-reader change, and a new malformed-metadata diagnostic were not required.
 
-Acceptance: the listed shapes round-trip, malformed input stays non-throwing, and representative method IL matches Visual Basic 17.13.
+Acceptance: not recorded. The owner has not accepted LC-1G.2.
 
-Exclusions: `NullablePublicOnly`, IDE display, and flow-policy changes.
+Exclusions: `NullablePublicOnly`, IDE display, public nullable API exposure, and flow-policy changes.
 
 ## LC-1G.3 — Framework and reflection compatibility
 

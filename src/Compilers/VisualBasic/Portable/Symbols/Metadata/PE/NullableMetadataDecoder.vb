@@ -187,7 +187,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         ''' Type parameters, arrays, pointers, and other generic types do.
         ''' </summary>
         Private Shared Function IsNonGenericValueType(type As TypeSymbol) As Boolean
-            If type Is Nothing OrElse TypeOf type Is PointerTypeSymbol OrElse type.TypeKind = TypeKind.Array Then
+            If type Is Nothing OrElse TypeOf type Is PointerTypeSymbol OrElse type.TypeKind = TypeKind.Array OrElse type.IsTupleType Then
                 Return False
             End If
 
@@ -211,15 +211,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             ByRef position As Integer,
             depth As Integer) As Boolean
 
+            Dim shape = named
+            If named.IsTupleType AndAlso named.TupleUnderlyingType IsNot Nothing Then
+                shape = named.TupleUnderlyingType
+            End If
+
             Dim containing As NullableTypeNode = Nothing
-            If named.ContainingType IsNot Nothing Then
-                If Not TryBuildContainer(named.ContainingType, defaultFlag, transforms, position, depth + 1, containing) Then
+            If shape.ContainingType IsNot Nothing Then
+                If Not TryBuildContainer(shape.ContainingType, defaultFlag, transforms, position, depth + 1, containing) Then
                     Return False
                 End If
             End If
 
             node.Containing = containing
-            Return TryBuildArguments(named, defaultFlag, transforms, position, depth + 1, node.Arguments)
+            Return TryBuildArguments(shape, defaultFlag, transforms, position, depth + 1, node.Arguments)
         End Function
 
         ''' <summary>
@@ -317,6 +322,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             Dim named = TryCast(node.Type, NamedTypeSymbol)
             If named Is Nothing Then
                 Return
+            End If
+
+            If named.IsTupleType AndAlso named.TupleUnderlyingType IsNot Nothing Then
+                named = named.TupleUnderlyingType
             End If
 
             If Not named.IsDefinition AndAlso node.Arguments.Length = named.Arity Then
