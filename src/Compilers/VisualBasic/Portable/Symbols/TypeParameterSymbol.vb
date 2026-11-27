@@ -400,7 +400,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property ITypeParameterSymbol_ConstraintTypes As ImmutableArray(Of ITypeSymbol) Implements ITypeParameterSymbol.ConstraintTypes
             Get
-                Return StaticCast(Of ITypeSymbol).From(Me.ConstraintTypesNoUseSiteDiagnostics)
+                Return PublicTypeProjection.ProjectAll(Me.ConstraintTypesNoUseSiteDiagnostics, GetConstraintNullableAnnotations())
             End Get
         End Property
 

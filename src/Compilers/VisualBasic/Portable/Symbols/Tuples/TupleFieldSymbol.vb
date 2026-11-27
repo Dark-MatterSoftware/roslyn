@@ -177,6 +177,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Overrides Function GetNullableAnnotation() As NullableAnnotation
+            Return _containingTuple.GetLogicalElementAnnotation(TupleElementIndex)
+        End Function
+
         Friend Overrides ReadOnly Property TypeLayoutOffset As Integer?
             Get
                 Dim flag As Boolean = Me._underlyingField.ContainingType IsNot Me._containingTuple.TupleUnderlyingType

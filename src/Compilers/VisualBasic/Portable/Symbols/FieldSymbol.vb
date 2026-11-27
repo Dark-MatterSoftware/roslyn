@@ -493,7 +493,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IFieldSymbol_Type As ITypeSymbol Implements IFieldSymbol.Type
             Get
-                Return Me.Type
+                Return PublicTypeProjection.Project(Me.Type, GetNullableAnnotation())
             End Get
         End Property
 

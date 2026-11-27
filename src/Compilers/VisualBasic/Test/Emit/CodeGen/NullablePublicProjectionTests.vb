@@ -201,7 +201,7 @@ End Class
             Dim markedReference = marked.WithNullableAnnotation(NullableAnnotation.Annotated)
             Assert.Equal(NullableAnnotation.Annotated, markedReference.NullableAnnotation)
             Assert.Equal(NullableAnnotation.Annotated, DirectCast(markedReference, INamedTypeSymbol).TypeArgumentNullableAnnotations.Single())
-            Assert.Equal(NullableAnnotation.None, marked.NullableAnnotation)
+            Assert.Equal(NullableAnnotation.NotAnnotated, marked.NullableAnnotation)
         End Sub
 
         <Fact>

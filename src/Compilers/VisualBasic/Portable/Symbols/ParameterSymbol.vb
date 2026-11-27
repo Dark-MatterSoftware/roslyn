@@ -350,7 +350,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IParameterSymbol_Type As ITypeSymbol Implements IParameterSymbol.Type
             Get
-                Return Me.Type
+                Return PublicTypeProjection.Project(Me.Type, GetDeclaredNullableAnnotation())
             End Get
         End Property
 

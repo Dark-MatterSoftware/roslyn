@@ -39,10 +39,10 @@ End Module
             Dim looseCall = Invocation(compilation, "Identity(Of String?)(Nothing)")
             Assert.Equal(NullableAnnotation.Annotated, looseCall.ReturnNullableAnnotation)
             Assert.Equal(NullableAnnotation.Annotated, looseCall.Parameters(0).NullableAnnotation)
-            Assert.Equal(NullableAnnotation.None, looseCall.TypeArgumentNullableAnnotations.Single())
+            Assert.Equal(NullableAnnotation.Annotated, looseCall.TypeArgumentNullableAnnotations.Single())
             Dim readyCall = Invocation(compilation, "Identity(Of String)(""Hello"")")
             Assert.Equal(NullableAnnotation.NotAnnotated, readyCall.ReturnNullableAnnotation)
-            Assert.Equal(NullableAnnotation.None, readyCall.TypeArgumentNullableAnnotations.Single())
+            Assert.Equal(NullableAnnotation.NotAnnotated, readyCall.TypeArgumentNullableAnnotations.Single())
         End Sub
 
         <Fact>
@@ -296,7 +296,7 @@ Module Program
 End Module
 ", references:={library.EmitToImageReference()}, options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
             Assert.Equal("42512:looseResult", Picture(compilation))
-            Assert.Equal(NullableAnnotation.None, Invocation(compilation, "Catalog.Identity(Of String?)(Nothing)").TypeArgumentNullableAnnotations.Single())
+            Assert.Equal(NullableAnnotation.Annotated, Invocation(compilation, "Catalog.Identity(Of String?)(Nothing)").TypeArgumentNullableAnnotations.Single())
         End Sub
 
         <Fact>

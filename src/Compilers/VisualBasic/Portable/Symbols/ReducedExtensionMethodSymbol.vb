@@ -274,6 +274,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Friend Sub NotePublicReceiverAnnotation(annotation As NullableAnnotation)
+            If annotation = NullableAnnotation.None OrElse _curriedFromMethod.Parameters.Length = 0 Then
+                Return
+            End If
+
+            Dim typeParameter = TryCast(_curriedFromMethod.Parameters(0).Type, TypeParameterSymbol)
+            If typeParameter Is Nothing OrElse typeParameter.ContainingSymbol.OriginalDefinition IsNot _curriedFromMethod.OriginalDefinition Then
+                Return
+            End If
+
+            Dim stored = _originalTypeArgumentAnnotations
+            If stored.IsDefault OrElse typeParameter.Ordinal < 0 OrElse typeParameter.Ordinal >= stored.Length OrElse stored(typeParameter.Ordinal) <> NullableAnnotation.None Then
+                Return
+            End If
+
+            Dim updated(stored.Length - 1) As NullableAnnotation
+            stored.CopyTo(updated)
+            updated(typeParameter.Ordinal) = annotation
+            _originalTypeArgumentAnnotations = updated.AsImmutableOrNull()
+            _lazyReturnType = Nothing
+            _lazyParameters = Nothing
+        End Sub
+
+        Friend Overrides Function GetReceiverNullableAnnotation() As NullableAnnotation
+            Dim parameter = _curriedFromMethod.Parameters(0)
+            Dim declared = parameter.GetDeclaredNullableAnnotation()
+            If declared = NullableAnnotation.Annotated Then
+                Return declared
+            End If
+
+            Dim carried = AnnotationOfMethodType(parameter.Type)
+            If carried = NullableAnnotation.None Then
+                Return declared
+            End If
+
+            Return carried
+        End Function
+
         Friend Overrides ReadOnly Property FixedTypeParameters As ImmutableArray(Of KeyValuePair(Of TypeParameterSymbol, TypeSymbol))
             Get
                 Return _fixedTypeParameters
@@ -281,17 +319,68 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Friend Overrides Sub SetTypeArgumentNullableAnnotations(annotations As ImmutableArray(Of NullableAnnotation))
-            If annotations.IsDefault OrElse annotations.Length <> _curriedFromMethod.Arity Then
+            If annotations.IsDefault Then
                 Return
             End If
 
-            _originalTypeArgumentAnnotations = annotations
+            If annotations.Length = _curriedFromMethod.Arity Then
+                _originalTypeArgumentAnnotations = annotations
+                _lazyReturnType = Nothing
+                _lazyParameters = Nothing
+                Return
+            End If
+
+            Dim parameters = Me.TypeParameters
+            If parameters.IsDefault OrElse annotations.Length <> parameters.Length OrElse _curriedFromMethod.Arity = 0 Then
+                Return
+            End If
+
+            Dim updated(_curriedFromMethod.Arity - 1) As NullableAnnotation
+            Dim stored = _originalTypeArgumentAnnotations
+            If Not stored.IsDefault AndAlso stored.Length = updated.Length Then
+                stored.CopyTo(updated)
+            End If
+
+            For i = 0 To annotations.Length - 1
+                Dim original = parameters(i).ReducedFrom
+                Dim ordinal = If(original Is Nothing, parameters(i).Ordinal, original.Ordinal)
+                If ordinal >= 0 AndAlso ordinal < updated.Length Then
+                    updated(ordinal) = annotations(i)
+                End If
+            Next
+
+            _originalTypeArgumentAnnotations = updated.AsImmutableOrNull()
             _lazyReturnType = Nothing
             _lazyParameters = Nothing
         End Sub
 
         Friend Overrides Function GetTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
             Return _originalTypeArgumentAnnotations
+        End Function
+
+        Friend Overrides Function GetPublicTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Dim stored = _originalTypeArgumentAnnotations
+            Dim parameters = Me.TypeParameters
+            If parameters.IsDefaultOrEmpty Then
+                Return ImmutableArray(Of NullableAnnotation).Empty
+            End If
+
+            If stored.IsDefault OrElse stored.Length = parameters.Length Then
+                Return stored
+            End If
+
+            If stored.Length <> _curriedFromMethod.Arity Then
+                Return Nothing
+            End If
+
+            Dim mapped(parameters.Length - 1) As NullableAnnotation
+            For i = 0 To parameters.Length - 1
+                Dim original = parameters(i).ReducedFrom
+                Dim ordinal = If(original Is Nothing, parameters(i).Ordinal, original.Ordinal)
+                mapped(i) = If(ordinal >= 0 AndAlso ordinal < stored.Length, stored(ordinal), NullableAnnotation.None)
+            Next
+
+            Return mapped.AsImmutableOrNull()
         End Function
 
         Friend Overrides ReadOnly Property ReturnTypeFlowAnalysisAnnotations As FlowAnalysisAnnotations

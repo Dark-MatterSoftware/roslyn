@@ -2936,7 +2936,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Protected Overrides Function CommonCreateArrayTypeSymbol(elementType As ITypeSymbol, rank As Integer, elementNullableAnnotation As NullableAnnotation) As IArrayTypeSymbol
-            Return CreateArrayTypeSymbol(elementType.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(elementType)), rank)
+            Dim publicElement = elementType
+            If elementNullableAnnotation <> NullableAnnotation.None AndAlso publicElement IsNot Nothing AndAlso publicElement.NullableAnnotation <> elementNullableAnnotation Then
+                publicElement = publicElement.WithNullableAnnotation(elementNullableAnnotation)
+            End If
+
+            Dim created = CreateArrayTypeSymbol(elementType.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(elementType)), rank)
+            If PublicTypeProjection.HasIndependentState(publicElement) Then
+                Return DirectCast(PublicTypeProjection.PresentArray(created, NullableAnnotation.None, publicElement), IArrayTypeSymbol)
+            End If
+
+            If elementNullableAnnotation <> NullableAnnotation.None Then
+                created.SetElementNullableAnnotation(elementNullableAnnotation)
+            End If
+
+            Return created
         End Function
 
         Protected Overrides Function CommonCreateTupleTypeSymbol(elementTypes As ImmutableArray(Of ITypeSymbol),
@@ -2949,11 +2963,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             'no location for the type declaration
-            Return TupleTypeSymbol.Create(locationOpt:=Nothing,
+            Dim created = TupleTypeSymbol.Create(locationOpt:=Nothing,
                                           elementTypes:=typesBuilder.ToImmutableAndFree(),
                                           elementLocations:=elementLocations,
                                           elementNames:=elementNames, compilation:=Me,
                                           shouldCheckConstraints:=False, errorPositions:=Nothing)
+            Dim annotations = elementNullableAnnotations
+            If annotations.IsDefault Then
+                annotations = PublicTypeProjection.CaptureAnnotations(elementTypes)
+            End If
+
+            If Not annotations.IsDefault Then
+                TupleTypeSymbol.StampLogicalElementAnnotations(created.TupleUnderlyingType, annotations)
+            End If
+
+            If PublicTypeProjection.AnyIndependentState(elementTypes) Then
+                Dim names = elementNames
+                If names.IsDefault Then
+                    Dim generated(elementTypes.Length - 1) As String
+                    For i = 0 To elementTypes.Length - 1
+                        generated(i) = "Item" & (i + 1).ToString(Globalization.CultureInfo.InvariantCulture)
+                    Next
+                    names = generated.AsImmutableOrNull()
+                End If
+
+                Return PublicTypeProjection.PresentAnonymous(created, names, elementTypes)
+            End If
+
+            Return created
         End Function
 
         Protected Overrides Function CommonCreateTupleTypeSymbol(
@@ -2972,12 +3009,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             CheckTupleElementLocations(cardinality, elementLocations)
             CheckTupleElementNullableAnnotations(cardinality, elementNullableAnnotations)
 
-            Return TupleTypeSymbol.Create(
+            Dim created = TupleTypeSymbol.Create(
                 locationOpt:=Nothing,
                 tupleCompatibleType:=underlyingType.EnsureVbSymbolOrNothing(Of NamedTypeSymbol)(NameOf(underlyingType)),
                 elementLocations:=elementLocations,
                 elementNames:=elementNames,
                 errorPositions:=Nothing)
+            If elementNullableAnnotations.IsDefault Then
+                Return created
+            End If
+
+            ' Rebuild from element types so an explicit annotation array does not mutate the supplied underlying type.
+            Dim rebuilt = TupleTypeSymbol.Create(locationOpt:=Nothing,
+                                                 elementTypes:=created.TupleElementTypes,
+                                                 elementLocations:=elementLocations,
+                                                 elementNames:=elementNames,
+                                                 compilation:=Me,
+                                                 shouldCheckConstraints:=False,
+                                                 errorPositions:=Nothing)
+            TupleTypeSymbol.StampLogicalElementAnnotations(rebuilt.TupleUnderlyingType, elementNullableAnnotations)
+            Return rebuilt
         End Function
 
         Protected Overrides Function CommonCreatePointerTypeSymbol(elementType As ITypeSymbol) As IPointerTypeSymbol
@@ -3015,16 +3066,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim fields = ArrayBuilder(Of AnonymousTypeField).GetInstance()
 
             For i = 0 To memberTypes.Length - 1
-                Dim type = memberTypes(i)
+                Dim type = memberTypes(i).EnsureVbSymbolOrNothing(Of TypeSymbol)($"{NameOf(memberTypes)}({i})")
                 Dim name = memberNames(i)
                 Dim loc = If(memberLocations.IsDefault, Location.None, memberLocations(i))
                 Dim isReadOnly = memberIsReadOnly.IsDefault OrElse memberIsReadOnly(i)
-                fields.Add(New AnonymousTypeField(name, DirectCast(type, TypeSymbol), loc, isReadOnly))
+                fields.Add(New AnonymousTypeField(name, type, loc, isReadOnly))
             Next
 
             Dim descriptor = New AnonymousTypeDescriptor(
                 fields.ToImmutableAndFree(), Location.None, isImplicitlyDeclared:=False)
-            Return Me.AnonymousTypeManager.ConstructAnonymousTypeSymbol(descriptor, BindingDiagnosticBag.Discarded)
+            Dim created = Me.AnonymousTypeManager.ConstructAnonymousTypeSymbol(descriptor, BindingDiagnosticBag.Discarded)
+            Dim publicTypes(memberTypes.Length - 1) As ITypeSymbol
+            Dim preserve = False
+            For i = 0 To memberTypes.Length - 1
+                Dim publicType = memberTypes(i)
+                Dim requested = If(memberNullableAnnotations.IsDefault OrElse i >= memberNullableAnnotations.Length, publicType.NullableAnnotation, memberNullableAnnotations(i))
+                If requested <> NullableAnnotation.None AndAlso publicType.NullableAnnotation <> requested Then
+                    publicType = publicType.WithNullableAnnotation(requested)
+                End If
+
+                publicTypes(i) = publicType
+                If PublicTypeProjection.HasIndependentState(publicType) OrElse requested <> NullableAnnotation.None Then
+                    preserve = True
+                End If
+            Next
+
+            If Not preserve Then
+                Return created
+            End If
+
+            Return PublicTypeProjection.PresentAnonymous(created, memberNames, publicTypes.AsImmutableOrNull())
         End Function
 
         Protected Overrides Function CommonCreateBuiltinOperator(

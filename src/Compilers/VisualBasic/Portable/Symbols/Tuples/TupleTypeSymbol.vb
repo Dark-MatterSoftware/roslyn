@@ -436,6 +436,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return created
         End Function
 
+        Friend Function GetLogicalElementAnnotation(index As Integer) As NullableAnnotation
+            Dim annotations = ReadLogicalElementAnnotations(Me.TupleUnderlyingType)
+            If annotations.IsDefault OrElse index < 0 OrElse index >= annotations.Length Then
+                Return NullableAnnotation.None
+            End If
+
+            Return annotations(index)
+        End Function
+
         Friend Shared Sub StampLogicalElementAnnotations(underlying As NamedTypeSymbol, annotations As ImmutableArray(Of NullableAnnotation))
             If underlying Is Nothing OrElse annotations.IsDefaultOrEmpty Then
                 Return

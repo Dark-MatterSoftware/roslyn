@@ -1426,7 +1426,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property INamedTypeSymbol_TypeArguments As ImmutableArray(Of ITypeSymbol) Implements INamedTypeSymbol.TypeArguments
             Get
-                Return StaticCast(Of ITypeSymbol).From(Me.TypeArgumentsNoUseSiteDiagnostics)
+                Return PublicTypeProjection.ProjectAll(Me.TypeArgumentsNoUseSiteDiagnostics, GetTypeArgumentNullableAnnotations())
             End Get
         End Property
 
@@ -1472,11 +1472,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Function INamedTypeSymbol_Construct(ParamArray typeArguments() As ITypeSymbol) As INamedTypeSymbol Implements INamedTypeSymbol.Construct
             Dim result = Construct(ConstructTypeArguments(typeArguments))
+            Dim annotations = PublicTypeProjection.CaptureAnnotations(typeArguments.AsImmutableOrNull())
             If result Is Me Then
-                Return result
+                Return PublicTypeProjection.PresentNamedIdentity(Me, annotations)
             End If
 
-            Dim annotations = PublicTypeProjection.CaptureAnnotations(typeArguments.AsImmutableOrNull())
+            If PublicTypeProjection.AnyIndependentState(typeArguments.AsImmutableOrNull()) Then
+                Return PublicTypeProjection.PresentWithArguments(result, typeArguments.AsImmutableOrNull())
+            End If
+
             If Not annotations.IsDefault Then
                 result.SetTypeArgumentNullableAnnotations(annotations)
             End If
@@ -1486,7 +1490,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Function INamedTypeSymbol_Construct(typeArguments As ImmutableArray(Of ITypeSymbol), typeArgumentNullableAnnotations As ImmutableArray(Of CodeAnalysis.NullableAnnotation)) As INamedTypeSymbol Implements INamedTypeSymbol.Construct
             Dim result = Construct(ConstructTypeArguments(typeArguments, typeArgumentNullableAnnotations))
-            If result Is Me OrElse typeArgumentNullableAnnotations.IsDefault Then
+            If result Is Me Then
+                Return PublicTypeProjection.PresentNamedIdentity(Me, typeArgumentNullableAnnotations)
+            End If
+
+            If PublicTypeProjection.AnyIndependentState(typeArguments) Then
+                Return PublicTypeProjection.PresentWithArguments(result, typeArguments)
+            End If
+
+            If typeArgumentNullableAnnotations.IsDefault Then
                 Return result
             End If
 

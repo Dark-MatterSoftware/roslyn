@@ -14,15 +14,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' Public representation of one annotated use of an existing compiler type.
     ''' The projection is not a <see cref="TypeSymbol"/> and is never stored in compiler caches.
     ''' </summary>
-    Friend MustInherit Class PublicTypeProjection
+    Friend MustInherit Partial Class PublicTypeProjection
         Implements ITypeSymbol
 
         Private ReadOnly _underlying As TypeSymbol
         Private ReadOnly _annotation As NullableAnnotation
 
-        Private Sub New(underlying As TypeSymbol, annotation As NullableAnnotation)
+        Private Sub New(underlying As TypeSymbol, annotation As NullableAnnotation, Optional allowOblivious As Boolean = False)
             Debug.Assert(underlying IsNot Nothing)
-            Debug.Assert(annotation <> NullableAnnotation.None)
+            Debug.Assert(allowOblivious OrElse annotation <> NullableAnnotation.None)
             _underlying = underlying
             _annotation = annotation
         End Sub
@@ -106,10 +106,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return NullableAnnotation.None
         End Function
 
+        Friend Shared Function Project(type As TypeSymbol, annotation As NullableAnnotation) As ITypeSymbol
+            If type Is Nothing Then
+                Return Nothing
+            End If
+
+            Return Create(type, annotation)
+        End Function
+
+        Friend Shared Function ProjectAll(types As ImmutableArray(Of TypeSymbol), annotations As ImmutableArray(Of NullableAnnotation)) As ImmutableArray(Of ITypeSymbol)
+            If types.IsDefault Then
+                Return Nothing
+            End If
+
+            If types.IsEmpty Then
+                Return ImmutableArray(Of ITypeSymbol).Empty
+            End If
+
+            Dim useAnnotations = Not annotations.IsDefault AndAlso annotations.Length = types.Length
+            Dim builder = ArrayBuilder(Of ITypeSymbol).GetInstance(types.Length)
+            For i = 0 To types.Length - 1
+                Dim annotation = If(useAnnotations, annotations(i), NullableAnnotation.None)
+                builder.Add(Project(types(i), annotation))
+            Next
+
+            Return builder.ToImmutableAndFree()
+        End Function
+
         Friend Shared Function Unwrap(symbol As ISymbol) As ISymbol
             Dim projection = TryCast(symbol, PublicTypeProjection)
             If projection IsNot Nothing Then
                 Return projection.Underlying
+            End If
+
+            Dim projected = TryCast(symbol, ProjectedSymbol)
+            If projected IsNot Nothing Then
+                Return projected.CompilerSymbol
             End If
 
             Return symbol
@@ -149,7 +181,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return NestedAnnotationsEqual(DirectCast(left, ITypeSymbol), DirectCast(right, ITypeSymbol), compareKind)
         End Function
 
+        Private Structure TypePair
+            Implements IEquatable(Of TypePair)
+
+            Public ReadOnly Left As ITypeSymbol
+            Public ReadOnly Right As ITypeSymbol
+
+            Public Sub New(left As ITypeSymbol, right As ITypeSymbol)
+                Me.Left = left
+                Me.Right = right
+            End Sub
+
+            Public Overloads Function Equals(other As TypePair) As Boolean Implements IEquatable(Of TypePair).Equals
+                Return Left Is other.Left AndAlso Right Is other.Right
+            End Function
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return TypeOf obj Is TypePair AndAlso Equals(DirectCast(obj, TypePair))
+            End Function
+
+            Public Overrides Function GetHashCode() As Integer
+                Return Hash.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Left), System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Right))
+            End Function
+        End Structure
+
         Friend Shared Function NestedAnnotationsEqual(left As ITypeSymbol, right As ITypeSymbol, compareKind As TypeCompareKind) As Boolean
+            Return NestedAnnotationsEqual(left, right, compareKind, Nothing)
+        End Function
+
+        Private Shared Function NestedAnnotationsEqual(left As ITypeSymbol, right As ITypeSymbol, compareKind As TypeCompareKind, seen As HashSet(Of TypePair)) As Boolean
             If left Is right Then
                 Return True
             End If
@@ -166,7 +226,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return False
                 End If
 
-                Return NestedAnnotationsEqual(leftArray.ElementType, rightArray.ElementType, compareKind)
+                Return NestedAnnotationsEqual(leftArray.ElementType, rightArray.ElementType, compareKind, seen)
             End If
 
             Dim leftNamed = TryCast(left, INamedTypeSymbol)
@@ -184,12 +244,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
 
                 For i = 0 To leftArguments.Length - 1
-                    If Not NestedAnnotationsEqual(leftArguments(i), rightArguments(i), compareKind) Then
+                    If Not NestedAnnotationsEqual(leftArguments(i), rightArguments(i), compareKind, seen) Then
                         Return False
                     End If
                 Next
 
-                Return NestedAnnotationsEqual(leftNamed.ContainingType, rightNamed.ContainingType, compareKind)
+                If leftNamed.IsAnonymousType AndAlso rightNamed.IsAnonymousType AndAlso Not AnonymousMembersEqual(leftNamed, rightNamed, compareKind, seen) Then
+                    Return False
+                End If
+
+                Return NestedAnnotationsEqual(leftNamed.ContainingType, rightNamed.ContainingType, compareKind, seen)
             End If
 
             Dim leftParameter = TryCast(left, ITypeParameterSymbol)
@@ -201,20 +265,85 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return False
                 End If
 
-                Dim leftConstraints = leftParameter.ConstraintTypes
-                Dim rightConstraints = rightParameter.ConstraintTypes
-                If leftConstraints.Length <> rightConstraints.Length Then
-                    Return False
-                End If
-
-                For i = 0 To leftConstraints.Length - 1
-                    If Not NestedAnnotationsEqual(leftConstraints(i), rightConstraints(i), compareKind) Then
-                        Return False
-                    End If
-                Next
+                ' Type-parameter identity follows the shared contract: original definition and containing
+                ' symbol. Constraint types are not traversed. Their public nullable annotations are the
+                ' arrays compared above, and nested annotations are compared when those types are compared
+                ' as types. C# type-parameter equality does not walk constraints either.
             End If
 
             Return True
+        End Function
+
+        Private Shared Function AnonymousMembersEqual(left As INamedTypeSymbol, right As INamedTypeSymbol, compareKind As TypeCompareKind, seen As HashSet(Of TypePair)) As Boolean
+            For Each leftMember In left.GetMembers()
+                Dim leftProperty = TryCast(leftMember, IPropertySymbol)
+                If leftProperty Is Nothing OrElse leftProperty.IsImplicitlyDeclared Then
+                    Continue For
+                End If
+
+                Dim rightProperty As IPropertySymbol = Nothing
+                For Each rightMember In right.GetMembers(leftProperty.Name)
+                    rightProperty = TryCast(rightMember, IPropertySymbol)
+                    If rightProperty IsNot Nothing Then
+                        Exit For
+                    End If
+                Next
+
+                If rightProperty Is Nothing OrElse Not NestedAnnotationsEqual(leftProperty.Type, rightProperty.Type, compareKind, seen) Then
+                    Return False
+                End If
+            Next
+
+            Return True
+        End Function
+
+        Friend Shared Function AnyIndependentState(typeArguments As ImmutableArray(Of ITypeSymbol)) As Boolean
+            If typeArguments.IsDefaultOrEmpty Then
+                Return False
+            End If
+
+            For Each argument In typeArguments
+                If HasIndependentState(argument) Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        Friend Shared Function HasIndependentState(symbol As ISymbol) As Boolean
+            Dim named = TryCast(symbol, NamedTypeProjection)
+            If named IsNot Nothing Then
+                Return Not named.ArgumentAnnotations.IsDefault OrElse named.ContainingOverride IsNot Nothing OrElse Not named.PublicArguments.IsDefault OrElse Not named.MemberTypes.IsDefault
+            End If
+
+            Dim array = TryCast(symbol, ArrayTypeProjection)
+            Return array IsNot Nothing AndAlso array.HasElementOverride
+        End Function
+
+        Friend Shared Function PresentWithArguments(underlying As NamedTypeSymbol, arguments As ImmutableArray(Of ITypeSymbol)) As INamedTypeSymbol
+            If underlying Is Nothing OrElse arguments.IsDefault Then
+                Return underlying
+            End If
+
+            Dim annotations(arguments.Length - 1) As NullableAnnotation
+            For i = 0 To arguments.Length - 1
+                annotations(i) = If(arguments(i) Is Nothing, NullableAnnotation.None, arguments(i).NullableAnnotation)
+            Next
+
+            Return New NamedTypeProjection(underlying, NullableAnnotation.None, annotations.AsImmutableOrNull(), Nothing, arguments)
+        End Function
+
+        Friend Shared Function PresentArray(arrayType As ArrayTypeSymbol, annotation As NullableAnnotation, element As ITypeSymbol) As ITypeSymbol
+            Return New ArrayTypeProjection(arrayType, annotation, element)
+        End Function
+
+        Friend Shared Function PresentAnonymous(underlying As NamedTypeSymbol, memberNames As ImmutableArray(Of String), memberTypes As ImmutableArray(Of ITypeSymbol)) As INamedTypeSymbol
+            If underlying Is Nothing OrElse memberTypes.IsDefaultOrEmpty Then
+                Return underlying
+            End If
+
+            Return New NamedTypeProjection(underlying, NullableAnnotation.None, Nothing, Nothing, Nothing, memberNames, memberTypes)
         End Function
 
         Private Shared Function TryGetCompilerType(symbol As ISymbol, ByRef underlying As TypeSymbol, ByRef annotation As NullableAnnotation) As Boolean
@@ -308,6 +437,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Private Function ITypeSymbol_WithNullableAnnotation(nullableAnnotation As NullableAnnotation) As ITypeSymbol Implements ITypeSymbol.WithNullableAnnotation
+            Return ApplyNullableAnnotation(nullableAnnotation)
+        End Function
+
+        Protected Overridable Function ApplyNullableAnnotation(nullableAnnotation As NullableAnnotation) As ITypeSymbol
             If nullableAnnotation = _annotation Then
                 Return Me
             End If
@@ -407,9 +540,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property ISymbol_ContainingType As INamedTypeSymbol Implements ISymbol.ContainingType
             Get
-                Return PublicType.ContainingType
+                Return GetProjectedContainingType()
             End Get
         End Property
+
+        Protected Overridable Function GetProjectedContainingType() As INamedTypeSymbol
+            Return PublicType.ContainingType
+        End Function
 
         Private ReadOnly Property ISymbol_ContainingNamespace As INamespaceSymbol Implements ISymbol.ContainingNamespace
             Get
@@ -536,22 +673,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Property
 
         Private Function INamespaceOrTypeSymbol_GetMembers() As ImmutableArray(Of ISymbol) Implements INamespaceOrTypeSymbol.GetMembers
-            Return PublicType.GetMembers()
+            Return GetProjectedMembers()
         End Function
 
         Private Function INamespaceOrTypeSymbol_GetMembers(name As String) As ImmutableArray(Of ISymbol) Implements INamespaceOrTypeSymbol.GetMembers
-            Return PublicType.GetMembers(name)
+            Return GetProjectedMembers(name)
         End Function
 
         Private Function INamespaceOrTypeSymbol_GetTypeMembers() As ImmutableArray(Of INamedTypeSymbol) Implements INamespaceOrTypeSymbol.GetTypeMembers
-            Return PublicType.GetTypeMembers()
+            Return GetProjectedTypeMembers()
         End Function
 
         Private Function INamespaceOrTypeSymbol_GetTypeMembers(name As String) As ImmutableArray(Of INamedTypeSymbol) Implements INamespaceOrTypeSymbol.GetTypeMembers
-            Return PublicType.GetTypeMembers(name)
+            Return GetProjectedTypeMembers(name)
         End Function
 
         Private Function INamespaceOrTypeSymbol_GetTypeMembers(name As String, arity As Integer) As ImmutableArray(Of INamedTypeSymbol) Implements INamespaceOrTypeSymbol.GetTypeMembers
+            Return GetProjectedTypeMembers(name, arity)
+        End Function
+
+        Protected Overridable Function GetProjectedMembers() As ImmutableArray(Of ISymbol)
+            Return PublicType.GetMembers()
+        End Function
+
+        Protected Overridable Function GetProjectedMembers(name As String) As ImmutableArray(Of ISymbol)
+            Return PublicType.GetMembers(name)
+        End Function
+
+        Protected Overridable Function GetProjectedTypeMembers() As ImmutableArray(Of INamedTypeSymbol)
+            Return PublicType.GetTypeMembers()
+        End Function
+
+        Protected Overridable Function GetProjectedTypeMembers(name As String) As ImmutableArray(Of INamedTypeSymbol)
+            Return PublicType.GetTypeMembers(name)
+        End Function
+
+        Protected Overridable Function GetProjectedTypeMembers(name As String, arity As Integer) As ImmutableArray(Of INamedTypeSymbol)
             Return PublicType.GetTypeMembers(name, arity)
         End Function
 
@@ -718,11 +875,189 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Implements INamedTypeSymbol
 
             Private ReadOnly _named As INamedTypeSymbol
+            Private ReadOnly _argumentAnnotations As ImmutableArray(Of NullableAnnotation)
+            Private ReadOnly _containingOverride As INamedTypeSymbol
+            Private ReadOnly _publicArguments As ImmutableArray(Of ITypeSymbol)
+            Private ReadOnly _memberNames As ImmutableArray(Of String)
+            Private ReadOnly _memberTypes As ImmutableArray(Of ITypeSymbol)
 
-            Public Sub New(underlying As NamedTypeSymbol, annotation As NullableAnnotation)
-                MyBase.New(underlying, annotation)
+            Public Sub New(underlying As NamedTypeSymbol,
+                           annotation As NullableAnnotation,
+                           Optional argumentAnnotations As ImmutableArray(Of NullableAnnotation) = Nothing,
+                           Optional containingOverride As INamedTypeSymbol = Nothing,
+                           Optional publicArguments As ImmutableArray(Of ITypeSymbol) = Nothing,
+                           Optional memberNames As ImmutableArray(Of String) = Nothing,
+                           Optional memberTypes As ImmutableArray(Of ITypeSymbol) = Nothing)
+                MyBase.New(underlying, annotation, allowOblivious:=Not argumentAnnotations.IsDefault OrElse containingOverride IsNot Nothing OrElse Not publicArguments.IsDefault OrElse Not memberTypes.IsDefault)
                 _named = underlying
+                _argumentAnnotations = argumentAnnotations
+                _containingOverride = containingOverride
+                _publicArguments = publicArguments
+                _memberNames = memberNames
+                _memberTypes = memberTypes
             End Sub
+
+            Friend ReadOnly Property ArgumentAnnotations As ImmutableArray(Of NullableAnnotation)
+                Get
+                    Return _argumentAnnotations
+                End Get
+            End Property
+
+            Friend ReadOnly Property ContainingOverride As INamedTypeSymbol
+                Get
+                    Return _containingOverride
+                End Get
+            End Property
+
+            Friend ReadOnly Property PublicArguments As ImmutableArray(Of ITypeSymbol)
+                Get
+                    Return _publicArguments
+                End Get
+            End Property
+
+            Friend ReadOnly Property MemberTypes As ImmutableArray(Of ITypeSymbol)
+                Get
+                    Return _memberTypes
+                End Get
+            End Property
+
+            Private Function NeedsMemberViews() As Boolean
+                Return Not _argumentAnnotations.IsDefault OrElse TypeOf _containingOverride Is NamedTypeProjection OrElse Not _publicArguments.IsDefault OrElse Not _memberTypes.IsDefault
+            End Function
+
+            Private Function ExplicitMemberType(name As String) As ITypeSymbol
+                If _memberNames.IsDefault OrElse _memberTypes.IsDefault Then
+                    Return Nothing
+                End If
+
+                For i = 0 To _memberNames.Length - 1
+                    If String.Equals(_memberNames(i), name, StringComparison.Ordinal) Then
+                        Return _memberTypes(i)
+                    End If
+                Next
+
+                Return Nothing
+            End Function
+
+            Protected Overrides Function GetProjectedContainingType() As INamedTypeSymbol
+                If _containingOverride IsNot Nothing Then
+                    Return _containingOverride
+                End If
+
+                Return MyBase.GetProjectedContainingType()
+            End Function
+
+            Protected Overrides Function ApplyNullableAnnotation(nullableAnnotation As NullableAnnotation) As ITypeSymbol
+                If nullableAnnotation = Annotation Then
+                    Return Me
+                End If
+
+                If nullableAnnotation = NullableAnnotation.None AndAlso _argumentAnnotations.IsDefault AndAlso _containingOverride Is Nothing AndAlso _publicArguments.IsDefault AndAlso _memberTypes.IsDefault Then
+                    Return Underlying
+                End If
+
+                Return New NamedTypeProjection(DirectCast(Underlying, NamedTypeSymbol), nullableAnnotation, _argumentAnnotations, _containingOverride, _publicArguments, _memberNames, _memberTypes)
+            End Function
+
+            Protected Overrides Function GetProjectedMembers() As ImmutableArray(Of ISymbol)
+                Return WrapMembers(MyBase.GetProjectedMembers())
+            End Function
+
+            Protected Overrides Function GetProjectedMembers(name As String) As ImmutableArray(Of ISymbol)
+                Return WrapMembers(MyBase.GetProjectedMembers(name))
+            End Function
+
+            Protected Overrides Function GetProjectedTypeMembers() As ImmutableArray(Of INamedTypeSymbol)
+                Return WrapTypes(MyBase.GetProjectedTypeMembers())
+            End Function
+
+            Protected Overrides Function GetProjectedTypeMembers(name As String) As ImmutableArray(Of INamedTypeSymbol)
+                Return WrapTypes(MyBase.GetProjectedTypeMembers(name))
+            End Function
+
+            Protected Overrides Function GetProjectedTypeMembers(name As String, arity As Integer) As ImmutableArray(Of INamedTypeSymbol)
+                Return WrapTypes(MyBase.GetProjectedTypeMembers(name, arity))
+            End Function
+
+            Private Function WrapMembers(members As ImmutableArray(Of ISymbol)) As ImmutableArray(Of ISymbol)
+                If Not NeedsMemberViews() OrElse members.IsDefaultOrEmpty Then
+                    Return members
+                End If
+
+                Dim builder = ArrayBuilder(Of ISymbol).GetInstance(members.Length)
+                For Each member In members
+                    builder.Add(WrapMember(member))
+                Next
+
+                Return builder.ToImmutableAndFree()
+            End Function
+
+            Private Function WrapMember(member As ISymbol) As ISymbol
+                Dim explicitType = ExplicitMemberType(member.Name)
+                Dim field = TryCast(member, IFieldSymbol)
+                If field IsNot Nothing Then
+                    Return New IdentityFieldView(field, Me, explicitType)
+                End If
+
+                Dim propertySymbol = TryCast(member, IPropertySymbol)
+                If propertySymbol IsNot Nothing Then
+                    Return New IdentityPropertyView(propertySymbol, Me, explicitType)
+                End If
+
+                Dim method = TryCast(member, IMethodSymbol)
+                If method IsNot Nothing Then
+                    Return New IdentityMethodView(method, Nothing, Me)
+                End If
+
+                Dim eventSymbol = TryCast(member, IEventSymbol)
+                If eventSymbol IsNot Nothing Then
+                    Return New IdentityEventView(eventSymbol, Me)
+                End If
+
+                Return member
+            End Function
+
+            Private Function WrapTypes(types As ImmutableArray(Of INamedTypeSymbol)) As ImmutableArray(Of INamedTypeSymbol)
+                If Not NeedsMemberViews() OrElse types.IsDefaultOrEmpty Then
+                    Return types
+                End If
+
+                Dim builder = ArrayBuilder(Of INamedTypeSymbol).GetInstance(types.Length)
+                For Each nested In types
+                    Dim compiler = TryCast(Unwrap(nested), NamedTypeSymbol)
+                    If compiler Is Nothing Then
+                        builder.Add(nested)
+                    Else
+                        builder.Add(New NamedTypeProjection(compiler, nested.NullableAnnotation, Nothing, Me))
+                    End If
+                Next
+
+                Return builder.ToImmutableAndFree()
+            End Function
+
+            Private Function FinishConstruct(built As INamedTypeSymbol, requested As ImmutableArray(Of NullableAnnotation)) As INamedTypeSymbol
+                Dim compiler = TryCast(Unwrap(built), NamedTypeSymbol)
+                If compiler Is Nothing Then
+                    Return built
+                End If
+
+                Dim overlay = requested
+                If overlay.IsDefault OrElse Not AnnotationsDiffer(compiler.GetTypeArgumentNullableAnnotations(), overlay) OrElse compiler IsNot DirectCast(Underlying, NamedTypeSymbol) Then
+                    overlay = Nothing
+                End If
+
+                Dim containing = _containingOverride
+                If overlay.IsDefault AndAlso containing Is Nothing Then
+                    Return built
+                End If
+
+                Dim top = Annotation
+                If top = NullableAnnotation.None Then
+                    top = built.NullableAnnotation
+                End If
+
+                Return New NamedTypeProjection(compiler, top, overlay, containing, _publicArguments, _memberNames, _memberTypes)
+            End Function
 
             Private ReadOnly Property INamedTypeSymbol_Arity As Integer Implements INamedTypeSymbol.Arity
                 Get
@@ -780,12 +1115,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Private ReadOnly Property INamedTypeSymbol_TypeArguments As ImmutableArray(Of ITypeSymbol) Implements INamedTypeSymbol.TypeArguments
                 Get
+                    If Not _publicArguments.IsDefault Then
+                        Return _publicArguments
+                    End If
+
+                    If Not _argumentAnnotations.IsDefault Then
+                        Return ProjectAll(DirectCast(Underlying, NamedTypeSymbol).TypeArgumentsNoUseSiteDiagnostics, _argumentAnnotations)
+                    End If
+
                     Return _named.TypeArguments
                 End Get
             End Property
 
             Private ReadOnly Property INamedTypeSymbol_TypeArgumentNullableAnnotations As ImmutableArray(Of NullableAnnotation) Implements INamedTypeSymbol.TypeArgumentNullableAnnotations
                 Get
+                    If Not _argumentAnnotations.IsDefault Then
+                        Return _argumentAnnotations
+                    End If
+
                     Return _named.TypeArgumentNullableAnnotations
                 End Get
             End Property
@@ -819,11 +1166,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Property
 
             Private Function INamedTypeSymbol_Construct(ParamArray typeArguments() As ITypeSymbol) As INamedTypeSymbol Implements INamedTypeSymbol.Construct
-                Return _named.Construct(typeArguments)
+                Return FinishConstruct(_named.Construct(typeArguments), CaptureAnnotations(typeArguments.AsImmutableOrNull()))
             End Function
 
             Private Function INamedTypeSymbol_Construct(typeArguments As ImmutableArray(Of ITypeSymbol), typeArgumentNullableAnnotations As ImmutableArray(Of NullableAnnotation)) As INamedTypeSymbol Implements INamedTypeSymbol.Construct
-                Return _named.Construct(typeArguments, typeArgumentNullableAnnotations)
+                Return FinishConstruct(_named.Construct(typeArguments, typeArgumentNullableAnnotations), typeArgumentNullableAnnotations)
             End Function
 
             Private Function INamedTypeSymbol_ConstructUnboundGenericType() As INamedTypeSymbol Implements INamedTypeSymbol.ConstructUnboundGenericType
@@ -868,7 +1215,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Private ReadOnly Property INamedTypeSymbol_TupleElements As ImmutableArray(Of IFieldSymbol) Implements INamedTypeSymbol.TupleElements
                 Get
-                    Return _named.TupleElements
+                    Dim elements = _named.TupleElements
+                    If _memberTypes.IsDefault OrElse elements.IsDefaultOrEmpty Then
+                        Return elements
+                    End If
+
+                    Dim builder = ArrayBuilder(Of IFieldSymbol).GetInstance(elements.Length)
+                    For i = 0 To elements.Length - 1
+                        Dim explicitType = If(i < _memberTypes.Length, _memberTypes(i), Nothing)
+                        builder.Add(New IdentityFieldView(elements(i), Me, explicitType))
+                    Next
+
+                    Return builder.ToImmutableAndFree()
                 End Get
             End Property
 
@@ -945,12 +1303,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Private ReadOnly _array As IArrayTypeSymbol
             Private ReadOnly _underlyingArray As ArrayTypeSymbol
+            Private ReadOnly _elementOverride As ITypeSymbol
 
-            Public Sub New(underlying As ArrayTypeSymbol, annotation As NullableAnnotation)
-                MyBase.New(underlying, annotation)
+            Public Sub New(underlying As ArrayTypeSymbol, annotation As NullableAnnotation, Optional elementOverride As ITypeSymbol = Nothing)
+                MyBase.New(underlying, annotation, allowOblivious:=elementOverride IsNot Nothing)
                 _array = underlying
                 _underlyingArray = underlying
+                _elementOverride = elementOverride
             End Sub
+
+            Friend ReadOnly Property HasElementOverride As Boolean
+                Get
+                    Return _elementOverride IsNot Nothing
+                End Get
+            End Property
+
+            Protected Overrides Function ApplyNullableAnnotation(nullableAnnotation As NullableAnnotation) As ITypeSymbol
+                If nullableAnnotation = Annotation Then
+                    Return Me
+                End If
+
+                If nullableAnnotation = NullableAnnotation.None AndAlso _elementOverride Is Nothing Then
+                    Return Underlying
+                End If
+
+                Return New ArrayTypeProjection(_underlyingArray, nullableAnnotation, _elementOverride)
+            End Function
 
             Private ReadOnly Property IArrayTypeSymbol_Rank As Integer Implements IArrayTypeSymbol.Rank
                 Get
@@ -978,12 +1356,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Private ReadOnly Property IArrayTypeSymbol_ElementType As ITypeSymbol Implements IArrayTypeSymbol.ElementType
                 Get
+                    If _elementOverride IsNot Nothing Then
+                        Return _elementOverride
+                    End If
+
                     Return _array.ElementType
                 End Get
             End Property
 
             Private ReadOnly Property IArrayTypeSymbol_ElementNullableAnnotation As NullableAnnotation Implements IArrayTypeSymbol.ElementNullableAnnotation
                 Get
+                    If _elementOverride IsNot Nothing Then
+                        Return _elementOverride.NullableAnnotation
+                    End If
+
                     Return _array.ElementNullableAnnotation
                 End Get
             End Property

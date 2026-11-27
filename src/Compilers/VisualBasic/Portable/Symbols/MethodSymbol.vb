@@ -1140,13 +1140,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IMethodSymbol_ReceiverType As ITypeSymbol Implements IMethodSymbol.ReceiverType
             Get
-                Return Me.ReceiverType
+                Return PublicTypeProjection.Project(Me.ReceiverType, GetReceiverNullableAnnotation())
             End Get
         End Property
 
+        Friend Overridable Function GetReceiverNullableAnnotation() As NullableAnnotation
+            If Me.IsShared Then
+                Return NullableAnnotation.None
+            End If
+
+            Return NullableAnnotation.NotAnnotated
+        End Function
+
         Private ReadOnly Property IMethodSymbol_ReceiverNullableAnnotation As NullableAnnotation Implements IMethodSymbol.ReceiverNullableAnnotation
             Get
-                Return NullableAnnotation.None
+                Return GetReceiverNullableAnnotation()
             End Get
         End Property
 
@@ -1165,7 +1173,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Throw New ArgumentNullException(NameOf(receiverType))
             End If
 
-            Return Me.ReduceExtensionMethod(receiverType.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(receiverType)), CompoundUseSiteInfo(Of AssemblySymbol).Discarded, LanguageVersion.Latest)
+            Dim reduced = Me.ReduceExtensionMethod(receiverType.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(receiverType)), CompoundUseSiteInfo(Of AssemblySymbol).Discarded, LanguageVersion.Latest)
+            Dim extension = TryCast(reduced, ReducedExtensionMethodSymbol)
+            If extension IsNot Nothing Then
+                extension.NotePublicReceiverAnnotation(receiverType.NullableAnnotation)
+            End If
+
+            Return reduced
         End Function
 
         Private ReadOnly Property IMethodSymbol_Parameters As ImmutableArray(Of IParameterSymbol) Implements IMethodSymbol.Parameters
@@ -1255,7 +1269,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IMethodSymbol_ReturnType As ITypeSymbol Implements IMethodSymbol.ReturnType
             Get
-                Return Me.ReturnType
+                Return PublicTypeProjection.Project(Me.ReturnType, GetReturnNullableAnnotation())
             End Get
         End Property
 
@@ -1268,6 +1282,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Overridable Function GetTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
             Return Nothing
+        End Function
+
+        Friend Overridable Function GetPublicTypeArgumentNullableAnnotations() As ImmutableArray(Of NullableAnnotation)
+            Return GetTypeArgumentNullableAnnotations()
         End Function
 
         Private ReadOnly Property IMethodSymbol_ReturnNullableAnnotation As NullableAnnotation Implements IMethodSymbol.ReturnNullableAnnotation
@@ -1290,13 +1308,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IMethodSymbol_TypeArguments As ImmutableArray(Of ITypeSymbol) Implements IMethodSymbol.TypeArguments
             Get
-                Return StaticCast(Of ITypeSymbol).From(Me.TypeArguments)
+                Return PublicTypeProjection.ProjectAll(Me.TypeArguments, GetPublicTypeArgumentNullableAnnotations())
             End Get
         End Property
 
         Private ReadOnly Property IMethodSymbol_TypeArgumentsNullableAnnotation As ImmutableArray(Of NullableAnnotation) Implements IMethodSymbol.TypeArgumentNullableAnnotations
             Get
-                Return Me.TypeArguments.SelectAsArray(Function(t) NullableAnnotation.None)
+                Dim arguments = Me.TypeArguments
+                Dim stored = GetPublicTypeArgumentNullableAnnotations()
+                If arguments.IsDefaultOrEmpty Then
+                    Return ImmutableArray(Of NullableAnnotation).Empty
+                End If
+
+                If stored.IsDefault OrElse stored.Length <> arguments.Length Then
+                    Return arguments.SelectAsArray(Function(argument) NullableAnnotation.None)
+                End If
+
+                Return stored
             End Get
         End Property
 
@@ -1347,7 +1375,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Function IMethodSymbol_Construct(ParamArray typeArguments() As ITypeSymbol) As IMethodSymbol Implements IMethodSymbol.Construct
-            Return Construct(ConstructTypeArguments(typeArguments))
+            Dim result = Construct(ConstructTypeArguments(typeArguments))
+            Dim annotations = PublicTypeProjection.CaptureAnnotations(typeArguments.AsImmutableOrNull())
+            If result Is Me Then
+                Return PublicTypeProjection.PresentMethodIdentity(Me, annotations)
+            End If
+
+            If Not annotations.IsDefault Then
+                result.SetTypeArgumentNullableAnnotations(annotations)
+            End If
+
+            Return result
         End Function
 
         Private Function IMethodSymbolInternal_Construct(ParamArray typeArguments() As ITypeSymbolInternal) As IMethodSymbolInternal Implements IMethodSymbolInternal.Construct
@@ -1355,7 +1393,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Private Function IMethodSymbol_Construct(typeArguments As ImmutableArray(Of ITypeSymbol), typeArgumentNullableAnnotations As ImmutableArray(Of CodeAnalysis.NullableAnnotation)) As IMethodSymbol Implements IMethodSymbol.Construct
-            Return Construct(ConstructTypeArguments(typeArguments, typeArgumentNullableAnnotations))
+            Dim result = Construct(ConstructTypeArguments(typeArguments, typeArgumentNullableAnnotations))
+            If result Is Me Then
+                Return PublicTypeProjection.PresentMethodIdentity(Me, typeArgumentNullableAnnotations)
+            End If
+
+            If typeArgumentNullableAnnotations.IsDefault Then
+                Return result
+            End If
+
+            result.SetTypeArgumentNullableAnnotations(typeArgumentNullableAnnotations)
+            Return result
         End Function
 
         Private ReadOnly Property IMethodSymbol_AssociatedAnonymousDelegate As INamedTypeSymbol Implements IMethodSymbol.AssociatedAnonymousDelegate

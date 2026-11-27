@@ -411,7 +411,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private ReadOnly Property IArrayTypeSymbol_ElementType As ITypeSymbol Implements IArrayTypeSymbol.ElementType
             Get
-                Return Me.ElementType
+                Return PublicTypeProjection.Project(Me.ElementType, _elementNullableAnnotation)
             End Get
         End Property
 

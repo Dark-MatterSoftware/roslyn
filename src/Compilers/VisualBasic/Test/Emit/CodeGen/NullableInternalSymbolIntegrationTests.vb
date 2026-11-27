@@ -55,7 +55,7 @@ End Module
 
             Assert.Equal(NullableAnnotation.Annotated, ordinary.GetReturnNullableAnnotation())
             Assert.Equal(NullableAnnotation.Annotated, ordinary.GetTypeArgumentNullableAnnotations().Single())
-            AssertPublicTypeArgumentsAreNone(ordinary)
+            AssertPublicTypeArgumentsMatchStored(ordinary)
         End Sub
 
         <Fact>
@@ -400,12 +400,33 @@ End Module
                 Assert.Equal(expected(index), actual(index))
             Next
 
-            AssertPublicTypeArgumentsAreNone(method)
+            AssertPublicTypeArgumentsMatchStored(method)
         End Sub
 
-        Private Shared Sub AssertPublicTypeArgumentsAreNone(method As MethodSymbol)
-            For Each annotation In DirectCast(method, IMethodSymbol).TypeArgumentNullableAnnotations
-                Assert.Equal(NullableAnnotation.None, annotation)
+        Private Shared Sub AssertPublicTypeArgumentsMatchStored(method As MethodSymbol)
+            Dim publicAnnotations = DirectCast(method, IMethodSymbol).TypeArgumentNullableAnnotations
+            Dim stored = method.GetTypeArgumentNullableAnnotations()
+            If method.IsReducedExtensionMethod AndAlso Not stored.IsDefault AndAlso stored.Length <> publicAnnotations.Length Then
+                Dim parameters = method.TypeParameters
+                Assert.Equal(parameters.Length, publicAnnotations.Length)
+                For index = 0 To parameters.Length - 1
+                    Dim original = parameters(index).ReducedFrom
+                    Dim ordinal = If(original Is Nothing, parameters(index).Ordinal, original.Ordinal)
+                    Dim expected = If(ordinal >= 0 AndAlso ordinal < stored.Length, stored(ordinal), NullableAnnotation.None)
+                    Assert.Equal(expected, publicAnnotations(index))
+                Next
+                Return
+            End If
+
+            If stored.IsDefault OrElse stored.Length <> publicAnnotations.Length Then
+                For Each annotation In publicAnnotations
+                    Assert.Equal(NullableAnnotation.None, annotation)
+                Next
+                Return
+            End If
+
+            For index = 0 To publicAnnotations.Length - 1
+                Assert.Equal(stored(index), publicAnnotations(index))
             Next
         End Sub
 
