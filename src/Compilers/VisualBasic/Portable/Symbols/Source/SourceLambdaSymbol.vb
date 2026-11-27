@@ -10,6 +10,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Inherits LambdaSymbol
 
         Private ReadOnly _unboundLambda As UnboundLambda
+        Private ReadOnly _returnNullableAnnotation As NullableAnnotation
 
         ' The anonymous type symbol associated with this lambda
         Private _lazyAnonymousDelegateSymbol As NamedTypeSymbol = ErrorTypeSymbol.UnknownResultType
@@ -19,7 +20,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             unboundLambda As UnboundLambda,
             parameters As ImmutableArray(Of BoundLambdaParameterSymbol),
             returnType As TypeSymbol,
-            binder As Binder)
+            binder As Binder,
+            Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None)
 
             MyBase.New(syntaxNode, parameters, returnType, binder)
 
@@ -27,7 +29,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Debug.Assert(unboundLambda IsNot Nothing)
 
             _unboundLambda = unboundLambda
+            _returnNullableAnnotation = returnNullableAnnotation
         End Sub
+
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            Return _returnNullableAnnotation
+        End Function
 
         Public ReadOnly Property UnboundLambda As UnboundLambda
             Get

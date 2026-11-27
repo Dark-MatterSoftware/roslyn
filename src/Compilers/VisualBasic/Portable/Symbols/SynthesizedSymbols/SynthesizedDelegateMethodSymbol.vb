@@ -21,6 +21,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly _name As String
         Private ReadOnly _containingType As NamedTypeSymbol
         Private ReadOnly _returnType As TypeSymbol
+        Private ReadOnly _returnNullableAnnotation As NullableAnnotation
         Private ReadOnly _flags As SourceMemberFlags
         Private _parameters As ImmutableArray(Of ParameterSymbol)
 
@@ -35,13 +36,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Sub New(name As String,
                        containingSymbol As NamedTypeSymbol,
                        flags As SourceMemberFlags,
-                       returnType As TypeSymbol)
+                       returnType As TypeSymbol,
+                       Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None)
 
             _name = name
             _containingType = containingSymbol
             _flags = flags
             _returnType = returnType
+            _returnNullableAnnotation = returnNullableAnnotation
         End Sub
+
+        Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
+            Return _returnNullableAnnotation
+        End Function
 
         ''' <summary>
         ''' Sets the parameters.

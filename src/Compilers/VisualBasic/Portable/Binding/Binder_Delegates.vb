@@ -109,12 +109,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 fields(index) = New AnonymousTypeField(parameter.Name, parameter.Type, location, parameter.IsByRef,
-                                                       If(parameter.HasExplicitDefaultValue, parameter.ExplicitDefaultConstantValue, Nothing), parameter.IsParamArray)
+                                                       If(parameter.HasExplicitDefaultValue, parameter.ExplicitDefaultConstantValue, Nothing), parameter.IsParamArray,
+                                                       parameter.GetDeclaredNullableAnnotation())
             Next
 
             Dim isFunction = Not method.IsSub
             fields(method.ParameterCount) = New AnonymousTypeField(AnonymousTypeDescriptor.GetReturnParameterName(isFunction),
-                                                                   If(isFunction, method.ReturnType, Compilation.GetSpecialType(SpecialType.System_Void)), location, False)
+                                                                   If(isFunction, method.ReturnType, Compilation.GetSpecialType(SpecialType.System_Void)), location, False,
+                                                                   nullableAnnotation:=If(isFunction, method.GetReturnNullableAnnotation(), NullableAnnotation.None))
             Return Compilation.AnonymousTypeManager.ConstructAnonymousDelegateSymbol(New AnonymousTypeDescriptor(fields.AsImmutableOrNull(), location, True))
         End Function
 

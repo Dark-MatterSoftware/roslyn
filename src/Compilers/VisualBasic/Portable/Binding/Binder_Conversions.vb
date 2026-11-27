@@ -2368,7 +2368,8 @@ DoneWithDiagnostics:
                 Dim anonymousDelegateType As NamedTypeSymbol = ConstructAnonymousDelegateSymbol(unboundLambda,
                                                                                        (lambdaSymbol.Parameters.As(Of BoundLambdaParameterSymbol)),
                                                                                        lambdaSymbol.ReturnType,
-                                                                                       diagnostics)
+                                                                                       diagnostics,
+                                                                                       lambdaSymbol.GetReturnNullableAnnotation())
 
                 ' Second, reclassify the bound lambda as an instance of the Anonymous Delegate.
                 Dim anonymousDelegateInstance = New BoundConversion(tree, boundLambda, ConversionKind.Widening Or ConversionKind.Lambda,

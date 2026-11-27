@@ -128,7 +128,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                                       current.Location,
                                                       current.IsKey,
                                                       current.DefaultValue,
-                                                      current.IsParamArray)
+                                                      current.IsParamArray,
+                                                      current.NullableAnnotation)
                 If Not anyChange Then
                     anyChange = current.Type IsNot newFields(i).Type
                 End If
@@ -194,14 +195,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Public ReadOnly IsParamArray As Boolean
 
+        ''' <summary>
+        ''' Declaration annotation of an anonymous delegate parameter or return. It is not part of the template key:
+        ''' two delegates that differ only here still share one CLR template.
+        ''' </summary>
+        Public ReadOnly NullableAnnotation As NullableAnnotation
+
         Public Sub New(name As String, type As TypeSymbol, location As Location, Optional isKeyOrByRef As Boolean = False,
-                       Optional defaultValue As ConstantValue = Nothing, Optional isParamArray As Boolean = False)
+                       Optional defaultValue As ConstantValue = Nothing, Optional isParamArray As Boolean = False,
+                       Optional nullableAnnotation As NullableAnnotation = NullableAnnotation.None)
             Me.Name = If(String.IsNullOrWhiteSpace(name), "<Empty Name>", name)
             Me._type = type
             Me.IsKey = isKeyOrByRef
             Me.Location = location
             Me.DefaultValue = defaultValue
             Me.IsParamArray = isParamArray
+            Me.NullableAnnotation = nullableAnnotation
         End Sub
 
         ''' <summary>

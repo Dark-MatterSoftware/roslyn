@@ -202,6 +202,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Const MaxGotoPasses As Integer = 4
 
         Private ReadOnly _method As MethodSymbol
+        Private _returnMethod As MethodSymbol
         Private ReadOnly _diagnostics As DiagnosticBag
         Private ReadOnly _project As NullableContextOptions
         Private _reachable As Boolean
@@ -302,6 +303,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Sub New(method As MethodSymbol, diagnostics As DiagnosticBag, project As NullableContextOptions)
             _method = method
+            _returnMethod = method
             _diagnostics = diagnostics
             _project = project
             _state = New Dictionary(Of Symbol, FlowNullability)()
@@ -976,7 +978,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Function VisitLambda(node As BoundLambda) As BoundNode
+            ' The existing return check reads the method that owns the return. A lambda return
+            ' is owned by the lambda, so the check uses the lambda's declaration annotation.
+            Dim savedReturn = _returnMethod
+            _returnMethod = node.LambdaSymbol
             VisitIsolated(node.Body, node.LambdaSymbol.Parameters)
+            _returnMethod = savedReturn
             InvalidateCapturedReceivers()
             Return Nothing
         End Function
@@ -2542,7 +2549,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Function ReturnDisallowsNull() As Boolean
-            Return DisallowsNull(AnnotationOf(_method) = NullableAnnotation.NotAnnotated, _method.ReturnTypeFlowAnalysisAnnotations, outputContract:=True)
+            Return DisallowsNull(AnnotationOf(_returnMethod) = NullableAnnotation.NotAnnotated, _returnMethod.ReturnTypeFlowAnalysisAnnotations, outputContract:=True)
         End Function
 
         Private Function ArgumentDisallowsNull(parameter As ParameterSymbol) As Boolean

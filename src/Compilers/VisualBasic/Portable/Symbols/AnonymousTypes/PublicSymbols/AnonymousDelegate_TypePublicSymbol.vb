@@ -30,6 +30,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
                 Dim parameterDescriptors As ImmutableArray(Of AnonymousTypeField) = typeDescr.Parameters
                 Dim returnType As TypeSymbol = If(parameterDescriptors.IsSubDescription(), DirectCast(manager.System_Void, TypeSymbol), parameterDescriptors.Last.Type)
+                Dim returnNullableAnnotation = If(parameterDescriptors.IsSubDescription(), NullableAnnotation.None, parameterDescriptors.Last.NullableAnnotation)
                 Dim parameters = ArrayBuilder(Of ParameterSymbol).GetInstance(parameterDescriptors.Length + 1)
                 Dim i As Integer
 
@@ -38,7 +39,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Dim delegateInvoke = New SynthesizedDelegateMethodSymbol(WellKnownMemberNames.DelegateInvokeName,
                                                                          Me,
                                                                          SourceNamedTypeSymbol.DelegateCommonMethodFlags Or SourceMemberFlags.MethodKindDelegateInvoke,
-                                                                         returnType)
+                                                                         returnType,
+                                                                         returnNullableAnnotation)
 
                 For i = 0 To parameterDescriptors.Length - 2
                     parameters.Add(ParameterFromField(delegateInvoke, parameterDescriptors(i), i))
@@ -94,7 +96,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     delegateEndInvoke = New SynthesizedDelegateMethodSymbol(
                                                         WellKnownMemberNames.DelegateEndInvokeName, Me,
                                                         SourceNamedTypeSymbol.DelegateCommonMethodFlags Or SourceMemberFlags.MethodKindOrdinary,
-                                                        returnType)
+                                                        returnType,
+                                                        returnNullableAnnotation)
 
                     Dim ordinal As Integer = 0
                     For i = 0 To parameterDescriptors.Length - 2
@@ -131,11 +134,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Property
 
             Private Shared Function ParameterFromField(container As SynthesizedDelegateMethodSymbol, field As AnonymousTypeField, ordinal As Integer) As ParameterSymbol
+                Dim parameter As SynthesizedParameterSymbol
                 If field.DefaultValue IsNot Nothing OrElse field.IsParamArray Then
-                    Return New LambdaDelegateParameterSymbol(container, field, ordinal)
+                    parameter = New LambdaDelegateParameterSymbol(container, field, ordinal)
+                Else
+                    parameter = New SynthesizedParameterWithLocationSymbol(container, field.Type, ordinal, field.IsByRef, field.Name, field.Location)
                 End If
 
-                Return New SynthesizedParameterWithLocationSymbol(container, field.Type, ordinal, field.IsByRef, field.Name, field.Location)
+                ' The parameter belongs only to this constructed delegate. The shared emit template does not receive it.
+                parameter.SetDeclaredNullableAnnotation(field.NullableAnnotation)
+                Return parameter
             End Function
 
             ''' <summary>

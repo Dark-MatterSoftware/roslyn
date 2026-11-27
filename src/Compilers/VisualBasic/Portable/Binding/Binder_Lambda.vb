@@ -48,11 +48,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             Dim returnType As TypeSymbol = Nothing
+            Dim returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None
             Dim hasErrors As Boolean = False
 
             If node.Kind = SyntaxKind.MultiLineFunctionLambdaExpression AndAlso
                node.SubOrFunctionHeader.AsClause IsNot Nothing Then
-                returnType = BindTypeSyntax(node.SubOrFunctionHeader.AsClause.Type, diagnostics)
+                ' The same declaration path as a method return. String? stays String and records Annotated.
+                returnType = BindDeclarationType(node.SubOrFunctionHeader.AsClause.Type, diagnostics, returnNullableAnnotation)
 
                 If returnType.IsRestrictedType() Then
                     ReportDiagnostic(diagnostics, node.SubOrFunctionHeader.AsClause.Type, ERRID.ERR_RestrictedType1, returnType)
@@ -94,7 +96,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
-            Return New UnboundLambda(node, Me, modifiers, parameters, returnType, New UnboundLambda.UnboundLambdaBindingCache(diagnostics.AccumulatesDependencies), hasErrors)
+            Dim bindingCache = New UnboundLambda.UnboundLambdaBindingCache(diagnostics.AccumulatesDependencies)
+            bindingCache.ReturnNullableAnnotation = returnNullableAnnotation
+            Return New UnboundLambda(node, Me, modifiers, parameters, returnType, bindingCache, hasErrors)
         End Function
 
         Friend Function BuildBoundLambdaParameters(
@@ -336,7 +340,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ' Create parameters
             Dim parameters As ImmutableArray(Of BoundLambdaParameterSymbol) = BuildBoundLambdaParameters(source, target, diagnostics)
-            Dim lambdaSymbol As New SourceLambdaSymbol(source.Syntax, source, parameters, targetReturnType, Me)
+            Dim returnAnnotation As NullableAnnotation
+            If source.ReturnType IsNot Nothing Then
+                returnAnnotation = source.BindingCache.ReturnNullableAnnotation
+            ElseIf target.ReturnType Is targetReturnType Then
+                returnAnnotation = target.ReturnNullableAnnotation
+            Else
+                ' A return type inferred from the body does not invent a declaration annotation.
+                returnAnnotation = NullableAnnotation.None
+            End If
+
+            Dim lambdaSymbol As New SourceLambdaSymbol(source.Syntax, source, parameters, targetReturnType, Me, returnAnnotation)
             ReportLambdaEnumeratorCancellationDiagnostics(lambdaSymbol, source, diagnostics)
 
             Dim delegateRelaxation As ConversionKind = Nothing
@@ -938,7 +952,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             diagnostics.AddRange(returnTypeInfo.Value)
 
-            Dim delegateType As NamedTypeSymbol = ConstructAnonymousDelegateSymbol(source, parameters, returnType, diagnostics)
+            Dim delegateType As NamedTypeSymbol = ConstructAnonymousDelegateSymbol(source, parameters, returnType, diagnostics, source.BindingCache.ReturnNullableAnnotation)
 
             Return New KeyValuePair(Of NamedTypeSymbol, ReadOnlyBindingDiagnostic(Of AssemblySymbol))(delegateType, diagnostics.ToReadOnlyAndFree())
         End Function
@@ -947,7 +961,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             source As UnboundLambda,
             parameters As ImmutableArray(Of BoundLambdaParameterSymbol),
             returnType As TypeSymbol,
-            diagnostics As BindingDiagnosticBag
+            diagnostics As BindingDiagnosticBag,
+            Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None
         ) As NamedTypeSymbol
             Debug.Assert(source.IsFunctionLambda = Not returnType.IsVoidType())
 
@@ -958,7 +973,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim sourceParameter = DirectCast(source.Parameters(i), UnboundLambdaParameterSymbol)
                 parameterDescriptors(i) = New AnonymousTypeField(
                     parameters(i).Name, parameters(i).Type, sourceParameter.Syntax.GetLocation(), parameters(i).IsByRef,
-                    parameters(i).DefaultValueOpt, parameters(i).IsParamArray)
+                    parameters(i).DefaultValueOpt, parameters(i).IsParamArray, parameters(i).GetDeclaredNullableAnnotation())
 
                 ' Verify for restricted types.
                 If parameters(i).Type.IsRestrictedType() Then
@@ -967,7 +982,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Next
 
             Dim returnParamName = AnonymousTypeDescriptor.GetReturnParameterName(source.IsFunctionLambda)
-            parameterDescriptors(i) = New AnonymousTypeField(returnParamName, returnType, source.Syntax.GetLocation(), False)
+            parameterDescriptors(i) = New AnonymousTypeField(returnParamName, returnType, source.Syntax.GetLocation(), False,
+                                                             nullableAnnotation:=returnNullableAnnotation)
 
             Dim typeDescriptor As New AnonymousTypeDescriptor(parameterDescriptors.AsImmutableOrNull(), source.Syntax.GetLocation(), True)
             Return Me.Compilation.AnonymousTypeManager.ConstructAnonymousDelegateSymbol(typeDescriptor)

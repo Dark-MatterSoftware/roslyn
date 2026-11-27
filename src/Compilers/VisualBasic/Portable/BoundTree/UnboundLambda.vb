@@ -135,6 +135,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Public ReadOnly ParameterIsByRef As BitVector
             Public ReadOnly ParameterIsReadOnlyByRef As BitVector
             Public ReadOnly ParameterNullableAnnotations As ImmutableArray(Of NullableAnnotation)
+            Public ReadOnly ReturnNullableAnnotation As NullableAnnotation
 
             Public Sub New(parameterTypes As ImmutableArray(Of TypeSymbol), parameterIsByRef As BitVector, returnType As TypeSymbol, returnsByRef As Boolean,
                            Optional parameterIsReadOnlyByRef As BitVector = Nothing)
@@ -147,9 +148,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Me.ParameterNullableAnnotations = NoneAnnotations(parameterTypes.Length)
                 Me.ReturnType = returnType
                 Me.ReturnsByRef = returnsByRef
+                Me.ReturnNullableAnnotation = NullableAnnotation.None
             End Sub
 
-            Public Sub New(params As ImmutableArray(Of ParameterSymbol), returnType As TypeSymbol, returnsByRef As Boolean)
+            Public Sub New(params As ImmutableArray(Of ParameterSymbol), returnType As TypeSymbol, returnsByRef As Boolean, Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None)
                 Debug.Assert(Not params.IsDefault)
                 Debug.Assert(returnType IsNot Nothing)
 
@@ -186,10 +188,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Me.ParameterIsReadOnlyByRef = isReadOnlyByRef
                 Me.ReturnType = returnType
                 Me.ReturnsByRef = returnsByRef
+                Me.ReturnNullableAnnotation = returnNullableAnnotation
             End Sub
 
             Public Sub New(method As MethodSymbol)
-                Me.New(method.Parameters, method.ReturnType, method.ReturnsByRef)
+                Me.New(method.Parameters, method.ReturnType, method.ReturnsByRef, method.GetReturnNullableAnnotation())
             End Sub
 
             Public Overrides Function GetHashCode() As Integer
@@ -205,6 +208,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     hashVal = Hash.Combine(CInt(annotation), hashVal)
                 Next
 
+                hashVal = Hash.Combine(CInt(ReturnNullableAnnotation), hashVal)
                 Return hashVal
             End Function
 
@@ -228,7 +232,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
                 Next
 
-                Return Me.ReturnsByRef = other.ReturnsByRef AndAlso TypeSymbol.Equals(Me.ReturnType, other.ReturnType, TypeCompareKind.ConsiderEverything)
+                Return Me.ReturnsByRef = other.ReturnsByRef AndAlso
+                       Me.ReturnNullableAnnotation = other.ReturnNullableAnnotation AndAlso
+                       TypeSymbol.Equals(Me.ReturnType, other.ReturnType, TypeCompareKind.ConsiderEverything)
             End Function
 
             Private Shared Function NoneAnnotations(length As Integer) As ImmutableArray(Of NullableAnnotation)
@@ -248,6 +254,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Public Class UnboundLambdaBindingCache
             Public ReadOnly WithDependencies As Boolean
+            Public ReturnNullableAnnotation As NullableAnnotation
             Public AnonymousDelegate As Tuple(Of NamedTypeSymbol, ReadOnlyBindingDiagnostic(Of AssemblySymbol))
             Public ReadOnly InferredReturnType As New ConcurrentDictionary(Of TargetSignature, KeyValuePair(Of TypeSymbol, ReadOnlyBindingDiagnostic(Of AssemblySymbol)))()
             Public ReadOnly BoundLambdas As New ConcurrentDictionary(Of TargetSignature, BoundLambda)()

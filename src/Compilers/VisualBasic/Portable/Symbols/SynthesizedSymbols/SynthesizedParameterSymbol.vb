@@ -51,6 +51,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' Records a declaration annotation while this parameter is still being constructed.
+        ''' The parameter is not shared until its containing method publishes it.
+        ''' </summary>
+        Friend Sub SetDeclaredNullableAnnotation(annotation As NullableAnnotation)
+            _nullableAnnotation = annotation
+        End Sub
+
+        ''' <summary>
         ''' Gets the containing symbol.
         ''' </summary>
         Public NotOverridable Overrides ReadOnly Property ContainingSymbol As Symbol
