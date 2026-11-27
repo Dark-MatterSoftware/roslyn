@@ -1,6 +1,8 @@
 # LC-1G nullable integration plan
 
-The owner approved this plan on November 26, 2026. The owner formally accepted LC-1G.1 on November 26, 2026, including its documented limitations, and authorized LC-1G.2 only. The acceptance record is in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). The accepted LC-1G.1 compiler baseline is `613f195758d5cdd19d932d244bf1254ee59b2e2b`. LC-1G.2 is implemented and is not owner-accepted. LC-1G.3 through LC-1G.7 remain unauthorized. Accepting LC-1G.1 does not complete VB-030 and does not accept LC-1G.2.
+The owner approved this plan on November 26, 2026. The owner formally accepted LC-1G.1 on November 26, 2026, including its documented limitations. On November 27, 2026, at 02:30:28 UTC, the owner formally accepted LC-1G.2, including LC-1G.2a and its documented limitations, and authorized LC-1G.3 only. The acceptance record is in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). The accepted LC-1G.1 compiler baseline is `613f195758d5cdd19d932d244bf1254ee59b2e2b`. The accepted LC-1G.2 compiler baseline is `6b937cd7cbcb283d5abe4eeb8c492ccd0858b766`. LC-1G.4 through LC-1G.7 remain unauthorized. Accepting LC-1G.2 does not complete VB-030 and does not accept LC-1G.3.
+
+The historical LC-1G.2a evidence report, section 20, names LC-1G.5 as `NullablePublicOnly` and LC-1G.6 as IDE and analyzer integration. That numbering is not this plan. The approved sequence is LC-1G.1 internal symbol integration, LC-1G.2 metadata import and emission, LC-1G.3 framework and reflection compatibility, LC-1G.4 public Roslyn nullable APIs, LC-1G.5 IDE, analyzer, and diagnostic integration, LC-1G.6 Edit and Continue, and LC-1G.7 consolidated acceptance. `NullablePublicOnly` stays deferred and is not assigned to a slice. The historical report is not rewritten.
 
 The owner accepted the LC-1F flow implementation the same day. The acceptance record, the locked flow policies, and the accepted conservative limitations are in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). Slice 10f in [vbnext-phases.md](vbnext-phases.md) points here. This plan does not reopen LC-1F and does not reconcile LC-4.
 
@@ -49,7 +51,7 @@ Verified gaps:
 
 Hypothesis, not a verified defect: two constructed methods that compare equal can still be distinct objects, because the `Construct` path that was read allocates a new symbol and then stamps it. A later cache that interns by `Equals` could collapse two annotation states. LC-1G.1 has to check the construction caches before it treats the friend array as stable.
 
-The machine-specific import test `PrebuiltContracts_DecodeAcrossFrameworks_WhenEvidenceIsPresent` returns without asserting when its evidence directory is absent. That is the retained portable-import obligation. Exact .NET 11 reference assemblies are not part of the emit test project. The net472 `NullabilityInfoContext` test-project failure remains the retained framework-test obligation. Reflection checks already exist in `NullableDeclarationTests` and `NullableMetadataEmissionTests` for the shapes those tests emit.
+`PrebuiltContracts_DecodeAcrossFrameworks_WhenEvidenceIsPresent` skips, with an explicit reason, when `VBNEXT_LC1A_CONTRACTS` is unset and its default evidence directory is absent. A skip is not framework acceptance. An explicitly configured missing directory fails. Exact framework-matrix acceptance remains LC-1G.3. Exact .NET 11 reference assemblies are not part of the emit test project. The net472 `NullabilityInfoContext` test-project failure remains the retained framework-test obligation. Reflection checks already exist in `NullableDeclarationTests` and `NullableMetadataEmissionTests` for the shapes those tests emit.
 
 ## Extension annotations
 
@@ -211,7 +213,7 @@ Obligations: the ten metadata items, plus event type metadata and a nontrivial i
 
 Source: `NullableMetadataEncoder.vb`, `NullableMetadataDecoder.vb`, `PEModuleBuilder.NullableMetadata.vb`, `TupleTypeDecoder.vb`, `TupleTypeSymbol.vb`, `Binder_Symbols.vb` `LookupTupleType`, `SourceEventSymbol.vb`, and `PEEventSymbol.vb`.
 
-Current state: implemented, with the LC-1G.2a closeout applied, and awaiting owner acceptance. Source tuple elements stamp logical annotations onto the `ValueTuple` chain, including `Rest`. Import copies those annotations when tuple reconstruction builds a new chain. An event emits and decodes `NullableAttribute` on the event, and `IEventSymbol.NullableAnnotation` stays `None`. A predefined `NullableAttribute` that is present but missing either standard constructor reports `ERR_MissingRuntimeHelper` and is not replaced by an embedded definition. A missing predefined type is still embedded. A netmodule declaration keeps a nested annotation. `default`, `latest`, and Visual Basic 17.13 do not emit the attribute for a declaration that stores no VB.Next annotation. Representative method bodies match when only reference annotations differ. The external LC-1A contract images are an optional acceptance fixture: the ordinary suite skips them when they are absent, and `VBNEXT_LC1A_CONTRACTS` makes a missing directory a failure.
+Current state: owner-accepted on November 27, 2026, at 02:30:28 UTC, including the LC-1G.2a closeout and its documented limitations. Source tuple elements stamp logical annotations onto the `ValueTuple` chain, including `Rest`. Import copies those annotations when tuple reconstruction builds a new chain. An event emits and decodes `NullableAttribute` on the event, and `IEventSymbol.NullableAnnotation` stays `None`. A predefined `NullableAttribute` that is present but missing either standard constructor reports `ERR_MissingRuntimeHelper` and is not replaced by an embedded definition. A missing predefined type is still embedded. A netmodule declaration keeps a nested annotation. `default`, `latest`, and Visual Basic 17.13 do not emit the attribute for a declaration that stores no VB.Next annotation. Representative method bodies match when only reference annotations differ. The external LC-1A contract images are an optional acceptance fixture: the ordinary suite skips them when they are absent, and `VBNEXT_LC1A_CONTRACTS` makes a missing directory a failure.
 
 Production change: capture tuple element annotations while binding, carry them across `Rest` reconstruction, decode event metadata with the existing transform, and report the existing missing-runtime-helper diagnostic when a predefined `NullableAttribute` lacks a standard constructor. No new metadata format, diagnostic, syntax, or public signature.
 
@@ -231,7 +233,7 @@ Dependencies: LC-1G.1, accepted on November 26, 2026.
 
 Escalation: none taken. A new attribute shape, a C# metadata-reader change, and a new malformed-metadata diagnostic were not required.
 
-Acceptance: not recorded. The owner has not accepted LC-1G.2.
+Acceptance: recorded on November 27, 2026, at 02:30:28 UTC, in [vbnext-vb030-syntax.md](vbnext-vb030-syntax.md). The accepted compiler baseline is `6b937cd7cbcb283d5abe4eeb8c492ccd0858b766`. The original implementation is `440c44bb68ae20091da0aab62ec5673e5e898a67`. The technical review is `LanguageCompletion/LC-1G.2a-METADATA-CORRECTNESS-CLOSEOUT-REPORT.md`.
 
 Exclusions: `NullablePublicOnly`, IDE display, public nullable API exposure, and flow-policy changes.
 
@@ -370,6 +372,8 @@ Objective: one review across the completed slices. It does not add behavior.
 Obligations: the historical broader-integration bucket, the four cross-language gaps, and the LC-1F regression filters as a final check rather than as a substitute for the slice tests.
 
 Source: no new production surface. The tests are the classes named below.
+
+Retained observations, not confirmed defects, for this consolidated review: during LC-1G.2a, on the tree that became `6b937cd7cbcb283d5abe4eeb8c492ccd0858b766`, one parallel run of `Substitution_EveryConstructedSymbolKeepsItsArgument` reported an unexpected BC42512 on `methodText`. The same test then passed in isolation, with `xUnit.MaxParallelThreads=1`, and in the recorded default regression. No cache collision or concurrency defect was established. The first full nullable filter after the missing-constructor diagnostic aborted because the test host crashed, and no dump was captured. A reentrancy guard was added before the recorded passing run. The crash cause was not established. The evidence is `LanguageCompletion/LC-1G.2a-METADATA-CORRECTNESS-CLOSEOUT-REPORT.md`, section 16, and `LanguageCompletion/LC-1G.2a-regression.log`. Do not treat either observation as a diagnosed defect.
 
 Current state: LC-1F.6d reported, and this plan does not re-run, these historical results: nullable emit 435 passed and 6 skipped; `FlowAnalysisTests` 704 passed; `OverridesTests|PropertyTests` 231 passed; `OverloadResolutionTests` 51 passed; `TypeArgumentInference` 53 passed; `Lambda_AnonymousDelegateInference` 7 passed; `ExtensionMethodTests` 37 passed; `Unstructured|ErrorHandling` 34 passed and 28 skipped. Those filters overlap. Do not add them into one total.
 
