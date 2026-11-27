@@ -224,8 +224,8 @@ Public Class Api
     End Function
 End Class
 ", references:={reference}, options:=TestOptions.ReleaseDll.WithNullableContext(NullableContextOptions.Enable), parseOptions:=VbNext)
-            Dim image = consumer.EmitToArray()
-            Assert.False(DefinesType(image, "System.Runtime.CompilerServices.NullableAttribute"))
+            Dim image = consumer.GetDiagnostics()
+            Assert.Contains(image, Function(diagnostic) diagnostic.Code = ERRID.ERR_MissingRuntimeHelper)
         End Sub
 
         <Fact>

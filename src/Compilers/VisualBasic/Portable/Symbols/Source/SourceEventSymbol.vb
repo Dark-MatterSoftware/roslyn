@@ -260,7 +260,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             If Not type.IsErrorType() Then
                 AccessCheck.VerifyAccessExposureForMemberType(Me, syntax.Identifier, type, diagnostics, isDelegateFromImplements)
-                NullableMetadataEncoder.NoteRequired(Me, type, NullableAnnotation.None)
+                NullableMetadataEncoder.NoteRequired(Me, type, NullableAnnotation.None, diagnostics)
             End If
 
             Return type

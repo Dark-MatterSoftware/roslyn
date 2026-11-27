@@ -398,7 +398,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             Dim parameter = Create(container, name, ordinal, paramType, syntax.Identifier.Identifier.GetLocation(), syntaxRef, flags, defaultValue)
-            DirectCast(parameter, SourceParameterSymbol).SetNullableAnnotation(nullableAnnotation)
+            DirectCast(parameter, SourceParameterSymbol).SetNullableAnnotation(nullableAnnotation, diagnostics)
             Return parameter
         End Function
 

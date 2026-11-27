@@ -32,7 +32,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                           binder As Binder,
                           flags As SourceMemberFlags,
                           returnType As TypeSymbol,
-                          Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None)
+                          Optional returnNullableAnnotation As NullableAnnotation = NullableAnnotation.None,
+                          Optional diagnostics As BindingDiagnosticBag = Nothing)
             MyBase.New(delegateType, flags, binder.GetSyntaxReference(syntax), delegateType.Locations)
 
             Debug.Assert(TypeOf syntax Is DelegateStatementSyntax OrElse
@@ -40,7 +41,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Debug.Assert(returnType IsNot Nothing)
             _returnType = returnType
             _returnNullableAnnotation = returnNullableAnnotation
-            NullableMetadataEncoder.NoteRequired(Me, returnType, returnNullableAnnotation)
+            NullableMetadataEncoder.NoteRequired(Me, returnType, returnNullableAnnotation, diagnostics)
         End Sub
 
         Friend Overrides Function GetReturnNullableAnnotation() As NullableAnnotation
@@ -272,7 +273,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                            flags:=SourceMemberFlags.MethodKindDelegateInvoke Or SourceMemberFlags.AccessibilityPublic Or SourceMemberFlags.Overridable Or
                                   If(returnType.SpecialType = SpecialType.System_Void, SourceMemberFlags.MethodIsSub, Nothing),
                            returnType:=returnType,
-                           returnNullableAnnotation:=returnNullableAnnotation)
+                           returnNullableAnnotation:=returnNullableAnnotation,
+                           diagnostics:=diagnostics)
 
                 InitializeParameters(binder.DecodeParameterListOfDelegateDeclaration(Me, parameterListOpt, diagnostics))
             End Sub

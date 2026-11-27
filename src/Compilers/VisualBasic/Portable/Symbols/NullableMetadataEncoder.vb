@@ -17,7 +17,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Const MaxDepth As Integer = 512
 
-        Friend Sub NoteRequired(symbol As Symbol, type As TypeSymbol, annotation As NullableAnnotation)
+        <ThreadStatic>
+        Private reportingPredefinedNullableAttribute As Boolean
+
+        Friend Sub NoteRequired(symbol As Symbol, type As TypeSymbol, annotation As NullableAnnotation, Optional diagnostics As BindingDiagnosticBag = Nothing)
             Dim compilation = symbol.DeclaringCompilation
             If compilation Is Nothing OrElse compilation.LanguageVersion < LanguageVersion.VbNext Then
                 Return
@@ -29,7 +32,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             If HasNullableFlags(Encode(type, annotation)) Then
                 compilation.MarkNullableMetadataRequired()
+                If diagnostics IsNot Nothing Then
+                    ReportPredefinedNullableAttribute(compilation, symbol, diagnostics)
+                End If
             End If
+        End Sub
+
+        ''' <summary>
+        ''' When <c>System.Runtime.CompilerServices.NullableAttribute</c> is present, both standard
+        ''' constructors are required. A missing or unusable constructor uses the existing missing
+        ''' runtime-helper diagnostic. A missing type is left for the embedded definition.
+        ''' </summary>
+        Private Sub ReportPredefinedNullableAttribute(compilation As VisualBasicCompilation, symbol As Symbol, diagnostics As BindingDiagnosticBag)
+            ' Resolving the predefined type can bind the declaration that requested the report.
+            If reportingPredefinedNullableAttribute Then
+                Return
+            End If
+
+            reportingPredefinedNullableAttribute = True
+            Try
+                ReportPredefinedNullableAttributeCore(compilation, symbol, diagnostics)
+            Finally
+                reportingPredefinedNullableAttribute = False
+            End Try
+        End Sub
+
+        Private Sub ReportPredefinedNullableAttributeCore(compilation As VisualBasicCompilation, symbol As Symbol, diagnostics As BindingDiagnosticBag)
+            Dim existing = compilation.GetWellKnownType(WellKnownType.System_Runtime_CompilerServices_NullableAttribute)
+            If TypeOf existing Is MissingMetadataTypeSymbol Then
+                Return
+            End If
+
+            Dim location = symbol.Locations.FirstOrDefault()
+            If location Is Nothing Then
+                location = NoLocation.Singleton
+            End If
+
+            Binder.ReportUseSiteInfoForSynthesizedAttribute(WellKnownMember.System_Runtime_CompilerServices_NullableAttribute__ctorByte, compilation, location, diagnostics)
+            Binder.ReportUseSiteInfoForSynthesizedAttribute(WellKnownMember.System_Runtime_CompilerServices_NullableAttribute__ctorTransformFlags, compilation, location, diagnostics)
         End Sub
 
         Friend Function IsEmbeddedRuntimeImplementation(symbol As Symbol) As Boolean

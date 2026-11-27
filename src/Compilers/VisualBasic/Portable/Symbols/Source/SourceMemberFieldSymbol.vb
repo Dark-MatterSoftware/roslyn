@@ -146,7 +146,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                            ignoreTypeSyntaxDiagnostics:=(m_memberFlags And SourceMemberFlags.FirstFieldDeclarationOfType) = 0,
                                            nullableAnnotation:=nullableAnnotation)
             _lazyNullableAnnotation = nullableAnnotation
-            NullableMetadataEncoder.NoteRequired(Me, varType, nullableAnnotation)
+            NullableMetadataEncoder.NoteRequired(Me, varType, nullableAnnotation, diagBag)
 
             If Not varType.IsErrorType() Then
                 If Me.IsConst Then

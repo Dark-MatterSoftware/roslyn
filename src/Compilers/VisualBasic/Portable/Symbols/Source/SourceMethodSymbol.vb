@@ -2817,7 +2817,7 @@ lReportErrorOnTwoTokens:
                             Dim nullableAnnotation As NullableAnnotation
                             retType = binder.DecodeIdentifierType(GetNameToken(methodStatement), asClause, getErrorInfo, diagBag, nullableAnnotation)
                             _returnNullableAnnotation = nullableAnnotation
-                            NullableMetadataEncoder.NoteRequired(Me, retType, nullableAnnotation)
+                            NullableMetadataEncoder.NoteRequired(Me, retType, nullableAnnotation, diagBag)
 
                             If asClause IsNot Nothing Then
                                 errorLocation = asClause.Type

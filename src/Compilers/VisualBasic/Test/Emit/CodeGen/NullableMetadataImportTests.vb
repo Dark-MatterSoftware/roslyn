@@ -471,11 +471,11 @@ public class Pub
             Assert.Equal(NullableAnnotation.None, ignored.Parameters(0).NullableAnnotation)
         End Sub
 
-        <Fact>
+        <ConditionalFact(GetType(ExternalLc1AContractEvidence))>
         Public Sub PrebuiltContracts_DecodeAcrossFrameworks_WhenEvidenceIsPresent()
-            Dim root = "D:\Development\VBNext\Evidence\LanguageCompletion\LC-1A\out"
+            Dim root = ResolvePrebuiltContractDirectory()
             If Not IO.Directory.Exists(root) Then
-                Assert.Fail("Prebuilt LC-1A contract images are absent. This is not a successful decode. Framework-matrix acceptance remains LC-1G.3.")
+                Assert.Fail("VBNEXT_LC1A_CONTRACTS does not identify a contract image directory. This is not a successful framework acceptance.")
             End If
 
             AssertPrebuiltContract(IO.Path.Combine(root, "net47-CsContract.dll"), FrameworkPack("microsoft.netframework.referenceassemblies.net47", "v4.7"))
@@ -618,6 +618,44 @@ End Module
             Return compilation.GetDiagnostics().Where(Function(diagnostic) diagnostic.Code = ERRID.WRN_PossibleNullAssignment OrElse diagnostic.Code = ERRID.WRN_PossibleNullArgument OrElse diagnostic.Code = ERRID.WRN_PossibleNullReturn OrElse diagnostic.Code = ERRID.WRN_PossibleNullReference).ToArray()
         End Function
 
+        Friend Shared Function ResolvePrebuiltContractDirectory() As String
+            Dim configured = Environment.GetEnvironmentVariable("VBNEXT_LC1A_CONTRACTS")
+            If Not String.IsNullOrWhiteSpace(configured) Then
+                Return configured
+            End If
+
+            Return "D:\Development\VBNext\Evidence\LanguageCompletion\LC-1A\out"
+        End Function
+
+        Friend Shared Function ShouldRunPrebuiltContracts() As Boolean
+            If Not String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("VBNEXT_LC1A_CONTRACTS")) Then
+                Return True
+            End If
+
+            Return IO.Directory.Exists("D:\Development\VBNext\Evidence\LanguageCompletion\LC-1A\out")
+        End Function
+
+    End Class
+
+    ''' <summary>
+    ''' The prebuilt framework images are external acceptance evidence. Their absence skips the
+    ''' ordinary compiler suite. A skip is not framework acceptance, and an explicitly configured
+    ''' missing directory still fails inside the test.
+    ''' </summary>
+    Public Class ExternalLc1AContractEvidence
+        Inherits ExecutionCondition
+
+        Public Overrides ReadOnly Property ShouldSkip As Boolean
+            Get
+                Return Not NullableMetadataImportTests.ShouldRunPrebuiltContracts()
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property SkipReason As String
+            Get
+                Return "External LC-1A framework contract images are not configured. A skip is not framework acceptance."
+            End Get
+        End Property
     End Class
 
 End Namespace

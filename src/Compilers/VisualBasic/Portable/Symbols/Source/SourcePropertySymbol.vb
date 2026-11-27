@@ -432,7 +432,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     diagnostics:=diagnostics,
                     nullableAnnotation:=nullableAnnotation)
                 _lazyNullableAnnotation = nullableAnnotation
-                NullableMetadataEncoder.NoteRequired(Me, withEventsType, nullableAnnotation)
+                NullableMetadataEncoder.NoteRequired(Me, withEventsType, nullableAnnotation, diagnostics)
                 Return withEventsType
 
             Else
@@ -459,7 +459,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Dim nullableAnnotation As NullableAnnotation
                     Dim type = binder.DecodeIdentifierType(identifier, asClause, getErrorInfo, diagnostics, nullableAnnotation)
                     _lazyNullableAnnotation = nullableAnnotation
-                    NullableMetadataEncoder.NoteRequired(Me, type, nullableAnnotation)
+                    NullableMetadataEncoder.NoteRequired(Me, type, nullableAnnotation, diagnostics)
 
                     Debug.Assert(type IsNot Nothing)
                     If Not type.IsErrorType() Then

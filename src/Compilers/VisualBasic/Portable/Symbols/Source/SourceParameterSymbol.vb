@@ -31,9 +31,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             _location = location
         End Sub
 
-        Friend Sub SetNullableAnnotation(annotation As NullableAnnotation)
+        Friend Sub SetNullableAnnotation(annotation As NullableAnnotation, Optional diagnostics As BindingDiagnosticBag = Nothing)
             _nullableAnnotation = annotation
-            NullableMetadataEncoder.NoteRequired(Me, _type, annotation)
+            NullableMetadataEncoder.NoteRequired(Me, _type, annotation, diagnostics)
         End Sub
 
         Friend Overrides Function GetDeclaredNullableAnnotation() As NullableAnnotation
