@@ -102,7 +102,28 @@ The accepted metadata behavior is: tuple element annotations, including long-tup
 - Public nullable symbol API integration remains incomplete.
 - `NullablePublicOnly` retains its deferred disposition.
 
-LC-1G.4 through LC-1G.7 remain unauthorized. The approved sequence is in [vbnext-lc1g-integration-plan.md](vbnext-lc1g-integration-plan.md): LC-1G.4 is public Roslyn nullable APIs, LC-1G.5 is IDE, analyzer, and diagnostic integration, LC-1G.6 is Edit and Continue, and LC-1G.7 is consolidated acceptance. `NullablePublicOnly` is not one of those slices. Two observations from the LC-1G.2a regression stay open for LC-1G.7 and are not confirmed defects: `Substitution_EveryConstructedSymbolKeepsItsArgument` once reported an unexpected BC42512 on `methodText` under a parallel run and then passed in isolation, with `xUnit.MaxParallelThreads=1`, and in the recorded default run; the first full nullable filter after the missing-constructor diagnostic aborted with a test-host crash and no dump, and the crash cause was not established. The evidence is `LanguageCompletion/LC-1G.2a-METADATA-CORRECTNESS-CLOSEOUT-REPORT.md`, section 16.
+On November 27, 2026, at 02:59:36 UTC, the owner formally accepted LC-1G.3, including its documented limitations, and authorized LC-1G.4 implementation only. The accepted verification baseline is `1a8941af87fb9c48025566550132697547e81b78`. LC-1G.3 changed tests and documentation only. It did not modify production compiler code. The technical review is `LanguageCompletion/LC-1G.3-FRAMEWORK-REFLECTION-COMPATIBILITY-REPORT.md`, 27251 bytes, SHA-256 `51C43C7C887CA47297C594CC08A4578EC6BEBD8A093756AFA23F38046789D912`. That review recommended acceptance and did not itself record it. This paragraph records the acceptance. It does not complete VB-030 and it does not accept LC-1G.4.
+
+The seven framework obligations are accepted with these dispositions. Exact modern .NET nullable attribute behavior passed for the existing .NET 10 emit references and for exact .NET 11. Exact .NET Framework 4.7 attribute compilation and reference behavior passed for compilation, diagnostics, metadata, import, and IL. Compiler-generated attributes are embedded only where the target does not already supply a compatible definition: .NET Framework 4.7 and 4.7.2 embed one `NullableAttribute`, and .NET 11 uses the predefined type. The previously recorded .NET Framework 4.7.2 `NullabilityInfoContext` test-project failure was a test-architecture correction. Those facts compile only for the modern host, and the net472 emit-test build completed with zero errors. Reflection interpretation passed on the .NET 11 runtime with `NullabilityInfoContext` and on the net10.0 host through the existing reflection facts. Analysis does not require a modern framework API, and the portable compiler does not reference `NullabilityInfoContext`. Older-target fallback passed, including the exact .NET 11 reference and runtime check.
+
+Exact .NET Framework 4.7 verification used `microsoft.netframework.referenceassemblies.net47` 1.0.3. Exact .NET 11 verification used the installed `Microsoft.NETCore.App.Ref` 11.0.0 reference pack, whose `System.Runtime` identity is 11.0.0.0, and ran on `Microsoft.NETCore.App` 11.0.0. Existing .NET 10 reflection verification remains the net10.0 host facts. The successful net472 command is `dotnet build src/Compilers/VisualBasic/Test/Emit/Microsoft.CodeAnalysis.VisualBasic.Emit.UnitTests.vbproj -c Release -f net472 --nologo --no-restore`.
+
+These LC-1G.3 limitations stay accepted:
+
+- Exact .NET Framework 4.7 CLR execution was not performed.
+- Exact 4.7 reference compilation is not equivalent to exact historical runtime execution.
+- The 4.7 reference pack does not contain `System.ValueTuple`.
+- No additional tuple dependency was introduced.
+- `NullabilityInfoContext` is unavailable on the older framework targets.
+- Older-target metadata inspection used a metadata reader.
+- Individual older-target flow-attribute fixtures were not all repeated.
+- A separate exact .NET 11 C# consumer matrix was not repeated.
+- The historical prebuilt net11 image read against net10 references remains distinct from the exact .NET 11 verification.
+- One intentionally stopped additional scan produced no result.
+
+Supplemental owner-provided evidence is a string presence check, not a complete assembly API inventory. The .NET 11 `System.Runtime` image contains the v11.0 target identity, `NullableAttribute`, and `NullabilityInfoContext`. The .NET 10 `System.Runtime` image contains the v10.0 identity and the same two type names. Neither scanned net47 nor net472 `mscorlib` contains those strings. The net472 emit-test build completed with zero errors.
+
+LC-1G.5 through LC-1G.7 remain unauthorized. LC-1G.4 is authorized for implementation and is not owner-accepted. The approved sequence is in [vbnext-lc1g-integration-plan.md](vbnext-lc1g-integration-plan.md): LC-1G.4 is public Roslyn nullable APIs, LC-1G.5 is IDE, analyzer, and diagnostic integration, LC-1G.6 is Edit and Continue, and LC-1G.7 is consolidated acceptance. `NullablePublicOnly` is not one of those slices. Two observations from the LC-1G.2a regression stay open for LC-1G.7 and are not confirmed defects: `Substitution_EveryConstructedSymbolKeepsItsArgument` once reported an unexpected BC42512 on `methodText` under a parallel run and then passed in isolation, with `xUnit.MaxParallelThreads=1`, and in the recorded default run; the first full nullable filter after the missing-constructor diagnostic aborted with a test-host crash and no dump, and the crash cause was not established. The evidence is `LanguageCompletion/LC-1G.2a-METADATA-CORRECTNESS-CLOSEOUT-REPORT.md`, section 16.
 
 These limitations stay accepted. A later missing warning is not one of them.
 
