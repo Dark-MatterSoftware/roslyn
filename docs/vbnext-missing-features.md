@@ -116,7 +116,7 @@ Do not start these until a Wave 1 feature has gone through parser, binder, tests
 | VB-036 | Static abstract interface members | Generic math. Large signature and constraint work. |
 | VB-037 | Ref structs | `IsRefLikeType` is hard-coded false. VB cannot declare a `ref` structure. Existing restricted types such as `Span(Of T)` can appear in limited synchronous code and are rejected when lifted. Ranges (VB-006) belong with this work. |
 | VB-038 | Authoring default interface members | The runtime-support flag exists. VB interfaces do not implement other interfaces today. |
-| VB-039 | Extension members beyond extension methods | C# 14 extensions. VB already has extension methods. Authoring the new block form is a separate design. |
+| VB-039 | Extension members beyond extension methods | Slices 9c, 9d, and 9e author the block in one compilation. Another assembly cannot see those properties. The architecture assessment is [vbnext-extension-metadata-architecture.md](vbnext-extension-metadata-architecture.md). No new identifier. |
 
 ## Wave 4
 

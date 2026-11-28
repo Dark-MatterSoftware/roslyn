@@ -23,6 +23,12 @@ The accepted results, not rerun for closure, are RED Visual Basic 13 discovered 
 
 A parameter or a field used as a loop control variable stays outside this closure. The preferred next step named at closure, a bounded assessment of those two cases, was not the assignment that followed. The November 3 "Next approved step" below is historical.
 
+## Current status for cross-assembly extension metadata — November 27, 2026
+
+**Cross-assembly extension-member metadata architecture assessment complete — pending owner implementation decision.**
+
+The owner accepted the C# 15 executable assessment as the working compatibility record and authorized an architecture investigation of VB extension properties and indexers. The detail is `docs/vbnext-extension-metadata-architecture.md`. No compiler change was made. VB-039 remains the identifier. No new identifier, phase, slice, or wave was assigned. Default `receiver(index)` lookup for a metadata reference stays a separate decision. Extension methods still cross an assembly boundary. Production implementation remains unauthorized.
+
 ## Current status for the C# 15 and .NET 11 verification — November 27, 2026
 
 **Executable compatibility verification complete — pending owner implementation decisions.**
