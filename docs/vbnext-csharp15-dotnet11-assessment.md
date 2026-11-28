@@ -1,8 +1,8 @@
 # C# 15 and .NET 11 language compatibility assessment
 
-**Status: Static assessment complete — pending owner review and executable verification authorization.**
+**Status: Executable compatibility verification complete — pending owner implementation decisions.**
 
-This is a static assessment. It does not approve native syntax, a feature identifier, a phase, a slice, or a wave. It does not change the canonical mission in [vbnext-mission.md](vbnext-mission.md). Implementation and executable verification remain unauthorized.
+Sections 1 through 20 are the accepted static assessment. Their historical status was **Static assessment complete — pending owner review and executable verification authorization.** That record is unchanged in substance. Section 21 records the later executable verification. This document does not approve native syntax, a feature identifier, a phase, a slice, or a wave. It does not change the canonical mission in [vbnext-mission.md](vbnext-mission.md). Production implementation remains unauthorized.
 
 Access date for the official pages below: 2026-11-27.
 
@@ -467,3 +467,38 @@ Evidence, written beside this document and outside the git commit:
 - `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-INTEROPERABILITY-AND-FRAMEWORK-MATRIX.md`
 - `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-PROPOSED-VERIFICATION-PLAN.md`
 - `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-OWNER-DECISION-MATRIX.md`
+
+## 21. Executable verification
+
+The owner accepted sections 1 through 20 and authorized verification only. The historical status of those sections remains the static assessment. This section does not replace their findings. It records what the compilers did. Production source, test source, Features, and Workspaces were not modified. No permanent test was added. No syntax, feature identifier, phase, slice, or wave was assigned. Wave 37 stayed closed. The five static evidence files were not edited.
+
+Verification baseline: `vbnext/main` at `8fd88e08e66986d1cb54532aaee5e3056dcea653`. Compilers were built Release for net10.0 from that tree. `csc` and `vbc` exited 0. Reported version: `5.13.0-dev (<developer build>)`. Hashes and paths are in `CSHARP15-DOTNET11-EXECUTED-ARTIFACT-PROVENANCE.md`. The SDK 11.0.100 compiler was used only as a union-producer control and as the compiler of a symbol harness that loaded the in-tree assemblies. It is not the in-tree compiler.
+
+Upstream after the October 19 merge was reviewed in a bounded way and was not imported. The relevant compiler files for unions and extension grouping had no later commits. A later cast-simplifier change and a later collection-inference change exist upstream and are not in this fork. In-tree results and released-SDK results are distinguished where both were run. The union member dump from the SDK producer matched the in-tree dump.
+
+Language versions. 17.13, default, and latest agreed on ordinary union consumption, the BC37319 rejection, the extension-indexer rejection, and the Shared-interface-body rejection. vbnext is required for named extension lookup, target-typed collection expressions, partial properties, and plain Shared interface members. Union conversions stay rejected on vbnext.
+
+Ordinary union consumption. Constructors and `Value` run for reference, value, and generic unions on 17.13, default, latest, and vbnext. A net10 consumer of a producer that embeds the attribute also runs. `HasValue` and `TryGetValue` are not generated. VB `IsUnion` is false and the case list is empty. C# reports the cases. Implicit assignment, `CType`, and `Select Case` on the union are BC30311. `TypeOf` on `Value` works. There is no exhaustiveness diagnostic. Native union declarations were not added.
+
+Closed hierarchies. Permitted descendants construct, assign, and call. Prohibited inheritance is BC37319 on 17.13, default, latest, and vbnext, including a generic closed base and a nested closed type. C# reports CS9382. The diagnostic is the existing unsupported-feature diagnostic. It prevented the invalid inheritance in the cases that were compiled. VB `IsClosed` is false. That is recognition and diagnostic quality, not an enforcement failure in those cases. The feature-required rejection was not removed.
+
+Extension members. Named C# extension getters and setters run on vbnext, including interfaces, generic arrays, value types, evaluation order, instance precedence, imports, and accessibility. Default access is BC30367 for a class without a default member and BC30547 for an interface. 17.13 rejects named access with BC30456. The same-compilation VB indexer prints `hi`, and the existing test `ExtensionIndexer_ReceiverAndIndexArePassed` passed (1 passed, 0 failed, exit 0). A VB extension library emits static accessors and an assembly `ExtensionAttribute`, without the C# grouping type. Another VB assembly, on vbnext and on 17.13, reports BC30456 for the indexer and for a non-indexed property. C# does not bind them either. That gap is separate from default lookup.
+
+Collections. C# `with` ran for a capacity, a custom constructor, a builder argument, a spread, and evaluation order. VB `New List(Of T)(capacity) From` and a dictionary comparer ran on net11 and net472. vbnext target-typed parentheses assigned to a list ran; 17.13 treats that expression as a tuple. Dictionary `with` element syntax was not successfully compiled here. No `with` element was added. The executed constructions are not a claim of complete builder equivalence.
+
+Static interface members. A plain Shared method, sub, and property with a body compile on vbnext against net11, net472, and net48, and the calls run, including both directions and a second VB assembly. Metadata for the plain method is static, not virtual, and not abstract. 17.13, default, and latest reject the body with BC30603. net47 reference assemblies are not installed. The net472 executables ran on CLR 4.8.10008.0, which does not establish the original 4.7 runtime. C# rejects static abstract, static virtual, instance default interface methods, and protected static interface members on net472. VB `Shared MustOverride` compiled against those same references and is static abstract. That is a confirmed negative-control defect. The plain Shared path was not changed.
+
+Other probes. Nearest `Exit` and `Continue`, `GoTo`, and `Finally` behaved as today's language. A C# labeled `break` compiled as a capability control. Memory-safety preview metadata was present on an ordinary method, and VB 17.13 and vbnext called it. Partial default properties run on vbnext and are BC30639 on 17.13. Index-from-end on a typed array and a `List` ran. Expression trees with an omitted optional argument match the C# control. An async entry point ran. An ordinary 17.13 program ran on net11 and net472. Small Windows Forms and WPF inheritance compiles succeeded and are not full desktop compatibility.
+
+Confirmed gaps, in the order recommended if the owner later authorizes work: cross-assembly VB extension metadata; C# extension-indexer default lookup, preserving 17.13; a runtime check for static abstract or virtual interface members, without changing plain Shared methods; union metadata recognition; union conversions, patterns, and exhaustiveness only under later decisions; a design assessment for native unions; a design assessment for named `Exit` and `Continue`; closed-type symbol and diagnostic wording while the current rejection remains. No C# 13 or C# 14 completeness correction was confirmed by the residues that ran. Collection syntax stays deferred. The IDE candidates in section 19 were not investigated.
+
+Limitations that are not passes and not defects: net47 references, exact 4.7 execution, .NET Standard, `/refout` reference assemblies, `Await Each`, extension methods and operators in this command-line setup, and the dictionary `with` element. Upstream changes after October 19 were not merged, so in-tree compatibility is not a claim about every later `dotnet/roslyn` commit.
+
+Evidence for this section, outside the repository:
+
+- `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-EXECUTABLE-VERIFICATION-MATRIX.md`
+- `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-EXECUTED-ARTIFACT-PROVENANCE.md`
+- `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-EXECUTED-INTEROPERABILITY-AND-FRAMEWORK-MATRIX.md`
+- `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-CONFIRMED-GAP-AND-CORRECTION-CANDIDATES.md`
+- `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-POST-VERIFICATION-OWNER-DECISION-MATRIX.md`
+- `D:\Development\VBNext\Evidence\LanguageCompletion\CSHARP15-DOTNET11-EXECUTABLE-COMPATIBILITY-VERIFICATION-REPORT.md`

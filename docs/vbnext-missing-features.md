@@ -525,7 +525,7 @@ Found in the Visual Studio sessions C3-D7 to C3-D15 and recorded with its eviden
 ## Parked
 
 - Pointers ([vblang #46](https://github.com/dotnet/vblang/issues/46)). A different safety model from the rest of this list.
-- Unions and other C# 15 designs. The earlier planning sentence said `TypeSymbol` has no unions and that the row should wait until the upstream design stopped moving. That sentence is the historical note. C# 15 has released. The static assessment is [vbnext-csharp15-dotnet11-assessment.md](vbnext-csharp15-dotnet11-assessment.md). It does not approve native syntax, a feature identifier, a phase, a slice, or a wave. This row stays parked until the owner decides.
+- Unions and other C# 15 designs. The earlier planning sentence said `TypeSymbol` has no unions and that the row should wait until the upstream design stopped moving. That sentence is the historical note. C# 15 has released. The static assessment and the later executable verification are [vbnext-csharp15-dotnet11-assessment.md](vbnext-csharp15-dotnet11-assessment.md). Ordinary union member consumption ran. Union metadata, conversions, and patterns did not. Native union declarations stay a design candidate and are not rejected. No native syntax, feature identifier, phase, slice, or wave is approved. This row stays parked until the owner decides.
 - Top-level statements and file-scoped namespaces. Modules and namespace blocks already cover the scenarios. VB-059 is the VB-shaped version of the namespace idea.
 - Hosting and runtime portability (Azure Functions, MAUI, a separate IoT runtime). Those are not compiler language features.
 - `Option Legacy`. A compatibility mode that can change the meaning of existing programs.

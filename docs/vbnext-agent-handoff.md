@@ -23,9 +23,21 @@ The accepted results, not rerun for closure, are RED Visual Basic 13 discovered 
 
 A parameter or a field used as a loop control variable stays outside this closure. The preferred next step named at closure, a bounded assessment of those two cases, was not the assignment that followed. The November 3 "Next approved step" below is historical.
 
-## Current status for the C# 15 and .NET 11 assessment — November 27, 2026
+## Current status for the C# 15 and .NET 11 verification — November 27, 2026
+
+**Executable compatibility verification complete — pending owner implementation decisions.**
+
+The owner accepted the static assessment and authorized bounded executable verification. The detail added to the assessment is section 21 of `docs/vbnext-csharp15-dotnet11-assessment.md`. Production implementation, permanent tests, new syntax, feature identifiers, phases, slices, and Wave 37 remain unauthorized. VB-030, VB-187, and the Introduce Parameter local-symbol closure remain closed.
+
+Ordinary union construction and `Value` run on 17.13, default, latest, and vbnext. VB `IsUnion` stays false. Implicit and explicit union conversions and `Select Case` on the union are BC30311. Prohibited closed inheritance is BC37319 on 17.13, default, latest, and vbnext; permitted descendants run. Named C# extension members run on vbnext and are BC30456 on 17.13. Default extension access is BC30367 or BC30547. VB extension properties that work in one compilation are BC30456 from another assembly, including a non-indexed property, and C# does not bind them. Plain Shared interface members run against net11, net472, and net48 references; the net472 output ran on CLR 4.8. `Shared MustOverride` compiled against net472 and is static abstract, which C# rejects with CS8919. Nearest `Exit` and `Continue` behave as today's language. Partial default properties, index-from-end, expression-tree optional arguments, and an async entry point ran. net47 reference assemblies are not installed. Exact 4.7 runtime execution was not established.
+
+The first repair candidate, if later authorized, is cross-assembly VB extension metadata. Default lookup for C# extension indexers is separate. Native unions and named `Exit`/`Continue` stay unapproved design candidates. The IDE candidates listed in the static section below were not investigated.
+
+## Static assessment record for C# 15 and .NET 11 — November 27, 2026
 
 **Static assessment complete — pending owner review and executable verification authorization.**
+
+The paragraph above is the historical status of the static assessment. Executable verification was later authorized and is the current status section.
 
 The owner authorized a documentation-only assessment of released C# 15 and the .NET 11 ecosystem. The detail is `docs/vbnext-csharp15-dotnet11-assessment.md`. No compiler source, test source, build, restore, executable probe, SDK installation, upstream merge, feature identifier, phase, slice, or wave was authorized or started. Wave 37 was not opened. VB-030, VB-187, and the Introduce Parameter local-symbol closure remain closed.
 
