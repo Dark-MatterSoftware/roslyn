@@ -22,9 +22,35 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Property
 
         ''' <summary>
+        ''' Reports the required marker constructor when an extension property is emitted and an
+        ''' existing attribute definition cannot supply it. A missing attribute is left for embedding.
+        ''' </summary>
+        Friend Shared Sub ReportRequiredExtensionMarkerContract(compilation As VisualBasicCompilation, symbol As Symbol, diagnostics As BindingDiagnosticBag)
+            If diagnostics Is Nothing OrElse symbol Is Nothing Then
+                Return
+            End If
+
+            Dim existing = compilation.GetWellKnownType(WellKnownType.System_Runtime_CompilerServices_ExtensionMarkerAttribute)
+            If TypeOf existing Is MissingMetadataTypeSymbol Then
+                Return
+            End If
+
+            Dim location = symbol.Locations.FirstOrDefault()
+            If location Is Nothing Then
+                location = NoLocation.Singleton
+            End If
+
+            Binder.ReportUseSiteInfoForSynthesizedAttribute(
+                WellKnownMember.System_Runtime_CompilerServices_ExtensionMarkerAttribute__ctor,
+                compilation,
+                location,
+                diagnostics)
+        End Sub
+
+        ''' <summary>
         ''' Creates the embedded marker attribute when this module emits extension properties
         ''' and the target reference set does not define the framework contract.
-        ''' A framework type with an incompatible constructor is left unchanged.
+        ''' An existing type with an unusable constructor is not replaced.
         ''' </summary>
         Friend Sub EnsureExtensionMarkerAttribute()
             Dim existing = Compilation.GetWellKnownType(WellKnownType.System_Runtime_CompilerServices_ExtensionMarkerAttribute)

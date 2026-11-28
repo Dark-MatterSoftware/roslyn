@@ -2546,7 +2546,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return False
                 End If
 
-                SynthesizedMetadataCompiler.ProcessSynthesizedMembers(Me, moduleBeingBuilt, cancellationToken)
+                Dim markerDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics:=True, withDependencies:=False)
+                SynthesizedMetadataCompiler.ProcessSynthesizedMembers(Me, moduleBeingBuilt, markerDiagnostics, cancellationToken)
+                Dim hasMarkerContractErrors = Not FilterAndAppendDiagnostics(diagnostics, markerDiagnostics.DiagnosticBag, cancellationToken)
+                markerDiagnostics.Free()
+                If hasMarkerContractErrors Then
+                    Return False
+                End If
 
                 If moduleBeingBuilt.OutputKind.IsApplication() Then
                     Dim entryPoint = GetEntryPointAndDiagnostics(cancellationToken)

@@ -18,10 +18,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Inherits VisualBasicSymbolVisitor
 
         Private ReadOnly _moduleBeingBuilt As PEModuleBuilder
+        Private ReadOnly _diagnostics As BindingDiagnosticBag
         Private ReadOnly _cancellationToken As CancellationToken
 
-        Private Sub New(moduleBeingBuilt As PEModuleBuilder, cancellationToken As CancellationToken)
+        Private Sub New(moduleBeingBuilt As PEModuleBuilder, diagnostics As BindingDiagnosticBag, cancellationToken As CancellationToken)
             Me._moduleBeingBuilt = moduleBeingBuilt
+            Me._diagnostics = diagnostics
             Me._cancellationToken = cancellationToken
         End Sub
 
@@ -30,10 +32,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Friend Shared Sub ProcessSynthesizedMembers(compilation As VisualBasicCompilation,
                                                         moduleBeingBuilt As PEModuleBuilder,
+                                                        diagnostics As BindingDiagnosticBag,
                                                         Optional cancellationToken As CancellationToken = Nothing)
 
             Debug.Assert(moduleBeingBuilt IsNot Nothing)
-            Dim compiler = New SynthesizedMetadataCompiler(moduleBeingBuilt:=moduleBeingBuilt, cancellationToken:=cancellationToken)
+            Dim compiler = New SynthesizedMetadataCompiler(moduleBeingBuilt:=moduleBeingBuilt, diagnostics:=diagnostics, cancellationToken:=cancellationToken)
             compilation.SourceModule.GlobalNamespace.Accept(compiler)
         End Sub
 
@@ -53,6 +56,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each member In symbol.GetMembers()
                 Dim propertySymbol = TryCast(member, PropertySymbol)
                 If propertySymbol IsNot Nothing AndAlso propertySymbol.IsExtensionProperty Then
+                    PEModuleBuilder.ReportRequiredExtensionMarkerContract(_moduleBeingBuilt.Compilation, propertySymbol, _diagnostics)
                     _moduleBeingBuilt.EnsureExtensionMarkerAttribute()
                     Exit For
                 End If

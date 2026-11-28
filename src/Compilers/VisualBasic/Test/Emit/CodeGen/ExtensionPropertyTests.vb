@@ -2,6 +2,7 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Immutable
 Imports System.Reflection
 Imports System.Reflection.Metadata
 Imports System.Reflection.PortableExecutable
@@ -383,6 +384,200 @@ End Module
 
             Assert.Fail("Ordinary module was not emitted.")
         End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_ParameterlessConstructor_ReportsMissingHelper()
+            AssertUnusableMarker("Public Sub New()" & vbCrLf & "End Sub")
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_WrongParameterType_ReportsMissingHelper()
+            AssertUnusableMarker("Public Sub New(value As Integer)" & vbCrLf & "End Sub")
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_InaccessibleConstructor_ReportsMissingHelper()
+            AssertUnusableMarker("Private Sub New(name As String)" & vbCrLf & "End Sub")
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_ReferencedStringConstructor_EmitsAndConsumes()
+            Dim attribute = MarkerAttributeReference("Public Sub New(name As String)" & vbCrLf & "End Sub")
+            Dim producer = MarkerProducer(attribute)
+            producer.VerifyDiagnostics()
+            Dim image = producer.EmitToArray()
+            Assert.False(ImageDefinesMarkerAttribute(image))
+            AssertMarkerConsumed(image, attribute)
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_MissingAttribute_EmbedsAndConsumes()
+            Dim producer = MarkerProducer(Nothing)
+            producer.VerifyDiagnostics()
+            Dim image = producer.EmitToArray()
+            Assert.True(ImageDefinesMarkerAttribute(image))
+            AssertMarkerConsumed(image, Nothing)
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_AdditionalConstructor_UsesRequiredConstructor()
+            Dim attribute = MarkerAttributeReference("Public Sub New()" & vbCrLf & "End Sub" & vbCrLf & "Public Sub New(name As String)" & vbCrLf & "End Sub")
+            Dim producer = MarkerProducer(attribute)
+            producer.VerifyDiagnostics()
+            Assert.True(producer.Emit(New IO.MemoryStream()).Success)
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_UnrelatedCompilation_IgnoresUnusableAttribute()
+            Dim compilation = CreateCompilation("
+Public Module Ordinary
+    Public Function Value() As Integer
+        Return 1
+    End Function
+End Module
+", references:={MarkerAttributeReference("Public Sub New()" & vbCrLf & "End Sub")}, options:=TestOptions.ReleaseDll, parseOptions:=VbNext, targetFramework:=TargetFramework.NetFramework)
+            compilation.VerifyDiagnostics()
+            Assert.True(compilation.Emit(New IO.MemoryStream()).Success)
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_Legacy17_13_IgnoresUnusableAttribute()
+            Dim compilation = CreateCompilation("
+Public Module Ordinary
+    Public Function Value() As Integer
+        Return 1
+    End Function
+End Module
+", references:={MarkerAttributeReference("Public Sub New()" & vbCrLf & "End Sub")}, options:=TestOptions.ReleaseDll, parseOptions:=Vb17_13, targetFramework:=TargetFramework.NetFramework)
+            compilation.VerifyDiagnostics()
+            Assert.False(compilation.GetDiagnostics().Any(Function(diagnostic) diagnostic.Code = ERRID.ERR_MissingRuntimeHelper))
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_ExtensionSyntaxRemainsRejectedOn17_13()
+            Dim compilation = CreateCompilation("
+Public Class Box
+End Class
+Public Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Marker As String
+            Get
+                Return ""!""
+            End Get
+        End Property
+    End Extension
+End Module
+", references:={MarkerAttributeReference("Public Sub New()" & vbCrLf & "End Sub")}, options:=TestOptions.ReleaseDll, parseOptions:=Vb17_13, targetFramework:=TargetFramework.NetFramework)
+            Assert.False(compilation.GetDiagnostics().Any(Function(diagnostic) diagnostic.Code = ERRID.ERR_MissingRuntimeHelper))
+            Assert.Contains(compilation.GetDiagnostics(), Function(diagnostic) diagnostic.Severity = DiagnosticSeverity.Error)
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_CSharpWrongParameterType_IsNotEmitted()
+            AssertCSharpMarkerRejected("public ExtensionMarkerAttribute(int value) {}")
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionMarker_CSharpInaccessibleConstructor_IsNotEmitted()
+            AssertCSharpMarkerRejected("private ExtensionMarkerAttribute(string name) {}")
+        End Sub
+
+        Private Sub AssertUnusableMarker(constructor As String)
+            Dim producer = MarkerProducer(MarkerAttributeReference(constructor))
+            producer.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_MissingRuntimeHelper, "Marker").WithArguments("System.Runtime.CompilerServices.ExtensionMarkerAttribute..ctor"))
+            Assert.False(producer.Emit(New IO.MemoryStream()).Success)
+            Assert.False(producer.Emit(New IO.MemoryStream(), options:=New EmitOptions(metadataOnly:=True)).Success)
+        End Sub
+
+        Private Sub AssertCSharpMarkerRejected(constructor As String)
+            Dim attribute = CreateCSharpCompilation("
+namespace System.Runtime.CompilerServices
+{
+    public class ExtensionMarkerAttribute : System.Attribute
+    {
+        " & constructor & "
+    }
+}
+", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.NetFramework),
+               compilationOptions:=New Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            attribute.VerifyDiagnostics()
+            Dim producer = CreateCSharpCompilation("
+public class Box {}
+public static class BoxExtensions
+{
+    extension(Box box)
+    {
+        public string Marker => ""!"";
+    }
+}
+", referencedAssemblies:=TargetFrameworkUtil.GetReferences(TargetFramework.NetFramework).Concat({attribute.EmitToImageReference()}),
+               compilationOptions:=New Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            Assert.Contains(producer.GetDiagnostics(), Function(diagnostic) diagnostic.Id = "CS0656")
+            Assert.False(producer.Emit(New IO.MemoryStream()).Success)
+        End Sub
+
+        Private Function MarkerAttributeReference(constructor As String) As MetadataReference
+            Dim compilation = CreateCompilation("
+Namespace System.Runtime.CompilerServices
+    Public Class ExtensionMarkerAttribute
+        Inherits Global.System.Attribute
+        " & constructor & "
+    End Class
+End Namespace
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext, targetFramework:=TargetFramework.NetFramework)
+            compilation.VerifyDiagnostics()
+            Return compilation.EmitToImageReference()
+        End Function
+
+        Private Function MarkerProducer(attribute As MetadataReference) As VisualBasicCompilation
+            Dim references = If(attribute Is Nothing, Array.Empty(Of MetadataReference)(), {attribute})
+            Return CreateCompilation("
+Public Class Box
+End Class
+Public Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Marker As String
+            Get
+                Return ""!""
+            End Get
+        End Property
+    End Extension
+End Module
+", references:=references, options:=TestOptions.ReleaseDll, parseOptions:=VbNext, targetFramework:=TargetFramework.NetFramework)
+        End Function
+
+        Private Sub AssertMarkerConsumed(image As ImmutableArray(Of Byte), attribute As MetadataReference)
+            Dim references As MetadataReference() = {MetadataReference.CreateFromImage(image)}
+            If attribute IsNot Nothing Then
+                references = {references(0), attribute}
+            End If
+
+            Dim consumer = CreateCompilation("
+Module Program
+    Sub Main()
+        Dim box As New Box()
+        Dim marker = box.Marker
+    End Sub
+End Module
+", references:=references, options:=TestOptions.ReleaseDll, parseOptions:=VbNext, targetFramework:=TargetFramework.NetFramework)
+            consumer.VerifyDiagnostics()
+        End Sub
+
+        Private Shared Function ImageDefinesMarkerAttribute(image As ImmutableArray(Of Byte)) As Boolean
+            Using stream = New IO.MemoryStream(image.ToArray())
+                Using pe = New PEReader(stream)
+                    Dim reader = pe.GetMetadataReader()
+                    For Each handle In reader.TypeDefinitions
+                        If reader.GetString(reader.GetTypeDefinition(handle).Name) = "ExtensionMarkerAttribute" Then
+                            Return True
+                        End If
+                    Next
+                End Using
+            End Using
+
+            Return False
+        End Function
 
         Private Shared Function ExtensionProducer() As VisualBasicCompilation
             Return CreateCompilation("

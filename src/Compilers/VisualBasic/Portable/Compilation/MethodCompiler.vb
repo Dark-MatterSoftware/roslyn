@@ -582,6 +582,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return
             End If
 
+            ReportRequiredExtensionMarkerIfNeeded(containingType)
+
             ' Find the constructor of a script class.
             Dim scriptCtor As SynthesizedConstructorBase = Nothing
             Dim scriptInitializer As SynthesizedInteractiveInitializerMethod = Nothing
@@ -819,6 +821,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             compilationState.Free()
+        End Sub
+
+        Private Sub ReportRequiredExtensionMarkerIfNeeded(containingType As NamedTypeSymbol)
+            For Each member In containingType.GetMembers()
+                Dim propertySymbol = TryCast(member, PropertySymbol)
+                If propertySymbol IsNot Nothing AndAlso propertySymbol.IsExtensionProperty Then
+                    PEModuleBuilder.ReportRequiredExtensionMarkerContract(_compilation, propertySymbol, _diagnostics)
+                    Return
+                End If
+            Next
         End Sub
 
         Private Sub CompileExtensionGroupingMethods(containingType As NamedTypeSymbol)
