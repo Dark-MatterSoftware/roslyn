@@ -15,13 +15,13 @@ The November 3 statement that slice 172a is planned and not started, and that an
 
 ## Current status for the Introduce Parameter local-symbol correction — November 27, 2026
 
-**Implementation complete and verified within authorized scope — pending formal owner acceptance.**
+**Formally complete and closed — owner accepted.**
 
-The owner accepted disposition A. The shared eligibility walk in `ShouldExpressionDisplayCodeActionAsync` now uses `DescendantNodesAndSelf()`, so a selected local or range-variable identifier is examined by the existing `ILocalSymbol` and `IRangeVariableSymbol` rejection. No feature identifier, phase, slice, or wave was assigned. The candidate stays unassigned under "Not part of wave 36" in `docs/vbnext-missing-features.md` and is not formally closed.
+The owner formally accepted the shared local-symbol eligibility correction. `ShouldExpressionDisplayCodeActionAsync` uses `DescendantNodesAndSelf()`, so a selected local or range-variable identifier is examined by the existing `ILocalSymbol` and `IRangeVariableSymbol` rejection. No feature identifier, phase, slice, or wave was assigned. The detail is `docs/vbnext-introduce-parameter-foreach-review.md`.
 
-Focused RED tests reproduced the defect on unchanged production source. The same tests passed after the correction. The Visual Basic Introduce Parameter suite passed 69 tests and the C# suite passed 82, both on Debug `net472`, including `TestExpressionCaseWithLocal` and the VB-187a and VB-187b regressions. The detail is `docs/vbnext-introduce-parameter-foreach-review.md`.
+The accepted results, not rerun for closure, are RED Visual Basic 13 discovered with 11 expected failures and 2 passes, RED C# 7 discovered with 5 expected failures and 2 passes, GREEN 13 and 7 passes, and Introduce Parameter suites of 69 and 82 passes. The 151 suite passes already include the focused tests. VB-187a and VB-187b coverage stayed passing. VB-030 and VB-187 remain closed.
 
-A parameter or a field used as a loop control variable was not corrected. VB-030 and VB-187 remain closed. The November 3 "Next approved step" below is historical. It is not authorization to start another slice.
+A parameter or a field used as a loop control variable stays outside this closure. The preferred next step, if the owner later authorizes one, is a bounded assessment of those two cases. It is not authorized, and it has no identifier. The November 3 "Next approved step" below is historical. It is not authorization to start that assessment.
 
 ## What Vb.Next is
 

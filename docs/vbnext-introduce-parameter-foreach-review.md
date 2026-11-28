@@ -1,8 +1,8 @@
 # Introduce Parameter on a For Each control variable
 
-**Implementation complete and verified within authorized scope — pending formal owner acceptance.**
+**Formally complete and closed — owner accepted.**
 
-The owner accepted disposition A and authorized the bounded shared eligibility correction. Sections 1–20 are the accepted assessment record and describe the repository as it was before that correction. Section 21 records the correction, the executable verification, and the remaining limitations. The candidate stays unassigned. This note does not assign a feature identifier, phase, slice, or wave, and it does not close the defect or reopen VB-030 or VB-187.
+The owner formally accepted the shared local-symbol eligibility correction. Sections 1–20 remain the accepted assessment record. Section 21 remains the implementation and verification record written before closure. Section 22 records formal closure. The correction stays an ordinary IDE correctness fix without a feature identifier, phase, slice, or wave. It does not reopen VB-030 or VB-187. Parameter and field control-variable scenarios stay outside this closure.
 
 The canonical mission is [vbnext-mission.md](vbnext-mission.md). This note does not restate it.
 
@@ -300,4 +300,36 @@ Still outside this correction: a parameter or a field used as a loop control var
 
 The change is ordinary IDE correctness. It advances desktop and server tooling, leaves Visual Basic culture and existing compiled applications unchanged, adds no syntax or framework dependency, and does not alter 17.13, `default`, or `latest` compiler semantics. Valid Introduce Parameter actions remain available. The shared provider changed by one call. UnisonCore is untouched. No mission amendment was made.
 
-Formal closure, a permanent feature identifier, and Wave 37 remain owner decisions. VB-030 stays closed at `c5b21efac74b4f9785ed3b0c93e3ed290d9e2007`. VB-187 stays closed at `388db4fd03419bc8b4c8548d4043c66e053abbcf`.
+At the time of the implementation record, formal closure, a permanent feature identifier, and Wave 37 remained owner decisions. Section 22 records the later acceptance. VB-030 stays closed at `c5b21efac74b4f9785ed3b0c93e3ed290d9e2007`. VB-187 stays closed at `388db4fd03419bc8b4c8548d4043c66e053abbcf`.
+
+## 22. Formal owner acceptance and closure
+
+On November 27, 2026, the owner formally accepted the completed correction and its existing verification evidence. No additional implementation or executable verification was performed for this closure. No production source, test source, build, restore, test, or probe was run.
+
+Accepted commits, unchanged by this closure:
+
+| Role | Commit | Subject |
+| --- | --- | --- |
+| Assessment | `8a4210e0a7172404715c329a713e719af35528b5` | Assess Introduce Parameter For Each control variable defect |
+| Implementation | `cbf3e31d2373148e0d22322b7226a97c49d184a4` | Correct Introduce Parameter local-symbol eligibility |
+| Verification documentation | `5a3731bdbb0df6f01918213c6b01a52c6b4f4372` | Record Introduce Parameter local-symbol correction verification |
+
+The accepted production change remains `DescendantNodesAndSelf()` in `ShouldExpressionDisplayCodeActionAsync`. The existing rejection of `ILocalSymbol` and `IRangeVariableSymbol` is unchanged. The implementation commit contains that line and the 20 regression tests: 13 Visual Basic and 7 C#.
+
+The owner accepts the historical RED results: Visual Basic 13 discovered, 2 passed, 11 failed, 0 skipped; C# 7 discovered, 2 passed, 5 failed, 0 skipped. The 16 failures were assertions that the six nested actions were offered. The four passes preserved an unavailable containing-parameter identifier and an available parameter expression inside the loop. Those runs are not re-executed here.
+
+The owner accepts the historical GREEN results: Visual Basic 13 passed and C# 7 passed, with no failures or skips. The owner accepts the Introduce Parameter suites: Visual Basic 69 passed and C# 82 passed, 151 in total, with no failures or skips. The suites already include the focused tests. Those 151 are not added to the focused GREEN passes.
+
+The owner accepts the passing VB-187a Module tests and VB-187b generic tests, and the passing C# generic trampoline tests. VB-187 remains closed. The owner accepts the executed coverage of explicit 17.13, `default`, `latest`, and `vbnext`, including ordinary locals, carets, implicit and explicitly typed `For Each` control variables, deconstruction locals, `Await Each`, query range variables, Visual Basic shadowing, C# `foreach` iteration variables, valid parameter expressions, compound-local rejection, and Module and generic transformations. The executed host was Debug `net472`. .NET Framework 4.7.0, every supported framework target, and `net10.0-windows` were not independently executed.
+
+The owner accepts the executed Debug `netstandard2.0` Features provenance: RED `A607A2D046B4A04B719C6FDB999E4D5AF4C2A1CB6556A974ECD3FE455B98CBA4` and corrected `3CB3E1F0BAC1548F424441D30F3B29A8CD2DB55025222FDF4E8B598345522423`, both 7,220,224 bytes. That acceptance does not establish provenance for a later source state, a Release build, or a Visual Studio deployment. The historical compiler baseline and the malformed historical Features hash stay historical limitations.
+
+The 54 `For Each` rows, 12 `Await Each` rows, 3 ordinary-local rows, 36 overlapping VB-187 rows, and 1,089 Introduce Parameter breaking rows were not rerun. The owner accepts the focused regressions as sufficient to close the local-symbol eligibility defect. This closure does not say those historical rows now compile, and it does not close every Introduce Parameter defect.
+
+Closed scope: the shared semantic eligibility policy for a selected local or range-variable expression. Still outside closure: a parameter or a field used as a loop control variable, general mutation, evaluation-frequency, and side-effect analysis, unqualified call-site expressions, anonymous types or delegates typed as `Object`, `Global.` tuple conversion, and Introduce Variable all-occurrences. None of those is classified as fixed.
+
+Planning classification: ordinary IDE correctness. No permanent language-feature identifier, phase, slice, or wave is assigned. Wave 37 is not opened. The release plan does not name this correction and was not changed. The correction improves desktop tooling. It does not establish Preview 1 readiness, VB.Next 1.0 readiness, complete IDE parity, or a start for Razor, VBHTML, or MAUI.
+
+The mission review is unchanged. The correction advances desktop and server tooling, preserves Visual Basic culture and compiled application behavior, changes no compiler semantics, preserves 17.13 and explicit `vbnext`, adds no framework dependency, keeps valid refactoring operations, changes the shared provider by one call, and leaves UnisonCore untouched. The canonical mission object remains `39d09e6d5bf776009de9da531bbac2ade79c673d`.
+
+**Formally complete and closed — owner accepted.**
