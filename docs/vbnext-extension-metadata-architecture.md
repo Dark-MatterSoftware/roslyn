@@ -111,3 +111,13 @@ Accepted limitations: previously emitted VB.Next extension libraries must be rec
 The owner separately approves Alternative B. When emission requires `ExtensionMarkerAttribute` and an existing definition cannot supply the required constructor, the compiler must report an error, must not emit an undiscoverable extension member, and must not embed a replacement definition. That correction is authorized and is not part of this acceptance. A missing attribute still embeds. A valid framework or referenced attribute is used and is not embedded again.
 
 These candidates stay open: default PE `box(index)`, the `CompilationReference` language-version discrepancy, the `CompilationReference` friend diagnostic difference, C# consumption of a second parameterized property in one grouping, and the reduced nullable projection.
+
+## Marker contract correction
+
+Alternative B is implemented and is not formally accepted. When a compilation emits an extension property and an existing `ExtensionMarkerAttribute` cannot supply the required string constructor, the compiler reports BC35000, `ERR_MissingRuntimeHelper`, with the argument `System.Runtime.CompilerServices.ExtensionMarkerAttribute..ctor`. Emission fails, including metadata-only emission. The compiler does not embed a replacement definition.
+
+A missing attribute is still embedded. A valid framework or referenced attribute is used and is not embedded again. An additional constructor does not hide a valid string constructor. A compilation that does not emit an extension property, including a Visual Basic 17.13 compilation, does not report the diagnostic merely because an unusable attribute is referenced.
+
+The diagnostic is the same missing-runtime-helper diagnostic accepted for an unusable `NullableAttribute` constructor. No new diagnostic identifier was added. The report is demand-driven: `MethodCompiler` reports it while compiling a type that declares an extension property, and metadata-only emit reports it from `SynthesizedMetadataCompiler` before the image is written.
+
+A valid net11 producer keeps the same module flags, grouping name `<G>$8D07098A8288F079`, marker name `<M>$7F93D3209D6E48BB`, and `get_Marker` signature blobs `00010E1208` and `20000E`. Exact net47 compilation still embeds a missing marker, uses a referenced string constructor, and rejects a parameterless constructor. A 4.7 CLR run is not claimed. The nullable missing-constructor tests still pass. VB-039 remains open.
