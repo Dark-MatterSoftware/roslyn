@@ -21,7 +21,17 @@ The owner formally accepted the shared local-symbol eligibility correction. `Sho
 
 The accepted results, not rerun for closure, are RED Visual Basic 13 discovered with 11 expected failures and 2 passes, RED C# 7 discovered with 5 expected failures and 2 passes, GREEN 13 and 7 passes, and Introduce Parameter suites of 69 and 82 passes. The 151 suite passes already include the focused tests. VB-187a and VB-187b coverage stayed passing. VB-030 and VB-187 remain closed.
 
-A parameter or a field used as a loop control variable stays outside this closure. The preferred next step, if the owner later authorizes one, is a bounded assessment of those two cases. It is not authorized, and it has no identifier. The November 3 "Next approved step" below is historical. It is not authorization to start that assessment.
+A parameter or a field used as a loop control variable stays outside this closure. The preferred next step named at closure, a bounded assessment of those two cases, was not the assignment that followed. The November 3 "Next approved step" below is historical.
+
+## Current status for the C# 15 and .NET 11 assessment — November 27, 2026
+
+**Static assessment complete — pending owner review and executable verification authorization.**
+
+The owner authorized a documentation-only assessment of released C# 15 and the .NET 11 ecosystem. The detail is `docs/vbnext-csharp15-dotnet11-assessment.md`. No compiler source, test source, build, restore, executable probe, SDK installation, upstream merge, feature identifier, phase, slice, or wave was authorized or started. Wave 37 was not opened. VB-030, VB-187, and the Introduce Parameter local-symbol closure remain closed.
+
+The six released C# 15 capabilities are union types, closed hierarchies, extension indexers, collection expression arguments, non-virtual static interface members on older runtimes, and labeled `break` and `continue`. Memory safety remains preview. This fork already contains the C# compiler implementation of those capabilities through the upstream merge `531d72d81e28e39628164102bd173f5b3afaf0a1` of `e4e2833be7abbc54776788ca35d5c4d2697b0261`. Visual Basic does not recognize union or closed metadata. C# extension indexers are not bound as default properties. Non-virtual static interface members are a VB-110 behavior whose older-runtime claim is source-supported and not freshly executed. Native syntax remains unapproved.
+
+The remaining IDE candidates stay separate: a parameter or a field used as a loop control variable, mutation and expression relocation, unqualified call-site expressions, anonymous types or delegates typed as `Object`, global-qualified tuple conversion, Introduce Variable all-occurrences, Wave 34 Edit and Continue rows 4 and 5, and VB-175. Their deferral is not resolution.
 
 ## What Vb.Next is
 
