@@ -25,11 +25,11 @@ A parameter or a field used as a loop control variable stays outside this closur
 
 ## Current status for cross-assembly extension metadata — November 27, 2026
 
-**Architecture assessment accepted. Alternative A approved under VB-039. Production correction pending verification and owner acceptance.**
+**VB-039 cross-assembly extension-member metadata emission correction implemented and verified — pending formal owner acceptance.**
 
-The owner accepted the architecture assessment and approved Alternative A under existing VB-039. The authorized work is type-level `ExtensionAttribute` for a property-only module, interoperable grouping and marker metadata, `ExtensionMarkerAttribute` by the existing compiler contract, `DefaultMemberAttribute` for a parameterized extension property, and replacement of the module property whose parameter list includes the receiver. Static accessor signatures stay. No new identifier, phase, slice, or wave is assigned. Default `box(index)` lookup through a metadata reference and the `CompilationReference` language-version discrepancy stay separate. VB-030, VB-187, and the Introduce Parameter closure stay closed. The detail is `docs/vbnext-extension-metadata-architecture.md`.
+The owner accepted the architecture assessment and approved Alternative A under existing VB-039. The implemented compiler emits grouping and marker metadata, a type-level `ExtensionAttribute` for a property-only module, `ExtensionMarkerAttribute` by the existing contract, and `DefaultMemberAttribute` for a parameterized extension property. The module property that included the receiver is no longer emitted. Static accessors stay. No new identifier, phase, slice, or wave was assigned. VB-039 is not closed.
 
-The paragraph above is the authorization. It is not a claim that the correction has succeeded.
+Named VB and C# consumption succeed, including C# `receiver[index]`, a metadata-only reference assembly, net47 compilation, a valid .NET Standard 2.0 reference set, and net11 runtime. `box(index)` through a metadata reference remains BC30367. A `CompilationReference` still binds on 17.13, default, and latest, and a metadata reference on those versions does not. Previously emitted libraries need recompilation. The detail is `docs/vbnext-extension-metadata-architecture.md`. VB-030, VB-187, and the Introduce Parameter closure stay closed.
 
 ## Current status for the C# 15 and .NET 11 verification — November 27, 2026
 

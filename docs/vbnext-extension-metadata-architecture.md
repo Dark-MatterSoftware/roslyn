@@ -55,4 +55,20 @@ The evidence is under `D:\Development\VBNext\Evidence\LanguageCompletion\`:
 | Wave 37 | Unopened |
 | Canonical mission | Unchanged |
 
-Acceptance of the assessment does not establish that the production correction has succeeded. The implementation and verification record follows this authorization.
+Acceptance of the assessment does not establish that the production correction has succeeded. The implementation that followed is recorded below and is pending owner acceptance.
+
+## Implementation result
+
+The correction is implemented on `vbnext/main` and is not owner-accepted. VB-039 is not closed. A module that contains an extension property now emits the grouping and marker metadata, a type-level `ExtensionAttribute`, and `DefaultMemberAttribute` for a parameterized extension property. The module property that included the receiver is no longer emitted. The static accessors remain. A property-only module is abstract and sealed so C# recognizes it as a static class. An ordinary module is not marked abstract.
+
+Named VB-to-VB and VB-to-C# consumption succeed through a metadata reference and a metadata-only reference assembly. C# `receiver[index]` succeeds. VB `box(index)` through a metadata reference remains BC30367. A metadata reference on 17.13, default, and latest still does not bind the properties. A `CompilationReference` on those versions still does. Both of those results stay separate.
+
+Exact net47 compilation used `Microsoft.NETFramework.ReferenceAssemblies.net47` 1.0.3. It was not executed on a 4.7 CLR. net472 and net48 ran on CLR 4.8.10008.0. .NET Standard 2.0 compiled after `Microsoft.VisualBasic` was added to the reference set. The earlier single-DLL BC35000 result was an invalid reference set.
+
+Previously emitted VB.Next extension libraries need to be recompiled before another assembly can bind the properties. The evidence is under `D:\Development\VBNext\Evidence\LanguageCompletion\`:
+
+- `VBNEXT-EXTENSION-METADATA-IMPLEMENTATION-REPORT.md`
+- `VBNEXT-EXTENSION-METADATA-VERIFICATION-MATRIX.md`
+- `VBNEXT-EXTENSION-METADATA-BINARY-COMPATIBILITY-REPORT.md`
+- `VBNEXT-EXTENSION-METADATA-FRAMEWORK-COMPATIBILITY-MATRIX.md`
+- `VBNEXT-EXTENSION-METADATA-OWNER-ACCEPTANCE-MATRIX.md`
