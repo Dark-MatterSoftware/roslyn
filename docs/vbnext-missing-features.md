@@ -474,12 +474,12 @@ VB-179 found these in upstream Visual Basic; Vb.Next only gives them more code t
 - Introduce parameter adds `Shared` to a method of a `Module`, and leaves out the type parameters of a generic method. This is the historical wording. Formally closed on November 27, 2026, as VB-187: the `Shared` mechanism is addressed by `24c4d6fb7ba1544ba9084b20af6383bcf95bdbb6`, and the generic-invocation mechanism is addressed by `05cd8208345f03a94ef10ae5c2b4091ad6479c63`. The historical probe was not rerun.
 - Extract method, introduce variable, and replace conditional with statements type an anonymous delegate or an anonymous type as `Object`, which Option Strict On rejects.
 - Extract method of the receiver of an element or field assignment returns a copy of a structure; extract method of an expression in a single-line `If` throws.
-- Introduce variable and introduce parameter for all occurrences replace a `New` expression in an `As New` clause, and the control variable of `For Each x In`.
+- Introduce variable and introduce parameter for all occurrences replace a `New` expression in an `As New` clause, and the control variable of `For Each x In`. This sentence is not the call-site assessment below. It stays unassigned.
 - Convert tuple to struct qualifies the new type with `Global.` without the project's root namespace.
 - Convert property to methods breaks a `Default` property, and rename of a member that implements an interface from metadata breaks the implementation.
 - Extract method is offered on a `Yield` statement of an `Iterator` method. Found in phase 168, where the same offer on the `Yield` of an XML embedded block wrote a new method that is not an `Iterator`; phase 168 stops it only for the embedded block.
 - Extract interface is offered on a `Module`, which cannot implement an interface. Found in the wave 34 Visual Studio session; `AbstractExtractInterfaceService` leaves out only extension types.
-- Introduce parameter on a `For Each` control variable read in the loop moves the name to the call sites, where it is not declared, for `For Each order In orders` as for the names of `For Each (size, state) In orders`. Found in the wave 35 validation.
+- Introduce parameter on a `For Each` control variable read in the loop moves the name to the call sites, where it is not declared, for `For Each order In orders` as for the names of `For Each (size, state) In orders`. Found in the wave 35 validation. Assessed, without a feature identifier and without a correction, in [vbnext-introduce-parameter-foreach-review.md](vbnext-introduce-parameter-foreach-review.md). The candidate stays unassigned. Implementation is not authorized.
 - Introduce parameter that updates the call sites writes the expression unqualified there, so a call in another module can bind to a member of the same name in a third module. Found in the wave 35 validation.
 
 ### Upstream tooling and Visual Studio defects, not part of wave 35
@@ -503,7 +503,7 @@ Planned from the wave 35 validation and the candidate assessment after it. Tooli
 
 Each of these stays a decision of its own, recorded where it is.
 
-- The other upstream defects that the wave 35 validation weighed: introduce parameter on a name that the call sites do not declare, as a `For Each` control variable; introduce parameter writing an unqualified expression at the call sites; extract method and the others typing an anonymous type or delegate as `Object`; and convert tuple to struct qualifying with `Global.`. They are in the upstream list above.
+- The other upstream defects that the wave 35 validation weighed: introduce parameter on a name that the call sites do not declare, as a `For Each` control variable; introduce parameter writing an unqualified expression at the call sites; extract method and the others typing an anonymous type or delegate as `Object`; and convert tuple to struct qualifying with `Global.`. They are in the upstream list above. The `For Each` call-site candidate is assessed in [vbnext-introduce-parameter-foreach-review.md](vbnext-introduce-parameter-foreach-review.md) and stays unassigned. That assessment does not authorize implementation and does not close the other three.
 - The VB Razor, VBHTML, and MAUI stacks of the Direction, which `docs/vbnext-drift-review-wave33.md` left open.
 - New syntax.
 

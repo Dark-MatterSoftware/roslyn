@@ -13,6 +13,14 @@ On November 27, 2026, at 7:22 PM (UTC-6), the owner formally accepted slice 172a
 
 The November 3 statement that slice 172a is planned and not started, and that any fix needs a separate approval, is superseded for VB-187. Slice 171a (VB-186) was later committed as `c4ffca9d60c` and is Done; the "uncommitted" section below is the November 3 snapshot of that work. No further VB-187 implementation, test, or probe is required. The missing combined generic-method-in-a-`Module` test is optional and nonblocking. The historical 1,191-edit probe was not rerun. This note does not update unrelated features. The active repository is `D:\Development\VBNext\Repo` on `vbnext/main`. The working-rules path below is the November 3 path. The detail is `docs/vbnext-vb187-review.md`.
 
+## Current status for the For Each Introduce Parameter assessment — November 27, 2026
+
+Assessment complete pending owner review. No feature identifier, phase, slice, or wave was assigned. No correction was implemented. The candidate stays unassigned under "Not part of wave 36" in `docs/vbnext-missing-features.md`.
+
+The recommended disposition is a bounded corrective implementation, not yet authorized: the shared Introduce Parameter eligibility walk omits the selected expression itself, so a `For Each` control-variable identifier is offered and copied to call sites where it is not declared. Confidence is established from current source and the preserved wave 35 probe. The detail is `docs/vbnext-introduce-parameter-foreach-review.md`.
+
+The November 3 "Next approved step" below is historical. It is not authorization to implement this candidate, to reopen VB-187, or to start another slice.
+
 ## What Vb.Next is
 
 A community fork of `dotnet/roslyn` that extends Visual Basic. The language version `vbnext` gates every new form; `default` and `latest` stay Visual Basic 17.13.
