@@ -306,3 +306,68 @@ No production compiler, Features, or Workspaces edit. No test edit. No new synta
 ## 24. Assessment completion status
 
 Slice 172a is technically complete and awaits owner review. The original scope was recovered. The original evidence was separated from this slice's static reading. The architecture, tests, provenance, cause, compatibility, and a bounded recommendation are recorded. The underlying refactoring defect is not marked corrected by this slice. No corrective implementation was started.
+
+## 25. Formal owner acceptance
+
+Accepted on November 27, 2026, at 7:22 PM (UTC-6), from the owner authorization for this closure. Sections 1 through 24 stay the assessment record. They were not rewritten, and they do not claim a fresh executable run. This section is the accepted status.
+
+### Formal owner acceptance
+
+Slice 172a is formally accepted, including its findings, evidence boundaries, compatibility assessment, and verification limitations. The assessment commit is `907a6383a5aa259cf229d203bf7ded0d6a1f3585`.
+
+### The eight closure decisions
+
+| Id | Decision |
+| --- | --- |
+| VB187-OD-CLOSURE-1 | Slice 172a is formally accepted. |
+| VB187-OD-CLOSURE-2 | Disposition B is accepted. The current implementation is preserved. No additional corrective implementation is necessary or authorized. |
+| VB187-OD-CLOSURE-3 | The existing corrections are accepted. VB-187a is `24c4d6fb7ba1544ba9084b20af6383bcf95bdbb6`. VB-187b is `05cd8208345f03a94ef10ae5c2b4091ad6479c63`. No replacement implementation is created. |
+| VB187-OD-CLOSURE-4 | Historical executable evidence and the static source assessment are sufficient for administrative closure. No fresh build, restore, test, compiler invocation, or tooling probe is authorized. The historical 1,191-edit probe was not rerun, and this closure does not claim that all 822 BC30433-first edits now compile. |
+| VB187-OD-CLOSURE-5 | The missing combined generic-method-in-a-`Module` unit test is an accepted, optional, nonblocking coverage candidate. No test slice is authorized. |
+| VB187-OD-CLOSURE-6 | The corrections are ordinary IDE correctness fixes. They are not new language features. No `vbnext` gate is required. Visual Basic 17.13, `default`, `latest`, and explicit `vbnext` stay within their established language boundaries. |
+| VB187-OD-CLOSURE-7 | Applicable status records, including the repository agent handoff and the release plan, are reconciled. Historical wording is kept and distinguished from this accepted status. |
+| VB187-OD-CLOSURE-8 | VB-187 is formally closed within its approved scope. No mandatory implementation, documentation, or verification requirement remains. The next desktop or server assignment is identified and is not authorized. |
+
+### Accepted independent root causes
+
+VB-187a: the shared rewriter passed an unspecified code-generation destination for a `Module`. `CreateMethodDeclarationAsync` in `24c4d6fb7ba1544ba9084b20af6383bcf95bdbb6` passes `CodeGenerationDestination.ModuleType`, and the Visual Basic generator omits explicit `Shared`.
+
+VB-187b: parameter identity and generated invocation syntax. `05cd8208345f03a94ef10ae5c2b4091ad6479c63` keys arguments by `OriginalDefinition` and preserves required generic invocation arguments. Declarations already kept their type parameters.
+
+The two causes are independent. A generic method in a `Module` can exercise both paths. That combination is not a third defect.
+
+### Accepted historical verification
+
+The tests named in section 12 are present. Their historical failing and passing runs, and the historical compiler checks, stay historical. This closure adds no current pass count.
+
+### Historical probe limitations
+
+The wave 35 probe counts in section 7 stay as recorded: 1,191 breaking edits, 822 with BC30433 first, 411 extracted-method, 411 new-overload, and zero direct-update rows in those 822. The assessment recount found 110 locations where the planning text said 109. The 822 count is not 822 separately corrected defects, and it is not a claim that those edits now compile. Other diagnostics on those rows can belong to other defects. The probe was not rerun.
+
+### Accepted combined regression coverage limitation
+
+No unit test combines a generic method with a `Module` on the two corrected paths. The probe showed that combination, including `WaveEleven.vb(40)`. It was not newly executed. It is an optional future IDE regression candidate and is explicitly nonblocking. No test was added.
+
+### Compatibility acceptance
+
+VB187-OD-CLOSURE-6 is accepted. Module members stay implicitly shared. A class `Shared` method still receives `Shared`. An instance method does not. Generic declarations, valid inference, and the simplifier stay as they are. The generic-invocation change is in the shared rewriter and also applies to C#. Its C# evidence remains the historical tests. No compatibility exception and no language-version gate is added.
+
+### Upstream provenance boundary
+
+The original faults are in upstream-derived history in this fork. The two corrections were introduced here. No fresh comparison with the external `dotnet/roslyn` repository was made, and none is claimed.
+
+### Artifact provenance restrictions
+
+Administrative closure does not establish current binary provenance. The accepted compiler baseline remains `5fe4bcd873a37433ae512da60adbc80a1cd6eb13`, Release, `net10.0`, 6,553,600 bytes, SHA-256 `3DBDC692E7D1F8FA3E0EBBF6643561E04A8FD0042285938FA6E33E75A952AB70`. The previously accepted Features hash remains `368903F56141A0AD2936701614F02973706195309E57F55FA47FB911874547BD`. The Features assembly observed at VB-030 closure remains `F8DCC107018BF84E8B7E691271B066B5A031C54817C0627C50E29B042C5FE250` and was not executed. The accepted Workspaces hash remains `32A2A990237635CEFB50A4C534FEB3FB12EB95F95E41AFC03933FCC41FB0F78A`; that artifact was absent at closure. A later assignment that executes Features or Workspaces needs fresh provenance.
+
+### Mission review
+
+The mission is unchanged. The closure accepts an IDE correction already in the tree. It adds no syntax, no framework dependency, no compiler-semantic change, and no language-version behavior. Desktop and server editing stays the priority.
+
+### Final VB-187 closure status
+
+VB-187 is formally complete and closed within its approved scope. Slice 172a is formally accepted. Disposition B is accepted. No mandatory VB-187 implementation, documentation, or verification requirement remains. This closure does not make VB.Next 1.0 release-ready.
+
+### Explicit exclusion of additional implementation
+
+No replacement correction, no combined test, and no following slice is authorized by this acceptance.

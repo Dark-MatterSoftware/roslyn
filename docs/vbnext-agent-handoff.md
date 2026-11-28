@@ -2,6 +2,17 @@
 
 A starting point for a new agent conversation. It summarizes and points to the documents that hold the detail; read those before changing anything. Written on November 3, 2026, when development paused. This independent fork is not affiliated with, endorsed by, or supported by Microsoft.
 
+## Current status for VB-187 — November 27, 2026
+
+The status sections below are the November 3, 2026, record and are kept as written. They are not the current status of VB-187.
+
+On November 27, 2026, at 7:22 PM (UTC-6), the owner formally accepted slice 172a and closed VB-187. Disposition B is accepted. The assessment commit is `907a6383a5aa259cf229d203bf7ded0d6a1f3585`. The existing corrections are accepted and were not replaced:
+
+- VB-187a, invalid `Shared` in a `Module`: `24c4d6fb7ba1544ba9084b20af6383bcf95bdbb6`
+- VB-187b, generic invocation generation: `05cd8208345f03a94ef10ae5c2b4091ad6479c63`
+
+The November 3 statement that slice 172a is planned and not started, and that any fix needs a separate approval, is superseded for VB-187. Slice 171a (VB-186) was later committed as `c4ffca9d60c` and is Done; the "uncommitted" section below is the November 3 snapshot of that work. No further VB-187 implementation, test, or probe is required. The missing combined generic-method-in-a-`Module` test is optional and nonblocking. The historical 1,191-edit probe was not rerun. This note does not update unrelated features. The active repository is `D:\Development\VBNext\Repo` on `vbnext/main`. The working-rules path below is the November 3 path. The detail is `docs/vbnext-vb187-review.md`.
+
 ## What Vb.Next is
 
 A community fork of `dotnet/roslyn` that extends Visual Basic. The language version `vbnext` gates every new form; `default` and `latest` stay Visual Basic 17.13.

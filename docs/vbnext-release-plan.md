@@ -210,7 +210,7 @@ Not Preview 1 blockers, recorded as known limitations:
 
 - Edit and Continue in Visual Studio: the missing `IHotReloadComponentLoader` condition that [vbnext-wave34-validation.md](vbnext-wave34-validation.md#why-edit-and-continue-did-not-run) recorded for Visual Studio 18.12 is no longer observed in 18.13, which does not mean that all Hot Reload issues are resolved, one ordinary edit applied in DR-5B, and one edit of `_stages(^1)` to `_stages(^2)` applied in DR-5D, after which the Immediate window failed on `_stages(^1)`, an open defect ([vbnext-desktop-validation.md](vbnext-desktop-validation.md#visual-studio-debugging-and-edit-and-continue-dr-4-dr-5)); wave 34's rows 4 and 5, and other edits of Vb.Next forms, remain unvalidated.
 - The VSIX track as a whole.
-- VB-187 (slice 172a) and the other upstream defects listed apart in [vbnext-missing-features.md](vbnext-missing-features.md).
+- VB-187 (slice 172a) was a known limitation here on November 4, 2026. On November 27, 2026, it was formally closed: both defect mechanisms are addressed by the existing corrections `24c4d6fb7ba1544ba9084b20af6383bcf95bdbb6` and `05cd8208345f03a94ef10ae5c2b4091ad6479c63`, and it is not a Preview 1 blocker. The other upstream defects listed apart in [vbnext-missing-features.md](vbnext-missing-features.md) remain separate decisions. No fresh VB-187 probe was rerun. This closure does not make VB.Next 1.0 release-ready.
 - Introduce variable not offered on the operand of `^n` or `a..b` (slice 170b).
 - Linux and macOS.
 
@@ -258,7 +258,7 @@ Recorded on November 3, 2026. "Provisional" means the decision holds until the v
 | D6 | The Beta 1 package id is `VbNext.Compiler.Toolset`. | Provisional, to be checked for availability on nuget.org. |
 | D7 | The Preview ZIP is unsigned, with SHA-256 checksums. | Decided for previews; signing for Stable 1.0 stays open. |
 | D8 | A new, validated release commit is made later; it is not `c4ffca9d60c`. | Decided. An upstream sync, if any, lands on `main` first under the [branch policy](vbnext-roadmap.md#branch-policy). |
-| D9 | VB-187 (slice 172a) is deferred and is not a Preview 1 blocker. | Decided. |
+| D9 | VB-187 (slice 172a) is deferred and is not a Preview 1 blocker. | Decided on November 3, 2026. Superseded for feature status on November 27, 2026: formally closed by the existing corrections `24c4d6fb7ba1544ba9084b20af6383bcf95bdbb6` and `05cd8208345f03a94ef10ae5c2b4091ad6479c63`. It remains not a Preview 1 blocker. The November 3 deferral is the historical decision. No fresh executable verification was performed. |
 
 Recorded on November 4, 2026, after the clean-machine validation:
 
@@ -289,4 +289,4 @@ The dates move with the owner's decisions; no date is a commitment.
 - One task per session: one checklist item, or one gate.
 - A task names the files it reads and the one file it writes.
 - Validation runs record counts in a document and do not repeat the suites unless code changed.
-- New language work, waves, and phase 172a stay outside this plan unless the owner decides otherwise.
+- New language work and new waves stay outside this plan unless the owner decides otherwise. Phase 172a was formally closed on November 27, 2026, and is not release work.
