@@ -16,7 +16,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ''' <summary>
     ''' Represents a named type symbol whose members are declared in source.
     ''' </summary>
-    Friend MustInherit Class SourceMemberContainerTypeSymbol
+    Partial Friend MustInherit Class SourceMemberContainerTypeSymbol
         Inherits InstanceTypeSymbol
 
         ''' <summary>
@@ -1173,9 +1173,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 For Each sym In syms
                     sym.GetAttributes()
 
-                    ' Make a note of extension methods
+                    ' Make a note of extension methods and extension properties. Property accessors stay
+                    ' ordinary methods; the type-level ExtensionAttribute is what metadata readers require.
                     If Not haveExtensionMethods Then
-                        haveExtensionMethods = (sym.Kind = SymbolKind.Method AndAlso DirectCast(sym, MethodSymbol).IsExtensionMethod)
+                        If sym.Kind = SymbolKind.Method Then
+                            haveExtensionMethods = DirectCast(sym, MethodSymbol).IsExtensionMethod
+                        ElseIf sym.Kind = SymbolKind.Property Then
+                            haveExtensionMethods = DirectCast(sym, PropertySymbol).IsExtensionProperty
+                        End If
                     End If
 
                     cancellationToken.ThrowIfCancellationRequested()
@@ -1183,6 +1188,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Next
 
             If haveExtensionMethods Then
+                ' A property-only module has no attributed extension method, so the attribute heuristic
+                ' has not already recorded the type. Record it before the assertion reads the flag.
+                _lazyContainsExtensionMethods = ThreeState.True
                 Debug.Assert(Me.MightContainExtensionMethods)
 
                 m_containingModule.RecordPresenceOfExtensionMethods()
@@ -1270,6 +1278,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return (_flags And SourceTypeFlags.MustInherit) <> 0
             End Get
         End Property
+
+        Friend Overrides ReadOnly Property IsMetadataAbstract As Boolean
+            Get
+                ' C# recognizes extension grouping types only on a static class, which is abstract and sealed.
+                ' A Visual Basic module is sealed. A module that declares extension properties is also marked
+                ' abstract so those grouping types are visible to C# consumers. Other modules stay sealed only.
+                If TypeKind = TypeKind.Module AndAlso ContainsExtensionProperty() Then
+                    Return True
+                End If
+
+                Return MyBase.IsMetadataAbstract
+            End Get
+        End Property
+
+        Private Function ContainsExtensionProperty() As Boolean
+            For Each member In GetMembers()
+                Dim [property] = TryCast(member, PropertySymbol)
+                If [property] IsNot Nothing AndAlso [property].IsExtensionProperty Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
 
         Public Overrides ReadOnly Property IsNotInheritable As Boolean
             Get

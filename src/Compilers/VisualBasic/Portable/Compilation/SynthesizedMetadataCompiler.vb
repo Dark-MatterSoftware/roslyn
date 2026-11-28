@@ -47,6 +47,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides Sub VisitNamedType(symbol As NamedTypeSymbol)
             Me._cancellationToken.ThrowIfCancellationRequested()
 
+            ' Metadata-only emit does not compile method bodies, which is where the embedded
+            ' marker attribute is otherwise created. Create it before metadata indexing so the
+            ' constructor referenced by ExtensionMarkerAttribute is part of the image.
+            For Each member In symbol.GetMembers()
+                Dim propertySymbol = TryCast(member, PropertySymbol)
+                If propertySymbol IsNot Nothing AndAlso propertySymbol.IsExtensionProperty Then
+                    _moduleBeingBuilt.EnsureExtensionMarkerAttribute()
+                    Exit For
+                End If
+            Next
+
             For Each member In symbol.GetMembers()
                 Select Case member.Kind
                     Case SymbolKind.NamedType

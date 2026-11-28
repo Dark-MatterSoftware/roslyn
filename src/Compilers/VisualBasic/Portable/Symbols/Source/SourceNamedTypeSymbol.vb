@@ -2630,12 +2630,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private Function HasNonExtensionDefaultProperty() As Boolean
+            For Each member In GetMembers(DefaultPropertyName)
+                Dim [property] = TryCast(member, PropertySymbol)
+                If [property] IsNot Nothing AndAlso [property].IsDefault AndAlso Not [property].IsExtensionProperty Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
         Friend Overrides Sub AddSynthesizedAttributes(moduleBuilder As PEModuleBuilder, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData))
             MyBase.AddSynthesizedAttributes(moduleBuilder, attributes)
 
             Dim compilation = Me.DeclaringCompilation
 
-            If Not String.IsNullOrEmpty(DefaultPropertyName) AndAlso Not HasDefaultMemberAttribute() Then
+            ' An extension indexer is not a default member of the module. Its DefaultMemberAttribute
+            ' belongs on the grouping type, beside the property metadata that consumers read.
+            If Not String.IsNullOrEmpty(DefaultPropertyName) AndAlso Not HasDefaultMemberAttribute() AndAlso HasNonExtensionDefaultProperty() Then
                 Dim stringType = GetSpecialType(SpecialType.System_String)
                 ' NOTE: used from emit, so shouldn't have gotten here if there were errors
                 Debug.Assert(stringType.GetUseSiteInfo().DiagnosticInfo Is Nothing)

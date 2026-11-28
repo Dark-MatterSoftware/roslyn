@@ -1905,20 +1905,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Sub
 
         Friend Overrides Function GetSynthesizedNestedTypes() As IEnumerable(Of Microsoft.Cci.INestedTypeDefinition)
-            If _comClassData Is Nothing Then
+            Dim synthesized = ArrayBuilder(Of NamedTypeSymbol).GetInstance()
+            If _comClassData IsNot Nothing Then
+                synthesized.AddRange(_comClassData.GetSynthesizedInterfaces())
+            End If
+
+            synthesized.AddRange(GetExtensionGroupingTypes())
+            If synthesized.Count = 0 Then
+                synthesized.Free()
                 Return Nothing
             End If
 
-            Dim interfaces As ImmutableArray(Of NamedTypeSymbol) = _comClassData.GetSynthesizedInterfaces()
-
-            If interfaces.IsEmpty Then
-                Return Nothing
-            End If
-
+            Dim types = synthesized.ToImmutableAndFree()
 #If DEBUG Then
-            Return interfaces.Select(Function(i) i.GetCciAdapter())
+            Return types.Select(Function(nested) nested.GetCciAdapter())
 #Else
-            return interfaces.AsEnumerable()
+            Return types
 #End If
         End Function
 

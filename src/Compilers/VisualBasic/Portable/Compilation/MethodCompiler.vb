@@ -253,6 +253,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If Not nullableAttributes.IsEmpty Then
                     compiler.CompileSynthesizedMethods(nullableAttributes)
                 End If
+
+                Dim extensionMarker = moduleBeingBuiltOpt.EmbeddedExtensionMarkerAttribute
+                If extensionMarker IsNot Nothing Then
+                    compiler.CompileSynthesizedMethods(ImmutableArray.Create(extensionMarker))
+                End If
             End If
 
             If moduleBeingBuiltOpt IsNot Nothing Then
@@ -810,9 +815,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' Add synthetic methods created for this type in above calls to CompileMethod
             If _moduleBeingBuiltOpt IsNot Nothing Then
                 CompileSynthesizedMethods(compilationState)
+                CompileExtensionGroupingMethods(containingType)
             End If
 
             compilationState.Free()
+        End Sub
+
+        Private Sub CompileExtensionGroupingMethods(containingType As NamedTypeSymbol)
+            Dim groupings = containingType.GetExtensionGroupingTypes()
+            If groupings.IsEmpty Then
+                Return
+            End If
+
+            _moduleBeingBuiltOpt.EnsureExtensionMarkerAttribute()
+            Dim types = ArrayBuilder(Of NamedTypeSymbol).GetInstance()
+            For Each grouping In groupings
+                types.Add(grouping)
+                types.AddRange(grouping.GetTypeMembers())
+            Next
+
+            CompileSynthesizedMethods(types.ToImmutableAndFree())
         End Sub
 
         Private Sub CreateExplicitInterfaceImplementationStubs(compilationState As TypeCompilationState, method As MethodSymbol)

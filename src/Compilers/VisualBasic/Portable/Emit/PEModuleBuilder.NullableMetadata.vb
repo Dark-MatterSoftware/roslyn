@@ -23,11 +23,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Function
 
         Public Overrides Function GetEmbeddedTypes(diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
-            If _lazyNullableAttribute Is Nothing Then
+            If _lazyNullableAttribute Is Nothing AndAlso _lazyExtensionMarkerAttribute Is Nothing Then
                 Return ImmutableArray(Of NamedTypeSymbol).Empty
             End If
 
-            Return ImmutableArray.Create(Of NamedTypeSymbol)(_lazyNullableAttribute)
+            Dim builder = ArrayBuilder(Of NamedTypeSymbol).GetInstance()
+            If _lazyNullableAttribute IsNot Nothing Then
+                builder.Add(_lazyNullableAttribute)
+            End If
+
+            If _lazyExtensionMarkerAttribute IsNot Nothing Then
+                builder.Add(_lazyExtensionMarkerAttribute)
+            End If
+
+            Return builder.ToImmutableAndFree()
         End Function
 
         Friend Sub AddNullableMetadataAttribute(symbol As Symbol, ByRef attributes As ArrayBuilder(Of VisualBasicAttributeData), type As TypeSymbol, annotation As NullableAnnotation)
@@ -136,25 +145,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Function
 
         Private Function GetOrCreateNullableAttributeNamespace() As NamespaceSymbol
-            Dim result As NamespaceSymbol = SourceModule.GlobalNamespace
-            For Each partName In SynthesizedEmbeddedNullableAttributeSymbol.NamespaceName.Split("."c)
-                Dim subnamespace As NamespaceSymbol = Nothing
-                For Each member In result.GetMembers(partName)
-                    If member.Kind = SymbolKind.Namespace Then
-                        subnamespace = DirectCast(member, NamespaceSymbol)
-                        Exit For
-                    End If
-                Next
-
-                If subnamespace Is Nothing Then
-                    subnamespace = New SynthesizedNamespaceSymbol(result, partName)
-                    AddSynthesizedDefinition(result, subnamespace)
-                End If
-
-                result = subnamespace
-            Next
-
-            Return result
+            Return GetOrSynthesizeCompilerNamespace(SynthesizedEmbeddedNullableAttributeSymbol.NamespaceName)
         End Function
 
     End Class

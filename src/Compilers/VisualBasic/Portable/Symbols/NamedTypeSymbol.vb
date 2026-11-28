@@ -1117,6 +1117,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
+        ''' Extension grouping types emitted for instance extension properties declared in this container.
+        ''' Empty when the type has none. The types are metadata-only and are not source members.
+        ''' </summary>
+        Friend Overridable Function GetExtensionGroupingTypes() As ImmutableArray(Of NamedTypeSymbol)
+            Return ImmutableArray(Of NamedTypeSymbol).Empty
+        End Function
+
+        ''' <summary>
         ''' True if the type is a Windows runtime type.
         ''' </summary>
         ''' <remarks>
