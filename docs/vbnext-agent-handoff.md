@@ -23,9 +23,17 @@ The accepted results, not rerun for closure, are RED Visual Basic 13 discovered 
 
 A parameter or a field used as a loop control variable stays outside this closure. The preferred next step named at closure, a bounded assessment of those two cases, was not the assignment that followed. The November 3 "Next approved step" below is historical.
 
-## Current status for cross-assembly extension metadata — November 27, 2026
+## Current status for cross-assembly extension metadata — November 28, 2026
 
-**VB-039 cross-assembly extension-member metadata emission correction implemented and verified — pending formal owner acceptance.**
+**VB-039 cross-assembly extension-member metadata emission verification closeout complete — technically ready for formal owner acceptance, subject to documented limitations and owner decisions.**
+
+The owner authorized verification only. The retained pre-implementation compiler and the published compiler were compared. Fourteen static-accessor signature blobs match. An unchanged C# caller printed `!Hi2` against the historical producer and against the corrected producer. Modules that contain an extension property are abstract and sealed because C# requires a static class. Ordinary modules are unchanged. Accessor nullable annotations match the historical compiler, and the reduced public annotation remains `None`. A present `ExtensionMarkerAttribute` with an unusable constructor is omitted, while C# reports CS0656 and does not emit. Alternative B, a diagnostic for that contract, is recommended as a separate decision and was not implemented. Default `box(index)` through a metadata reference and the `CompilationReference` language-version discrepancy stay open. Formal acceptance is withheld. VB-039 is not closed. The detail is `docs/vbnext-extension-metadata-architecture.md`.
+
+The November 27 section below is the implementation record. Its pending-acceptance status is superseded by this closeout for verification status only. Formal acceptance remains withheld.
+
+## Implementation record for cross-assembly extension metadata — November 27, 2026
+
+**Implemented. Verification closeout is recorded above. Formal owner acceptance remains withheld.**
 
 The owner accepted the architecture assessment and approved Alternative A under existing VB-039. The implemented compiler emits grouping and marker metadata, a type-level `ExtensionAttribute` for a property-only module, `ExtensionMarkerAttribute` by the existing contract, and `DefaultMemberAttribute` for a parameterized extension property. The module property that included the receiver is no longer emitted. Static accessors stay. No new identifier, phase, slice, or wave was assigned. VB-039 is not closed.
 
@@ -39,7 +47,7 @@ The owner accepted the static assessment and authorized bounded executable verif
 
 Ordinary union construction and `Value` run on 17.13, default, latest, and vbnext. VB `IsUnion` stays false. Implicit and explicit union conversions and `Select Case` on the union are BC30311. Prohibited closed inheritance is BC37319 on 17.13, default, latest, and vbnext; permitted descendants run. Named C# extension members run on vbnext and are BC30456 on 17.13. Default extension access is BC30367 or BC30547. VB extension properties that work in one compilation are BC30456 from another assembly, including a non-indexed property, and C# does not bind them. Plain Shared interface members run against net11, net472, and net48 references; the net472 output ran on CLR 4.8. `Shared MustOverride` compiled against net472 and is static abstract, which C# rejects with CS8919. Nearest `Exit` and `Continue` behave as today's language. Partial default properties, index-from-end, expression-tree optional arguments, and an async entry point ran. net47 reference assemblies are not installed. Exact 4.7 runtime execution was not established.
 
-The first repair candidate, if later authorized, is cross-assembly VB extension metadata. Default lookup for C# extension indexers is separate. Native unions and named `Exit`/`Continue` stay unapproved design candidates. The IDE candidates listed in the static section below were not investigated.
+The cross-assembly extension sentences in this November 27 section are the record from before the VB-039 emission correction. The November 28 closeout section is the current extension-metadata status. Default lookup for C# extension indexers is separate. Native unions and named `Exit`/`Continue` stay unapproved design candidates. The IDE candidates listed in the static section below were not investigated.
 
 ## Static assessment record for C# 15 and .NET 11 — November 27, 2026
 
