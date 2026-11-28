@@ -2099,4 +2099,101 @@ public sealed class IntroduceParameterTests : AbstractCSharpCodeActionTest_NoEdi
                 }
             }
             """, index: 0);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_OrdinaryLocalIdentifier()
+        => TestMissingInRegularAndScriptAsync("""
+            class C
+            {
+                void M(int x)
+                {
+                    int local = x;
+                    int n = [|local|];
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_OrdinaryLocalIdentifierCaret()
+        => TestMissingInRegularAndScriptAsync("""
+            class C
+            {
+                void M(int x)
+                {
+                    int local = x;
+                    int n = lo[||]cal;
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_ForeachIterationVariable()
+        => TestMissingInRegularAndScriptAsync("""
+            class C
+            {
+                void M(int[] items)
+                {
+                    foreach (var item in items)
+                    {
+                        int n = [|item|];
+                    }
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_ForeachIterationVariableCaret()
+        => TestMissingInRegularAndScriptAsync("""
+            class C
+            {
+                void M(int[] items)
+                {
+                    foreach (var item in items)
+                    {
+                        int n = it[||]em;
+                    }
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_RangeVariableIdentifier()
+        => TestMissingInRegularAndScriptAsync("""
+            using System.Collections.Generic;
+            using System.Linq;
+            class C
+            {
+                IEnumerable<int> M(int[] items)
+                {
+                    return from item in items where [|item|] > 0 select item;
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_ContainingParameterIdentifierRemainsUnavailable()
+        => TestMissingInRegularAndScriptAsync("""
+            class C
+            {
+                void M(int value)
+                {
+                    int n = [|value|];
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestLocalSymbolEligibility_ParameterExpressionInsideForeachRemainsAvailable()
+        => TestActionCountAsync("""
+            class C
+            {
+                void M(int x, int[] items)
+                {
+                    foreach (var item in items)
+                    {
+                        int n = [|x + 1|];
+                    }
+                }
+            }
+            """, 6);
 }

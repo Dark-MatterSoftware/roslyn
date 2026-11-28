@@ -265,7 +265,7 @@ internal abstract partial class AbstractIntroduceParameterCodeRefactoringProvide
     private static async Task<(bool shouldDisplay, bool containsClassExpression)> ShouldExpressionDisplayCodeActionAsync(
         Document document, TExpressionSyntax expression, CancellationToken cancellationToken)
     {
-        var variablesInExpression = expression.DescendantNodes();
+        var variablesInExpression = expression.DescendantNodesAndSelf();
         var semanticModel = await document.GetRequiredSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         foreach (var variable in variablesInExpression)
         {

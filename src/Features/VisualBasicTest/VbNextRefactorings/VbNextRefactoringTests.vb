@@ -367,6 +367,182 @@ End Class"),
     End Function
 End Class")
         End Function
+
+        Private Shared Function InLanguageVersion(version As String, code As String) As String
+            Return "<Workspace><Project Language=""Visual Basic"" CommonReferences=""true"" LanguageVersion=""" & version & """><Document><![CDATA[" & code & "]]></Document></Project></Workspace>"
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_OrdinaryLocalIdentifier() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Class C
+    Sub M(x As Integer)
+        Dim local = x
+        Dim n = [|local|]
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_OrdinaryLocalIdentifierCaret() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Class C
+    Sub M(x As Integer)
+        Dim local = x
+        Dim n = lo[||]cal
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ForEachControlVariable17_13() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of Integer))
+        For Each item In items
+            Dim n = [|item|]
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ForEachControlVariableCaret17_13() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of Integer))
+        For Each item In items
+            Dim n = it[||]em
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ExplicitlyTypedForEachControlVariable() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of Integer))
+        For Each item As Integer In items
+            Dim n = [|item|]
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ForEachControlVariableDefaultLanguageVersion() As Task
+            Await TestMissingAsync(InLanguageVersion("default",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of Integer))
+        For Each item In items
+            Dim n = [|item|]
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ForEachControlVariableLatestLanguageVersion() As Task
+            Await TestMissingAsync(InLanguageVersion("latest",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of Integer))
+        For Each item In items
+            Dim n = [|item|]
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ShadowedForEachControlVariable() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of Integer))
+        Dim item = 0
+        For Each item In items
+            Dim n = [|item|]
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ForEachDeconstructionLocal() As Task
+            Await TestMissingAsync(InVbNext(
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(items As IEnumerable(Of (Integer, String)))
+        For Each (size, state) In items
+            Dim n = [|size|]
+        Next
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_AwaitEachDeconstructionLocal() As Task
+            Await TestMissingAsync(InVbNext(
+"Imports System.Collections.Generic
+Imports System.Threading.Tasks
+
+Class C
+    Async Function M(items As IAsyncEnumerable(Of (Integer, String))) As Task
+        Await Each (size, state) In items
+            Dim n = [|size|]
+        Next
+    End Function
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_RangeVariableIdentifier() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Imports System.Collections.Generic
+
+Class C
+    Function M(items As IEnumerable(Of Integer)) As IEnumerable(Of Integer)
+        Return From item In items Where [|item|] > 0
+    End Function
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ContainingParameterIdentifierRemainsUnavailable() As Task
+            Await TestMissingAsync(InLanguageVersion("17.13",
+"Class C
+    Sub M(value As Integer)
+        Dim n = [|value|]
+    End Sub
+End Class"))
+        End Function
+
+        <Fact>
+        Public Async Function TestLocalSymbolEligibility_ParameterExpressionInsideForEachRemainsAvailable() As Task
+            Await TestActionCountAsync(InLanguageVersion("17.13",
+"Imports System.Collections.Generic
+
+Class C
+    Sub M(x As Integer, items As IEnumerable(Of Integer))
+        For Each item In items
+            Dim n = [|x + 1|]
+        Next
+    End Sub
+End Class"), 6)
+        End Function
     End Class
 
     Public NotInheritable Class VbNextIntroduceVariableTests
