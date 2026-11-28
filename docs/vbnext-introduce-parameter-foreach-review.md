@@ -1,10 +1,12 @@
-# Introduce Parameter on a For Each control variable — assessment
+# Introduce Parameter on a For Each control variable
 
-Assessment complete pending owner review. No correction was implemented. The candidate stays unassigned. This note does not assign a feature identifier, phase, slice, or wave, and it does not reopen VB-030 or VB-187.
+**Implementation complete and verified within authorized scope — pending formal owner acceptance.**
+
+The owner accepted disposition A and authorized the bounded shared eligibility correction. Sections 1–20 are the accepted assessment record and describe the repository as it was before that correction. Section 21 records the correction, the executable verification, and the remaining limitations. The candidate stays unassigned. This note does not assign a feature identifier, phase, slice, or wave, and it does not close the defect or reopen VB-030 or VB-187.
 
 The canonical mission is [vbnext-mission.md](vbnext-mission.md). This note does not restate it.
 
-Evidence labels: a static finding is something this assessment read in current source. A historical result is taken from a named earlier artifact and was not re-run. Nothing in this note was executed against the compiler or the IDE.
+In sections 1–20, a static finding is something the assessment read in source, and a historical result is taken from a named earlier artifact. Those sections were written before this correction was built or tested. Section 21 separates that historical record from the RED, GREEN, and suite runs executed for the correction.
 
 ## 1. Assignment authorization
 
@@ -61,7 +63,7 @@ Two related historical rows are not counted as this defect:
 
 ## 4. Current source status
 
-The defect remains. No commit after the probe changes the eligibility walk that missed these names.
+At the time of the assessment, the defect remained. No commit after the probe had changed the eligibility walk that missed these names. Section 21 records the later correction of that walk.
 
 `ShouldExpressionDisplayCodeActionAsync` still takes `expression.DescendantNodes()` and returns no actions when `GetSymbolInfo` yields `ILocalSymbol` or `IRangeVariableSymbol`. The blame for that walk is `4262648cadff` (Cyrus Najmabadi, 2024-02-27), an ancestor of this branch. The local-symbol rejection itself comes from `7c814a8896ca` (Ankita Khera, 2021). This assessment did not fetch `dotnet/roslyn` and does not claim that repository's current text.
 
@@ -255,3 +257,47 @@ The assessment supports desktop and server IDE correctness. It leaves Visual Bas
 2. If accepted, authorize the bounded correction and its tests, including the shared C# test. That authorization is not given here.
 3. Decide whether the correction, once authorized, receives a feature identifier. This assessment recommends not inventing one until that decision.
 4. Leave VB-030 and VB-187 closed.
+
+## 21. Authorized correction and verification
+
+The owner accepted disposition A and authorized alternative B: include the selected expression in the existing shared eligibility analysis. The production change is one call in `ShouldExpressionDisplayCodeActionAsync`:
+
+`expression.DescendantNodes()` became `expression.DescendantNodesAndSelf()`.
+
+`GetSymbolInfo` still rejects `ILocalSymbol` and `IRangeVariableSymbol`, including a selected identifier that has no child nodes. A compound expression that already contained such a symbol is still rejected through its descendants. A parameter of the containing method is still rejected earlier in `ComputeRefactoringsAsync`, before this walk. No `For Each` special case, language-version gate, compiler change, or other `DescendantNodes()` call was added. `MapExpressionToParametersAsync` was not changed.
+
+The correction was verified on Debug `net472` with `dotnet test -m:1 -p:UseSharedCompilation=false`. The `net10.0-windows` test target was not executed. A targeted restore of each unit-test project was required because no `project.assets.json` existed for them. Package caches were left in place.
+
+RED, with the new tests compiled and the production source unchanged, offered all six nested actions for a bare local. That is an expected assertion failure, not a build or discovery failure.
+
+| Run | Filter | Result | xUnit time |
+| --- | --- | --- | --- |
+| Visual Basic RED | `FullyQualifiedName~TestLocalSymbolEligibility` | 13 discovered, 2 passed, 11 failed, 0 skipped | 21.2486 s |
+| C# RED | same | 7 discovered, 2 passed, 5 failed, 0 skipped | 29.8629 s |
+| Visual Basic GREEN | same | 13 passed, 0 failed, 0 skipped | 10.3978 s |
+| C# GREEN | same | 7 passed, 0 failed, 0 skipped | 23.4929 s |
+| Visual Basic suite | `FullyQualifiedName~IntroduceParameter` | 69 passed, 0 failed, 0 skipped | 43.8100 s |
+| C# suite | same | 82 passed, 0 failed, 0 skipped | 33.2695 s |
+
+The 11 Visual Basic and 5 C# RED failures are `TestMissing` failures whose message lists the six nested actions. The two tests that passed on RED in each language are the preservation cases: a parameter of the containing method stays unavailable, and `x + 1` inside a loop still offers six actions. Those are not defect reproductions. An existing rule already rejects the parameter. The arithmetic expression does not select a local.
+
+GREEN covers a Visual Basic 17.13 implicit `For Each` control variable, the same selection with the caret inside the identifier, an explicitly typed `For Each` control variable, `default` and `latest`, a `vbnext` `For Each` deconstruction local, a `vbnext` `Await Each` deconstruction local, an ordinary local and its caret, a shadowed `For Each` name, and a query range variable. The C# tests cover an ordinary local, a `foreach` iteration variable, both as a span and as a caret, and a query range variable. `default` and `latest` were executed, not only inferred. No `vbnext` gate was added.
+
+The suites reran `TestExpressionCaseWithLocal`, the literal and parameter-expression rewrites, `TestInModuleTrampolineHasNoShared`, `TestInModuleOverloadHasNoShared`, and the generic-method tests, including `TestGenericMethodTrampolineCallSitePreservesTypeArguments` and `TestGenericMethodOverloadPreservesTypeParameters`. VB-187a and VB-187b were not modified.
+
+Fresh Debug `netstandard2.0` provenance, copied into the `net472` test output and confirmed by equal hashes:
+
+| Assembly | When | Bytes | SHA-256 |
+| --- | --- | --- | --- |
+| `Microsoft.CodeAnalysis.Features.dll` | RED, production unchanged | 7,220,224 | `A607A2D046B4A04B719C6FDB999E4D5AF4C2A1CB6556A974ECD3FE455B98CBA4` |
+| `Microsoft.CodeAnalysis.Features.dll` | after the correction | 7,220,224 | `3CB3E1F0BAC1548F424441D30F3B29A8CD2DB55025222FDF4E8B598345522423` |
+
+The Visual Basic compiler, Workspaces, and Visual Basic Features assemblies kept the same hashes across that correction. The historical Release `net10.0` compiler record, commit `5fe4bcd873a37433ae512da60adbc80a1cd6eb13`, size 6,553,600, SHA-256 `3DBDC692E7D1F8FA3E0EBBF6643561E04A8FD0042285938FA6E33E75A952AB70`, is not this run. The historical Features hash remains the malformed value recorded at that closure and is not treated as current provenance.
+
+The preserved probe's 54 `For Each` rows, 12 `Await Each` rows, and 3 ordinary-local rows were not rerun. The correction addresses the eligibility walk those rows exercised. It does not claim that all 69 rows, or the 1,089 Introduce Parameter breaking rows, were executed again. `For Each order In orders` remains unrecovered testimony.
+
+Still outside this correction: a parameter or a field used as a loop control variable, mutation and evaluation-frequency analysis, unqualified call-site expressions, anonymous types or delegates typed as `Object`, `Global.` tuple conversion, and Introduce Variable all-occurrences. Passing the local-symbol tests does not fix those.
+
+The change is ordinary IDE correctness. It advances desktop and server tooling, leaves Visual Basic culture and existing compiled applications unchanged, adds no syntax or framework dependency, and does not alter 17.13, `default`, or `latest` compiler semantics. Valid Introduce Parameter actions remain available. The shared provider changed by one call. UnisonCore is untouched. No mission amendment was made.
+
+Formal closure, a permanent feature identifier, and Wave 37 remain owner decisions. VB-030 stays closed at `c5b21efac74b4f9785ed3b0c93e3ed290d9e2007`. VB-187 stays closed at `388db4fd03419bc8b4c8548d4043c66e053abbcf`.

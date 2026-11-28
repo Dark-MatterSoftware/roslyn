@@ -13,13 +13,15 @@ On November 27, 2026, at 7:22 PM (UTC-6), the owner formally accepted slice 172a
 
 The November 3 statement that slice 172a is planned and not started, and that any fix needs a separate approval, is superseded for VB-187. Slice 171a (VB-186) was later committed as `c4ffca9d60c` and is Done; the "uncommitted" section below is the November 3 snapshot of that work. No further VB-187 implementation, test, or probe is required. The missing combined generic-method-in-a-`Module` test is optional and nonblocking. The historical 1,191-edit probe was not rerun. This note does not update unrelated features. The active repository is `D:\Development\VBNext\Repo` on `vbnext/main`. The working-rules path below is the November 3 path. The detail is `docs/vbnext-vb187-review.md`.
 
-## Current status for the For Each Introduce Parameter assessment — November 27, 2026
+## Current status for the Introduce Parameter local-symbol correction — November 27, 2026
 
-Assessment complete pending owner review. No feature identifier, phase, slice, or wave was assigned. No correction was implemented. The candidate stays unassigned under "Not part of wave 36" in `docs/vbnext-missing-features.md`.
+**Implementation complete and verified within authorized scope — pending formal owner acceptance.**
 
-The recommended disposition is a bounded corrective implementation, not yet authorized: the shared Introduce Parameter eligibility walk omits the selected expression itself, so a `For Each` control-variable identifier is offered and copied to call sites where it is not declared. Confidence is established from current source and the preserved wave 35 probe. The detail is `docs/vbnext-introduce-parameter-foreach-review.md`.
+The owner accepted disposition A. The shared eligibility walk in `ShouldExpressionDisplayCodeActionAsync` now uses `DescendantNodesAndSelf()`, so a selected local or range-variable identifier is examined by the existing `ILocalSymbol` and `IRangeVariableSymbol` rejection. No feature identifier, phase, slice, or wave was assigned. The candidate stays unassigned under "Not part of wave 36" in `docs/vbnext-missing-features.md` and is not formally closed.
 
-The November 3 "Next approved step" below is historical. It is not authorization to implement this candidate, to reopen VB-187, or to start another slice.
+Focused RED tests reproduced the defect on unchanged production source. The same tests passed after the correction. The Visual Basic Introduce Parameter suite passed 69 tests and the C# suite passed 82, both on Debug `net472`, including `TestExpressionCaseWithLocal` and the VB-187a and VB-187b regressions. The detail is `docs/vbnext-introduce-parameter-foreach-review.md`.
+
+A parameter or a field used as a loop control variable was not corrected. VB-030 and VB-187 remain closed. The November 3 "Next approved step" below is historical. It is not authorization to start another slice.
 
 ## What Vb.Next is
 
