@@ -281,20 +281,175 @@ End Module
         End Sub
 
         <Fact>
-        Public Sub ExtensionProperty_CompilationReference_BindsWithoutVbNextGate()
-            ' Preserved discrepancy. A compilation reference binds the extension property when the
-            ' language version is 17.13. A PE reference does not. This is not accepted as permanent policy.
+        Public Sub ExtensionProperty_CompilationReference_RejectedBelowVbNext()
+            ' Replaces ExtensionProperty_CompilationReference_BindsWithoutVbNextGate.
+            ' That test expected a 17.13 compilation reference to bind Marker. The owner accepted
+            ' that result as a defect. Legacy consumers now reject the property through every reference kind.
             Dim producer = ExtensionProducer()
-            Dim consumer = CreateCompilation("
+            Dim implementation = producer.EmitToImageReference()
+            Dim metadataOnly = MetadataReference.CreateFromImage(producer.EmitToArray(options:=New EmitOptions(metadataOnly:=True)))
+            For Each parseOptions In LegacyParseOptions()
+                For Each reference In {producer.ToMetadataReference(), implementation, metadataOnly}
+                    Dim consumer = CreateMarkerConsumer(reference, parseOptions)
+                    Assert.Equal(LanguageVersion.VisualBasic17_13, consumer.LanguageVersion)
+                    consumer.VerifyDiagnostics(
+                        Diagnostic(ERRID.ERR_NameNotMember2, "box.Marker").WithArguments("Marker", "Box").WithLocation(5, 22))
+                    Dim access = consumer.SyntaxTrees.Single().GetRoot().DescendantNodes().OfType(Of Syntax.MemberAccessExpressionSyntax)().Single()
+                    Dim info = consumer.GetSemanticModel(consumer.SyntaxTrees.Single()).GetSymbolInfo(access)
+                    Assert.Null(info.Symbol)
+                    Assert.Empty(info.CandidateSymbols)
+                Next
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_VbNext_BindsAcrossReferenceKinds()
+            Dim producer = ExtensionProducer()
+            Dim implementation = producer.EmitToImageReference()
+            Dim metadataOnly = MetadataReference.CreateFromImage(producer.EmitToArray(options:=New EmitOptions(metadataOnly:=True)))
+            For Each reference In {producer.ToMetadataReference(), implementation, metadataOnly}
+                Dim consumer = CreateMarkerConsumer(reference, VbNext)
+                Assert.Equal(LanguageVersion.VbNext, consumer.LanguageVersion)
+                consumer.VerifyDiagnostics()
+                AssertMarkerSymbol(consumer, producer.AssemblyName)
+            Next
+
+            Dim same = CreateCompilation(ExtensionProducerSource() & "
 Module Program
     Sub Main()
         Dim box As New Box()
         Dim marker = box.Marker
     End Sub
 End Module
-", references:={producer.ToMetadataReference()}, parseOptions:=Vb17_13)
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            same.VerifyDiagnostics()
+            AssertMarkerSymbol(same, same.AssemblyName)
+        End Sub
 
-            consumer.AssertNoDiagnostics()
+        <Fact>
+        Public Sub ExtensionProperty_LegacyCompilationReference_RejectsRepresentativeForms()
+            Dim producer = FormsProducer()
+            Dim consumer = CreateCompilation(FormsConsumerSource(), references:={producer.ToMetadataReference()}, parseOptions:=Vb17_13)
+            Assert.Equal(LanguageVersion.VisualBasic17_13, consumer.LanguageVersion)
+            AssertRejectedForms(consumer)
+            AssertBoundName(consumer, "InstanceName")
+            AssertBoundName(consumer, "WordCount")
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_DefaultAndLatestCompilationReference_RejectRepresentativeForms()
+            For Each parseOptions In {VisualBasicParseOptions.Default, New VisualBasicParseOptions(LanguageVersion.Latest)}
+                Dim producer = FormsProducer()
+                Dim consumer = CreateCompilation(FormsConsumerSource(), references:={producer.ToMetadataReference()}, parseOptions:=parseOptions)
+                Assert.Equal(LanguageVersion.VisualBasic17_13, consumer.LanguageVersion)
+                AssertRejectedForms(consumer)
+                AssertBoundName(consumer, "WordCount")
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_VbNextCompilationReference_BindsRepresentativeForms()
+            Dim producer = FormsProducer()
+            Dim consumer = CreateCompilation(FormsConsumerSource(), references:={producer.ToMetadataReference()}, options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            consumer.VerifyDiagnostics()
+            For Each name In {"Marker", "Sink", "ValueText", "Item", "Initial", "Doubled", "FirstOrZero", "InstanceName", "WordCount"}
+                AssertBoundName(consumer, name)
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_Friend_VbNextBindsAcrossReferenceKinds()
+            Dim producer = FriendProducer()
+            Dim implementation = producer.EmitToImageReference()
+            Dim metadataOnly = MetadataReference.CreateFromImage(producer.EmitToArray(options:=New EmitOptions(metadataOnly:=True)))
+            For Each reference In {producer.ToMetadataReference(), implementation, metadataOnly}
+                Dim consumer = CreateFriendConsumer(reference, VbNext, "FriendConsumer")
+                consumer.VerifyDiagnostics()
+                Dim hidden = BoundProperty(consumer, "Hidden")
+                Assert.Equal(Accessibility.Friend, hidden.DeclaredAccessibility)
+                Assert.Equal(Accessibility.Friend, hidden.GetMethod.DeclaredAccessibility)
+                Assert.Equal(producer.AssemblyName, hidden.ContainingAssembly.Name)
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_Friend_LegacyCompilationReferenceRejectsExtensionProperty()
+            Dim producer = FriendProducer()
+            For Each parseOptions In LegacyParseOptions()
+                Dim consumer = CreateFriendConsumer(producer.ToMetadataReference(), parseOptions, "FriendConsumer")
+                Assert.Equal(LanguageVersion.VisualBasic17_13, consumer.LanguageVersion)
+                consumer.VerifyDiagnostics(
+                    Diagnostic(ERRID.ERR_NameNotMember2, "box.Shown").WithArguments("Shown", "Box").WithLocation(5, 21),
+                    Diagnostic(ERRID.ERR_NameNotMember2, "box.Hidden").WithArguments("Hidden", "Box").WithLocation(6, 22))
+                AssertBoundName(consumer, "Secret")
+                AssertBoundName(consumer, "FriendWord")
+                Dim access = MemberAccess(consumer, "Hidden")
+                Dim info = consumer.GetSemanticModel(consumer.SyntaxTrees.Single()).GetSymbolInfo(access)
+                Assert.Null(info.Symbol)
+                Assert.Empty(info.CandidateSymbols)
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_Friend_UnauthorizedCompilationReferenceIsRejected()
+            Dim producer = FriendProducer()
+            For Each assemblyName In {"OtherConsumer", "FriendCompilationConsumer"}
+                Dim consumer = CreateFriendConsumer(producer.ToMetadataReference(), VbNext, assemblyName)
+                Dim errors = consumer.GetDiagnostics().Where(Function(diagnostic) diagnostic.Severity = DiagnosticSeverity.Error).Select(Function(diagnostic) diagnostic.Id).ToArray()
+                Assert.Contains("BC30389", errors)
+                Assert.Contains("BC30390", errors)
+                Assert.Null(consumer.GetSemanticModel(consumer.SyntaxTrees.Single()).GetSymbolInfo(MemberAccess(consumer, "Hidden")).Symbol)
+                AssertBoundName(consumer, "Shown")
+            Next
+        End Sub
+
+        <Fact>
+        Public Sub ExtensionProperty_RetargetedReference_FollowsConsumerLanguageVersion()
+            Dim lib1 = CreateCompilation("
+<Assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")>
+Public Class Box
+    Public Value As String
+End Class
+", assemblyName:="Lib", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            Dim lib2 = CreateCompilation("
+<Assembly: System.Reflection.AssemblyVersion(""1.0.1.0"")>
+Public Class Box
+    Public Value As String
+End Class
+", assemblyName:="Lib", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            Dim producer = CreateCompilation("
+Public Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Marker As String
+            Get
+                Return box.Value
+            End Get
+        End Property
+    End Extension
+    <System.Runtime.CompilerServices.Extension>
+    Public Function WordCount(s As String) As Integer
+        Return s.Length
+    End Function
+End Module
+", references:={lib1.EmitToImageReference()}, assemblyName:="RetargetProducer", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+            producer.VerifyDiagnostics()
+
+            Dim legacy = CreateRetargetConsumer(producer, lib2, Vb17_13)
+            Assert.Equal(LanguageVersion.VisualBasic17_13, legacy.LanguageVersion)
+            legacy.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_NameNotMember2, "box.Marker").WithArguments("Marker", "Box").WithLocation(5, 22))
+            AssertBoundName(legacy, "WordCount")
+
+            Dim current = CreateRetargetConsumer(producer, lib2, VbNext)
+            current.VerifyDiagnostics()
+            Dim marker = BoundProperty(current, "Marker")
+            Dim reducedFrom = marker.GetType().GetProperty("ReducedFrom", BindingFlags.Instance Or BindingFlags.Public Or BindingFlags.NonPublic).GetValue(marker)
+            Assert.Contains("RetargetingPropertySymbol", reducedFrom.GetType().Name)
+            Dim receiver = marker.GetType().GetProperty("ReceiverType", BindingFlags.Instance Or BindingFlags.Public Or BindingFlags.NonPublic).GetValue(marker)
+            Dim receiverType = DirectCast(receiver, ITypeSymbol)
+            Assert.Equal("Lib", receiverType.ContainingAssembly.Name)
+            Assert.Equal(New Version(1, 0, 1, 0), receiverType.ContainingAssembly.Identity.Version)
+            Assert.Equal(Accessibility.Public, marker.GetMethod.DeclaredAccessibility)
         End Sub
 
         <Fact>
@@ -577,6 +732,242 @@ End Module
             End Using
 
             Return False
+        End Function
+
+        Private Shared Function LegacyParseOptions() As IEnumerable(Of VisualBasicParseOptions)
+            Return {
+                New VisualBasicParseOptions(LanguageVersion.VisualBasic17_13),
+                VisualBasicParseOptions.Default,
+                New VisualBasicParseOptions(LanguageVersion.Latest)
+            }
+        End Function
+
+        Private Shared Function ExtensionProducerSource() As String
+            Return "
+Public Class Box
+    Public Value As String
+End Class
+Public Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Marker As String
+            Get
+                Return ""!""
+            End Get
+        End Property
+        Public ReadOnly Property Item(index As Integer) As Char
+            Get
+                Return box.Value(index)
+            End Get
+        End Property
+    End Extension
+    <System.Runtime.CompilerServices.Extension>
+    Public Function WordCount(s As String) As Integer
+        Return s.Length
+    End Function
+End Module
+"
+        End Function
+
+        Private Function CreateMarkerConsumer(reference As MetadataReference, parseOptions As VisualBasicParseOptions) As VisualBasicCompilation
+            Return CreateCompilation("
+Module Program
+    Sub Main()
+        Dim box As New Box()
+        Dim marker = box.Marker
+    End Sub
+End Module
+", references:={reference}, parseOptions:=parseOptions)
+        End Function
+
+        Private Sub AssertMarkerSymbol(compilation As VisualBasicCompilation, assemblyName As String)
+            Dim marker = BoundProperty(compilation, "Marker")
+            Assert.Equal("Marker", marker.Name)
+            Assert.Equal(Accessibility.Public, marker.DeclaredAccessibility)
+            Assert.Equal(Accessibility.Public, marker.GetMethod.DeclaredAccessibility)
+            Assert.Null(marker.SetMethod)
+            Assert.Equal(assemblyName, marker.ContainingAssembly.Name)
+            Dim info = compilation.GetSemanticModel(compilation.SyntaxTrees.Single()).GetTypeInfo(MemberAccess(compilation, "Marker"))
+            Assert.Equal(SpecialType.System_String, info.Type.SpecialType)
+        End Sub
+
+        Private Shared Function FormsProducer() As VisualBasicCompilation
+            Return CreateCompilation("
+Public Class Box
+    Public InstanceName As String
+    Public Value As String
+End Class
+Public Interface IText
+    Function Text() As String
+End Interface
+Public Class NamedText
+    Implements IText
+    Public Function Text() As String Implements IText.Text
+        Return ""cat""
+    End Function
+End Class
+Public Structure Pair
+    Public N As Integer
+End Structure
+Public Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Marker As String
+            Get
+                Return ""!""
+            End Get
+        End Property
+        Public WriteOnly Property Sink As String
+            Set(value As String)
+                box.Value = value
+            End Set
+        End Property
+        Public Property ValueText As String
+            Get
+                Return box.Value
+            End Get
+            Set(value As String)
+                box.Value = value
+            End Set
+        End Property
+        Public ReadOnly Property Item(index As Integer) As Char
+            Get
+                Return box.Value(index)
+            End Get
+        End Property
+    End Extension
+    Extension(text As IText)
+        Public ReadOnly Property Initial As Char
+            Get
+                Return text.Text()(0)
+            End Get
+        End Property
+    End Extension
+    Extension(pair As Pair)
+        Public ReadOnly Property Doubled As Integer
+            Get
+                Return pair.N * 2
+            End Get
+        End Property
+    End Extension
+    Extension(items As System.Collections.Generic.List(Of Integer))
+        Public ReadOnly Property FirstOrZero As Integer
+            Get
+                Return If(items.Count = 0, 0, items(0))
+            End Get
+        End Property
+    End Extension
+    <System.Runtime.CompilerServices.Extension>
+    Public Function WordCount(s As String) As Integer
+        Return s.Length
+    End Function
+End Module
+", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+        End Function
+
+        Private Shared Function FormsConsumerSource() As String
+            Return "
+Module Program
+    Sub Main()
+        Dim box As New Box()
+        box.Value = ""hi""
+        Dim name = box.InstanceName
+        Dim marker = box.Marker
+        box.Sink = ""H""
+        Dim value = box.ValueText
+        Dim item = box.Item(0)
+        Dim text As IText = New NamedText()
+        Dim initial = text.Initial
+        Dim pair As Pair
+        Dim doubled = pair.Doubled
+        Dim items As New System.Collections.Generic.List(Of Integer)()
+        Dim first = items.FirstOrZero
+        Dim count = ""ab"".WordCount()
+    End Sub
+End Module
+"
+        End Function
+
+        Private Sub AssertRejectedForms(compilation As VisualBasicCompilation)
+            Dim tree = compilation.SyntaxTrees.Single()
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim rejected = {"Marker", "Sink", "ValueText", "Item", "Initial", "Doubled", "FirstOrZero"}
+            For Each name In rejected
+                Dim info = model.GetSymbolInfo(MemberAccess(compilation, name))
+                Assert.Null(info.Symbol)
+                Assert.Empty(info.CandidateSymbols)
+            Next
+
+            Dim errors = compilation.GetDiagnostics().Where(Function(diagnostic) diagnostic.Severity = DiagnosticSeverity.Error).ToArray()
+            Assert.Equal(rejected.Length, errors.Length)
+            Assert.All(errors, Sub(diagnostic) Assert.Equal("BC30456", diagnostic.Id))
+        End Sub
+
+        Private Function FriendProducer() As VisualBasicCompilation
+            Return CreateCompilation("
+<Assembly: System.Runtime.CompilerServices.InternalsVisibleTo(""FriendConsumer"")>
+Public Class Box
+End Class
+Public Module BoxExtensions
+    Extension(box As Box)
+        Public ReadOnly Property Shown As Integer
+            Get
+                Return 1
+            End Get
+        End Property
+        Friend ReadOnly Property Hidden As Integer
+            Get
+                Return 2
+            End Get
+        End Property
+    End Extension
+    Friend Function Secret() As Integer
+        Return 4
+    End Function
+    <System.Runtime.CompilerServices.Extension>
+    Friend Function FriendWord(box As Box) As String
+        Return ""f""
+    End Function
+End Module
+", assemblyName:="FriendProducer", options:=TestOptions.ReleaseDll, parseOptions:=VbNext)
+        End Function
+
+        Private Function CreateFriendConsumer(reference As MetadataReference, parseOptions As VisualBasicParseOptions, assemblyName As String) As VisualBasicCompilation
+            Return CreateCompilation("
+Module Program
+    Sub Main()
+        Dim box As New Box()
+        Dim shown = box.Shown
+        Dim hidden = box.Hidden
+        Dim secret = BoxExtensions.Secret()
+        Dim friendWord = box.FriendWord()
+    End Sub
+End Module
+", references:={reference}, assemblyName:=assemblyName, parseOptions:=parseOptions)
+        End Function
+
+        Private Function CreateRetargetConsumer(producer As VisualBasicCompilation, lib2 As VisualBasicCompilation, parseOptions As VisualBasicParseOptions) As VisualBasicCompilation
+            Return CreateCompilation("
+Module Program
+    Sub Main()
+        Dim box As New Box()
+        Dim marker = box.Marker
+        Dim count = ""ab"".WordCount()
+    End Sub
+End Module
+", references:={lib2.EmitToImageReference(), producer.ToMetadataReference()}, assemblyName:="RetargetConsumer", parseOptions:=parseOptions)
+        End Function
+
+        Private Shared Function MemberAccess(compilation As VisualBasicCompilation, name As String) As Syntax.MemberAccessExpressionSyntax
+            Return compilation.SyntaxTrees.Single().GetRoot().DescendantNodes().OfType(Of Syntax.MemberAccessExpressionSyntax)().Single(Function(access) access.Name.Identifier.ValueText = name)
+        End Function
+
+        Private Shared Sub AssertBoundName(compilation As VisualBasicCompilation, name As String)
+            Dim info = compilation.GetSemanticModel(compilation.SyntaxTrees.Single()).GetSymbolInfo(MemberAccess(compilation, name))
+            Assert.NotNull(info.Symbol)
+            Assert.Equal(name, info.Symbol.Name)
+        End Sub
+
+        Private Shared Function BoundProperty(compilation As VisualBasicCompilation, name As String) As IPropertySymbol
+            Return DirectCast(compilation.GetSemanticModel(compilation.SyntaxTrees.Single()).GetSymbolInfo(MemberAccess(compilation, name)).Symbol, IPropertySymbol)
         End Function
 
         Private Shared Function ExtensionProducer() As VisualBasicCompilation

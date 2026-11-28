@@ -1459,8 +1459,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Continue For
                         End If
 
-                        ' C# 14 extension properties are read on vbnext.
-                        If TypeOf candidate Is Symbols.Metadata.PE.PEExtensionPropertySymbol AndAlso binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
+                        ' Extension properties are read only when the consumer opts into vbnext.
+                        ' The check is independent of whether the candidate is a source, retargeted, or PE symbol.
+                        If binder.Compilation.LanguageVersion < LanguageVersion.VbNext Then
                             Continue For
                         End If
 
