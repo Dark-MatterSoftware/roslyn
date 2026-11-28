@@ -25,15 +25,25 @@ A parameter or a field used as a loop control variable stays outside this closur
 
 ## Current status for cross-assembly extension metadata — November 28, 2026
 
-**VB-039 cross-assembly extension-member metadata emission verification closeout complete — technically ready for formal owner acceptance, subject to documented limitations and owner decisions.**
+**The VB-039 cross-assembly extension metadata emission correction is formally owner-accepted with its documented limitations. Alternative B is approved for an unusable ExtensionMarkerAttribute and is not yet implemented. VB-039 remains open.**
 
-The owner authorized verification only. The retained pre-implementation compiler and the published compiler were compared. Fourteen static-accessor signature blobs match. An unchanged C# caller printed `!Hi2` against the historical producer and against the corrected producer. Modules that contain an extension property are abstract and sealed because C# requires a static class. Ordinary modules are unchanged. Accessor nullable annotations match the historical compiler, and the reduced public annotation remains `None`. A present `ExtensionMarkerAttribute` with an unusable constructor is omitted, while C# reports CS0656 and does not emit. Alternative B, a diagnostic for that contract, is recommended as a separate decision and was not implemented. Default `box(index)` through a metadata reference and the `CompilationReference` language-version discrepancy stay open. Formal acceptance is withheld. VB-039 is not closed. The detail is `docs/vbnext-extension-metadata-architecture.md`.
+The owner accepted implementation `c9a6e26f4fe5fac8e104985069eb417a41c9827e` and verification closeout `05d3c91fbe647f2752f5f17433824b4f2e696b41`. Alternative A remains the approved architecture. Accepted results include the 14 matching accessor signatures, the unchanged caller output `!Hi2`, extension-method compatibility, the reflection-visible metadata change, abstract and sealed modules that contain extension properties, deterministic grouping names, class-receiver retargeting, authorized friend PE and metadata-only access, preserved nullable accessor metadata, reference assemblies, older-framework compilation, and 17.13 PE rejection. The separate regression runs were 274 passes, zero failures, and one skip.
 
-The November 27 section below is the implementation record. Its pending-acceptance status is superseded by this closeout for verification status only. Formal acceptance remains withheld.
+Accepted limitations remain: previously emitted libraries need recompilation, the caller is a constructed C# fixture, retargeting coverage is the class receiver, the reduced nullable annotation is `None`, and exact 4.7 runtime execution was not established. Default PE `box(index)`, the `CompilationReference` language-version discrepancy, the `CompilationReference` friend diagnostic, and a second C# indexer in one grouping stay open.
+
+Alternative B requires an error when an existing `ExtensionMarkerAttribute` cannot supply the required constructor. A missing attribute still embeds. A valid definition is used and is not replaced. That correction is authorized and awaits implementation. The detail is `docs/vbnext-extension-metadata-architecture.md`.
+
+The verification closeout section below is the verification record. Its statement that formal acceptance was withheld is superseded by this acceptance. The November 27 section remains the implementation record.
+
+## Verification closeout for cross-assembly extension metadata — November 28, 2026
+
+**Verification record. Formal acceptance is recorded in the current status section above.**
+
+The retained pre-implementation compiler and the published compiler were compared. Fourteen static-accessor signature blobs match. An unchanged C# caller printed `!Hi2` against both producers. Modules that contain an extension property are abstract and sealed. Ordinary modules stay sealed. Accessor nullable annotations match, and the reduced public annotation remains `None`. A present `ExtensionMarkerAttribute` with an unusable constructor was omitted, while C# reports CS0656 and does not emit. That omission is the defect Alternative B now authorizes correcting.
 
 ## Implementation record for cross-assembly extension metadata — November 27, 2026
 
-**Implemented. Verification closeout is recorded above. Formal owner acceptance remains withheld.**
+**Implementation record. Formal acceptance is recorded in the current status section above.**
 
 The owner accepted the architecture assessment and approved Alternative A under existing VB-039. The implemented compiler emits grouping and marker metadata, a type-level `ExtensionAttribute` for a property-only module, `ExtensionMarkerAttribute` by the existing contract, and `DefaultMemberAttribute` for a parameterized extension property. The module property that included the receiver is no longer emitted. Static accessors stay. No new identifier, phase, slice, or wave was assigned. VB-039 is not closed.
 

@@ -75,7 +75,7 @@ Previously emitted VB.Next extension libraries need to be recompiled before anot
 
 ## Verification closeout
 
-The owner authorized a verification closeout and withheld formal acceptance. The closeout is complete and the correction is technically ready for formal owner acceptance, subject to the documented limitations and the owner decisions below. That readiness is not acceptance. VB-039 is not closed. No production compiler change and no permanent test change were made.
+The owner authorized a verification closeout and withheld formal acceptance until that closeout finished. The closeout is recorded below. Formal acceptance follows in the next section. VB-039 is not closed. No production compiler change and no permanent test change were made.
 
 The retained pre-implementation compiler was used. Fourteen static-accessor signature blobs, including the nullable accessors, match the corrected compiler. A C# caller compiled against the historical producer was not recompiled. It printed `!Hi2` and exited 0 against the historical producer and again after only the producer assembly was replaced. A historical Visual Basic caller of `get_Marker` is BC30456 because the method is a module-property accessor. The corrected compiler accepts that source because the module property is gone. That is a reflection-visible change, and previously emitted VB.Next extension libraries still need recompilation.
 
@@ -85,7 +85,7 @@ A `CompilationReference` retargets the reduced property to `RetargetingPropertyS
 
 Imported static-accessor nullable annotations match the historical compiler. The reduced public property annotation remains `None`. That is a pre-existing reduced-symbol result. VB-030 stays closed. Grouping suffixes use FNV-1a rather than the C# xxHash spelling. Consumers recognize the grouping prefixes and the marker attribute. Repeated emission was deterministic. Several named parameterized properties can share a grouping. `DefaultMemberAttribute` selects one C# indexer. VB named access binds the others. Default VB `box(index)` through a metadata reference remains BC30367.
 
-A present `ExtensionMarkerAttribute` with an unusable constructor is omitted, the assembly emits, and the consumer reports BC30456. C# reports CS0656 and does not emit. The recommended policy is a later diagnostic when the required constructor is unusable. That change is not part of this correction and needs a separate owner decision. Extension syntax and PE consumption of the new properties stay rejected on 17.13, default, and latest. A `CompilationReference` on those versions still binds.
+A present `ExtensionMarkerAttribute` with an unusable constructor is omitted, the assembly emits, and the consumer reports BC30456. C# reports CS0656 and does not emit. Extension syntax and PE consumption of the new properties stay rejected on 17.13, default, and latest. A `CompilationReference` on those versions still binds.
 
 `ExtensionPropertyTests` passed 15 tests, of which 9 were added by the implementation. `ExtensionMethodTests` passed 37. Additional targeted suites passed and are recorded separately. The emit test project built for net472 and those tests were not executed. Exact net47 compilation remains the earlier result for package 1.0.3. A 4.7 CLR run is not claimed.
 
@@ -97,3 +97,17 @@ The closeout evidence is under `D:\Development\VBNext\Evidence\LanguageCompletio
 - `VBNEXT-EXTENSION-METADATA-CONTRACT-AND-NULLABLE-ASSESSMENT.md`
 - `VBNEXT-EXTENSION-METADATA-REGRESSION-COVERAGE-MATRIX.md`
 - `VBNEXT-EXTENSION-METADATA-FINAL-OWNER-DECISION-MATRIX.md`
+
+## Formal acceptance
+
+The owner formally accepts the cross-assembly metadata emission correction, including the documented limitations. Alternative A remains the approved metadata architecture. This acceptance is the emission correction only. VB-039 is not closed.
+
+Accepted implementation: `c9a6e26f4fe5fac8e104985069eb417a41c9827e`. Architecture acceptance: `04e586aae619f0e75f34dfc15bbdd77be2294f42`. Verification closeout: `05d3c91fbe647f2752f5f17433824b4f2e696b41`.
+
+Accepted evidence includes the 14 matching static-accessor signature blobs, the unchanged C# caller that printed `!Hi2` against both producers, extension-method compatibility, the reflection-visible replacement of the receiver-bearing module property, the abstract and sealed flag for modules that contain extension properties, deterministic FNV grouping names, class-receiver retargeting to `RetargetingPropertySymbol`, authorized friend access through PE and metadata-only references, preserved nullable accessor metadata, reference-assembly metadata, older-framework compilation, and 17.13 PE rejection. The reported regression runs were 274 passing tests, zero failures, and one skip, counted as separate suites.
+
+Accepted limitations: previously emitted VB.Next extension libraries must be recompiled. The compiled caller is a constructed C# fixture. Retargeting coverage is the demonstrated class receiver. The reduced public nullable annotation remains `None`. Exact .NET Framework 4.7 runtime execution was not established. Permanent coverage is still absent for authorized friend access, retargeting, multiple parameterized properties, the reduced nullable projection, and mixed-module flags.
+
+The owner separately approves Alternative B. When emission requires `ExtensionMarkerAttribute` and an existing definition cannot supply the required constructor, the compiler must report an error, must not emit an undiscoverable extension member, and must not embed a replacement definition. That correction is authorized and is not part of this acceptance. A missing attribute still embeds. A valid framework or referenced attribute is used and is not embedded again.
+
+These candidates stay open: default PE `box(index)`, the `CompilationReference` language-version discrepancy, the `CompilationReference` friend diagnostic difference, C# consumption of a second parameterized property in one grouping, and the reduced nullable projection.
