@@ -25,9 +25,11 @@ A parameter or a field used as a loop control variable stays outside this closur
 
 ## Current status for cross-assembly extension metadata — November 27, 2026
 
-**Cross-assembly extension-member metadata architecture assessment complete — pending owner implementation decision.**
+**Architecture assessment accepted. Alternative A approved under VB-039. Production correction pending verification and owner acceptance.**
 
-The owner accepted the C# 15 executable assessment as the working compatibility record and authorized an architecture investigation of VB extension properties and indexers. The detail is `docs/vbnext-extension-metadata-architecture.md`. No compiler change was made. VB-039 remains the identifier. No new identifier, phase, slice, or wave was assigned. Default `receiver(index)` lookup for a metadata reference stays a separate decision. Extension methods still cross an assembly boundary. Production implementation remains unauthorized.
+The owner accepted the architecture assessment and approved Alternative A under existing VB-039. The authorized work is type-level `ExtensionAttribute` for a property-only module, interoperable grouping and marker metadata, `ExtensionMarkerAttribute` by the existing compiler contract, `DefaultMemberAttribute` for a parameterized extension property, and replacement of the module property whose parameter list includes the receiver. Static accessor signatures stay. No new identifier, phase, slice, or wave is assigned. Default `box(index)` lookup through a metadata reference and the `CompilationReference` language-version discrepancy stay separate. VB-030, VB-187, and the Introduce Parameter closure stay closed. The detail is `docs/vbnext-extension-metadata-architecture.md`.
+
+The paragraph above is the authorization. It is not a claim that the correction has succeeded.
 
 ## Current status for the C# 15 and .NET 11 verification — November 27, 2026
 

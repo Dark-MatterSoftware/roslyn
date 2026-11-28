@@ -1,8 +1,8 @@
 # Cross-assembly extension property and indexer metadata
 
-**Status: Cross-assembly extension-member metadata architecture assessment complete — pending owner implementation decision.**
+**Status: Architecture assessment accepted. Alternative A is approved under VB-039. The production correction is not owner-accepted.**
 
-This is an architecture record. It does not authorize a compiler change, a new feature identifier, a phase, a slice, or a wave. The canonical mission is unchanged. VB-030, VB-187, and the Introduce Parameter closure stay closed.
+The owner accepted this assessment, including its findings, uncertainties, and verification limitations, and approved Alternative A under the existing VB-039 feature. No new feature identifier, phase, slice, or wave is authorized. The canonical mission is unchanged. VB-030, VB-187, and the Introduce Parameter closure stay closed. Wave 37 stays unopened.
 
 The executable C# 15 assessment remains the working compatibility record. This note covers one gap from that record: a Visual Basic extension property or indexer that works in the compilation that declares it is not visible to another assembly.
 
@@ -36,4 +36,23 @@ The evidence is under `D:\Development\VBNext\Evidence\LanguageCompletion\`:
 - `VBNEXT-EXTENSION-METADATA-IMPLEMENTATION-PROPOSAL.md`
 - `VBNEXT-EXTENSION-METADATA-OWNER-DECISION-MATRIX.md`
 
-Implementation remains unauthorized.
+## Owner decisions
+
+| Decision | Disposition |
+| --- | --- |
+| Architecture assessment | Accepted |
+| Alternative A | Approved |
+| Feature identifier | Existing VB-039. No new identifier |
+| Static accessor signatures | Preserve |
+| Module property that includes the receiver | Replace. No duplicate public property |
+| Emitter | Visual Basic-specific. No shared C# refactoring |
+| Named extension-property lookup | Not changed by this authorization |
+| Default `box(index)` through a metadata reference | Separate correction. Not authorized |
+| `CompilationReference` language-version discrepancy | Separate correction candidate. Not authorized |
+| Exact net47 reference package | Bounded restore of `Microsoft.NETFramework.ReferenceAssemblies.net47` 1.0.3 |
+| Generic extension-block authoring | Outside scope |
+| Nullable regression coverage | Required. VB-030 stays closed |
+| Wave 37 | Unopened |
+| Canonical mission | Unchanged |
+
+Acceptance of the assessment does not establish that the production correction has succeeded. The implementation and verification record follows this authorization.
