@@ -35,6 +35,12 @@ Alternative B is formally accepted. An existing `ExtensionMarkerAttribute` that 
 
 The CompilationReference language-version correction is formally accepted. Alternative A is permanent. `LookupForExtensionProperties` skips every extension-property candidate when the consumer language version is below `vbnext`. Explicit 17.13, default, and latest reject that binding through a compilation reference, an implementation reference, and a metadata-only reference. Explicit `vbnext` still binds. Default and latest stay on 17.13. The historical friend BC30389 stays out of the defect inventory. Implementation `ed1bf941010ae22278ad0c0e01f69e4fe7abaed1`. Verification `1ffbc4306e889463ba5b71c67ef96ce6e1675e34`. Accepted evidence is 5 failing-before tests and 4 passes, then 9 passes, and separate suites of 34, 37, and 8 passes. Those suites are 79 passes, zero failures, and zero skips. The nine focused tests are inside the 34. Accepted limitations are no 4.7 CLR run, a net472 build without test execution, no execution of metadata-only images, no Visual Studio session, a representative metadata comparison, and the unresolved reduced nullable annotation `None`. Default PE `box(index)`, a second parameterized property in one grouping, and remaining regression coverage stay open. The detail is `docs/vbnext-extension-compilationreference-assessment.md`.
 
+## Current status for default extension-indexer lookup — November 28, 2026
+
+**The default extension-indexer lookup assessment is complete and awaiting owner review. No production change was made. VB-039 remains open.**
+
+Named PE access binds. Default `box(0)` through an implementation or metadata-only reference is BC30367 with no candidate. An interface variable is BC30547 even in the same compilation. A 17.13 compilation reference rejects the name and still binds `box(0)`. The recommended correction adds reconstructed PE properties to default collection, calls that lookup from the interface path, and applies the accepted language-version check. It is not authorized. The write-only reduced-parameter loss is separate. The detail is `docs/vbnext-extension-default-indexer-assessment.md`.
+
 The verification closeout section below is the verification record. Its statement that formal acceptance was withheld is superseded by this acceptance. The November 27 section remains the implementation record.
 
 ## Verification closeout for cross-assembly extension metadata — November 28, 2026
