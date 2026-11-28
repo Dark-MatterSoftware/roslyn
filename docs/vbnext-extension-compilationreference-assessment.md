@@ -29,3 +29,7 @@ No accessibility correction is proposed. A future test should use the friend ass
 Direct `CSharpCompilationReference` is rejected by a Visual Basic compilation, and direct `VisualBasicCompilationReference` is rejected by a C# compilation. Cross-language use stays on the PE path. Nullable encoding and retargeting were not changed. `RetargetingPropertySymbol.IsExtensionProperty` forwards to the underlying property, and that symbol is not a `PEExtensionPropertySymbol`, so the recommended lookup check covers it. The two-assembly retargeting fixture was not run again. Default `box(index)`, multiple parameterized properties, and the reduced nullable annotation `None` stay open and were not corrected.
 
 The evidence is `D:\Development\VBNext\Evidence\LanguageCompletion\ExtensionCompilationReferenceAssessment\`.
+
+## Formal acceptance
+
+The owner accepts this assessment at `ad46b749abc2bbf1457c825df4f1246a04206928` and approves Alternative A. The consumer language-version check in `LookupForExtensionProperties` must not depend on `PEExtensionPropertySymbol`. Legacy consumers reject the new binding through every tested reference kind. Explicit `vbnext` still binds. The friend BC30389 result is a fixture mismatch and is not a compiler defect. Accessibility behavior stays as it is. The test that expected ungated compilation-reference binding is authorized to change. This acceptance does not implement the correction, and VB-039 stays open.
